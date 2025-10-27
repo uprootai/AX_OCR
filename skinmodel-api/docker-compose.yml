@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  skinmodel-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skinmodel-api
+    ports:
+      - "5003:5003"
+    volumes:
+      - ../dev/skinmodel:/app/skinmodel:ro    # Skin Model 소스 코드 (읽기 전용)
+      - ./data:/tmp/skinmodel/data            # 데이터 파일
+      - ./output:/tmp/skinmodel/output        # 출력 파일
+    environment:
+      - SKINMODEL_PORT=5003
+      - SKINMODEL_WORKERS=2
+      - SKINMODEL_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: ax_poc_network
+    external: false

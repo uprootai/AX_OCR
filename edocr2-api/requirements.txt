@@ -1,0 +1,16 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+aiofiles==23.2.1
+pillow==10.1.0
+numpy==1.24.3
+
+# Note: Full eDOCr2 dependencies will be loaded from mounted volume
+# Current: Lightweight API server for POC demonstration
+# To enable full OCR: uncomment below and rebuild
+# opencv-python==4.8.1.78
+# tensorflow==2.15.0
+# keras==2.15.0
+# pytesseract==0.3.10
+# pdf2image==1.16.3

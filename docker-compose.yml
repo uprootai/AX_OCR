@@ -1,0 +1,146 @@
+version: '3.8'
+
+# AX 실증산단 - 마이크로서비스 API 시스템
+# 전체 시스템 통합 Docker Compose
+
+services:
+  # =====================
+  # eDOCr2 API (포트 5001)
+  # =====================
+  edocr2-api:
+    build:
+      context: ./edocr2-api
+      dockerfile: Dockerfile
+    container_name: edocr2-api
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./dev/edocr2/edocr2:/app/edocr2:ro
+      - ./dev/edocr2/models:/models:ro
+      - ./edocr2-api/uploads:/tmp/edocr2/uploads
+      - ./edocr2-api/results:/tmp/edocr2/results
+    environment:
+      - EDOCR2_PORT=5001
+      - EDOCR2_WORKERS=4
+      - EDOCR2_MODEL_PATH=/models
+      - EDOCR2_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =====================
+  # EDGNet API (포트 5002)
+  # =====================
+  edgnet-api:
+    build:
+      context: ./edgnet-api
+      dockerfile: Dockerfile
+    container_name: edgnet-api
+    ports:
+      - "5012:5002"
+    volumes:
+      - ./dev/edgnet:/app/edgnet:ro
+      - ./dev/test_results/sample_tests/graphsage_models:/models:ro
+      - ./edgnet-api/uploads:/tmp/edgnet/uploads
+      - ./edgnet-api/results:/tmp/edgnet/results
+    environment:
+      - EDGNET_PORT=5002
+      - EDGNET_WORKERS=2
+      - EDGNET_MODEL_PATH=/models/graphsage_dimension_classifier.pth
+      - EDGNET_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =====================
+  # Skin Model API (포트 5003)
+  # =====================
+  skinmodel-api:
+    build:
+      context: ./skinmodel-api
+      dockerfile: Dockerfile
+    container_name: skinmodel-api
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./dev/skinmodel:/app/skinmodel:ro
+      - ./skinmodel-api/data:/tmp/skinmodel/data
+      - ./skinmodel-api/output:/tmp/skinmodel/output
+    environment:
+      - SKINMODEL_PORT=5003
+      - SKINMODEL_WORKERS=2
+      - SKINMODEL_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =====================
+  # Gateway API (포트 8000)
+  # =====================
+  gateway-api:
+    build:
+      context: ./gateway-api
+      dockerfile: Dockerfile
+    container_name: gateway-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./gateway-api/uploads:/tmp/gateway/uploads
+      - ./gateway-api/results:/tmp/gateway/results
+    environment:
+      - GATEWAY_PORT=8000
+      - GATEWAY_WORKERS=4
+      - EDOCR2_URL=http://edocr2-api:5001
+      - EDGNET_URL=http://edgnet-api:5002
+      - SKINMODEL_URL=http://skinmodel-api:5003
+      - GATEWAY_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    depends_on:
+      - edocr2-api
+      - edgnet-api
+      - skinmodel-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  ax_poc_network:
+    name: ax_poc_network
+    driver: bridge
+
+volumes:
+  edocr2_uploads:
+  edocr2_results:
+  edgnet_uploads:
+  edgnet_results:
+  skinmodel_data:
+  skinmodel_output:
+  gateway_uploads:
+  gateway_results:

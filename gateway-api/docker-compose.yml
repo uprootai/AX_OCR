@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  gateway-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gateway-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/tmp/gateway/uploads
+      - ./results:/tmp/gateway/results
+    environment:
+      - GATEWAY_PORT=8000
+      - GATEWAY_WORKERS=4
+      - EDOCR2_URL=http://edocr2-api:5001
+      - EDGNET_URL=http://edgnet-api:5002
+      - SKINMODEL_URL=http://skinmodel-api:5003
+      - GATEWAY_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    depends_on:
+      - edocr2-api
+      - edgnet-api
+      - skinmodel-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: ax_poc_network
+    external: true

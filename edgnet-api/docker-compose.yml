@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  edgnet-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edgnet-api
+    ports:
+      - "5002:5002"
+    volumes:
+      - ../dev/edgnet:/app/edgnet:ro          # EDGNet 소스 코드 (읽기 전용)
+      - ../dev/test_results/sample_tests/graphsage_models:/models:ro  # GraphSAGE 모델
+      - ./uploads:/tmp/edgnet/uploads         # 업로드 파일
+      - ./results:/tmp/edgnet/results         # 결과 파일
+    environment:
+      - EDGNET_PORT=5002
+      - EDGNET_WORKERS=2
+      - EDGNET_MODEL_PATH=/models/graphsage_dimension_classifier.pth
+      - EDGNET_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: ax_poc_network
+    external: false

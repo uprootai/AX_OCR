@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  edocr2-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edocr2-api
+    ports:
+      - "5001:5001"
+    volumes:
+      - ../dev/edocr2/edocr2:/app/edocr2:ro  # eDOCr2 소스 코드 (읽기 전용)
+      - ../dev/edocr2/models:/models:ro      # 사전 훈련된 모델 (읽기 전용)
+      - ./uploads:/tmp/edocr2/uploads        # 업로드 파일
+      - ./results:/tmp/edocr2/results        # 결과 파일
+    environment:
+      - EDOCR2_PORT=5001
+      - EDOCR2_WORKERS=4
+      - EDOCR2_MODEL_PATH=/models
+      - EDOCR2_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: ax_poc_network
+    external: false
