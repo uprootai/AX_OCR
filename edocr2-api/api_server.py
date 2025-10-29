@@ -77,6 +77,7 @@ class OCRRequest(BaseModel):
     extract_gdt: bool = Field(True, description="GD&T 정보 추출 여부")
     extract_text: bool = Field(True, description="텍스트 정보 추출 여부")
     use_vl_model: bool = Field(False, description="Vision Language 모델 사용 여부 (GPT-4o/Qwen2-VL)")
+    visualize: bool = Field(False, description="시각화 이미지 생성 여부")
 
 
 class DimensionData(BaseModel):
@@ -123,7 +124,8 @@ def process_ocr(
     extract_dimensions: bool = True,
     extract_gdt: bool = True,
     extract_text: bool = True,
-    use_vl_model: bool = False
+    use_vl_model: bool = False,
+    visualize: bool = False
 ) -> Dict[str, Any]:
     """
     OCR 처리 로직 (실제 eDOCr2 연동)
@@ -192,6 +194,12 @@ def process_ocr(
                 "notes": ["M20 (4 places)", "Top & ø17.5 Drill, thru."]
             }
 
+        # Add visualization URL if requested
+        if visualize:
+            # TODO: Generate actual visualization image
+            # For now, return a placeholder URL
+            result["visualization_url"] = f"/api/v1/visualization/{file_path.name}"
+
         return result
 
     except Exception as e:
@@ -246,7 +254,8 @@ async def process_drawing(
     extract_dimensions: bool = Form(True, description="치수 정보 추출"),
     extract_gdt: bool = Form(True, description="GD&T 정보 추출"),
     extract_text: bool = Form(True, description="텍스트 정보 추출"),
-    use_vl_model: bool = Form(False, description="Vision Language 모델 사용")
+    use_vl_model: bool = Form(False, description="Vision Language 모델 사용"),
+    visualize: bool = Form(False, description="시각화 이미지 생성")
 ):
     """
     도면 OCR 처리
@@ -256,6 +265,7 @@ async def process_drawing(
     - **extract_gdt**: GD&T 정보 추출 여부
     - **extract_text**: 텍스트 정보 추출 여부
     - **use_vl_model**: Vision Language 모델 사용 여부 (느리지만 정확)
+    - **visualize**: 시각화 이미지 생성 여부
     """
     start_time = time.time()
 
@@ -293,7 +303,8 @@ async def process_drawing(
             extract_dimensions=extract_dimensions,
             extract_gdt=extract_gdt,
             extract_text=extract_text,
-            use_vl_model=use_vl_model
+            use_vl_model=use_vl_model,
+            visualize=visualize
         )
 
         processing_time = time.time() - start_time

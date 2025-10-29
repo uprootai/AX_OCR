@@ -15,6 +15,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+import io
 
 import httpx
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
@@ -22,6 +23,8 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
+import fitz  # PyMuPDF
+from PIL import Image
 
 # Logging setup
 logging.basicConfig(
@@ -113,6 +116,49 @@ async def check_service_health(url: str, service_name: str) -> str:
     except Exception as e:
         logger.warning(f"{service_name} health check failed: {e}")
         return f"unreachable ({str(e)})"
+
+
+def pdf_to_image(pdf_bytes: bytes, dpi: int = 150) -> bytes:
+    """
+    PDF의 첫 페이지를 PNG 이미지로 변환
+
+    Args:
+        pdf_bytes: PDF 파일의 바이트 데이터
+        dpi: 이미지 해상도 (기본 150)
+
+    Returns:
+        PNG 이미지의 바이트 데이터
+    """
+    try:
+        logger.info(f"Converting PDF to image (DPI={dpi})")
+
+        # PDF 열기
+        pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+        # 첫 페이지 가져오기
+        page = pdf_document[0]
+
+        # 이미지로 렌더링 (DPI 설정)
+        zoom = dpi / 72  # 72 DPI가 기본값
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat)
+
+        # PIL Image로 변환
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+        # PNG로 저장
+        img_byte_arr = io.BytesIO()
+        img.save(img_byte_arr, format='PNG')
+        img_byte_arr.seek(0)
+
+        pdf_document.close()
+
+        logger.info(f"PDF converted to image: {pix.width}x{pix.height}px")
+        return img_byte_arr.getvalue()
+
+    except Exception as e:
+        logger.error(f"PDF to image conversion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"PDF conversion error: {str(e)}")
 
 
 async def call_edgnet_segment(file_bytes: bytes, filename: str, visualize: bool = True) -> Dict[str, Any]:
@@ -362,11 +408,23 @@ async def process_drawing(
     }
 
     try:
+        # PDF 파일인지 확인
+        is_pdf = file.filename.lower().endswith('.pdf')
+
+        # 세그멘테이션을 위한 파일 준비 (PDF는 이미지로 변환)
+        segmentation_bytes = file_bytes
+        segmentation_filename = file.filename
+        if use_segmentation and is_pdf:
+            logger.info(f"PDF detected, converting to image for segmentation: {file.filename}")
+            segmentation_bytes = pdf_to_image(file_bytes)
+            # Change extension to .png for converted PDF
+            segmentation_filename = file.filename.rsplit('.', 1)[0] + '.png'
+
         # 병렬 처리 (세그멘테이션 + OCR)
         tasks = []
 
         if use_segmentation:
-            tasks.append(call_edgnet_segment(file_bytes, file.filename, visualize))
+            tasks.append(call_edgnet_segment(segmentation_bytes, segmentation_filename, visualize))
 
         if use_ocr:
             tasks.append(call_edocr2_ocr(file_bytes, file.filename))

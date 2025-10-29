@@ -42,10 +42,26 @@ venv.bak/
 **/results/*
 **/output/*
 **/data/*
+test_samples/
 !**/uploads/.gitkeep
 !**/results/.gitkeep
 !**/output/.gitkeep
 !**/data/.gitkeep
+
+# ML Models (large files - should not be in git)
+**/models/*.keras
+**/models/*.h5
+**/models/*.pb
+**/models/*.onnx
+**/models/*.pth
+**/models/*.pt
+**/models/*.weights
+*.keras
+*.h5
+*.pb
+*.onnx
+*.pth
+*.pt
 
 # Docker
 *.tar
@@ -59,3 +75,4 @@ Thumbs.db
 *.tmp
 *.bak
 *.swp
+*.backup

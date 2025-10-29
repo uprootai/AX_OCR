@@ -1,0 +1,26 @@
+# API Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+aiofiles==23.2.1
+
+# eDOCr v1 dependencies (from eDOCr/requirements.txt)
+numpy<2.0  # imgaug compatibility
+opencv-python
+tensorflow>=2.0.0,<2.16  # Keras 2.x compatibility for .h5 models
+Pillow
+shapely
+anytree
+scikit-image
+scikit-learn
+tqdm
+validators
+essential_generators
+imgaug
+fonttools
+editdistance
+pyclipper
+efficientnet==1.0.0
+pytest
+pdf2image
