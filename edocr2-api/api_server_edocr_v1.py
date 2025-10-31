@@ -62,10 +62,11 @@ def transform_edocr_to_ui_format(dimension_dict, gdt_dict, infoblock_dict):
     for dim in dimension_dict:
         try:
             pred = dim.get('pred', {})
-            bbox = dim.get('bbox', [[0, 0]])
+            # eDOCr v1 uses 'box' not 'bbox'
+            bbox = dim.get('box', dim.get('bbox', [[0, 0]]))
 
-            # Extract text and parse value
-            text = str(pred.get('text', '0'))
+            # eDOCr v1 uses 'value' or 'nominal', not 'text'
+            text = str(pred.get('value', pred.get('nominal', '0')))
 
             # Determine dimension type based on text patterns
             dim_type = 'linear'
@@ -83,18 +84,28 @@ def transform_edocr_to_ui_format(dimension_dict, gdt_dict, infoblock_dict):
             if '+' in text or '±' in text:
                 tolerance = text[text.find('+'):] if '+' in text else text[text.find('±'):]
 
-            # Get location from bbox (use first point)
-            location = {
-                'x': int(bbox[0][0]) if len(bbox) > 0 and len(bbox[0]) > 0 else 0,
-                'y': int(bbox[0][1]) if len(bbox) > 0 and len(bbox[0]) > 1 else 0
-            }
+            # Calculate bounding box dimensions
+            bbox_info = {}
+            if bbox and len(bbox) >= 4:
+                x_coords = [pt[0] for pt in bbox if len(pt) >= 2]
+                y_coords = [pt[1] for pt in bbox if len(pt) >= 2]
+                if x_coords and y_coords:
+                    bbox_info = {
+                        'x': int(min(x_coords)),
+                        'y': int(min(y_coords)),
+                        'width': int(max(x_coords) - min(x_coords)),
+                        'height': int(max(y_coords) - min(y_coords))
+                    }
+
+            if not bbox_info:
+                bbox_info = {'x': 0, 'y': 0, 'width': 0, 'height': 0}
 
             ui_dimensions.append({
                 'type': dim_type,
                 'value': value,
                 'unit': 'mm',  # Default unit for engineering drawings
                 'tolerance': tolerance,
-                'location': location
+                'bbox': bbox_info
             })
         except Exception as e:
             logger.warning(f"Failed to transform dimension: {e}")
@@ -105,9 +116,11 @@ def transform_edocr_to_ui_format(dimension_dict, gdt_dict, infoblock_dict):
     for gdt in gdt_dict:
         try:
             pred = gdt.get('pred', {})
-            bbox = gdt.get('bbox', [[0, 0]])
+            # eDOCr v1 uses 'box' not 'bbox'
+            bbox = gdt.get('box', gdt.get('bbox', [[0, 0]]))
 
-            text = str(pred.get('text', ''))
+            # eDOCr v1 uses 'value' or 'nominal', not 'text'
+            text = str(pred.get('value', pred.get('nominal', '')))
 
             # Extract GD&T type (first symbol)
             gdt_type = text[0] if text else 'unknown'
@@ -120,16 +133,27 @@ def transform_edocr_to_ui_format(dimension_dict, gdt_dict, infoblock_dict):
             datum_match = re.search(r'[A-Z]', text[1:]) if len(text) > 1 else None
             datum = datum_match.group() if datum_match else None
 
-            location = {
-                'x': int(bbox[0][0]) if len(bbox) > 0 and len(bbox[0]) > 0 else 0,
-                'y': int(bbox[0][1]) if len(bbox) > 0 and len(bbox[0]) > 1 else 0
-            }
+            # Calculate bounding box dimensions
+            bbox_info = {}
+            if bbox and len(bbox) >= 4:
+                x_coords = [pt[0] for pt in bbox if len(pt) >= 2]
+                y_coords = [pt[1] for pt in bbox if len(pt) >= 2]
+                if x_coords and y_coords:
+                    bbox_info = {
+                        'x': int(min(x_coords)),
+                        'y': int(min(y_coords)),
+                        'width': int(max(x_coords) - min(x_coords)),
+                        'height': int(max(y_coords) - min(y_coords))
+                    }
+
+            if not bbox_info:
+                bbox_info = {'x': 0, 'y': 0, 'width': 0, 'height': 0}
 
             ui_gdt.append({
                 'type': gdt_type,
                 'value': value,
                 'datum': datum,
-                'location': location
+                'bbox': bbox_info
             })
         except Exception as e:
             logger.warning(f"Failed to transform GD&T: {e}")
@@ -233,6 +257,26 @@ alphabet_gdts = string.digits + ',.⌀ABCD' + GDT_symbols
 async def load_models():
     """Load eDOCr v1 models on startup"""
     global model_infoblock, model_dimensions, model_gdts
+
+    # Configure GPU memory growth
+    try:
+        import tensorflow as tf
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            for gpu in gpus:
+                # Enable memory growth to avoid OOM errors
+                tf.config.experimental.set_memory_growth(gpu, True)
+
+                # Set memory limit to 3GB (sharing with v2 API)
+                tf.config.set_logical_device_configuration(
+                    gpu,
+                    [tf.config.LogicalDeviceConfiguration(memory_limit=3072)]
+                )
+            logger.info(f"✅ Configured {len(gpus)} GPU(s) with 3GB memory limit and growth enabled")
+        else:
+            logger.warning("⚠️ No GPU found, running on CPU")
+    except Exception as e:
+        logger.warning(f"⚠️ GPU configuration failed: {e}, will use default settings")
 
     if not EDOCR_AVAILABLE:
         logger.warning("⚠️ eDOCr v1 not available - running in mock mode")
@@ -405,6 +449,11 @@ def process_ocr_v1(
             dimension_dict = tools.pipeline_dimensions.read_dimensions(
                 str(process_img_path), alphabet_dimensions, model_dimensions, cluster_threshold
             )
+            # DEBUG: Log dimension_dict structure
+            logger.info(f"DEBUG: dimension_dict type: {type(dimension_dict)}, length: {len(dimension_dict)}")
+            if dimension_dict and len(dimension_dict) > 0:
+                logger.info(f"DEBUG: First dimension keys: {dimension_dict[0].keys() if isinstance(dimension_dict[0], dict) else 'not a dict'}")
+                logger.info(f"DEBUG: First dimension: {dimension_dict[0]}")
         else:
             dimension_dict = []
 
@@ -419,9 +468,17 @@ def process_ocr_v1(
         infoblock_dict_converted = convert_to_serializable(infoblock_dict) if extract_text else {}
 
         # Transform to UI-compatible format
+        logger.info(f"DEBUG: Before transform - dimension_dict_converted length: {len(dimension_dict_converted)}")
+        if dimension_dict_converted and len(dimension_dict_converted) > 0:
+            logger.info(f"DEBUG: First converted dimension: {dimension_dict_converted[0]}")
+
         ui_dimensions, ui_gdt, ui_text = transform_edocr_to_ui_format(
             dimension_dict_converted, gdt_dict_converted, infoblock_dict_converted
         )
+
+        logger.info(f"DEBUG: After transform - ui_dimensions length: {len(ui_dimensions)}")
+        if ui_dimensions and len(ui_dimensions) > 0:
+            logger.info(f"DEBUG: First UI dimension: {ui_dimensions[0]}")
 
         # Format results
         result = {

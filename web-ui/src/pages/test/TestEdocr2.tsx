@@ -110,7 +110,7 @@ export default function TestEdocr2() {
       title: 'eDOCr v1',
       description: 'eDOCr v1을 통해 도면에서 치수, GD&T, 텍스트 정보를 추출합니다.',
       badge: 'Version 1',
-      badgeColor: 'secondary' as const,
+      badgeColor: "default" as const,
       features: ['치수 추출', 'GD&T 추출', '텍스트 추출', '~36초 (CPU)'],
     },
     v2: {
@@ -140,7 +140,7 @@ export default function TestEdocr2() {
         {/* Version Features */}
         <div className="flex flex-wrap gap-2">
           {currentVersion.features.map((feature, idx) => (
-            <Badge key={idx} variant="outline" className="text-xs">
+            <Badge key={idx} variant="default" className="text-xs">
               {feature}
             </Badge>
           ))}
@@ -395,7 +395,7 @@ export default function TestEdocr2() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>OCR 결과</span>
-                    <Badge variant="outline">{version.toUpperCase()}</Badge>
+                    <Badge variant="default">{version.toUpperCase()}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -488,16 +488,33 @@ export default function TestEdocr2() {
               {result.visualization_url && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>서버 생성 시각화 이미지</CardTitle>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>서버 생성 시각화 이미지</span>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => {
+                          setModalImageSrc(`http://localhost:${version === 'v1' ? '5001' : '5002'}${result.visualization_url}`);
+                          setShowImageModal(true);
+                        }}
+                      >
+                        <ZoomIn className="h-4 w-4 mr-2" />
+                        확대 보기
+                      </Button>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <img
                       src={`http://localhost:${version === 'v1' ? '5001' : '5002'}${result.visualization_url}`}
                       alt="OCR Visualization"
-                      className="w-full border rounded-lg"
+                      className="w-full border rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => {
+                        setModalImageSrc(`http://localhost:${version === 'v1' ? '5001' : '5002'}${result.visualization_url}`);
+                        setShowImageModal(true);
+                      }}
                     />
                     <p className="text-sm text-muted-foreground mt-2">
-                      eDOCr {version.toUpperCase()} API에서 생성된 시각화 이미지
+                      eDOCr {version.toUpperCase()} API에서 생성된 시각화 이미지 (클릭하면 확대됩니다)
                     </p>
                   </CardContent>
                 </Card>
@@ -510,7 +527,7 @@ export default function TestEdocr2() {
                     <CardTitle className="flex items-center justify-between">
                       <span>시각화 결과 (Server-side)</span>
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={() => {
                           setModalImageSrc(`http://localhost:5002/api/v2/results/${result.visualization}`);
@@ -560,6 +577,10 @@ export default function TestEdocr2() {
                 <OCRVisualization
                   imageFile={file}
                   ocrResult={result}
+                  onZoomClick={(imageDataUrl) => {
+                    setModalImageSrc(imageDataUrl);
+                    setShowImageModal(true);
+                  }}
                 />
               )}
 

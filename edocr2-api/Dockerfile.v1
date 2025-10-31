@@ -1,4 +1,5 @@
-FROM python:3.9-slim
+# Use TensorFlow GPU base image with CUDA support
+FROM tensorflow/tensorflow:2.15.0-gpu
 
 # System dependencies
 RUN apt-get update && apt-get install -y \

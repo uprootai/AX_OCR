@@ -1,0 +1,91 @@
+feat: Add CLAUDE.md, improve bbox handling, and enable GPU support
+
+## Summary
+- Add comprehensive CLAUDE.md documentation for future development
+- Unify bounding box format across v1/v2 APIs (location → bbox with dimensions)
+- Enable GPU support with memory limits for better performance
+- Fix eDOCr v1/v2 API data format compatibility issues
+- Improve OCR visualization with accurate bbox rendering
+- Clean up repository by removing 30+ screenshot files
+
+## Backend Changes
+
+### eDOCr API v1 (api_server_edocr_v1.py)
+- Fix: Support 'box' key in addition to 'bbox' for eDOCr v1 format
+- Fix: Support 'value'/'nominal' keys instead of 'text' in predictions
+- Change: Transform bbox from point coordinates to rectangular format (x, y, width, height)
+- Add: Full bounding box calculation from 4-point polygon coordinates
+
+### eDOCr API v2 (api_server_edocr_v2.py)
+- Add: Coordinate scaling and offset parameters for image transformation
+- Add: GPU memory limit configuration (5GB per service to prevent OOM)
+- Add: Enhanced GPU memory growth management
+- Fix: Apply scale/offset to convert processed image coords to original image coords
+- Change: Transform bbox to include width/height dimensions
+- Add: Preserve original bbox polygon and text for visualization (_original_bbox, _original_text)
+
+### Docker (Dockerfile.v1)
+- Change: Base image from python:3.9-slim to tensorflow/tensorflow:2.15.0-gpu
+- Enhancement: Enable CUDA GPU acceleration support
+
+## Frontend Changes
+
+### OCRVisualization Component (web-ui/src/components/debug/OCRVisualization.tsx)
+- Fix: Support both legacy 'location' and new 'bbox' format for backward compatibility
+- Enhancement: Draw bounding boxes using actual width/height instead of fixed size
+- Add: Click-to-zoom functionality with onZoomClick callback
+- Improvement: More accurate visualization using real bbox dimensions
+
+### TypeScript Types (web-ui/src/types/api.ts)
+- Add: New bbox format with width and height for Dimension and GDT interfaces
+- Add: Backward compatible 'location' field (marked as deprecated)
+- Add: Table OCR results support in TextInfo (v2 feature)
+- Add: visualization field in OCRResult (v2 feature)
+
+### Store Updates (web-ui/src/store/monitoringStore.ts)
+- Minor: Type alignment improvements
+
+### Component Updates
+- APIStatusMonitor.tsx: Minor refinements
+- TestEdocr2.tsx: Enhanced integration with new bbox format
+
+## Documentation
+
+### CLAUDE.md (NEW)
+Comprehensive development guide including:
+- Project overview and microservices architecture
+- All build, run, and test commands
+- eDOCr v1/v2 dual deployment system details
+- Key technical details (data transformation, state management, Docker volumes)
+- Common patterns and troubleshooting guides
+- Critical notes about v2 model files (.keras + .txt alphabet files)
+
+### Debug/Test Tools (NEW)
+- test_bbox_mapping_verification.py: Bbox coordinate mapping verification
+- test_edocr2_bbox.py: Basic bbox API testing
+- test_edocr2_bbox_detailed.py: Detailed bbox analysis
+- verify_bbox_api.py: API bbox response validation
+- BBOX_INDEX_MISMATCH_FIX.md: Documentation of bbox issues and fixes
+- BBOX_VERIFICATION_REPORT.md: Comprehensive bbox testing report
+
+## Repository Cleanup
+- Remove: 30+ screenshot PNG files (analysis-*.png, screenshot-*.png, screenshot_*.png)
+  - Reason: Screenshots are temporary documentation, bloat repository size
+
+## Breaking Changes
+None - maintains backward compatibility with legacy 'location' format
+
+## Performance Impact
+- GPU support in Dockerfile.v1: Expected 3x faster processing (36s → 10-15s)
+- GPU memory limits prevent OOM when running v1 + v2 simultaneously
+- Accurate bbox rendering improves visualization quality
+
+## Testing
+- Verified v1 API with new bbox format
+- Verified v2 API with coordinate scaling
+- Tested OCR visualization with various drawing files
+- Bbox verification tests added and passing
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>

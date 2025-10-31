@@ -32,7 +32,7 @@ export default function APIStatusMonitor() {
       // eDOCr v1
       if (data.edocr2_v1) {
         updateServiceHealth('edocr2_v1', {
-          name: 'eDOCr v1 (GPU)',
+          name: 'eDOCr v1 - Fast',
           status: 'healthy',
           latency: Math.random() * 50,
           lastCheck: new Date(),
@@ -43,7 +43,7 @@ export default function APIStatusMonitor() {
       // eDOCr v2
       if (data.edocr2_v2) {
         updateServiceHealth('edocr2_v2', {
-          name: 'eDOCr v2 (GPU)',
+          name: 'eDOCr v2 - Advanced',
           status: 'healthy',
           latency: Math.random() * 50,
           lastCheck: new Date(),

@@ -1,24 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { ZoomIn } from 'lucide-react';
 import type { OCRResult } from '../../types/api';
 
 interface OCRVisualizationProps {
   imageFile: File;
   ocrResult: OCRResult;
+  onZoomClick?: (imageDataUrl: string) => void;
 }
 
 interface BoundingBox {
   x: number;
   y: number;
+  width: number;
+  height: number;
   label: string;
   type: 'dimension' | 'gdt' | 'text';
 }
 
-export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizationProps) {
+export default function OCRVisualization({ imageFile, ocrResult, onZoomClick }: OCRVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
+
+  const handleCanvasClick = () => {
+    if (canvasRef.current && onZoomClick) {
+      const dataUrl = canvasRef.current.toDataURL('image/png');
+      onZoomClick(dataUrl);
+    }
+  };
 
   useEffect(() => {
     const boxes: BoundingBox[] = [];
@@ -26,10 +38,14 @@ export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizat
     // Dimensions
     if (ocrResult.dimensions) {
       ocrResult.dimensions.forEach((dim) => {
-        if (dim.location) {
+        // Support both old 'location' and new 'bbox' format
+        const bbox = dim.bbox || dim.location;
+        if (bbox) {
           boxes.push({
-            x: dim.location.x,
-            y: dim.location.y,
+            x: bbox.x,
+            y: bbox.y,
+            width: ('width' in bbox ? bbox.width : 0) as number,
+            height: ('height' in bbox ? bbox.height : 0) as number,
             label: `${dim.type}: ${dim.value}${dim.unit || ''} ${dim.tolerance || ''}`,
             type: 'dimension',
           });
@@ -40,10 +56,14 @@ export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizat
     // GD&T
     if (ocrResult.gdt) {
       ocrResult.gdt.forEach((gdt) => {
-        if (gdt.location) {
+        // Support both old 'location' and new 'bbox' format
+        const bbox = gdt.bbox || gdt.location;
+        if (bbox) {
           boxes.push({
-            x: gdt.location.x,
-            y: gdt.location.y,
+            x: bbox.x,
+            y: bbox.y,
+            width: ('width' in bbox ? bbox.width : 0) as number,
+            height: ('height' in bbox ? bbox.height : 0) as number,
             label: `${gdt.type}: ${gdt.value}${gdt.datum ? ` (${gdt.datum})` : ''}`,
             type: 'gdt',
           });
@@ -74,9 +94,11 @@ export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizat
 
       // Draw bounding boxes
       boundingBoxes.forEach((box) => {
-        const boxSize = 80;
-        const x = box.x - boxSize / 2;
-        const y = box.y - boxSize / 2;
+        // Use actual bbox dimensions if available, otherwise use default size
+        const boxWidth = box.width > 0 ? box.width : 80;
+        const boxHeight = box.height > 0 ? box.height : 80;
+        const x = box.x;
+        const y = box.y;
 
         // Set color based on type
         let color = '#3b82f6'; // blue for dimensions
@@ -85,23 +107,23 @@ export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizat
 
         // Draw semi-transparent box
         ctx.fillStyle = color + '40';
-        ctx.fillRect(x, y, boxSize, boxSize);
+        ctx.fillRect(x, y, boxWidth, boxHeight);
 
         // Draw border
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, boxSize, boxSize);
+        ctx.strokeRect(x, y, boxWidth, boxHeight);
 
         // Draw center point
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(box.x, box.y, 5, 0, 2 * Math.PI);
+        ctx.arc(x + boxWidth / 2, y + boxHeight / 2, 5, 0, 2 * Math.PI);
         ctx.fill();
 
         // Draw label background
         ctx.font = '14px Arial';
         const textMetrics = ctx.measureText(box.label);
-        const labelX = box.x - textMetrics.width / 2;
+        const labelX = x + boxWidth / 2 - textMetrics.width / 2;
         const labelY = y - 10;
 
         ctx.fillStyle = color;
@@ -142,6 +164,16 @@ export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizat
             <Badge variant="default">
               총 {totalDetections}개 인식
             </Badge>
+            {onZoomClick && imageLoaded && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleCanvasClick}
+              >
+                <ZoomIn className="h-4 w-4 mr-2" />
+                확대 보기
+              </Button>
+            )}
           </div>
         </div>
 
@@ -161,8 +193,9 @@ export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizat
         <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
           <canvas
             ref={canvasRef}
-            className="max-w-full h-auto"
+            className={`max-w-full h-auto ${onZoomClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
             style={{ display: imageLoaded ? 'block' : 'none' }}
+            onClick={onZoomClick ? handleCanvasClick : undefined}
           />
           {!imageLoaded && (
             <div className="flex items-center justify-center h-64">
@@ -170,6 +203,11 @@ export default function OCRVisualization({ imageFile, ocrResult }: OCRVisualizat
             </div>
           )}
         </div>
+        {onZoomClick && imageLoaded && (
+          <p className="text-xs text-muted-foreground text-center">
+            이미지를 클릭하면 확대해서 볼 수 있습니다
+          </p>
+        )}
 
         {/* Details List */}
         <div className="space-y-2">

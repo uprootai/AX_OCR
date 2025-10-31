@@ -41,11 +41,15 @@ def convert_to_serializable(obj):
         return obj
 
 
-def transform_edocr2_to_ui_format(dimensions, gdt_results, tables, other_info):
+def transform_edocr2_to_ui_format(dimensions, gdt_results, tables, other_info, scale_x=1.0, scale_y=1.0, offset_x=0, offset_y=0):
     """
     Transform eDOCr v2 output format to UI-compatible format
 
     v2는 v1보다 더 상세한 데이터를 제공하므로 적절히 변환
+
+    Args:
+        scale_x, scale_y: Scale factors to convert from processed image to original image
+        offset_x, offset_y: Frame offset to add to coordinates
     """
     import re
 
@@ -74,17 +78,36 @@ def transform_edocr2_to_ui_format(dimensions, gdt_results, tables, other_info):
             value_match = re.search(r'[\d.]+', text.replace('Ø', '').replace('⌀', '').replace('R', ''))
             value = float(value_match.group()) if value_match else 0.0
 
-            location = {
-                'x': int(bbox[0][0]) if len(bbox) > 0 and len(bbox[0]) > 0 else 0,
-                'y': int(bbox[0][1]) if len(bbox) > 0 and len(bbox[0]) > 1 else 0
-            }
+            # Calculate bounding box dimensions and convert to original image coordinates
+            bbox_info = {}
+            if bbox and len(bbox) >= 4:
+                x_coords = [pt[0] for pt in bbox if len(pt) >= 2]
+                y_coords = [pt[1] for pt in bbox if len(pt) >= 2]
+                if x_coords and y_coords:
+                    # Apply scale and offset to convert to original image coordinates
+                    min_x = min(x_coords) * scale_x + offset_x
+                    min_y = min(y_coords) * scale_y + offset_y
+                    max_x = max(x_coords) * scale_x + offset_x
+                    max_y = max(y_coords) * scale_y + offset_y
+
+                    bbox_info = {
+                        'x': int(min_x),
+                        'y': int(min_y),
+                        'width': int(max_x - min_x),
+                        'height': int(max_y - min_y)
+                    }
+
+            if not bbox_info:
+                bbox_info = {'x': 0, 'y': 0, 'width': 0, 'height': 0}
 
             ui_dimensions.append({
                 'type': dim_type,
                 'value': value,
                 'unit': 'mm',
                 'tolerance': tolerance,
-                'location': location
+                'bbox': bbox_info,
+                '_original_bbox': bbox,  # Keep original polygon bbox for visualization
+                '_original_text': text   # Keep original text for visualization
             })
         except Exception as e:
             logger.warning(f"Failed to transform dimension: {e}")
@@ -111,16 +134,35 @@ def transform_edocr2_to_ui_format(dimensions, gdt_results, tables, other_info):
             datum_match = re.search(r'[A-Z]', text[1:]) if len(text) > 1 else None
             datum = datum_match.group() if datum_match else None
 
-            location = {
-                'x': int(bbox[0][0]) if len(bbox) > 0 and len(bbox[0]) > 0 else 0,
-                'y': int(bbox[0][1]) if len(bbox) > 0 and len(bbox[0]) > 1 else 0
-            }
+            # Calculate bounding box dimensions and convert to original image coordinates
+            bbox_info = {}
+            if bbox and len(bbox) >= 4:
+                x_coords = [pt[0] for pt in bbox if len(pt) >= 2]
+                y_coords = [pt[1] for pt in bbox if len(pt) >= 2]
+                if x_coords and y_coords:
+                    # Apply scale and offset to convert to original image coordinates
+                    min_x = min(x_coords) * scale_x + offset_x
+                    min_y = min(y_coords) * scale_y + offset_y
+                    max_x = max(x_coords) * scale_x + offset_x
+                    max_y = max(y_coords) * scale_y + offset_y
+
+                    bbox_info = {
+                        'x': int(min_x),
+                        'y': int(min_y),
+                        'width': int(max_x - min_x),
+                        'height': int(max_y - min_y)
+                    }
+
+            if not bbox_info:
+                bbox_info = {'x': 0, 'y': 0, 'width': 0, 'height': 0}
 
             ui_gdt.append({
                 'type': gdt_type,
                 'value': value,
                 'datum': datum,
-                'location': location
+                'bbox': bbox_info,
+                '_original_bbox': bbox,  # Keep original polygon bbox for visualization
+                '_original_text': text   # Keep original text for visualization
             })
         except Exception as e:
             logger.warning(f"Failed to transform GD&T: {e}")
@@ -242,10 +284,25 @@ async def load_models():
     try:
         logger.info("Loading eDOCr v2 models...")
 
-        # Configure GPU memory growth
+        # Configure GPU memory growth and limits
         gpus = tf.config.list_physical_devices('GPU')
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
+        if gpus:
+            try:
+                for gpu in gpus:
+                    # Enable memory growth to avoid OOM errors
+                    tf.config.experimental.set_memory_growth(gpu, True)
+
+                    # Set memory limit to 5GB (leaving room for v1 API)
+                    tf.config.set_logical_device_configuration(
+                        gpu,
+                        [tf.config.LogicalDeviceConfiguration(memory_limit=5120)]
+                    )
+                logger.info(f"✅ Configured {len(gpus)} GPU(s) with 5GB memory limit and growth enabled")
+            except RuntimeError as e:
+                # GPU already initialized, memory growth must be set at program startup
+                logger.warning(f"⚠️ GPU configuration warning: {e}")
+        else:
+            logger.warning("⚠️ No GPU found, running on CPU")
 
         # Model paths
         gdt_model = str(MODELS_DIR / 'recognizer_gdts.keras')
@@ -323,6 +380,10 @@ def process_ocr_v2(
 
         logger.info(f"Image loaded: {img.shape}")
 
+        # Store original image dimensions for bbox coordinate conversion
+        original_height, original_width = img.shape[:2]
+        logger.info(f"Original image size: {original_width}x{original_height}")
+
         # Segmentation (v2 핵심 기능)
         logger.info("Performing advanced segmentation...")
         img_boxes, frame, gdt_boxes, tables, dim_boxes = tools.layer_segm.segment_img(
@@ -351,15 +412,31 @@ def process_ocr_v2(
         # OCR Dimensions
         dimensions = []
         other_info = {}
+        frame_offset_x = 0
+        frame_offset_y = 0
+        scale_x = 1.0
+        scale_y = 1.0
         if extract_dimensions:
             logger.info("Processing dimensions...")
             if frame:
+                frame_offset_x = frame.x
+                frame_offset_y = frame.y
                 process_img = process_img[frame.y : frame.y + frame.h, frame.x : frame.x + frame.w]
+                logger.info(f"Cropped to frame: offset=({frame_offset_x}, {frame_offset_y}), size={process_img.shape}")
+
+            # Store size before ocr_dimensions (which may resize)
+            pre_ocr_height, pre_ocr_width = process_img.shape[:2]
 
             dimensions, other_info, process_img, dim_tess = tools.ocr_pipelines.ocr_dimensions(
                 process_img, detector, recognizer_dim, alphabet_dim, frame, dim_boxes,
-                cluster_thres=cluster_threshold, max_img_size=1048, language=language, backg_save=False
+                cluster_thres=cluster_threshold, max_img_size=2048, language=language, backg_save=False
             )
+
+            # Calculate scale factor if image was resized by ocr_dimensions
+            post_ocr_height, post_ocr_width = process_img.shape[:2]
+            scale_x = pre_ocr_width / post_ocr_width if post_ocr_width > 0 else 1.0
+            scale_y = pre_ocr_height / post_ocr_height if post_ocr_height > 0 else 1.0
+            logger.info(f"OCR dimensions scale: ({scale_x:.3f}, {scale_y:.3f}), pre={pre_ocr_width}x{pre_ocr_height}, post={post_ocr_width}x{post_ocr_height}")
 
         # Convert numpy types
         dimensions = convert_to_serializable(dimensions)
@@ -369,12 +446,25 @@ def process_ocr_v2(
 
         # Transform to UI format
         ui_dimensions, ui_gdt, ui_text = transform_edocr2_to_ui_format(
-            dimensions, gdt_results, table_results, other_info
+            dimensions, gdt_results, table_results, other_info,
+            scale_x=scale_x, scale_y=scale_y,
+            offset_x=frame_offset_x, offset_y=frame_offset_y
         )
 
+        # Remove internal fields before sending response
+        clean_dimensions = []
+        for dim in ui_dimensions:
+            clean_dim = {k: v for k, v in dim.items() if not k.startswith('_')}
+            clean_dimensions.append(clean_dim)
+
+        clean_gdt = []
+        for gdt in ui_gdt:
+            clean_g = {k: v for k, v in gdt.items() if not k.startswith('_')}
+            clean_gdt.append(clean_g)
+
         result = {
-            "dimensions": ui_dimensions,
-            "gdt": ui_gdt,
+            "dimensions": clean_dimensions,
+            "gdt": clean_gdt,
             "text": ui_text
         }
 
@@ -384,18 +474,11 @@ def process_ocr_v2(
             logger.info("Creating visualization...")
             vis_img = img.copy()
 
-            # Draw dimensions with index numbers
-            for idx, dim in enumerate(dimensions):
+            # Draw dimensions with index numbers (use ui_dimensions to ensure consistency)
+            for idx, dim in enumerate(ui_dimensions):
                 try:
-                    # Handle both dict and list formats
-                    if isinstance(dim, dict):
-                        bbox = dim.get('bbox', [])
-                        text = str(dim.get('text', ''))
-                    elif isinstance(dim, list) and len(dim) >= 2:
-                        text = str(dim[0])[:30]
-                        bbox = dim[1] if len(dim) > 1 else []
-                    else:
-                        continue
+                    # Get original bbox from ui_dimensions
+                    bbox = dim.get('_original_bbox', [])
 
                     if bbox and len(bbox) >= 4:
                         pts = np.array(bbox, np.int32).reshape((-1, 1, 2))
@@ -407,21 +490,25 @@ def process_ocr_v2(
                         cv2.circle(vis_img, label_pos, 15, (0, 255, 0), -1)
                         cv2.putText(vis_img, label, (label_pos[0] - 10, label_pos[1] + 5),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+
+                        # Draw extracted text value in green
+                        value = dim.get('value', '')
+                        unit = dim.get('unit', '')
+                        if value:
+                            # Combine value and unit
+                            text_value = f"{value}{unit}" if unit else str(value)
+                            text_pos = (int(bbox[2][0] + 5), int(bbox[2][1]))
+                            cv2.putText(vis_img, text_value, text_pos,
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
                 except Exception as e:
                     logger.warning(f"Failed to draw dimension: {e}")
                     continue
 
-            # Draw GD&T with index numbers
-            for idx, gdt in enumerate(gdt_results):
+            # Draw GD&T with index numbers (use ui_gdt to ensure consistency)
+            for idx, gdt in enumerate(ui_gdt):
                 try:
-                    if isinstance(gdt, dict):
-                        bbox = gdt.get('bbox', [])
-                        text = str(gdt.get('text', ''))
-                    elif isinstance(gdt, list) and len(gdt) >= 2:
-                        text = str(gdt[0])[:30]
-                        bbox = gdt[1] if len(gdt) > 1 else []
-                    else:
-                        continue
+                    # Get original bbox from ui_gdt
+                    bbox = gdt.get('_original_bbox', [])
 
                     if bbox and len(bbox) >= 4:
                         pts = np.array(bbox, np.int32).reshape((-1, 1, 2))
@@ -433,6 +520,13 @@ def process_ocr_v2(
                         cv2.circle(vis_img, label_pos, 15, (255, 0, 0), -1)
                         cv2.putText(vis_img, label, (label_pos[0] - 10, label_pos[1] + 5),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+                        # Draw extracted text value in blue
+                        text_value = gdt.get('text', '')
+                        if text_value:
+                            text_pos = (bbox[2][0] + 5, bbox[2][1])
+                            cv2.putText(vis_img, text_value, text_pos,
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
                 except Exception as e:
                     logger.warning(f"Failed to draw GD&T: {e}")
                     continue
@@ -454,6 +548,12 @@ def process_ocr_v2(
                                 cv2.circle(vis_img, label_pos, 15, (0, 0, 255), -1)
                                 cv2.putText(vis_img, label, (label_pos[0] - 10, label_pos[1] + 5),
                                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+                                # Draw extracted text value in red
+                                if text:
+                                    text_pos = (bbox[2][0] + 5, bbox[2][1])
+                                    cv2.putText(vis_img, text, text_pos,
+                                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                     except Exception as e:
                         logger.warning(f"Failed to draw text box: {e}")
                         continue

@@ -5,7 +5,8 @@ interface MonitoringState {
   // Service Health
   services: {
     gateway: ServiceHealth | null;
-    edocr2: ServiceHealth | null;
+    edocr2_v1: ServiceHealth | null;
+    edocr2_v2: ServiceHealth | null;
     edgnet: ServiceHealth | null;
     skinmodel: ServiceHealth | null;
   };
@@ -31,7 +32,8 @@ interface MonitoringState {
 export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   services: {
     gateway: null,
-    edocr2: null,
+    edocr2_v1: null,
+    edocr2_v2: null,
     edgnet: null,
     skinmodel: null,
   },

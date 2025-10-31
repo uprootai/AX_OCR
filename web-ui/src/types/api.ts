@@ -24,7 +24,15 @@ export interface Dimension {
   value: number;
   unit: string;
   tolerance: string | number | null;
-  location: {
+  // New bbox format (v1 & v2)
+  bbox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  // Legacy location format (deprecated)
+  location?: {
     x: number;
     y: number;
   };
@@ -34,7 +42,15 @@ export interface GDT {
   type: string;
   value: number;
   datum: string | null;
-  location: {
+  // New bbox format (v1 & v2)
+  bbox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  // Legacy location format (deprecated)
+  location?: {
     x: number;
     y: number;
   };
@@ -47,6 +63,7 @@ export interface TextInfo {
   material?: string;
   notes?: string[];
   total_blocks?: number;
+  tables?: any[]; // v2 feature: table OCR results
 }
 
 export interface OCRResult {
@@ -54,6 +71,7 @@ export interface OCRResult {
   gdt: GDT[];
   text: TextInfo;
   visualization_url?: string;
+  visualization?: string; // v2 feature: filename of visualization image
 }
 
 export interface SegmentationResult {
