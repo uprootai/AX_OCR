@@ -63,6 +63,17 @@ test_samples/
 *.pth
 *.pt
 
+# YOLO Training Results
+runs/
+datasets/
+
+# Test images
+*.jpg
+*.jpeg
+*.png
+!web-ui/public/**/*.png
+!web-ui/public/**/*.jpg
+
 # Docker
 *.tar
 *.log

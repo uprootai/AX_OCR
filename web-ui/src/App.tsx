@@ -9,11 +9,13 @@ import Layout from './components/layout/Layout';
 // Pages
 import Landing from './pages/Landing';
 import Dashboard from './pages/dashboard/Dashboard';
+import Guide from './pages/dashboard/Guide';
 import TestHub from './pages/test/TestHub';
 import TestEdocr2 from './pages/test/TestEdocr2';
 import TestEdgnet from './pages/test/TestEdgnet';
 import TestSkinmodel from './pages/test/TestSkinmodel';
 import TestGateway from './pages/test/TestGateway';
+import TestYolo from './pages/test/TestYolo';
 import Analyze from './pages/analyze/Analyze';
 import Monitor from './pages/monitor/Monitor';
 import Settings from './pages/settings/Settings';
@@ -51,9 +53,11 @@ function App() {
           {/* 레이아웃이 있는 페이지들 */}
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/guide" element={<Guide />} />
 
             {/* 테스트 페이지 */}
             <Route path="/test" element={<TestHub />} />
+            <Route path="/test/yolo" element={<TestYolo />} />
             <Route path="/test/edocr2" element={<TestEdocr2 />} />
             <Route path="/test/edgnet" element={<TestEdgnet />} />
             <Route path="/test/skinmodel" element={<TestSkinmodel />} />

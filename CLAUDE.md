@@ -415,3 +415,137 @@ If you see errors like "Object of type 'int64' is not JSON serializable":
 - Performance: ~25-30s for full pipeline (CPU), ~8-10s per service
 - GPU support planned but not yet configured
 - Test samples available in `/home/uproot/ax/reference/02. 수요처 및 도메인 자료/2. 도면(샘플)/`
+
+---
+
+## 🎯 OCR Performance Improvement Strategy
+
+### Current Issues
+
+**Limitations of eDOCr v2 Alone**:
+- Dimension recall: ~50% (target: 90%+)
+- GD&T recall: ~20% (target: 75%+)
+- Missing dimensions in complex areas
+- Context information not utilized
+
+**Root Causes**:
+1. Single OCR engine limitations
+2. Image-based detection limits (complex drawings)
+3. Dimension-GD&T-contour relationships not utilized
+4. No missing validation mechanism
+
+### Improvement Strategy: Multi-Model Pipeline
+
+#### Strategy 1: Use EDGNet as Preprocessor ⭐⭐⭐
+
+**EDGNet Strengths**:
+- Graph neural network-based accurate region segmentation
+- Contour/Text/Dimension separation: 90.82% accuracy
+- Context utilization (GraphSAGE)
+
+**Application Method**:
+```
+Original Drawing
+  ↓
+EDGNet Vectorization + Segmentation
+  ├─ Contour regions
+  ├─ Text regions
+  └─ Dimension regions (Focus here!)
+  ↓
+Optimized OCR per region
+  ├─ Dimension regions → eDOCr v2 CRNN
+  ├─ Text regions → Tesseract + EasyOCR
+  └─ GD&T → eDOCr v2 (focused search near dimensions)
+  ↓
+Utilize graph relationships
+  └─ GD&T-dimension matching
+  └─ Dimension-contour linking
+```
+
+**Expected Impact**:
+- Dimension recall: 50% → **85%** (+35%p)
+- GD&T recall: 20% → **70%** (+50%p)
+- Reduced false positives
+
+#### Strategy 2: Skin Model for Validation & Recovery ⭐⭐
+
+**Skin Model Role**:
+- Predict expected dimension locations via geometry analysis
+- Detect missing dimensions
+- Validate recognized dimension plausibility
+
+**Application Method**:
+```python
+# Predict expected dimensions from geometry
+expected_dims = skin_model.predict_expected_dimensions(contours)
+
+# Compare with OCR results
+missing = find_missing_dimensions(ocr_results, expected_dims)
+
+# Retry OCR on missing locations
+for miss in missing:
+    enhanced_region = super_resolution(crop(image, miss.location))
+    recovered = ocr_engine.recognize(enhanced_region)
+```
+
+**Expected Impact**:
+- Prevent critical dimension omissions (diameters, major lengths)
+- Improved OCR confidence
+- Alert users to potential missing data
+
+#### Strategy 3: Gateway Multi-Stage Pipeline ⭐⭐⭐
+
+**Enhanced Gateway**:
+```python
+# 4-stage pipeline
+async def advanced_ocr_pipeline(image):
+    # Stage 1: EDGNet segmentation
+    segmentation = await edgnet.segment(image)
+
+    # Stage 2: v1/v2 ensemble OCR
+    ocr_v1 = await edocr_v1.ocr(image, regions=segmentation['dimensions'])
+    ocr_v2 = await edocr_v2.ocr(image, regions=segmentation['dimensions'])
+    dimensions = ensemble(ocr_v1, ocr_v2, weights={'v1': 0.6, 'v2': 0.4})
+
+    # Stage 3: Skin Model validation
+    validation = await skinmodel.validate(segmentation['contours'], dimensions)
+
+    # Stage 4: Missing recovery
+    if validation['missing']:
+        recovered = await retry_missing_regions(image, validation['missing'])
+        dimensions.extend(recovered)
+
+    return dimensions
+```
+
+**Expected Impact**:
+- Recall: 50% → **90%**
+- Improved precision
+- Increased confidence
+
+### Expected Performance Improvement
+
+| Metric | Current (v2 Only) | After (Multi-Model) | Gain |
+|--------|------------------|---------------------|------|
+| Dimension Recall | ~50% | **90%** | +40%p |
+| GD&T Recall | ~20% | **75%** | +55%p |
+| Overall F1 | 0.59 | **0.88** | +0.29 |
+
+### Implementation Priorities
+
+1. **Phase 1**: EDGNet integration (1-2 weeks) - Highest impact
+2. **Phase 2**: Gateway multi-stage (2-3 weeks)
+3. **Phase 3**: Skin Model validation (2-3 weeks)
+4. **Phase 4**: Optimization & evaluation (1-2 weeks)
+
+**Total Time**: 6-10 weeks
+
+**Target Achievement**:
+- ✅ MaP 0.88 (project goal) → Achievable
+- ✅ Metadata extraction accuracy 0.9 → Achievable
+
+### References
+
+Detailed analysis: `/home/uproot/ax/poc/OCR_IMPROVEMENT_STRATEGY.md`
+
+**Note**: A Korean version of this guide is available at `/home/uproot/ax/poc/CLAUDE_KR.md`

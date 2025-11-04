@@ -1,0 +1,1366 @@
+[
+  {
+    "sample": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+    "sample_path": "/home/uproot/ax/poc/test_samples/drawings/S60ME-C INTERM-SHAFT_대 주조전.jpg",
+    "tests": [
+      {
+        "method": "eDOCr v1 단독",
+        "success": true,
+        "processing_time": 34.041762590408325,
+        "dimensions_count": 15,
+        "gdt_count": 0,
+        "text_blocks": 0,
+        "dimensions": [
+          {
+            "type": "diameter",
+            "value": 9.2,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 169,
+              "y": 86,
+              "width": 49,
+              "height": 19
+            }
+          },
+          {
+            "type": "linear",
+            "value": 4.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1144,
+              "y": 77,
+              "width": 18,
+              "height": 13
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.2,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1123,
+              "y": 738,
+              "width": 26,
+              "height": 11
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1110,
+              "y": 968,
+              "width": 57,
+              "height": 26
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1211,
+              "y": 1036,
+              "width": 50,
+              "height": 12
+            }
+          },
+          {
+            "type": "linear",
+            "value": 1.5,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 696,
+              "y": 1041,
+              "width": 31,
+              "height": 21
+            }
+          },
+          {
+            "type": "linear",
+            "value": 9.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1289,
+              "y": 55,
+              "width": 72,
+              "height": 14
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1303,
+              "y": 78,
+              "width": 54,
+              "height": 13
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1052,
+              "y": 76,
+              "width": 47,
+              "height": 46
+            }
+          },
+          {
+            "type": "linear",
+            "value": 42.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1321,
+              "y": 428,
+              "width": 32,
+              "height": 22
+            }
+          },
+          {
+            "type": "linear",
+            "value": 160.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1100,
+              "y": 924,
+              "width": 77,
+              "height": 28
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1150,
+              "y": 1082,
+              "width": 54,
+              "height": 22
+            }
+          },
+          {
+            "type": "linear",
+            "value": 3.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1428,
+              "y": 145,
+              "width": 38,
+              "height": 13
+            }
+          },
+          {
+            "type": "linear",
+            "value": 2.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 940,
+              "y": 921,
+              "width": 65,
+              "height": 33
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1485,
+              "y": 146,
+              "width": 105,
+              "height": 13
+            }
+          }
+        ],
+        "gdt": [],
+        "raw_response": {
+          "status": "success",
+          "data": {
+            "dimensions": [
+              {
+                "type": "diameter",
+                "value": 9.2,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 169,
+                  "y": 86,
+                  "width": 49,
+                  "height": 19
+                }
+              },
+              {
+                "type": "linear",
+                "value": 4.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1144,
+                  "y": 77,
+                  "width": 18,
+                  "height": 13
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.2,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1123,
+                  "y": 738,
+                  "width": 26,
+                  "height": 11
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1110,
+                  "y": 968,
+                  "width": 57,
+                  "height": 26
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1211,
+                  "y": 1036,
+                  "width": 50,
+                  "height": 12
+                }
+              },
+              {
+                "type": "linear",
+                "value": 1.5,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 696,
+                  "y": 1041,
+                  "width": 31,
+                  "height": 21
+                }
+              },
+              {
+                "type": "linear",
+                "value": 9.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1289,
+                  "y": 55,
+                  "width": 72,
+                  "height": 14
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1303,
+                  "y": 78,
+                  "width": 54,
+                  "height": 13
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1052,
+                  "y": 76,
+                  "width": 47,
+                  "height": 46
+                }
+              },
+              {
+                "type": "linear",
+                "value": 42.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1321,
+                  "y": 428,
+                  "width": 32,
+                  "height": 22
+                }
+              },
+              {
+                "type": "linear",
+                "value": 160.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1100,
+                  "y": 924,
+                  "width": 77,
+                  "height": 28
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1150,
+                  "y": 1082,
+                  "width": 54,
+                  "height": 22
+                }
+              },
+              {
+                "type": "linear",
+                "value": 3.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1428,
+                  "y": 145,
+                  "width": 38,
+                  "height": 13
+                }
+              },
+              {
+                "type": "linear",
+                "value": 2.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 940,
+                  "y": 921,
+                  "width": 65,
+                  "height": 33
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1485,
+                  "y": 146,
+                  "width": 105,
+                  "height": 13
+                }
+              }
+            ],
+            "gdt": [],
+            "text": {
+              "drawing_number": null,
+              "revision": null,
+              "title": null,
+              "material": null,
+              "notes": [],
+              "total_blocks": 0
+            },
+            "visualization_url": "/api/v1/visualization/20251031_105252_S60ME-C INTERM-SHAFT_대 주조전_mask.jpg"
+          },
+          "processing_time": 33.96615743637085,
+          "file_id": "20251031_105252_S60ME-C INTERM-SHAFT_대 주조전.jpg"
+        }
+      },
+      {
+        "method": "eDOCr v2 단독",
+        "success": true,
+        "processing_time": 22.794368743896484,
+        "dimensions_count": 7,
+        "gdt_count": 0,
+        "text_blocks": 10,
+        "tables_count": 0,
+        "dimensions": [
+          {
+            "type": "radius",
+            "value": 6.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 88,
+              "y": 85,
+              "width": 49,
+              "height": 19
+            }
+          },
+          {
+            "type": "radius",
+            "value": 32.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 168,
+              "y": 85,
+              "width": 50,
+              "height": 20
+            }
+          },
+          {
+            "type": "linear",
+            "value": 5.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1200,
+              "y": 77,
+              "width": 25,
+              "height": 79
+            }
+          },
+          {
+            "type": "linear",
+            "value": 2.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1252,
+              "y": 691,
+              "width": 57,
+              "height": 55
+            }
+          },
+          {
+            "type": "linear",
+            "value": 7.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 938,
+              "y": 920,
+              "width": 67,
+              "height": 35
+            }
+          },
+          {
+            "type": "linear",
+            "value": 3.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1100,
+              "y": 924,
+              "width": 76,
+              "height": 70
+            }
+          },
+          {
+            "type": "linear",
+            "value": 7.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1287,
+              "y": 925,
+              "width": 51,
+              "height": 30
+            }
+          }
+        ],
+        "gdt": [],
+        "raw_response": {
+          "status": "success",
+          "data": {
+            "dimensions": [
+              {
+                "type": "radius",
+                "value": 6.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 88,
+                  "y": 85,
+                  "width": 49,
+                  "height": 19
+                }
+              },
+              {
+                "type": "radius",
+                "value": 32.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 168,
+                  "y": 85,
+                  "width": 50,
+                  "height": 20
+                }
+              },
+              {
+                "type": "linear",
+                "value": 5.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1200,
+                  "y": 77,
+                  "width": 25,
+                  "height": 79
+                }
+              },
+              {
+                "type": "linear",
+                "value": 2.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1252,
+                  "y": 691,
+                  "width": 57,
+                  "height": 55
+                }
+              },
+              {
+                "type": "linear",
+                "value": 7.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 938,
+                  "y": 920,
+                  "width": 67,
+                  "height": 35
+                }
+              },
+              {
+                "type": "linear",
+                "value": 3.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1100,
+                  "y": 924,
+                  "width": 76,
+                  "height": 70
+                }
+              },
+              {
+                "type": "linear",
+                "value": 7.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1287,
+                  "y": 925,
+                  "width": 51,
+                  "height": 30
+                }
+              }
+            ],
+            "gdt": [],
+            "text": {
+              "drawing_number": null,
+              "revision": null,
+              "title": null,
+              "material": null,
+              "notes": [
+                "['—Ref. DWG-\\n1816863-2 (Rev.1)\\n12016840 (Rev.3)\\nA12-311197-9 (Rev.2)\\n£3003810 (Rev.1)', [[29, 847], [29, 1034], [323, 1034], [323, 847]]]",
+                "['REVISIONS\\nEScRPTON\\n1agea en\\nFew Roy ane ta (48\\n450 27)', [[1218, 11], [1218, 114], [1323, 114], [1323, 11]]]",
+                "['', [[1015, 32], [1015, 79], [1062, 79], [1062, 32]]]",
+                "['UR', [[1107, 33], [1107, 45], [1124, 45], [1124, 33]]]",
+                "['PINE APPROVED OnE\\na. EE KY CH 2011S', [[1390, 35], [1390, 71], [1553, 71], [1553, 35]]]",
+                "['dH SONA KY. CHO | 20110829', [[1390, 114], [1552, 115], [1553, 102], [1391, 100]]]",
+                "['Wee\\nSf Fs', [[1280, 383], [1305, 552], [1382, 541], [1357, 372]]]",
+                "['RoS2', [[1085, 694], [1085, 705], [1111, 705], [1111, 694]]]",
+                "['ER Smm)\\nfgaraz', [[1332, 904], [1469, 912], [1472, 861], [1335, 854]]]",
+                "['te | ESCRPTON [een |u| sere ve row’ | PRT Na,\\nDATE} 200i | 11 scat] N/A | BO a S| ney |S60/65ME-C\\nra AB. LEE 4eP*0-) be KY. CHO! \"ME TINTERM SHAFT(G) 328\\n€5 DSE BEARING Co., LTD. PT astorrtt-so7 Pea', [[1114, 991], [1114, 1089], [1554, 1089], [1554, 991]]]"
+              ],
+              "total_blocks": 10,
+              "tables": []
+            },
+            "visualization": "20251031_105350_20251031_105328_S60ME-C INTERM-SHAFT_대 주조전_vis.jpg"
+          },
+          "processing_time": 22.736711978912354,
+          "file_id": "20251031_105328_S60ME-C INTERM-SHAFT_대 주조전.jpg",
+          "version": "v2"
+        }
+      },
+      {
+        "method": "EDGNet 세그멘테이션",
+        "success": true,
+        "processing_time": 3.035020589828491,
+        "contour_count": 80,
+        "text_count": 30,
+        "dimension_count": 40,
+        "raw_response": {
+          "status": "success",
+          "data": {
+            "num_components": 150,
+            "classifications": {
+              "contour": 80,
+              "text": 30,
+              "dimension": 40
+            },
+            "graph": {
+              "nodes": 150,
+              "edges": 280,
+              "avg_degree": 3.73
+            },
+            "vectorization": {
+              "num_bezier_curves": 150,
+              "total_length": 12450.5
+            },
+            "visualization_url": "/api/v1/result/1761908032_S60ME-C INTERM-SHAFT_대 주조전_segment.png"
+          },
+          "processing_time": 3.01,
+          "file_id": "1761908032_S60ME-C INTERM-SHAFT_대 주조전.jpg"
+        }
+      },
+      {
+        "method": "v1/v2 앙상블",
+        "success": true,
+        "processing_time": 56.83613133430481,
+        "dimensions_count": 15,
+        "gdt_count": 0,
+        "dimensions": [
+          {
+            "type": "diameter",
+            "value": 9.2,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 169,
+              "y": 86,
+              "width": 49,
+              "height": 19
+            }
+          },
+          {
+            "type": "linear",
+            "value": 4.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1144,
+              "y": 77,
+              "width": 18,
+              "height": 13
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.2,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1123,
+              "y": 738,
+              "width": 26,
+              "height": 11
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1110,
+              "y": 968,
+              "width": 57,
+              "height": 26
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1211,
+              "y": 1036,
+              "width": 50,
+              "height": 12
+            }
+          },
+          {
+            "type": "linear",
+            "value": 1.5,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 696,
+              "y": 1041,
+              "width": 31,
+              "height": 21
+            }
+          },
+          {
+            "type": "linear",
+            "value": 9.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1289,
+              "y": 55,
+              "width": 72,
+              "height": 14
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1303,
+              "y": 78,
+              "width": 54,
+              "height": 13
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1052,
+              "y": 76,
+              "width": 47,
+              "height": 46
+            }
+          },
+          {
+            "type": "linear",
+            "value": 42.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1321,
+              "y": 428,
+              "width": 32,
+              "height": 22
+            }
+          },
+          {
+            "type": "linear",
+            "value": 160.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1100,
+              "y": 924,
+              "width": 77,
+              "height": 28
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1150,
+              "y": 1082,
+              "width": 54,
+              "height": 22
+            }
+          },
+          {
+            "type": "linear",
+            "value": 3.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1428,
+              "y": 145,
+              "width": 38,
+              "height": 13
+            }
+          },
+          {
+            "type": "linear",
+            "value": 2.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 940,
+              "y": 921,
+              "width": 65,
+              "height": 33
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1485,
+              "y": 146,
+              "width": 105,
+              "height": 13
+            }
+          }
+        ],
+        "gdt": [],
+        "v1_contribution": 15,
+        "v2_contribution": 0
+      }
+    ]
+  },
+  {
+    "sample": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.pdf",
+    "sample_path": "/home/uproot/ax/poc/test_samples/drawings/A12-311197-9 Rev.2 Interm Shaft-Acc_y.pdf",
+    "tests": [
+      {
+        "method": "eDOCr v1 단독",
+        "success": true,
+        "processing_time": 83.94902801513672,
+        "dimensions_count": 20,
+        "gdt_count": 0,
+        "text_blocks": 0,
+        "dimensions": [
+          {
+            "type": "linear",
+            "value": 20.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 264,
+              "y": 425,
+              "width": 29,
+              "height": 42
+            }
+          },
+          {
+            "type": "diameter",
+            "value": 386.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 361,
+              "y": 716,
+              "width": 27,
+              "height": 66
+            }
+          },
+          {
+            "type": "linear",
+            "value": 169.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 571,
+              "y": 173,
+              "width": 47,
+              "height": 26
+            }
+          },
+          {
+            "type": "linear",
+            "value": 4.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 686,
+              "y": 241,
+              "width": 35,
+              "height": 26
+            }
+          },
+          {
+            "type": "linear",
+            "value": 37.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 608,
+              "y": 242,
+              "width": 37,
+              "height": 24
+            }
+          },
+          {
+            "type": "linear",
+            "value": 9.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 552,
+              "y": 317,
+              "width": 35,
+              "height": 25
+            }
+          },
+          {
+            "type": "linear",
+            "value": 2528.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 648,
+              "y": 658,
+              "width": 30,
+              "height": 90
+            }
+          },
+          {
+            "type": "linear",
+            "value": 0.6,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 666,
+              "y": 1054,
+              "width": 44,
+              "height": 32
+            }
+          },
+          {
+            "type": "linear",
+            "value": 2.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1390,
+              "y": 228,
+              "width": 88,
+              "height": 33
+            }
+          },
+          {
+            "type": "linear",
+            "value": 85.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 503,
+              "y": 241,
+              "width": 36,
+              "height": 26
+            }
+          },
+          {
+            "type": "linear",
+            "value": 20.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 467,
+              "y": 594,
+              "width": 70,
+              "height": 32
+            }
+          },
+          {
+            "type": "linear",
+            "value": 4.5,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 482,
+              "y": 670,
+              "width": 59,
+              "height": 25
+            }
+          },
+          {
+            "type": "diameter",
+            "value": 392.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 304,
+              "y": 716,
+              "width": 28,
+              "height": 67
+            }
+          },
+          {
+            "type": "linear",
+            "value": 8.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 67,
+              "y": 1423,
+              "width": 229,
+              "height": 31
+            }
+          },
+          {
+            "type": "linear",
+            "value": 8.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 67,
+              "y": 1462,
+              "width": 246,
+              "height": 33
+            }
+          },
+          {
+            "type": "diameter",
+            "value": 318.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 784,
+              "y": 716,
+              "width": 27,
+              "height": 67
+            }
+          },
+          {
+            "type": "linear",
+            "value": 2.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 843,
+              "y": 706,
+              "width": 31,
+              "height": 102
+            }
+          },
+          {
+            "type": "linear",
+            "value": 986.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 492,
+              "y": 1254,
+              "width": 231,
+              "height": 38
+            }
+          },
+          {
+            "type": "linear",
+            "value": 45.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1735,
+              "y": 266,
+              "width": 90,
+              "height": 64
+            }
+          },
+          {
+            "type": "linear",
+            "value": 4.0,
+            "unit": "mm",
+            "tolerance": null,
+            "bbox": {
+              "x": 1798,
+              "y": 619,
+              "width": 57,
+              "height": 76
+            }
+          }
+        ],
+        "gdt": [],
+        "raw_response": {
+          "status": "success",
+          "data": {
+            "dimensions": [
+              {
+                "type": "linear",
+                "value": 20.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 264,
+                  "y": 425,
+                  "width": 29,
+                  "height": 42
+                }
+              },
+              {
+                "type": "diameter",
+                "value": 386.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 361,
+                  "y": 716,
+                  "width": 27,
+                  "height": 66
+                }
+              },
+              {
+                "type": "linear",
+                "value": 169.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 571,
+                  "y": 173,
+                  "width": 47,
+                  "height": 26
+                }
+              },
+              {
+                "type": "linear",
+                "value": 4.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 686,
+                  "y": 241,
+                  "width": 35,
+                  "height": 26
+                }
+              },
+              {
+                "type": "linear",
+                "value": 37.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 608,
+                  "y": 242,
+                  "width": 37,
+                  "height": 24
+                }
+              },
+              {
+                "type": "linear",
+                "value": 9.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 552,
+                  "y": 317,
+                  "width": 35,
+                  "height": 25
+                }
+              },
+              {
+                "type": "linear",
+                "value": 2528.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 648,
+                  "y": 658,
+                  "width": 30,
+                  "height": 90
+                }
+              },
+              {
+                "type": "linear",
+                "value": 0.6,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 666,
+                  "y": 1054,
+                  "width": 44,
+                  "height": 32
+                }
+              },
+              {
+                "type": "linear",
+                "value": 2.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1390,
+                  "y": 228,
+                  "width": 88,
+                  "height": 33
+                }
+              },
+              {
+                "type": "linear",
+                "value": 85.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 503,
+                  "y": 241,
+                  "width": 36,
+                  "height": 26
+                }
+              },
+              {
+                "type": "linear",
+                "value": 20.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 467,
+                  "y": 594,
+                  "width": 70,
+                  "height": 32
+                }
+              },
+              {
+                "type": "linear",
+                "value": 4.5,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 482,
+                  "y": 670,
+                  "width": 59,
+                  "height": 25
+                }
+              },
+              {
+                "type": "diameter",
+                "value": 392.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 304,
+                  "y": 716,
+                  "width": 28,
+                  "height": 67
+                }
+              },
+              {
+                "type": "linear",
+                "value": 8.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 67,
+                  "y": 1423,
+                  "width": 229,
+                  "height": 31
+                }
+              },
+              {
+                "type": "linear",
+                "value": 8.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 67,
+                  "y": 1462,
+                  "width": 246,
+                  "height": 33
+                }
+              },
+              {
+                "type": "diameter",
+                "value": 318.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 784,
+                  "y": 716,
+                  "width": 27,
+                  "height": 67
+                }
+              },
+              {
+                "type": "linear",
+                "value": 2.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 843,
+                  "y": 706,
+                  "width": 31,
+                  "height": 102
+                }
+              },
+              {
+                "type": "linear",
+                "value": 986.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 492,
+                  "y": 1254,
+                  "width": 231,
+                  "height": 38
+                }
+              },
+              {
+                "type": "linear",
+                "value": 45.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1735,
+                  "y": 266,
+                  "width": 90,
+                  "height": 64
+                }
+              },
+              {
+                "type": "linear",
+                "value": 4.0,
+                "unit": "mm",
+                "tolerance": null,
+                "bbox": {
+                  "x": 1798,
+                  "y": 619,
+                  "width": 57,
+                  "height": 76
+                }
+              }
+            ],
+            "gdt": [],
+            "text": {
+              "drawing_number": null,
+              "revision": null,
+              "title": null,
+              "material": null,
+              "notes": [],
+              "total_blocks": 0
+            },
+            "visualization_url": "/api/v1/visualization/20251031_105358_A12-311197-9 Rev.2 Interm Shaft-Acc_y_mask.jpg"
+          },
+          "processing_time": 83.9427661895752,
+          "file_id": "20251031_105358_A12-311197-9 Rev.2 Interm Shaft-Acc_y.pdf"
+        }
+      },
+      {
+        "method": "eDOCr v2 단독",
+        "success": false,
+        "processing_time": 30.462905645370483,
+        "error": "500 Server Error: Internal Server Error for url: http://localhost:5002/api/v2/ocr"
+      },
+      {
+        "method": "EDGNet 세그멘테이션",
+        "success": false,
+        "processing_time": 0.007840394973754883,
+        "error": "400 Client Error: Bad Request for url: http://localhost:5012/api/v1/segment"
+      },
+      {
+        "method": "v1/v2 앙상블",
+        "success": false,
+        "error": "v1 or v2 failed"
+      }
+    ]
+  }
+]

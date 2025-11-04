@@ -19,12 +19,16 @@ import io
 
 import httpx
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 import fitz  # PyMuPDF
 from PIL import Image
+
+# Import cost estimator and PDF generator
+from cost_estimator import get_cost_estimator
+from pdf_generator import get_pdf_generator
 
 # Logging setup
 logging.basicConfig(
@@ -55,6 +59,7 @@ app.add_middleware(
 EDOCR2_URL = os.getenv("EDOCR2_URL", "http://localhost:5001")
 EDGNET_URL = os.getenv("EDGNET_URL", "http://localhost:5002")
 SKINMODEL_URL = os.getenv("SKINMODEL_URL", "http://localhost:5003")
+VL_API_URL = os.getenv("VL_API_URL", "http://localhost:5004")
 
 UPLOAD_DIR = Path("/tmp/gateway/uploads")
 RESULTS_DIR = Path("/tmp/gateway/results")
@@ -537,6 +542,209 @@ async def generate_quote(
 
     except Exception as e:
         logger.error(f"Error in quote generation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =====================
+# VL Model Integrated Endpoints
+# =====================
+
+@app.post("/api/v1/process_with_vl")
+async def process_with_vl(
+    file: UploadFile = File(...),
+    model: str = Form(default="claude-3-5-sonnet-20241022"),
+    quantity: int = Form(default=1),
+    customer_name: str = Form(default="N/A")
+):
+    """
+    VL 모델 기반 통합 처리 (eDOCr 대체)
+
+    - Information Block 추출
+    - 치수 추출 (VL 모델)
+    - 제조 공정 추론
+    - 비용 산정
+    - QC Checklist 생성
+    - 견적서 PDF 생성
+    """
+    start_time = time.time()
+
+    try:
+        # 파일 읽기
+        file_bytes = await file.read()
+        filename = file.filename or "unknown.pdf"
+
+        logger.info(f"Starting VL-based processing for {filename}")
+
+        # PDF를 이미지로 변환 (필요시)
+        if filename.lower().endswith('.pdf'):
+            image_bytes = pdf_to_image(file_bytes, dpi=200)
+        else:
+            image_bytes = file_bytes
+
+        # 1. Information Block 추출
+        logger.info("Step 1: Extracting information block...")
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            files_info = {"file": (filename, image_bytes, "image/png")}
+            data_info = {
+                "query_fields": json.dumps(["name", "part number", "material", "scale", "weight"]),
+                "model": model
+            }
+
+            response_info = await client.post(
+                f"{VL_API_URL}/api/v1/extract_info_block",
+                files=files_info,
+                data=data_info
+            )
+
+            if response_info.status_code != 200:
+                raise HTTPException(status_code=response_info.status_code, detail=f"Info extraction failed: {response_info.text}")
+
+            info_block_data = response_info.json()["data"]
+
+        # 2. 치수 추출 (VL 모델)
+        logger.info("Step 2: Extracting dimensions with VL model...")
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            files_dim = {"file": (filename, image_bytes, "image/png")}
+            data_dim = {"model": model}
+
+            response_dim = await client.post(
+                f"{VL_API_URL}/api/v1/extract_dimensions",
+                files=files_dim,
+                data=data_dim
+            )
+
+            if response_dim.status_code != 200:
+                raise HTTPException(status_code=response_dim.status_code, detail=f"Dimension extraction failed: {response_dim.text}")
+
+            dimensions_data = response_dim.json()["data"]
+
+        # 3. 제조 공정 추론 (같은 이미지 2번 사용 - info block + part views)
+        logger.info("Step 3: Inferring manufacturing processes...")
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            # 임시로 같은 이미지 사용
+            files_proc = {
+                "info_block": (filename, image_bytes, "image/png"),
+                "part_views": (filename, image_bytes, "image/png")
+            }
+            data_proc = {"model": "gpt-4o"}
+
+            response_proc = await client.post(
+                f"{VL_API_URL}/api/v1/infer_manufacturing_process",
+                files=files_proc,
+                data=data_proc
+            )
+
+            if response_proc.status_code != 200:
+                logger.warning(f"Process inference failed: {response_proc.text}")
+                manufacturing_processes = {"Machining": "General machining processes"}
+            else:
+                manufacturing_processes = response_proc.json()["data"]
+
+        # 4. QC Checklist 생성
+        logger.info("Step 4: Generating QC checklist...")
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            files_qc = {"file": (filename, image_bytes, "image/png")}
+            data_qc = {"model": "gpt-4o"}
+
+            response_qc = await client.post(
+                f"{VL_API_URL}/api/v1/generate_qc_checklist",
+                files=files_qc,
+                data=data_qc
+            )
+
+            if response_qc.status_code != 200:
+                logger.warning(f"QC checklist generation failed: {response_qc.text}")
+                qc_checklist = []
+            else:
+                qc_checklist = response_qc.json()["data"]
+
+        # 5. 비용 산정
+        logger.info("Step 5: Estimating cost...")
+        cost_estimator = get_cost_estimator()
+
+        material = info_block_data.get("material", "Mild Steel")
+
+        cost_breakdown = cost_estimator.estimate_cost(
+            manufacturing_processes=manufacturing_processes,
+            material=material,
+            dimensions=dimensions_data,
+            gdt_count=0,  # VL 모델은 GD&T 개수를 직접 반환하지 않음
+            tolerance_count=len([d for d in dimensions_data if '±' in d or '+' in d or '-' in d]),
+            quantity=quantity
+        )
+
+        # 6. 견적서 PDF 생성
+        logger.info("Step 6: Generating quote PDF...")
+        pdf_generator = get_pdf_generator()
+
+        quote_number = f"Q-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+        quote_data = {
+            "quote_number": quote_number,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "customer_name": customer_name,
+            "part_info": {
+                "name": info_block_data.get("name", "N/A"),
+                "part_number": info_block_data.get("part number", "N/A"),
+                "material": material,
+                "quantity": quantity
+            },
+            "cost_breakdown": cost_breakdown,
+            "qc_checklist": qc_checklist,
+            "manufacturing_processes": manufacturing_processes
+        }
+
+        pdf_bytes = pdf_generator.generate_quote_pdf(quote_data)
+
+        # PDF 저장
+        pdf_path = RESULTS_DIR / f"{quote_number}.pdf"
+        with open(pdf_path, 'wb') as f:
+            f.write(pdf_bytes)
+
+        processing_time = time.time() - start_time
+
+        logger.info(f"VL-based processing completed in {processing_time:.2f}s")
+
+        return JSONResponse({
+            "status": "success",
+            "data": {
+                "quote_number": quote_number,
+                "info_block": info_block_data,
+                "dimensions": dimensions_data,
+                "dimensions_count": len(dimensions_data),
+                "manufacturing_processes": manufacturing_processes,
+                "cost_breakdown": cost_breakdown,
+                "qc_checklist": qc_checklist,
+                "pdf_path": str(pdf_path)
+            },
+            "processing_time": round(processing_time, 2),
+            "model_used": model
+        })
+
+    except Exception as e:
+        logger.error(f"VL-based processing failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/download_quote/{quote_number}")
+async def download_quote(quote_number: str):
+    """견적서 PDF 다운로드"""
+    try:
+        pdf_path = RESULTS_DIR / f"{quote_number}.pdf"
+
+        if not pdf_path.exists():
+            raise HTTPException(status_code=404, detail=f"Quote {quote_number} not found")
+
+        return FileResponse(
+            path=str(pdf_path),
+            media_type="application/pdf",
+            filename=f"quote_{quote_number}.pdf"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading quote: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

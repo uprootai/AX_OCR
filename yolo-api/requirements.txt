@@ -1,0 +1,30 @@
+# YOLOv11 API Server Requirements
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+
+# YOLO
+ultralytics>=8.0.0
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Computer Vision
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# Data Processing
+numpy>=1.24.0
+pyyaml>=6.0
+
+# Utilities
+python-dotenv==1.0.0
+aiofiles==23.2.1
+tqdm>=4.66.0
+
+# HTTP Client
+httpx==0.25.0

@@ -96,6 +96,70 @@ services:
       start_period: 40s
 
   # =====================
+  # Vision Language Model API (포트 5004)
+  # =====================
+  vl-api:
+    build:
+      context: ./vl-api
+      dockerfile: Dockerfile
+    container_name: vl-api
+    ports:
+      - "5004:5004"
+    volumes:
+      - ./vl-api/uploads:/tmp/vl-api/uploads
+    environment:
+      - VL_API_PORT=5004
+      - VL_API_WORKERS=2
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =====================
+  # YOLOv11 API (포트 5005)
+  # =====================
+  yolo-api:
+    build:
+      context: ./yolo-api
+      dockerfile: Dockerfile
+    container_name: yolo-api
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./yolo-api/models:/app/models:ro
+      - ./yolo-api/uploads:/tmp/yolo-api/uploads
+      - ./yolo-api/results:/tmp/yolo-api/results
+    environment:
+      - YOLO_API_PORT=5005
+      - YOLO_MODEL_PATH=/app/models/best.pt
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    # GPU 지원 (옵션)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5005/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =====================
   # Gateway API (포트 8000)
   # =====================
   gateway-api:
@@ -114,6 +178,8 @@ services:
       - EDOCR2_URL=http://edocr2-api:5001
       - EDGNET_URL=http://edgnet-api:5002
       - SKINMODEL_URL=http://skinmodel-api:5003
+      - VL_API_URL=http://vl-api:5004
+      - YOLO_API_URL=http://yolo-api:5005
       - GATEWAY_LOG_LEVEL=INFO
       - PYTHONUNBUFFERED=1
     networks:
@@ -123,6 +189,8 @@ services:
       - edocr2-api
       - edgnet-api
       - skinmodel-api
+      - vl-api
+      - yolo-api
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
@@ -169,5 +237,7 @@ volumes:
   edgnet_results:
   skinmodel_data:
   skinmodel_output:
+  yolo_uploads:
+  yolo_results:
   gateway_uploads:
   gateway_results:

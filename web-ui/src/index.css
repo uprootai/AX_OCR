@@ -57,3 +57,60 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mermaid diagram styles for better visibility */
+.mermaid-container {
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.dark .mermaid-container {
+  background: #1e293b;
+}
+
+/* Force text colors in Mermaid diagrams */
+.mermaid text,
+.mermaid tspan,
+.mermaid .messageText,
+.mermaid .labelText,
+.mermaid .actor,
+.mermaid .loopText {
+  fill: #4b5563 !important;
+  font-weight: 500 !important;
+}
+
+.dark .mermaid text,
+.dark .mermaid tspan,
+.dark .mermaid .messageText,
+.dark .mermaid .labelText,
+.dark .mermaid .actor,
+.dark .mermaid .loopText {
+  fill: #d1d5db !important;
+}
+
+/* Mermaid sequence diagram specific styles */
+.mermaid .actor {
+  stroke: #333 !important;
+}
+
+.dark .mermaid .actor {
+  stroke: #ddd !important;
+}
+
+.mermaid line {
+  stroke: #333 !important;
+}
+
+.dark .mermaid line {
+  stroke: #ddd !important;
+}
+
+/* Flowchart node styles */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon {
+  stroke: #333 !important;
+  stroke-width: 2px !important;
+}
