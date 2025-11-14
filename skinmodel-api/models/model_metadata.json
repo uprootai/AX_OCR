@@ -1,0 +1,21 @@
+{
+  "model_type": "RandomForestRegressor",
+  "n_estimators": 100,
+  "training_samples": 500,
+  "feature_columns": [
+    "diameter",
+    "length",
+    "thickness",
+    "hardness",
+    "youngs_modulus",
+    "process_encoded",
+    "material_encoded"
+  ],
+  "processes": [
+    "3d_printing",
+    "casting",
+    "forging",
+    "machining",
+    "sheet_metal"
+  ]
+}

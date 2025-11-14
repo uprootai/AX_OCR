@@ -1,0 +1,17 @@
+{
+  "model_type": "XGBoost",
+  "xgboost_version": "3.1.1",
+  "device": "cpu",
+  "tree_method": "hist",
+  "training_time": 3.8802175521850586,
+  "training_samples": 5000,
+  "flatness_r2": 0.8691210659603292,
+  "flatness_mae": 0.0005659266088603548,
+  "flatness_rmse": 0.0006896132718255535,
+  "cylindricity_r2": 0.9550345892636795,
+  "cylindricity_mae": 0.004285905746611197,
+  "cylindricity_rmse": 0.0061604369727213705,
+  "position_r2": 0.7125635697228271,
+  "position_mae": 0.0031323959988330883,
+  "position_rmse": 0.003772087751213642
+}

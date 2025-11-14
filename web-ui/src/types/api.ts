@@ -120,6 +120,7 @@ export interface ToleranceResult {
 export interface AnalysisResult {
   status: 'success' | 'error';
   data: {
+    job_id?: string;
     segmentation?: {
       status: string;
       data: SegmentationResult;

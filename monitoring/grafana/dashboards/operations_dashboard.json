@@ -1,0 +1,320 @@
+{
+  "dashboard": {
+    "title": "AI Drawing Analysis - Operations Dashboard",
+    "tags": ["ai", "operations", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Status Overview",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "up{job=~\"gateway|edocr2|yolo|edgnet|skinmodel|vl|paddleocr|admin-dashboard\"}",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "value": "0", "text": "DOWN", "color": "red" },
+              { "type": "value", "value": "1", "text": "UP", "color": "green" }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "orientation": "auto"
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (req/s)",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{job}} - {{method}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "reqps", "label": "Requests/sec" },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 3,
+        "title": "Error Rate (%)",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) * 100",
+            "legendFormat": "{{job}} - Error Rate",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percent", "label": "Error %" },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [5], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "name": "High Error Rate Alert"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Response Time (P95)",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{job}} - P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{job}} - P99",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "s", "label": "Seconds" },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 0,
+        "linewidth": 2
+      },
+      {
+        "id": 5,
+        "title": "CPU Usage (%)",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "{{job}} - CPU",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percent", "label": "CPU %", "max": 100 },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 2,
+        "linewidth": 2
+      },
+      {
+        "id": 6,
+        "title": "Memory Usage (GB)",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024 / 1024",
+            "legendFormat": "{{job}} - Memory",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "decgbytes", "label": "GB" },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 2,
+        "linewidth": 2
+      },
+      {
+        "id": 7,
+        "title": "Active Connections",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+        "targets": [
+          {
+            "expr": "http_active_connections",
+            "legendFormat": "{{job}} - Connections",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Connections" },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 8,
+        "title": "GPU Temperature (°C)",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+        "targets": [
+          {
+            "expr": "dcgm_gpu_temp",
+            "legendFormat": "GPU {{gpu}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "celsius", "label": "Temperature", "max": 100 },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [80], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "name": "GPU Temperature Alert"
+        }
+      },
+      {
+        "id": 9,
+        "title": "GPU Memory Usage (%)",
+        "type": "graph",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+        "targets": [
+          {
+            "expr": "dcgm_fb_used / dcgm_fb_total * 100",
+            "legendFormat": "GPU {{gpu}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percent", "label": "Usage %", "max": 100 },
+          { "format": "short" }
+        ],
+        "lines": true,
+        "fill": 2,
+        "linewidth": 2
+      },
+      {
+        "id": 10,
+        "title": "Training Jobs Status",
+        "type": "table",
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 36 },
+        "targets": [
+          {
+            "expr": "training_job_status",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "job_id": "Job ID",
+                "model_type": "Model Type",
+                "status": "Status",
+                "progress": "Progress",
+                "current_epoch": "Current Epoch",
+                "total_epochs": "Total Epochs"
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "footer": {
+            "show": false
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "API Request Distribution (Last Hour)",
+        "type": "piechart",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
+        "targets": [
+          {
+            "expr": "sum by (job) (increase(http_requests_total[1h]))",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "donut"
+        }
+      },
+      {
+        "id": 12,
+        "title": "Recent Alerts",
+        "type": "alertlist",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
+        "options": {
+          "showOptions": "current",
+          "maxItems": 10,
+          "sortOrder": 1,
+          "dashboardAlerts": false,
+          "alertName": "",
+          "dashboardTitle": "",
+          "tags": [],
+          "stateFilter": {
+            "ok": false,
+            "paused": false,
+            "no_data": false,
+            "execution_error": false,
+            "alerting": true,
+            "pending": true
+          }
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

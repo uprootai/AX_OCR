@@ -9,13 +9,15 @@ import RequestInspector from '../../components/debug/RequestInspector';
 import RequestTimeline from '../../components/debug/RequestTimeline';
 import ErrorPanel from '../../components/debug/ErrorPanel';
 import SegmentationVisualization from '../../components/debug/SegmentationVisualization';
+import EdgnetGuide from '../../components/guides/EdgnetGuide';
 import { edgnetApi } from '../../lib/api';
 import { useMonitoringStore } from '../../store/monitoringStore';
-import { Loader2, Play, Network } from 'lucide-react';
+import { Loader2, Play, Network, BookOpen } from 'lucide-react';
 import type { SegmentationResult, RequestTrace } from '../../types/api';
 
 export default function TestEdgnet() {
   const [file, setFile] = useState<File | null>(null);
+  const [showGuide, setShowGuide] = useState(true);
   const [options, setOptions] = useState({
     vectorize: true,
     visualize: false,
@@ -95,14 +97,26 @@ export default function TestEdgnet() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-3 mb-2">
-          <Network className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">EDGNet API Test</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <Network className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">EDGNet API Test</h1>
+          </div>
+          <Button
+            variant={showGuide ? 'default' : 'outline'}
+            onClick={() => setShowGuide(!showGuide)}
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            {showGuide ? '가이드 숨기기' : '가이드 보기'}
+          </Button>
         </div>
         <p className="text-muted-foreground">
           도면 이미지를 세그멘테이션하고 그래프 구조로 변환합니다.
         </p>
       </div>
+
+      {/* Usage Guide */}
+      {showGuide && <EdgnetGuide />}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Left Column: Test Configuration */}

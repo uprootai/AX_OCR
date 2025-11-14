@@ -1,0 +1,145 @@
+{
+  "augmentations": [
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "params": "original"
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_000.jpg",
+      "params": {
+        "rotation": -15
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_001.jpg",
+      "params": {
+        "rotation": -10
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_002.jpg",
+      "params": {
+        "rotation": -5
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_003.jpg",
+      "params": {
+        "rotation": 5
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_004.jpg",
+      "params": {
+        "rotation": 10
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_005.jpg",
+      "params": {
+        "rotation": 15
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_006.jpg",
+      "params": {
+        "brightness": 0.7
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_007.jpg",
+      "params": {
+        "brightness": 0.85
+      }
+    },
+    {
+      "original": "S60ME-C INTERM-SHAFT_대 주조전.jpg",
+      "augmented": "S60ME-C INTERM-SHAFT_대 주조전_aug_008.jpg",
+      "params": {
+        "brightness": 1.15
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "params": "original"
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_000.jpg",
+      "params": {
+        "rotation": -15
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_001.jpg",
+      "params": {
+        "rotation": -10
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_002.jpg",
+      "params": {
+        "rotation": -5
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_003.jpg",
+      "params": {
+        "rotation": 5
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_004.jpg",
+      "params": {
+        "rotation": 10
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_005.jpg",
+      "params": {
+        "rotation": 15
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_006.jpg",
+      "params": {
+        "brightness": 0.7
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_007.jpg",
+      "params": {
+        "brightness": 0.85
+      }
+    },
+    {
+      "original": "A12-311197-9 Rev.2 Interm Shaft-Acc_y.jpg",
+      "augmented": "A12-311197-9 Rev.2 Interm Shaft-Acc_y_aug_008.jpg",
+      "params": {
+        "brightness": 1.15
+      }
+    }
+  ],
+  "statistics": {
+    "original_count": 2,
+    "augmented_count": 20,
+    "augmentation_factor": 10.0
+  }
+}

@@ -1,0 +1,21 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#e8f4f8','primaryTextColor':'#000','primaryBorderColor':'#4a90e2','lineColor':'#4a90e2','fontSize':'14px'}}}%%
+graph LR
+    A["<b>파일 업로드</b><br/><br/>PDF/JPG/PNG<br/>다중 형식"]
+    B["<b>전처리</b><br/><br/>노이즈 제거<br/>대비 향상"]
+    C["<b>YOLO 검출</b><br/><br/>v11/v8 앙상블<br/>27개 부품"]
+    D["<b>인간-AI 협업</b><br/><br/>승인/거부/수정<br/>수작업 라벨링"]
+    E["<b>가격 DB 연동</b><br/><br/>부품별<br/>실시간 가격"]
+    F["<b>BOM 생성</b><br/><br/>Excel/PDF<br/>견적서 자동생성"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+
+    style A fill:#e8f4f8,stroke:#4a90e2,stroke-width:2px
+    style B fill:#e8f4f8,stroke:#4a90e2,stroke-width:2px
+    style C fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style D fill:#ffeaa7,stroke:#fdcb6e,stroke-width:3px
+    style E fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style F fill:#90EE90,stroke:#228B22,stroke-width:3px

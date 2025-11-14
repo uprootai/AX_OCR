@@ -9,9 +9,10 @@ import RequestInspector from '../../components/debug/RequestInspector';
 import RequestTimeline from '../../components/debug/RequestTimeline';
 import ErrorPanel from '../../components/debug/ErrorPanel';
 import OCRVisualization from '../../components/debug/OCRVisualization';
+import EdocrGuide from '../../components/guides/EdocrGuide';
 import { edocr2Api } from '../../lib/api';
 import { useMonitoringStore } from '../../store/monitoringStore';
-import { Loader2, Play, FileText, Layers, ZoomIn, X } from 'lucide-react';
+import { Loader2, Play, FileText, Layers, ZoomIn, X, BookOpen } from 'lucide-react';
 import type { OCRResult, RequestTrace } from '../../types/api';
 
 type EdocrVersion = 'v1' | 'v2';
@@ -19,6 +20,7 @@ type EdocrVersion = 'v1' | 'v2';
 export default function TestEdocr2() {
   const [file, setFile] = useState<File | null>(null);
   const [version, setVersion] = useState<EdocrVersion>('v1');
+  const [showGuide, setShowGuide] = useState(true);
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImageSrc, setModalImageSrc] = useState('');
   const [options, setOptions] = useState({
@@ -128,12 +130,21 @@ export default function TestEdocr2() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-3 mb-2">
-          <FileText className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">{currentVersion.title} API Test</h1>
-          <Badge variant={currentVersion.badgeColor} className="text-sm">
-            {currentVersion.badge}
-          </Badge>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <FileText className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">{currentVersion.title} API Test</h1>
+            <Badge variant={currentVersion.badgeColor} className="text-sm">
+              {currentVersion.badge}
+            </Badge>
+          </div>
+          <Button
+            variant={showGuide ? 'default' : 'outline'}
+            onClick={() => setShowGuide(!showGuide)}
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            {showGuide ? '가이드 숨기기' : '가이드 보기'}
+          </Button>
         </div>
         <p className="text-muted-foreground mb-2">{currentVersion.description}</p>
 
@@ -146,6 +157,9 @@ export default function TestEdocr2() {
           ))}
         </div>
       </div>
+
+      {/* Usage Guide */}
+      {showGuide && <EdocrGuide />}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Left Column: Test Configuration */}

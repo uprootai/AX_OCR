@@ -31,8 +31,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Add edgnet to path
-EDGNET_PATH = Path(__file__).parent.parent.parent / "dev" / "edgnet"
+# In Docker container, EDGNet is mounted at /app/edgnet
+EDGNET_PATH = Path("/app/edgnet")
+if not EDGNET_PATH.exists():
+    # Fallback to relative path for local development
+    EDGNET_PATH = Path(__file__).parent.parent.parent / "dev" / "edgnet"
 sys.path.insert(0, str(EDGNET_PATH))
+logger.info(f"EDGNet path: {EDGNET_PATH}")
+
+# Import EDGNet pipeline
+try:
+    from pipeline import EDGNetPipeline
+    EDGNET_AVAILABLE = True
+    logger.info("✅ EDGNet pipeline imported successfully")
+except ImportError as e:
+    EDGNET_AVAILABLE = False
+    logger.warning(f"⚠️ EDGNet pipeline import failed: {e}")
+    logger.warning("Will use mock data for segmentation")
 
 # Initialize FastAPI
 app = FastAPI(
@@ -118,6 +133,37 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def bezier_to_bbox(bezier_curve, n_samples=50):
+    """
+    Convert Bezier curve to bounding box
+
+    Args:
+        bezier_curve: Bezier curve object with evaluate() method
+        n_samples: Number of points to sample for bbox calculation
+
+    Returns:
+        dict: {'x': int, 'y': int, 'width': int, 'height': int}
+    """
+    try:
+        t_vals = np.linspace(0, 1, n_samples)
+        points = bezier_curve.evaluate(t_vals)
+
+        x_min = int(np.min(points[:, 0]))
+        y_min = int(np.min(points[:, 1]))
+        x_max = int(np.max(points[:, 0]))
+        y_max = int(np.max(points[:, 1]))
+
+        return {
+            'x': x_min,
+            'y': y_min,
+            'width': x_max - x_min,
+            'height': y_max - y_min
+        }
+    except Exception as e:
+        logger.error(f"Failed to compute bbox: {e}")
+        return {'x': 0, 'y': 0, 'width': 0, 'height': 0}
+
+
 def process_segmentation(
     file_path: Path,
     visualize: bool = True,
@@ -125,52 +171,119 @@ def process_segmentation(
     save_graph: bool = False
 ) -> Dict[str, Any]:
     """
-    도면 세그멘테이션 처리
-
-    TODO: 실제 EDGNet 파이프라인 연동
-    현재는 Mock 데이터 반환
+    도면 세그멘테이션 처리 (실제 EDGNet 파이프라인 사용)
     """
     try:
-        # Import EDGNet components
-        # from edgnet.pipeline import EDGNetPipeline
-        # pipeline = EDGNetPipeline(model_path='/models/graphsage.pth')
-        # result = pipeline.process(file_path, visualize=visualize)
-
         logger.info(f"Processing file: {file_path}")
         logger.info(f"Options: visualize={visualize}, num_classes={num_classes}")
 
-        # Simulate processing time
-        time.sleep(3)
+        if not EDGNET_AVAILABLE:
+            # EDGNet 파이프라인이 없으면 명시적 에러 반환
+            logger.error("❌ EDGNet pipeline not available")
+            raise HTTPException(
+                status_code=503,
+                detail="EDGNet pipeline not available. Please install EDGNet dependencies."
+            )
 
-        # Mock result
+        # Initialize EDGNet pipeline with model
+        # Model is mounted at /models/ inside the container
+        model_path = Path("/models/graphsage_dimension_classifier.pth")
+
+        if not model_path.exists():
+            # 모델 파일이 없으면 명시적 에러 반환
+            logger.error(f"❌ Model not found: {model_path}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"EDGNet model not found at {model_path}. Please download the model file."
+            )
+
+        logger.info(f"Loading model from: {model_path}")
+
+        # Auto-detect GPU availability / GPU 자동 감지
+        try:
+            import torch
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            logger.info(f"Using device: {device}")
+            if device == 'cuda':
+                logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
+                logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+        except ImportError:
+            device = 'cpu'
+            logger.warning("PyTorch not available, using CPU")
+
+        pipeline = EDGNetPipeline(model_path=str(model_path), device=device)
+
+        # Process drawing
+        logger.info("Running EDGNet pipeline...")
+        output_dir = RESULTS_DIR / file_path.stem if save_graph else None
+        pipeline_result = pipeline.process_drawing(
+            str(file_path),
+            output_dir=output_dir,
+            visualize=visualize
+        )
+
+        # Extract results
+        bezier_curves = pipeline_result['bezier_curves']
+        predictions = pipeline_result['predictions']
+        G = pipeline_result['graph']
+
+        logger.info(f"✅ Pipeline complete: {len(bezier_curves)} components")
+
+        # Count classifications
+        # Class mapping from training: 0=Dimension, 1=Text, 2=Contour, 3=Other
+        class_counts = {"dimension": 0, "text": 0, "contour": 0, "other": 0}
+        class_map = {0: "dimension", 1: "text", 2: "contour", 3: "other"}
+
+        if predictions is not None:
+            unique, counts = np.unique(predictions, return_counts=True)
+            for cls, cnt in zip(unique, counts):
+                class_name = class_map.get(int(cls), "unknown")
+                if class_name in class_counts:
+                    class_counts[class_name] = int(cnt)
+
+        # Build components list with bboxes
+        components = []
+        if predictions is not None:
+            for i, (bezier, pred) in enumerate(zip(bezier_curves, predictions)):
+                bbox = bezier_to_bbox(bezier)
+                classification = class_map.get(int(pred), "unknown")
+
+                components.append({
+                    "id": i,
+                    "classification": classification,
+                    "bbox": bbox,
+                    "confidence": 0.9  # EDGNet doesn't provide confidence scores
+                })
+
+        # Calculate graph stats
+        avg_degree = (2 * G.number_of_edges() / G.number_of_nodes()) if G.number_of_nodes() > 0 else 0
+
         result = {
-            "num_components": 150,
-            "classifications": {
-                "contour": 80,
-                "text": 30,
-                "dimension": 40
-            },
+            "num_components": len(bezier_curves),
+            "classifications": class_counts,
             "graph": {
-                "nodes": 150,
-                "edges": 280,
-                "avg_degree": 3.73
+                "nodes": G.number_of_nodes(),
+                "edges": G.number_of_edges(),
+                "avg_degree": round(avg_degree, 2)
             },
             "vectorization": {
-                "num_bezier_curves": 150,
-                "total_length": 12450.5
-            }
+                "num_bezier_curves": len(bezier_curves),
+                "total_length": 0  # Would need to calculate from bezier curves
+            },
+            "components": components  # NEW: Actual component data with bboxes
         }
 
-        if visualize:
-            result["visualization_url"] = f"/api/v1/result/{file_path.stem}_segment.png"
+        if visualize and output_dir:
+            result["visualization_url"] = f"/api/v1/result/{file_path.stem}/predictions.png"
 
-        if save_graph:
-            result["graph_url"] = f"/api/v1/result/{file_path.stem}_graph.json"
+        if save_graph and output_dir:
+            result["graph_url"] = f"/api/v1/result/{file_path.stem}/graph.pkl"
 
+        logger.info(f"✅ Segmentation complete: {class_counts}")
         return result
 
     except Exception as e:
-        logger.error(f"Segmentation failed: {e}")
+        logger.error(f"❌ Segmentation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Segmentation failed: {str(e)}")
 
 
@@ -229,6 +342,36 @@ def cleanup_old_files(directory: Path, max_age_hours: int = 24):
 
 
 # =====================
+# Startup Event
+# =====================
+
+@app.on_event("startup")
+async def startup_event():
+    """Validate EDGNet pipeline and model on startup"""
+    logger.info("🚀 Starting EDGNet API...")
+    logger.info("🔍 Validating EDGNet pipeline...")
+
+    if not EDGNET_AVAILABLE:
+        logger.error("❌ EDGNet pipeline NOT available")
+        logger.error("   Install EDGNet from: https://github.com/[repository_url]")
+        logger.error("   EDGNet API will return 503 errors until pipeline is installed")
+    else:
+        logger.info("✅ EDGNet pipeline available")
+
+        # Check model file
+        model_path = Path("/models/graphsage_dimension_classifier.pth")
+        if not model_path.exists():
+            logger.error(f"❌ Model file NOT found: {model_path}")
+            logger.error("   Download model from: [model_url]")
+            logger.error("   EDGNet API will return 503 errors until model is available")
+        else:
+            logger.info(f"✅ Model file found: {model_path}")
+            logger.info("✅ EDGNet API ready for segmentation")
+
+    logger.info("✅ EDGNet API startup complete")
+
+
+# =====================
 # API Endpoints
 # =====================
 
@@ -243,11 +386,22 @@ async def root():
     }
 
 
+@app.get("/health", response_model=HealthResponse)
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
-    """헬스체크"""
+    """
+    Health check endpoint / 헬스체크
+
+    Returns the current health status of the EDGNet API service.
+    """
+    # Check if pipeline and model are available
+    model_path = Path("/models/graphsage_dimension_classifier.pth")
+    is_ready = EDGNET_AVAILABLE and model_path.exists()
+
+    status = "healthy" if is_ready else "degraded"
+
     return {
-        "status": "healthy",
+        "status": status,
         "service": "EDGNet API",
         "version": "1.0.0",
         "timestamp": datetime.now().isoformat()

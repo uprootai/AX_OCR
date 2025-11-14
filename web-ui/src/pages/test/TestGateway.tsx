@@ -10,13 +10,18 @@ import RequestTimeline from '../../components/debug/RequestTimeline';
 import ErrorPanel from '../../components/debug/ErrorPanel';
 import OCRVisualization from '../../components/debug/OCRVisualization';
 import SegmentationVisualization from '../../components/debug/SegmentationVisualization';
+import GatewayGuide from '../../components/guides/GatewayGuide';
+import PipelineProgress from '../../components/ui/PipelineProgress';
 import { gatewayApi } from '../../lib/api';
 import { useMonitoringStore } from '../../store/monitoringStore';
-import { Loader2, Play, Zap, CheckCircle } from 'lucide-react';
+import { getHyperParameters } from '../../hooks/useHyperParameters';
+import { Loader2, Play, Zap, CheckCircle, BookOpen } from 'lucide-react';
 import type { AnalysisResult, RequestTrace } from '../../types/api';
 
 export default function TestGateway() {
   const [file, setFile] = useState<File | null>(null);
+  const [showGuide, setShowGuide] = useState(true);
+  const [pipelineMode, setPipelineMode] = useState<'hybrid' | 'speed'>('speed');
   const [options, setOptions] = useState({
     use_ocr: true,
     use_segmentation: true,
@@ -25,6 +30,8 @@ export default function TestGateway() {
   });
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [selectedTrace, setSelectedTrace] = useState<RequestTrace | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [showProgress, setShowProgress] = useState(false);
 
   const { traces, addTrace } = useMonitoringStore();
   const gatewayTraces = traces.filter((t) => t.endpoint.includes('process') || t.endpoint.includes('gateway'));
@@ -34,9 +41,25 @@ export default function TestGateway() {
       const startTime = Date.now();
       const traceId = `gateway-${Date.now()}`;
 
+      // Show progress tracking
+      setShowProgress(true);
+      setResult(null);
+
       try {
-        const response = await gatewayApi.process(file, options);
+        // Get hyperparameters from localStorage
+        const hyperParams = getHyperParameters();
+
+        const response = await gatewayApi.process(file, {
+          ...options,
+          pipeline_mode: pipelineMode,
+          ...hyperParams  // Spread hyperparameters into options
+        });
         const duration = Date.now() - startTime;
+
+        // Set job_id for progress tracking
+        if (response.data?.job_id) {
+          setJobId(response.data.job_id);
+        }
 
         // Extract timeline from response if available
         const timeline = {
@@ -101,6 +124,12 @@ export default function TestGateway() {
   const handleTest = () => {
     if (!file) return;
     setResult(null);
+
+    // Generate job_id based on timestamp and filename (matches backend format)
+    const generatedJobId = `${Math.floor(Date.now() / 1000)}_${file.name}`;
+    setJobId(generatedJobId);
+    setShowProgress(true);
+
     mutation.mutate(file);
   };
 
@@ -108,14 +137,26 @@ export default function TestGateway() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-3 mb-2">
-          <Zap className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Gateway API Test</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <Zap className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">Gateway API Test</h1>
+          </div>
+          <Button
+            variant={showGuide ? 'default' : 'outline'}
+            onClick={() => setShowGuide(!showGuide)}
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            {showGuide ? '가이드 숨기기' : '가이드 보기'}
+          </Button>
         </div>
         <p className="text-muted-foreground">
           통합 파이프라인을 통해 OCR, 세그멘테이션, 공차 분석을 한 번에 실행합니다.
         </p>
       </div>
+
+      {/* Usage Guide */}
+      {showGuide && <GatewayGuide />}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Left Column: Test Configuration */}
@@ -140,74 +181,125 @@ export default function TestGateway() {
             <CardHeader>
               <CardTitle>2. 파이프라인 옵션</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={options.use_ocr}
-                  onChange={(e) =>
-                    setOptions({ ...options, use_ocr: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <div>
-                  <p className="font-medium">OCR 실행</p>
-                  <p className="text-sm text-muted-foreground">
-                    eDOCr2를 사용하여 치수, GD&T, 텍스트 정보 추출
-                  </p>
+            <CardContent className="space-y-4">
+              {/* Pipeline Mode Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">파이프라인 모드</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPipelineMode('hybrid')}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      pipelineMode === 'hybrid'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="font-semibold flex items-center gap-2">
+                      ⚖️ 하이브리드
+                      {pipelineMode === 'hybrid' && (
+                        <CheckCircle className="w-4 h-4 text-blue-500" />
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      정확도 ~95% | 40-50초
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPipelineMode('speed')}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      pipelineMode === 'speed'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-green-400'
+                    }`}
+                  >
+                    <div className="font-semibold flex items-center gap-2">
+                      ⚡ 속도 우선
+                      {pipelineMode === 'speed' && (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      정확도 ~93% | 35-45초
+                    </div>
+                  </button>
                 </div>
-              </label>
+              </div>
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={options.use_segmentation}
-                  onChange={(e) =>
-                    setOptions({ ...options, use_segmentation: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <div>
-                  <p className="font-medium">세그멘테이션 실행</p>
-                  <p className="text-sm text-muted-foreground">
-                    EDGNet을 사용하여 도면 요소 분류 및 그래프 생성
-                  </p>
-                </div>
-              </label>
+              {/* Additional Options */}
+              <div className="pt-2 border-t">
+                <label className="text-sm font-semibold mb-2 block">추가 옵션</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={options.use_ocr}
+                      onChange={(e) =>
+                        setOptions({ ...options, use_ocr: e.target.checked })
+                      }
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="font-medium">OCR 실행</p>
+                      <p className="text-sm text-muted-foreground">
+                        eDOCr2를 사용하여 치수, GD&T, 텍스트 정보 추출
+                      </p>
+                    </div>
+                  </label>
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={options.use_tolerance}
-                  onChange={(e) =>
-                    setOptions({ ...options, use_tolerance: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <div>
-                  <p className="font-medium">공차 분석 실행</p>
-                  <p className="text-sm text-muted-foreground">
-                    Skin Model을 사용하여 공차 예측 및 제조 가능성 분석
-                  </p>
-                </div>
-              </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={options.use_segmentation}
+                      onChange={(e) =>
+                        setOptions({ ...options, use_segmentation: e.target.checked })
+                      }
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="font-medium">세그멘테이션 실행</p>
+                      <p className="text-sm text-muted-foreground">
+                        EDGNet을 사용하여 도면 요소 분류 및 그래프 생성
+                      </p>
+                    </div>
+                  </label>
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={options.visualize}
-                  onChange={(e) =>
-                    setOptions({ ...options, visualize: e.target.checked })
-                  }
-                  className="w-4 h-4"
-                />
-                <div>
-                  <p className="font-medium">시각화</p>
-                  <p className="text-sm text-muted-foreground">
-                    결과를 이미지로 시각화합니다
-                  </p>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={options.use_tolerance}
+                      onChange={(e) =>
+                        setOptions({ ...options, use_tolerance: e.target.checked })
+                      }
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="font-medium">공차 분석 실행</p>
+                      <p className="text-sm text-muted-foreground">
+                        Skin Model을 사용하여 공차 예측 및 제조 가능성 분석
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={options.visualize}
+                      onChange={(e) =>
+                        setOptions({ ...options, visualize: e.target.checked })
+                      }
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="font-medium">시각화</p>
+                      <p className="text-sm text-muted-foreground">
+                        결과를 이미지로 시각화합니다
+                      </p>
+                    </div>
+                  </label>
                 </div>
-              </label>
+              </div>
             </CardContent>
           </Card>
 
@@ -240,6 +332,20 @@ export default function TestGateway() {
               </p>
             </CardContent>
           </Card>
+
+          {/* Real-time Progress */}
+          {showProgress && jobId && (
+            <PipelineProgress
+              jobId={jobId}
+              pipelineMode={pipelineMode}
+              onComplete={(data) => {
+                console.log('Pipeline complete:', data);
+              }}
+              onError={(error) => {
+                console.error('Pipeline error:', error);
+              }}
+            />
+          )}
 
           {/* Request Timeline */}
           {gatewayTraces.length > 0 && (

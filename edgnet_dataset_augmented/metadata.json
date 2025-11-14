@@ -1,0 +1,16 @@
+{
+  "num_drawings": 14,
+  "total_nodes": 1155,
+  "total_edges": 5537,
+  "original_drawings": 2,
+  "augmentation_factor": 7,
+  "augmentations": [
+    "original",
+    "rot90",
+    "rot180",
+    "rot270",
+    "bright",
+    "dark",
+    "noise"
+  ]
+}

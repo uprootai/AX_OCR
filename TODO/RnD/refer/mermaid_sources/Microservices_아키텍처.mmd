@@ -1,0 +1,23 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#e8f4f8','primaryTextColor':'#000','primaryBorderColor':'#4a90e2','lineColor':'#4a90e2','fontSize':'14px'}}}%%
+graph LR
+    A["<b>Web UI</b><br/><br/>React 19<br/>Port 5173"]
+    B["<b>Gateway API</b><br/><br/>오케스트레이션<br/>Port 8000"]
+    C["<b>eDOCr v1/v2</b><br/><br/>Keras 2.x/3.x<br/>Port 5001/5002"]
+    D["<b>EDGNet API</b><br/><br/>GraphSAGE<br/>Port 5012"]
+    E["<b>Skin Model API</b><br/><br/>공차 분석<br/>Port 5003"]
+    F["<b>통합 결과</b><br/><br/>JSON 출력<br/>견적 생성"]
+
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    C --> F
+    D --> F
+    E --> F
+
+    style A fill:#e8f4f8,stroke:#4a90e2,stroke-width:3px
+    style B fill:#fff3cd,stroke:#ffc107,stroke-width:3px
+    style C fill:#f0e8f8,stroke:#9b59b6,stroke-width:2px
+    style D fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style E fill:#ffeaa7,stroke:#fdcb6e,stroke-width:2px
+    style F fill:#90EE90,stroke:#228B22,stroke-width:3px

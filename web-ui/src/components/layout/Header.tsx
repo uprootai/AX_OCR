@@ -16,7 +16,7 @@ export default function Header() {
             <Menu className="h-5 w-5" />
           </button>
           <Link to="/dashboard" className="text-xl font-bold">
-            AX Debug Console
+            AX 도면 분석 시스템
           </Link>
         </div>
 

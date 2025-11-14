@@ -202,13 +202,13 @@ export default function TestYolo() {
     F4 --> G
     G --> H["시각화 이미지 생성\n(선택사항)"]
 
-    style A fill:#e3f2fd
-    style B fill:#bbdefb
-    style C fill:#90caf9
-    style D fill:#64b5f6
-    style E fill:#42a5f5
-    style G fill:#ffd54f
-    style H fill:#ffb74d`} />
+    style A fill:#1e3a8a,stroke:#60a5fa,stroke-width:3px,color:#fff
+    style B fill:#1e40af,stroke:#3b82f6,stroke-width:3px,color:#fff
+    style C fill:#065f46,stroke:#34d399,stroke-width:3px,color:#fff
+    style D fill:#0c4a6e,stroke:#38bdf8,stroke-width:3px,color:#fff
+    style E fill:#164e63,stroke:#22d3ee,stroke-width:3px,color:#fff
+    style G fill:#78350f,stroke:#fbbf24,stroke-width:3px,color:#fff
+    style H fill:#9a3412,stroke:#fb923c,stroke-width:3px,color:#fff`} />
               </div>
             </div>
 
@@ -462,7 +462,7 @@ export default function TestYolo() {
         {/* Right Column: Results */}
         <div className="space-y-6">
           {/* Error Display */}
-          {mutation.isError && <ErrorPanel error={mutation.error} />}
+          {mutation.isError && <ErrorPanel error={mutation.error as any} />}
 
           {/* Results */}
           {result && (

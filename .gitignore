@@ -87,3 +87,20 @@ Thumbs.db
 *.bak
 *.swp
 *.backup
+
+# Logs directory (new structure)
+logs/
+*.log
+web-ui-dev.log
+
+# Performance test results (dated)
+*_20*.json
+ocr_performance_comparison_*.json
+
+# Zone Identifier files (Windows)
+*.Zone.Identifier
+
+# Test results (local only)
+test_results/
+*/results/*.json
+*/results/*.png

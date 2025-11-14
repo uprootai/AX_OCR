@@ -1,0 +1,605 @@
+{
+  "dashboard": {
+    "title": "AI Drawing Analysis - Executive Dashboard",
+    "tags": ["ai", "executive", "business", "kpi"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "1m",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Health Score",
+        "type": "gauge",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "(sum(up{job=~\"gateway|edocr2|yolo|edgnet|skinmodel|vl|paddleocr|admin-dashboard\"}) / count(up{job=~\"gateway|edocr2|yolo|edgnet|skinmodel|vl|paddleocr|admin-dashboard\"})) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 50, "color": "orange" },
+                { "value": 80, "color": "yellow" },
+                { "value": 95, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 2,
+        "title": "Today's Total Requests",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(increase(http_requests_total[24h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "blue" },
+                { "value": 1000, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 3,
+        "title": "System Uptime",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 8, "x": 8, "y": 4 },
+        "targets": [
+          {
+            "expr": "avg(time() - process_start_time_seconds)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "decimals": 0,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 3600, "color": "yellow" },
+                { "value": 86400, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Success Rate (24h)",
+        "type": "gauge",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+        "targets": [
+          {
+            "expr": "(sum(increase(http_requests_total{status=~\"2..\"}[24h])) / sum(increase(http_requests_total[24h]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 90, "color": "yellow" },
+                { "value": 95, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 5,
+        "title": "Request Volume Trend (7 Days)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 16, "x": 0, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[1h]))",
+            "legendFormat": "Requests/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 20,
+              "gradientMode": "hue",
+              "showPoints": "never"
+            },
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "options": {
+          "tooltip": {
+            "mode": "single"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Average Response Time (24h)",
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+        "targets": [
+          {
+            "expr": "avg(rate(http_request_duration_seconds_sum[24h]) / rate(http_request_duration_seconds_count[24h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "decimals": 2,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 2, "color": "yellow" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "textMode": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Service Usage Distribution (24h)",
+        "type": "piechart",
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 16 },
+        "targets": [
+          {
+            "expr": "sum by (job) (increase(http_requests_total{job=~\"edocr2|yolo|edgnet|skinmodel|vl|paddleocr\"}[24h]))",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "pie",
+          "displayLabels": ["percent"]
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Active Users/Connections",
+        "type": "timeseries",
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
+        "targets": [
+          {
+            "expr": "sum(http_active_connections)",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 30,
+              "showPoints": "never"
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Model Performance Summary",
+        "type": "table",
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+        "targets": [
+          {
+            "expr": "avg_over_time(model_accuracy{job=~\"edocr2|yolo|edgnet|skinmodel\"}[24h])",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "job": "Model",
+                "Value": "Accuracy (24h avg)"
+              }
+            }
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "Accuracy (24h avg)" },
+              "properties": [
+                { "id": "unit", "value": "percentunit" },
+                { "id": "decimals", "value": 2 },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background",
+                    "mode": "gradient"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "value": 0, "color": "red" },
+                      { "value": 0.8, "color": "yellow" },
+                      { "value": 0.9, "color": "green" }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "options": {
+          "showHeader": true,
+          "sortBy": [
+            {
+              "displayName": "Accuracy (24h avg)",
+              "desc": true
+            }
+          ]
+        }
+      },
+      {
+        "id": 10,
+        "title": "Error Trend (7 Days)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"4..\"}[1h]))",
+            "legendFormat": "Client Errors (4xx)",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1h]))",
+            "legendFormat": "Server Errors (5xx)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 20
+            }
+          },
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "Server Errors (5xx)" },
+              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+            },
+            {
+              "matcher": { "id": "byName", "options": "Client Errors (4xx)" },
+              "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }]
+            }
+          ]
+        }
+      },
+      {
+        "id": 11,
+        "title": "Resource Utilization",
+        "type": "bargauge",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+        "targets": [
+          {
+            "expr": "avg(rate(process_cpu_seconds_total[5m]) * 100)",
+            "legendFormat": "CPU Usage",
+            "refId": "A"
+          },
+          {
+            "expr": "avg(process_resident_memory_bytes / 1024 / 1024 / 1024)",
+            "legendFormat": "Memory Usage (GB)",
+            "refId": "B"
+          },
+          {
+            "expr": "avg(dcgm_gpu_temp)",
+            "legendFormat": "GPU Temperature (°C)",
+            "refId": "C"
+          },
+          {
+            "expr": "avg(dcgm_fb_used / dcgm_fb_total * 100)",
+            "legendFormat": "GPU Memory Usage (%)",
+            "refId": "D"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient",
+          "showUnfilled": true
+        },
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "CPU Usage" },
+              "properties": [
+                { "id": "unit", "value": "percent" },
+                { "id": "max", "value": 100 },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "value": 0, "color": "green" },
+                      { "value": 70, "color": "yellow" },
+                      { "value": 90, "color": "red" }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": { "id": "byName", "options": "Memory Usage (GB)" },
+              "properties": [
+                { "id": "unit", "value": "decgbytes" },
+                { "id": "max", "value": 16 },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "value": 0, "color": "green" },
+                      { "value": 12, "color": "yellow" },
+                      { "value": 14, "color": "red" }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": { "id": "byName", "options": "GPU Temperature (°C)" },
+              "properties": [
+                { "id": "unit", "value": "celsius" },
+                { "id": "max", "value": 100 },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "value": 0, "color": "green" },
+                      { "value": 70, "color": "yellow" },
+                      { "value": 85, "color": "red" }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": { "id": "byName", "options": "GPU Memory Usage (%)" },
+              "properties": [
+                { "id": "unit", "value": "percent" },
+                { "id": "max", "value": 100 },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "value": 0, "color": "green" },
+                      { "value": 80, "color": "yellow" },
+                      { "value": 95, "color": "red" }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 12,
+        "title": "Training Activity Summary",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 8, "x": 0, "y": 42 },
+        "targets": [
+          {
+            "expr": "count(training_job_status{status=\"running\"})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "gray" },
+                { "value": 1, "color": "green" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "textMode": "value_and_name"
+        }
+      },
+      {
+        "id": 13,
+        "title": "Completed Training Jobs (24h)",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 8, "x": 8, "y": 42 },
+        "targets": [
+          {
+            "expr": "count(increase(training_job_completed_total[24h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "blue" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        }
+      },
+      {
+        "id": 14,
+        "title": "System Cost Efficiency",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 8, "x": 16, "y": 42 },
+        "targets": [
+          {
+            "expr": "sum(increase(http_requests_total{status=~\"2..\"}[24h])) / avg(rate(process_cpu_seconds_total[24h]) * 100)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" }
+              ]
+            },
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "null",
+                  "result": { "text": "N/A" }
+                }
+              }
+            ]
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "textMode": "value"
+        }
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}

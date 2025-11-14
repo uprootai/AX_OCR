@@ -10,7 +10,10 @@ export default function Landing() {
             AX 도면 분석 시스템
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            AI 기반 공학 도면 분석 및 디버깅 콘솔
+            AI 기반 공학 도면 분석 및 자동 견적 시스템
+          </p>
+          <p className="text-base text-muted-foreground mb-8">
+            도면에서 치수를 추출하고 제조 견적을 자동 생성합니다
           </p>
           <Link
             to="/dashboard"

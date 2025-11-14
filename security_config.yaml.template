@@ -1,0 +1,286 @@
+# AX Microservice API System - Security Configuration Template
+# Copy this file to security_config.yaml and customize for your environment
+
+# ============================================================================
+# Authentication Configuration
+# ============================================================================
+
+authentication:
+  # Enable or disable authentication
+  enabled: true
+
+  # Authentication method: "api_key" or "jwt" (only api_key supported for now)
+  method: "api_key"
+
+  # API Keys
+  # Each key should be a strong random string (e.g., generated with: openssl rand -hex 32)
+  api_keys:
+    # Production key (full access)
+    - key: "prod-key-replace-with-secure-random-string-abc123def456"
+      name: "Production Client"
+      description: "Main production client with full access"
+      permissions:
+        - read
+        - write
+        - admin
+      enabled: true
+
+    # Read-only key (monitoring/analytics)
+    - key: "readonly-key-replace-with-secure-random-string-xyz789"
+      name: "Read Only Client"
+      description: "Analytics and monitoring service"
+      permissions:
+        - read
+      enabled: true
+
+    # Development key (testing)
+    - key: "dev-key-replace-with-secure-random-string-dev123"
+      name: "Development Client"
+      description: "Development and testing environment"
+      permissions:
+        - read
+        - write
+      enabled: true
+
+    # Web UI key
+    - key: "webui-key-replace-with-secure-random-string-ui456"
+      name: "Web UI"
+      description: "Frontend web application"
+      permissions:
+        - read
+        - write
+      enabled: true
+
+# ============================================================================
+# Rate Limiting Configuration
+# ============================================================================
+
+rate_limiting:
+  # Enable or disable rate limiting
+  enabled: true
+
+  # Global rate limits (applied to all clients unless overridden)
+  default:
+    per_minute: 30
+    per_hour: 500
+    per_day: 3000
+
+  # Per-client overrides (based on API key name or IP)
+  overrides:
+    # Higher limits for production client
+    "Production Client":
+      per_minute: 100
+      per_hour: 5000
+      per_day: 50000
+
+    # Lower limits for development
+    "Development Client":
+      per_minute: 10
+      per_hour: 100
+      per_day: 500
+
+    # Web UI gets higher limits
+    "Web UI":
+      per_minute: 60
+      per_hour: 2000
+      per_day: 10000
+
+  # Whitelist IPs (no rate limiting)
+  whitelist_ips:
+    - "127.0.0.1"
+    - "::1"
+    # - "192.168.1.100"  # Add trusted IPs here
+
+  # Blacklist IPs (always blocked)
+  blacklist_ips: []
+    # - "10.0.0.50"  # Add malicious IPs here
+
+# ============================================================================
+# CORS Configuration
+# ============================================================================
+
+cors:
+  # Enable CORS
+  enabled: true
+
+  # Allowed origins
+  allow_origins:
+    - "http://localhost:5173"      # Web UI (development)
+    - "http://localhost:3000"      # Grafana
+    - "https://your-domain.com"    # Production domain
+    # Add more origins as needed
+
+  # Allowed methods
+  allow_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+
+  # Allowed headers
+  allow_headers:
+    - "*"
+
+  # Allow credentials
+  allow_credentials: true
+
+  # Max age for preflight requests (seconds)
+  max_age: 3600
+
+# ============================================================================
+# Circuit Breaker Configuration
+# ============================================================================
+
+circuit_breaker:
+  # Default settings for all services
+  default:
+    failure_threshold: 5      # Open after 5 consecutive failures
+    timeout: 60.0             # Wait 60s before half-open attempt
+    success_threshold: 2      # Close after 2 consecutive successes in half-open
+
+  # Per-service overrides
+  services:
+    "edocr2-v1":
+      failure_threshold: 3
+      timeout: 30.0
+      success_threshold: 1
+
+    "edocr2-v2":
+      failure_threshold: 3
+      timeout: 30.0
+      success_threshold: 1
+
+    "edgnet":
+      failure_threshold: 5
+      timeout: 45.0
+      success_threshold: 2
+
+    "skinmodel":
+      failure_threshold: 5
+      timeout: 60.0
+      success_threshold: 2
+
+# ============================================================================
+# Retry Configuration
+# ============================================================================
+
+retry:
+  # Default retry settings
+  default:
+    max_attempts: 3
+    initial_delay: 1.0        # seconds
+    max_delay: 10.0           # seconds
+    exponential_base: 2.0
+
+  # Per-service overrides
+  services:
+    "edocr2-v1":
+      max_attempts: 2
+      initial_delay: 0.5
+      max_delay: 5.0
+
+    "edocr2-v2":
+      max_attempts: 2
+      initial_delay: 0.5
+      max_delay: 5.0
+
+    "edgnet":
+      max_attempts: 3
+      initial_delay: 1.0
+      max_delay: 10.0
+
+# ============================================================================
+# Logging and Monitoring
+# ============================================================================
+
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+
+  # Log sensitive data (API keys, request bodies)
+  # WARNING: Only enable for debugging, never in production
+  log_sensitive_data: false
+
+  # Log all requests (can be verbose)
+  log_all_requests: true
+
+  # Log failed authentication attempts
+  log_failed_auth: true
+
+monitoring:
+  # Enable Prometheus metrics
+  prometheus_enabled: true
+
+  # Metrics endpoint path
+  metrics_path: "/metrics"
+
+  # Enable request tracing
+  tracing_enabled: true
+
+  # Sample rate for tracing (0.0 to 1.0)
+  tracing_sample_rate: 1.0
+
+# ============================================================================
+# Security Headers
+# ============================================================================
+
+security_headers:
+  # Enable security headers
+  enabled: true
+
+  # Specific headers
+  headers:
+    # Prevent clickjacking
+    X-Frame-Options: "DENY"
+
+    # Prevent MIME type sniffing
+    X-Content-Type-Options: "nosniff"
+
+    # Enable XSS protection
+    X-XSS-Protection: "1; mode=block"
+
+    # Referrer policy
+    Referrer-Policy: "strict-origin-when-cross-origin"
+
+    # Content Security Policy (customize for your needs)
+    Content-Security-Policy: "default-src 'self'"
+
+# ============================================================================
+# Usage Examples
+# ============================================================================
+
+# Development Environment:
+# - authentication.enabled: false
+# - rate_limiting.enabled: false
+# - cors.allow_origins: ["*"]
+# - logging.level: DEBUG
+
+# Staging Environment:
+# - authentication.enabled: true
+# - rate_limiting.enabled: true (higher limits)
+# - cors.allow_origins: [staging domains]
+# - logging.level: INFO
+
+# Production Environment:
+# - authentication.enabled: true
+# - rate_limiting.enabled: true (strict limits)
+# - cors.allow_origins: [production domains only]
+# - logging.level: WARNING
+# - logging.log_sensitive_data: false
+# - security_headers.enabled: true
+
+# ============================================================================
+# How to Generate Secure API Keys
+# ============================================================================
+
+# Using OpenSSL:
+#   openssl rand -hex 32
+
+# Using Python:
+#   python3 -c "import secrets; print(secrets.token_hex(32))"
+
+# Using Node.js:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# Always use cryptographically secure random generators!

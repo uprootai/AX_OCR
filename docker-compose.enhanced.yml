@@ -1,0 +1,192 @@
+# Enhanced Docker Compose Configuration
+# Adds monitoring, security, and resilience features to the existing services
+
+version: '3.8'
+
+services:
+  # Gateway API with enhanced features
+  gateway-api:
+    build:
+      context: ./gateway-api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # API Configuration
+      - GATEWAY_PORT=8000
+      - GATEWAY_WORKERS=4
+      - GATEWAY_LOG_LEVEL=info
+
+      # Service URLs
+      - EDOCR2_V1_URL=http://edocr2-api-v1:5001
+      - EDOCR2_V2_URL=http://edocr2-api-v2:5002
+      - EDGNET_URL=http://edgnet-api:5012
+      - SKINMODEL_URL=http://skinmodel-api:5003
+
+      # Security (Optional - set ENABLE_AUTH=true to activate)
+      - ENABLE_AUTH=${ENABLE_AUTH:-false}
+      - API_KEY=${API_KEY:-}
+      - SECURITY_CONFIG=${SECURITY_CONFIG:-}
+
+      # Rate Limiting (Optional - set ENABLE_RATE_LIMIT=true to activate)
+      - ENABLE_RATE_LIMIT=${ENABLE_RATE_LIMIT:-false}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-30}
+      - RATE_LIMIT_PER_HOUR=${RATE_LIMIT_PER_HOUR:-500}
+      - RATE_LIMIT_PER_DAY=${RATE_LIMIT_PER_DAY:-3000}
+
+      # Python path for common modules
+      - PYTHONPATH=/app:/home/uproot/ax/poc
+    volumes:
+      - ./gateway-api:/app
+      - ./common:/app/common:ro
+      - ./.env:/app/.env:ro
+      - ./security_config.yaml:/app/security_config.yaml:ro
+    depends_on:
+      - edocr2-api-v1
+      - edocr2-api-v2
+      - edgnet-api
+      - skinmodel-api
+    networks:
+      - ax-network
+
+  # eDOCr2 API v1 with monitoring
+  edocr2-api-v1:
+    build:
+      context: ./edocr2-api
+      dockerfile: Dockerfile.v1
+    ports:
+      - "5001:5001"
+    environment:
+      - EDOCR2_PORT=5001
+      - EDOCR2_WORKERS=2
+      - EDOCR2_LOG_LEVEL=info
+      - PYTHONPATH=/app:/home/uproot/ax/poc
+
+      # Rate Limiting (Optional)
+      - ENABLE_RATE_LIMIT=${ENABLE_RATE_LIMIT:-false}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-30}
+    volumes:
+      - ./edocr2-api:/app
+      - ./common:/app/common:ro
+      - ./edocr2-api/uploads:/tmp/edocr2/uploads
+      - ./edocr2-api/results:/tmp/edocr2/results
+    networks:
+      - ax-network
+
+  # eDOCr2 API v2 with monitoring
+  edocr2-api-v2:
+    build:
+      context: ./edocr2-api
+      dockerfile: Dockerfile.v2
+    ports:
+      - "5002:5002"
+    environment:
+      - EDOCR2_PORT=5002
+      - EDOCR2_WORKERS=2
+      - EDOCR2_LOG_LEVEL=info
+      - PYTHONPATH=/app:/home/uproot/ax/poc
+
+      # Rate Limiting (Optional)
+      - ENABLE_RATE_LIMIT=${ENABLE_RATE_LIMIT:-false}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-30}
+    volumes:
+      - ./edocr2-api:/app
+      - ./common:/app/common:ro
+      - ./edocr2-api/uploads:/tmp/edocr2/uploads
+      - ./edocr2-api/results:/tmp/edocr2/results
+    networks:
+      - ax-network
+
+  # EDGNet API with monitoring
+  edgnet-api:
+    build:
+      context: ./edgnet-api
+      dockerfile: Dockerfile
+    ports:
+      - "5012:5012"
+    environment:
+      - EDGNET_PORT=5012
+      - EDGNET_WORKERS=2
+      - EDGNET_LOG_LEVEL=info
+      - PYTHONPATH=/app:/home/uproot/ax/poc
+    volumes:
+      - ./edgnet-api:/app
+      - ./common:/app/common:ro
+    networks:
+      - ax-network
+
+  # Skin Model API with monitoring
+  skinmodel-api:
+    build:
+      context: ./skinmodel-api
+      dockerfile: Dockerfile
+    ports:
+      - "5003:5003"
+    environment:
+      - SKINMODEL_PORT=5003
+      - SKINMODEL_WORKERS=2
+      - SKINMODEL_LOG_LEVEL=info
+      - PYTHONPATH=/app:/home/uproot/ax/poc
+    volumes:
+      - ./skinmodel-api:/app
+      - ./common:/app/common:ro
+    networks:
+      - ax-network
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - ax-network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - ax-network
+
+  # Web UI
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_GATEWAY_URL=http://localhost:8000
+      - VITE_EDOCR2_V1_URL=http://localhost:5001
+      - VITE_EDOCR2_V2_URL=http://localhost:5002
+      - VITE_EDGNET_URL=http://localhost:5012
+      - VITE_SKINMODEL_URL=http://localhost:5003
+    depends_on:
+      - gateway-api
+    networks:
+      - ax-network
+
+networks:
+  ax-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

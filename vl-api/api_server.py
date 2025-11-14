@@ -57,6 +57,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 UPLOAD_DIR = Path("/tmp/vl-api/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# API 키 상태 (startup 시 검증됨)
+_api_keys_validated = False
+_available_models = []
+
 
 # =====================
 # Pydantic Models
@@ -323,27 +327,98 @@ def parse_json_from_text(text: str) -> Union[Dict, List]:
 
 
 # =====================
-# API Endpoints
+# Startup/Shutdown Events
 # =====================
 
-@app.get("/api/v1/health", response_model=HealthResponse)
-async def health_check():
-    """Health check endpoint"""
+@app.on_event("startup")
+async def startup_event():
+    """Validate API keys on startup"""
+    global _api_keys_validated, _available_models
+
+    logger.info("🚀 Starting VL API...")
+    logger.info("🔑 Validating API keys...")
+
+    missing_keys = []
     available_models = []
 
+    # Check Anthropic API key
     if ANTHROPIC_API_KEY:
+        logger.info("  ✅ ANTHROPIC_API_KEY is set")
         available_models.extend([
             "claude-3-5-sonnet-20241022",
             "claude-3-opus-20240229",
             "claude-3-haiku-20240307"
         ])
+    else:
+        logger.warning("  ⚠️  ANTHROPIC_API_KEY is NOT set")
+        missing_keys.append("ANTHROPIC_API_KEY")
 
+    # Check OpenAI API key
     if OPENAI_API_KEY:
+        logger.info("  ✅ OPENAI_API_KEY is set")
         available_models.extend([
             "gpt-4o",
             "gpt-4-turbo",
-            "gpt-4-vision-preview"
+            "gpt-4"
         ])
+    else:
+        logger.warning("  ⚠️  OPENAI_API_KEY is NOT set")
+        missing_keys.append("OPENAI_API_KEY")
+
+    # Update global state
+    _available_models = available_models
+    _api_keys_validated = True
+
+    # Log summary
+    if missing_keys:
+        logger.warning(f"⚠️  Missing API keys: {', '.join(missing_keys)}")
+        logger.warning(f"⚠️  Available models limited to: {', '.join(available_models) if available_models else 'NONE'}")
+        if not available_models:
+            logger.error("❌ No API keys configured! VL API will not work.")
+            logger.error("   Set ANTHROPIC_API_KEY or OPENAI_API_KEY environment variables")
+    else:
+        logger.info(f"✅ All API keys validated. Available models: {len(available_models)}")
+
+    logger.info("✅ VL API ready")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("👋 Shutting down VL API...")
+
+
+# =====================
+# API Endpoints
+# =====================
+
+@app.get("/health", response_model=HealthResponse)
+@app.get("/api/v1/health", response_model=HealthResponse)
+async def health_check():
+    """
+    Health check endpoint / 헬스체크
+
+    Returns the current health status and available VL models.
+    """
+    global _available_models
+
+    # Use cached available models from startup
+    available_models = _available_models if _api_keys_validated else []
+
+    # Fallback: check if keys exist (for backward compatibility)
+    if not available_models:
+        if ANTHROPIC_API_KEY:
+            available_models.extend([
+                "claude-3-5-sonnet-20241022",
+                "claude-3-opus-20240229",
+                "claude-3-haiku-20240307"
+            ])
+        if OPENAI_API_KEY:
+            available_models.extend([
+                "gpt-4o",
+                "gpt-4-turbo",
+                "gpt-4-vision-preview"
+            ])
 
     return HealthResponse(
         status="healthy",

@@ -327,47 +327,185 @@ export default function Guide() {
       </Card>
 
       {/* Documentation Links */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>📖 상세 문서</CardTitle>
+          <CardTitle>📖 전체 문서 가이드</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            프로젝트 루트 디렉토리에서 다음 문서 파일들을 확인하세요:
+            전체 문서는 <strong>용도별로 7개 카테고리</strong>로 정리되어 있습니다.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="p-3 border rounded bg-gray-50 dark:bg-gray-800">
-              <div className="font-medium flex items-center">
-                <span className="text-blue-600 dark:text-blue-400 mr-2">📄</span>
-                YOLOV11_QUICKSTART.md
+
+          {/* 사용자 가이드 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center text-blue-900 dark:text-blue-100">
+              <span className="bg-blue-100 dark:bg-blue-900 p-2 rounded mr-2">📖</span>
+              사용자 가이드 (user/)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <div className="font-medium">USER_GUIDE.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">상세 사용자 매뉴얼 (10분 숙달)</div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">5분만에 YOLOv11 시작하기</div>
-            </div>
-            <div className="p-3 border rounded bg-gray-50 dark:bg-gray-800">
-              <div className="font-medium flex items-center">
-                <span className="text-green-600 dark:text-green-400 mr-2">📄</span>
-                SYNTHETIC_DATA_QUICKSTART.md
+              <div className="p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <div className="font-medium">API_USAGE_MANUAL.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">API 엔드포인트 및 사용법</div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">무한 학습 데이터 생성 방법</div>
-            </div>
-            <div className="p-3 border rounded bg-gray-50 dark:bg-gray-800">
-              <div className="font-medium flex items-center">
-                <span className="text-purple-600 dark:text-purple-400 mr-2">📄</span>
-                KOREAN_EXECUTION_GUIDE.md
+              <div className="p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <div className="font-medium">TROUBLESHOOTING_GUIDE.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">문제 해결 가이드 (FAQ)</div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">처음부터 끝까지 전체 가이드</div>
-            </div>
-            <div className="p-3 border rounded bg-gray-50 dark:bg-gray-800">
-              <div className="font-medium flex items-center">
-                <span className="text-orange-600 dark:text-orange-400 mr-2">📄</span>
-                API_USAGE_MANUAL.md
+              <div className="p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <div className="font-medium">KOREAN_EXECUTION_GUIDE.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">한국어 실행 가이드</div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">모든 API 상세 설명 및 예제</div>
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-            💡 문서 위치: <code className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">/home/uproot/ax/poc/</code>
-          </p>
+
+          {/* 개발자 가이드 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center text-green-900 dark:text-green-100">
+              <span className="bg-green-100 dark:bg-green-900 p-2 rounded mr-2">👨‍💻</span>
+              개발자 가이드 (developer/)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
+                <div className="font-medium">CLAUDE_KR.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Claude AI 활용 가이드 (한국어)</div>
+              </div>
+              <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
+                <div className="font-medium">CONTRIBUTING.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">기여 가이드 (코드 스타일, PR 규칙)</div>
+              </div>
+              <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
+                <div className="font-medium">GIT_WORKFLOW.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Git 브랜치 전략 & 워크플로우</div>
+              </div>
+              <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
+                <div className="font-medium">CLAUDE.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Claude AI 활용 가이드 (English)</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 기술 구현 가이드 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center text-purple-900 dark:text-purple-100">
+              <span className="bg-purple-100 dark:bg-purple-900 p-2 rounded mr-2">🔧</span>
+              기술 구현 가이드 (technical/)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded">
+                <div className="font-medium">yolo/IMPLEMENTATION_GUIDE.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">YOLOv11 상세 구현 가이드</div>
+              </div>
+              <div className="p-3 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded">
+                <div className="font-medium">yolo/QUICKSTART.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">YOLO 빠른 시작 (5분)</div>
+              </div>
+              <div className="p-3 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded">
+                <div className="font-medium">ocr/EDOCR_V1_V2_DEPLOYMENT.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">eDOCr v1/v2 배포 가이드</div>
+              </div>
+              <div className="p-3 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded">
+                <div className="font-medium">ocr/OCR_IMPROVEMENT_STRATEGY.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">OCR 성능 개선 전략</div>
+              </div>
+              <div className="p-3 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded">
+                <div className="font-medium">VL_API_IMPLEMENTATION_GUIDE.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Vision Language Model API 구현</div>
+              </div>
+              <div className="p-3 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded">
+                <div className="font-medium">SYNTHETIC_DATA_STRATEGY.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">합성 데이터 생성 전략</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 아키텍처 & 분석 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center text-orange-900 dark:text-orange-100">
+              <span className="bg-orange-100 dark:bg-orange-900 p-2 rounded mr-2">🏗️</span>
+              아키텍처 & 분석 (architecture/)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20 rounded">
+                <div className="font-medium">PROJECT_STRUCTURE_ANALYSIS.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">프로젝트 구조 상세 분석</div>
+              </div>
+              <div className="p-3 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20 rounded">
+                <div className="font-medium">DEPLOYMENT_STATUS.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">현재 배포 상태</div>
+              </div>
+              <div className="p-3 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20 rounded">
+                <div className="font-medium">PRODUCTION_READINESS_ANALYSIS.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">프로덕션 준비도 평가</div>
+              </div>
+              <div className="p-3 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20 rounded">
+                <div className="font-medium">IMPLEMENTATION_STATUS.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">구현 진행 현황</div>
+              </div>
+              <div className="p-3 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20 rounded">
+                <div className="font-medium">DECISION_MATRIX.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">기술 의사결정 기록</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 최종 보고서 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center text-red-900 dark:text-red-100">
+              <span className="bg-red-100 dark:bg-red-900 p-2 rounded mr-2">📋</span>
+              최종 보고서 (reports/)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 rounded">
+                <div className="font-medium">FINAL_COMPREHENSIVE_REPORT.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">최종 종합 보고서 (전체 구현 요약)</div>
+              </div>
+              <div className="p-3 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 rounded">
+                <div className="font-medium">COMPREHENSIVE_EVALUATION_REPORT.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">종합 평가 보고서 (성능 평가)</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 루트 문서 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
+              <span className="bg-gray-100 dark:bg-gray-800 p-2 rounded mr-2">📄</span>
+              루트 문서
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded">
+                <div className="font-medium">README.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">프로젝트 소개 및 빠른 시작</div>
+              </div>
+              <div className="p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded">
+                <div className="font-medium">QUICKSTART.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">5분 빠른 시작 가이드</div>
+              </div>
+              <div className="p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded">
+                <div className="font-medium">PROJECT_STRUCTURE.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">프로젝트 구조 가이드 (v2.0)</div>
+              </div>
+              <div className="p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded">
+                <div className="font-medium">scripts/README.md</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">스크립트 가이드 (테스트/유틸리티)</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 flex items-center">
+              <span className="mr-2">💡</span> 문서 접근 방법
+            </h4>
+            <ul className="text-sm space-y-1 text-yellow-800 dark:text-yellow-200">
+              <li>• <strong>로컬 접근:</strong> <code className="bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">/home/uproot/ax/poc/docs/</code></li>
+              <li>• <strong>GitHub:</strong> 프로젝트 저장소의 docs/ 디렉토리</li>
+              <li>• <strong>전체 색인:</strong> <code className="bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">docs/README.md</code> 참조</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
     </div>

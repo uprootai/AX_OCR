@@ -123,6 +123,7 @@ def load_model():
     if torch.cuda.is_available():
         device = "0"
         print(f"✅ GPU available: {torch.cuda.get_device_name(0)}")
+        print(f"   VRAM: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
     else:
         device = "cpu"
         print("⚠️  GPU not available, using CPU")
@@ -135,6 +136,11 @@ def load_model():
     else:
         print(f"📥 Loading model from {YOLO_MODEL_PATH}")
         yolo_model = YOLO(YOLO_MODEL_PATH)
+
+    # GPU로 모델 이동
+    if device != "cpu":
+        yolo_model.to(device)
+        print(f"🚀 Model moved to GPU: {device}")
 
     print(f"✅ Model loaded successfully on {device}")
 
@@ -290,8 +296,8 @@ async def health_check():
 @app.post("/api/v1/detect", response_model=DetectionResponse)
 async def detect_objects(
     file: UploadFile = File(...),
-    conf_threshold: float = Form(default=0.25),
-    iou_threshold: float = Form(default=0.7),
+    conf_threshold: float = Form(default=0.35),  # 정확도 향상 (0.25 → 0.35)
+    iou_threshold: float = Form(default=0.45),   # NMS 최적화 (0.7 → 0.45)
     imgsz: int = Form(default=1280),
     visualize: bool = Form(default=True)
 ):
@@ -381,7 +387,7 @@ async def detect_objects(
 @app.post("/api/v1/extract_dimensions")
 async def extract_dimensions(
     file: UploadFile = File(...),
-    conf_threshold: float = Form(default=0.25),
+    conf_threshold: float = Form(default=0.35),  # 정확도 향상 (0.25 → 0.35)
     imgsz: int = Form(default=1280)
 ):
     """

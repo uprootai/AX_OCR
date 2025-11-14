@@ -72,6 +72,39 @@ export default function APIStatusMonitor() {
           swaggerUrl: 'http://localhost:5003/docs',
         });
       }
+
+      // VL API
+      if (data.vl) {
+        updateServiceHealth('vl', {
+          name: 'VL API',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5004/docs',
+        });
+      }
+
+      // YOLO API
+      if (data.yolo) {
+        updateServiceHealth('yolo', {
+          name: 'YOLOv11 API',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5005/docs',
+        });
+      }
+
+      // PaddleOCR API
+      if (data.paddleocr) {
+        updateServiceHealth('paddleocr', {
+          name: 'PaddleOCR API',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5006/docs',
+        });
+      }
     }
   }, [data, updateServiceHealth]);
 
@@ -106,17 +139,23 @@ export default function APIStatusMonitor() {
           {services.gateway && (
             <ServiceHealthCard service={services.gateway} />
           )}
+          {services.yolo && (
+            <ServiceHealthCard service={services.yolo} />
+          )}
           {services.edocr2_v1 && (
             <ServiceHealthCard service={services.edocr2_v1} />
           )}
-          {services.edocr2_v2 && (
-            <ServiceHealthCard service={services.edocr2_v2} />
+          {services.paddleocr && (
+            <ServiceHealthCard service={services.paddleocr} />
           )}
           {services.edgnet && (
             <ServiceHealthCard service={services.edgnet} />
           )}
           {services.skinmodel && (
             <ServiceHealthCard service={services.skinmodel} />
+          )}
+          {services.vl && (
+            <ServiceHealthCard service={services.vl} />
           )}
         </div>
       </CardContent>

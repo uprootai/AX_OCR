@@ -1,0 +1,27 @@
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#e8f4f8','primaryTextColor':'#000','primaryBorderColor':'#4a90e2','lineColor':'#4a90e2','fontSize':'14px'}}}%%
+graph LR
+    A["<b>고객 요구사항</b><br/><br/>자연어 텍스트<br/>입력"]
+    B["<b>임베딩</b><br/><br/>OpenAI<br/>text-embedding-3-large"]
+    C["<b>FAISS 검색</b><br/><br/>유사 사례<br/>벡터 검색"]
+    D["<b>GraphRAG</b><br/><br/>사례간 관계<br/>참조"]
+    E["<b>BGE 리랭킹</b><br/><br/>검색 정밀도<br/>향상"]
+    F["<b>GPT-4 분석</b><br/><br/>카테고리 분류<br/>키워드 추출"]
+    G["<b>공수 산정</b><br/><br/>과거 데이터 기반<br/>비용 산정"]
+    H["<b>코드 추천</b><br/><br/>VBA 코드<br/>자동 생성"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+
+    style A fill:#e8f4f8,stroke:#4a90e2,stroke-width:2px
+    style B fill:#e8f4f8,stroke:#4a90e2,stroke-width:2px
+    style C fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style D fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style E fill:#ffeaa7,stroke:#fdcb6e,stroke-width:2px
+    style F fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style G fill:#90EE90,stroke:#228B22,stroke-width:2px
+    style H fill:#90EE90,stroke:#228B22,stroke-width:2px

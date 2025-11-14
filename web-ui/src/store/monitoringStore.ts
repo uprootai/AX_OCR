@@ -9,6 +9,9 @@ interface MonitoringState {
     edocr2_v2: ServiceHealth | null;
     edgnet: ServiceHealth | null;
     skinmodel: ServiceHealth | null;
+    yolo: ServiceHealth | null;
+    paddleocr: ServiceHealth | null;
+    vl: ServiceHealth | null;
   };
 
   // Request Traces
@@ -36,6 +39,9 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
     edocr2_v2: null,
     edgnet: null,
     skinmodel: null,
+    yolo: null,
+    paddleocr: null,
+    vl: null,
   },
 
   traces: [],

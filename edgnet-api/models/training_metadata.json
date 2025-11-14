@@ -1,0 +1,12 @@
+{
+  "model": "SimpleGraphNet",
+  "num_features": 6,
+  "num_classes": 14,
+  "num_parameters": 5518,
+  "epochs": 100,
+  "best_val_acc": 0.6580086350440979,
+  "training_time_seconds": 0.6102714538574219,
+  "device": "cuda",
+  "training_samples": 924,
+  "validation_samples": 231
+}
