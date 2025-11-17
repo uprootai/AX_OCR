@@ -3,7 +3,11 @@ import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import FileUploader from '../../components/debug/FileUploader';
+import { FileDropzone } from '../../components/upload/FileDropzone';
+import { FilePreview } from '../../components/upload/FilePreview';
+import { DimensionChart } from '../../components/charts/DimensionChart';
+import { ProcessingTimeChart } from '../../components/charts/ProcessingTimeChart';
+import { ResultActions } from '../../components/results/ResultActions';
 import JSONViewer from '../../components/debug/JSONViewer';
 import RequestInspector from '../../components/debug/RequestInspector';
 import RequestTimeline from '../../components/debug/RequestTimeline';
@@ -18,6 +22,25 @@ import { getHyperParameters } from '../../hooks/useHyperParameters';
 import { Loader2, Play, Zap, CheckCircle, BookOpen } from 'lucide-react';
 import type { AnalysisResult, RequestTrace } from '../../types/api';
 
+// Sample images for quick testing
+const SAMPLE_IMAGES = [
+  {
+    name: '합성 테스트 도면 1',
+    path: '/datasets/combined/images/test/synthetic_random_synthetic_test_000003.jpg',
+    description: '치수 표기가 있는 합성 테스트 도면'
+  },
+  {
+    name: '합성 테스트 도면 2',
+    path: '/datasets/combined/images/test/synthetic_random_synthetic_test_000001.jpg',
+    description: '다양한 치수 정보가 포함된 도면'
+  },
+  {
+    name: '합성 테스트 도면 3',
+    path: '/datasets/combined/images/test/synthetic_random_synthetic_test_000002.jpg',
+    description: '복잡한 형상의 테스트 도면'
+  }
+];
+
 export default function TestGateway() {
   const [file, setFile] = useState<File | null>(null);
   const [showGuide, setShowGuide] = useState(true);
@@ -27,6 +50,8 @@ export default function TestGateway() {
     use_segmentation: true,
     use_tolerance: true,
     visualize: false,
+    use_yolo_crop_ocr: false,
+    use_ensemble: false,
   });
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [selectedTrace, setSelectedTrace] = useState<RequestTrace | null>(null);
@@ -35,6 +60,26 @@ export default function TestGateway() {
 
   const { traces, addTrace } = useMonitoringStore();
   const gatewayTraces = traces.filter((t) => t.endpoint.includes('process') || t.endpoint.includes('gateway'));
+
+  // Load sample image from server
+  const loadSampleImage = async (imagePath: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/sample-image?path=${encodeURIComponent(imagePath)}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load image: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const fileName = imagePath.split('/').pop() || 'sample.jpg';
+      // Ensure correct MIME type for image
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
+      setFile(file);
+    } catch (error) {
+      console.error('Failed to load sample image:', error);
+      alert('샘플 이미지를 불러오는데 실패했습니다.');
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async (file: File) => {
@@ -166,13 +211,58 @@ export default function TestGateway() {
             <CardHeader>
               <CardTitle>1. 파일 업로드</CardTitle>
             </CardHeader>
-            <CardContent>
-              <FileUploader
-                onFileSelect={setFile}
-                currentFile={file}
-                accept="image/*,.pdf"
-                maxSize={10}
-              />
+            <CardContent className="space-y-4">
+              {!file ? (
+                <>
+                  <FileDropzone
+                    onFileSelect={setFile}
+                    disabled={mutation.isPending}
+                  />
+
+                  {/* Sample Images */}
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-muted-foreground">
+                        또는 샘플 이미지로 빠르게 테스트
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {SAMPLE_IMAGES.map((sample, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => loadSampleImage(sample.path)}
+                          disabled={mutation.isPending}
+                          className="p-3 text-left border-2 border-dashed rounded-lg
+                                   hover:border-primary hover:bg-accent/50
+                                   transition-all duration-200
+                                   disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded bg-primary/10
+                                          flex items-center justify-center text-primary font-bold">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {sample.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {sample.description}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <FilePreview
+                  file={file}
+                  onRemove={() => setFile(null)}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -300,6 +390,71 @@ export default function TestGateway() {
                   </label>
                 </div>
               </div>
+
+              {/* Advanced OCR Options */}
+              <div className="pt-2 border-t">
+                <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                  <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-2 py-0.5 rounded text-xs">NEW</span>
+                  고급 OCR 전략
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={options.use_yolo_crop_ocr}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setOptions({
+                          ...options,
+                          use_yolo_crop_ocr: checked,
+                          // 앙상블은 YOLO Crop OCR이 활성화되어야 사용 가능
+                          use_ensemble: checked ? options.use_ensemble : false
+                        });
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium flex items-center gap-2">
+                        🎯 YOLO Crop OCR
+                        <Badge variant="success" className="text-xs">재현율 +16.7%</Badge>
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        YOLO 검출 영역별 개별 OCR 수행 (재현율 93.3%, 처리 시간 +2.1%)
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${
+                    options.use_yolo_crop_ocr
+                      ? 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      : 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-900'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={options.use_ensemble}
+                      disabled={!options.use_yolo_crop_ocr}
+                      onChange={(e) =>
+                        setOptions({ ...options, use_ensemble: e.target.checked })
+                      }
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium flex items-center gap-2">
+                        🚀 앙상블 전략
+                        <Badge variant="secondary" className="text-xs">정밀도 +33%</Badge>
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        YOLO Crop OCR + eDOCr v2 가중치 기반 융합 (예상 F1 Score 95%+)
+                      </p>
+                      {!options.use_yolo_crop_ocr && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                          ⚠️ YOLO Crop OCR을 먼저 활성화해주세요
+                        </p>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -338,8 +493,8 @@ export default function TestGateway() {
             <PipelineProgress
               jobId={jobId}
               pipelineMode={pipelineMode}
-              onComplete={(data) => {
-                console.log('Pipeline complete:', data);
+              onComplete={() => {
+                // Pipeline complete - data available in result state
               }}
               onError={(error) => {
                 console.error('Pipeline error:', error);
@@ -406,11 +561,68 @@ export default function TestGateway() {
                 </CardContent>
               </Card>
 
+              {/* YOLO Detection Results */}
+              {result.data?.yolo_results && (
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="bg-primary/5">
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="text-primary">🎯</span>
+                      YOLO 객체 검출 결과
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Detection Stats */}
+                    <div className="grid grid-cols-2 gap-3 text-sm p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">검출 개수</span>
+                        <span className="font-bold text-lg text-primary">{result.data.yolo_results.total_detections}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">처리 시간</span>
+                        <span className="font-bold">{result.data.yolo_results.processing_time.toFixed(2)}s</span>
+                      </div>
+                    </div>
+
+                    {/* Visualization Image */}
+                    {result.data.yolo_results.visualized_image ? (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          💡 클릭하면 크게 볼 수 있습니다
+                        </p>
+                        <img
+                          src={`data:image/jpeg;base64,${result.data.yolo_results.visualized_image}`}
+                          alt="YOLO Detection Visualization"
+                          className="w-full h-auto border-2 border-border rounded-lg cursor-pointer hover:opacity-90 hover:border-primary transition-all shadow-md"
+                          onClick={() => {
+                            const modal = document.createElement('div');
+                            modal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4';
+                            modal.innerHTML = `
+                              <div class="relative max-w-7xl w-full">
+                                <img src="data:image/jpeg;base64,${result.data.yolo_results?.visualized_image}" class="w-full h-auto max-h-[90vh] object-contain rounded-lg" />
+                                <button class="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white text-3xl font-bold w-12 h-12 rounded-full flex items-center justify-center">&times;</button>
+                              </div>
+                            `;
+                            modal.onclick = () => modal.remove();
+                            document.body.appendChild(modal);
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          ⚠️ 시각화 이미지가 생성되지 않았습니다. "시각화" 옵션을 활성화하고 다시 시도해주세요.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* OCR Results */}
               {result.data?.ocr && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>OCR 결과</CardTitle>
+                    <CardTitle>OCR 결과 (eDOCr v2)</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-3 mb-3">
@@ -431,6 +643,108 @@ export default function TestGateway() {
                       <span className="text-muted-foreground">Status</span>
                       <Badge variant="success">{result.data.ocr.status}</Badge>
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* YOLO Crop OCR Results */}
+              {result.data?.yolo_crop_ocr_results && (
+                <Card className="border-2 border-purple-200 dark:border-purple-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      🎯 YOLO Crop OCR 결과
+                      <Badge variant="success" className="text-xs">재현율 향상</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-4 gap-3 mb-3">
+                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
+                        <p className="text-2xl font-bold">{result.data.yolo_crop_ocr_results.total_texts || 0}</p>
+                        <p className="text-xs text-muted-foreground">검출 치수</p>
+                      </div>
+                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
+                        <p className="text-2xl font-bold">{result.data.yolo_crop_ocr_results.successful_crops || 0}/{result.data.yolo_crop_ocr_results.crop_count || 0}</p>
+                        <p className="text-xs text-muted-foreground">Crop 성공</p>
+                      </div>
+                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
+                        <p className="text-2xl font-bold">{((result.data.yolo_crop_ocr_results.processing_time || 0) / 1000).toFixed(1)}s</p>
+                        <p className="text-xs text-muted-foreground">처리 시간</p>
+                      </div>
+                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
+                        <p className="text-2xl font-bold">{result.data.yolo_crop_ocr_results.dimensions?.length || 0}</p>
+                        <p className="text-xs text-muted-foreground">필터링 후</p>
+                      </div>
+                    </div>
+                    {result.data.yolo_crop_ocr_results.dimensions && result.data.yolo_crop_ocr_results.dimensions.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-sm font-semibold">검출된 치수 (신뢰도 상위 10개):</p>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {result.data.yolo_crop_ocr_results.dimensions.slice(0, 10).map((dim: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-2 bg-background border rounded">
+                              <span className="font-mono font-semibold">{dim.value}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {(dim.confidence * 100).toFixed(0)}%
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Ensemble Results */}
+              {result.data?.ensemble && result.data.ensemble.strategy?.includes('Advanced') && (
+                <Card className="border-2 border-blue-200 dark:border-blue-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      🚀 앙상블 융합 결과
+                      <Badge variant="secondary" className="text-xs">정밀도+재현율</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded">
+                      <p className="text-sm font-semibold mb-1">전략:</p>
+                      <p className="text-xs text-muted-foreground">{result.data.ensemble.strategy}</p>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3 mb-3">
+                      <div className="text-center p-3 bg-accent rounded">
+                        <p className="text-2xl font-bold">{result.data.ensemble.dimensions?.length || 0}</p>
+                        <p className="text-xs text-muted-foreground">총 치수</p>
+                      </div>
+                      <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
+                        <p className="text-2xl font-bold">{result.data.ensemble.dimensions?.filter((d: any) => d.confirmed_by).length || 0}</p>
+                        <p className="text-xs text-muted-foreground">양쪽 확인</p>
+                      </div>
+                      <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
+                        <p className="text-2xl font-bold">{result.data.ensemble.dimensions?.filter((d: any) => d.source === 'yolo_crop_ocr' && !d.confirmed_by).length || 0}</p>
+                        <p className="text-xs text-muted-foreground">YOLO만</p>
+                      </div>
+                      <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded">
+                        <p className="text-2xl font-bold">{result.data.ensemble.dimensions?.filter((d: any) => d.source === 'edocr_v2' && !d.confirmed_by).length || 0}</p>
+                        <p className="text-xs text-muted-foreground">eDOCr만</p>
+                      </div>
+                    </div>
+                    {result.data.ensemble.dimensions && result.data.ensemble.dimensions.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-sm font-semibold">최종 융합 치수 (신뢰도 상위 10개):</p>
+                        <div className="space-y-1.5 text-sm">
+                          {result.data.ensemble.dimensions.slice(0, 10).map((dim: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2 p-2 bg-background border rounded">
+                              <span className="font-mono font-semibold flex-1">{dim.value}</span>
+                              <Badge variant={dim.confirmed_by ? 'success' : 'outline'} className="text-xs">
+                                {dim.source === 'yolo_crop_ocr' ? 'YOLO' : 'eDOCr'}
+                                {dim.confirmed_by && ' ✓'}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {(dim.confidence * 100).toFixed(0)}%
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -501,6 +815,42 @@ export default function TestGateway() {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Analytics Charts */}
+              {result.data && (
+                <>
+                  {/* Result Actions */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>결과 다운로드</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResultActions
+                        data={result.data}
+                        filename={`drawing_analysis_${new Date().toISOString().split('T')[0]}`}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Dimension Distribution Chart */}
+                  {(result.data.ensemble?.dimensions || result.data.ocr?.data?.dimensions) && (
+                    <DimensionChart
+                      dimensions={result.data.ensemble?.dimensions || result.data.ocr?.data?.dimensions || []}
+                      title="치수 분포 분석"
+                    />
+                  )}
+
+                  {/* Processing Time Chart */}
+                  <ProcessingTimeChart
+                    yoloTime={result.data.yolo_results?.processing_time ? result.data.yolo_results.processing_time / 1000 : 0}
+                    ocrTime={result.data.ocr?.processing_time ? result.data.ocr.processing_time / 1000 : 0}
+                    segmentationTime={result.data.segmentation?.processing_time ? result.data.segmentation.processing_time / 1000 : 0}
+                    toleranceTime={result.data.tolerance?.processing_time ? result.data.tolerance.processing_time / 1000 : 0}
+                    totalTime={result.processing_time ? result.processing_time / 1000 : 0}
+                    title="단계별 처리 시간"
+                  />
+                </>
               )}
 
               {/* OCR Visualization - only for images */}

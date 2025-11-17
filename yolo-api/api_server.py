@@ -7,6 +7,7 @@ import os
 import time
 import json
 import uuid
+import base64
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -53,6 +54,7 @@ class DetectionResponse(BaseModel):
     processing_time: float = Field(..., description="처리 시간 (초)")
     model_used: str = Field(..., description="사용된 모델")
     image_size: Dict[str, int] = Field(..., description="이미지 크기")
+    visualized_image: Optional[str] = Field(None, description="Base64 encoded visualization image")
 
 class DimensionExtraction(BaseModel):
     """치수 추출 결과"""
@@ -137,12 +139,103 @@ def load_model():
         print(f"📥 Loading model from {YOLO_MODEL_PATH}")
         yolo_model = YOLO(YOLO_MODEL_PATH)
 
-    # GPU로 모델 이동
-    if device != "cpu":
-        yolo_model.to(device)
-        print(f"🚀 Model moved to GPU: {device}")
-
     print(f"✅ Model loaded successfully on {device}")
+
+def filter_text_blocks(detections: List[Detection], min_confidence=0.65) -> List[Detection]:
+    """
+    Text Block 필터링 - 노이즈 제거
+
+    전략:
+    1. 우선순위 클래스(치수, GD&T)는 모두 유지
+    2. text_block은 높은 신뢰도(>0.65)만 유지
+    3. reference_dim도 유지
+    """
+    priority_classes = [
+        'diameter_dim', 'linear_dim', 'radius_dim', 'angular_dim', 'chamfer_dim',
+        'tolerance_dim', 'reference_dim',
+        'flatness', 'cylindricity', 'position', 'perpendicularity', 'parallelism',
+        'surface_roughness'
+    ]
+
+    filtered = []
+    for det in detections:
+        # 우선순위 클래스는 모두 유지
+        if det.class_name in priority_classes:
+            filtered.append(det)
+        # text_block은 높은 신뢰도만
+        elif det.class_name == 'text_block' and det.confidence >= min_confidence:
+            filtered.append(det)
+
+    return filtered
+
+def remove_duplicate_detections(detections: List[Detection], iou_threshold=0.3) -> List[Detection]:
+    """
+    중복 검출 제거
+    같은 클래스의 겹치는 bbox 중 신뢰도가 낮은 것 제거
+    """
+    if not detections:
+        return []
+
+    # 클래스별로 그룹화
+    class_groups = {}
+    for det in detections:
+        if det.class_name not in class_groups:
+            class_groups[det.class_name] = []
+        class_groups[det.class_name].append(det)
+
+    result = []
+
+    for cls, dets in class_groups.items():
+        # 신뢰도 순으로 정렬
+        sorted_dets = sorted(dets, key=lambda x: x.confidence, reverse=True)
+
+        keep = []
+        for det in sorted_dets:
+            should_keep = True
+            for kept_det in keep:
+                if calculate_iou(det, kept_det) > iou_threshold:
+                    should_keep = False
+                    break
+
+            if should_keep:
+                keep.append(det)
+
+        result.extend(keep)
+
+    return result
+
+def calculate_iou(det1: Detection, det2: Detection) -> float:
+    """두 bbox의 IOU 계산"""
+    x1_1 = det1.bbox['x']
+    y1_1 = det1.bbox['y']
+    x2_1 = x1_1 + det1.bbox['width']
+    y2_1 = y1_1 + det1.bbox['height']
+
+    x1_2 = det2.bbox['x']
+    y1_2 = det2.bbox['y']
+    x2_2 = x1_2 + det2.bbox['width']
+    y2_2 = y1_2 + det2.bbox['height']
+
+    # Intersection
+    x1_i = max(x1_1, x1_2)
+    y1_i = max(y1_1, y1_2)
+    x2_i = min(x2_1, x2_2)
+    y2_i = min(y2_1, y2_2)
+
+    if x2_i < x1_i or y2_i < y1_i:
+        return 0.0
+
+    intersection = (x2_i - x1_i) * (y2_i - y1_i)
+
+    # Union
+    area1 = det1.bbox['width'] * det1.bbox['height']
+    area2 = det2.bbox['width'] * det2.bbox['height']
+    union = area1 + area2 - intersection
+
+    if union == 0:
+        return 0.0
+
+    return intersection / union
 
 def yolo_to_detection_format(result, image_shape) -> List[Detection]:
     """
@@ -349,11 +442,23 @@ async def detect_objects(
         # 결과 변환
         detections = yolo_to_detection_format(results[0], image.shape)
 
+        # 후처리: Text Block 필터링 및 중복 제거
+        original_count = len(detections)
+        detections = filter_text_blocks(detections, min_confidence=0.65)
+        filtered_count = len(detections)
+        detections = remove_duplicate_detections(detections, iou_threshold=0.3)
+        final_count = len(detections)
+
         # 시각화 이미지 생성
+        visualized_image_base64 = None
         if visualize and len(detections) > 0:
             annotated_img = draw_detections_on_image(image, detections)
             viz_path = RESULTS_DIR / f"{file_id}_annotated.jpg"
             cv2.imwrite(str(viz_path), annotated_img)
+
+            # Encode to base64 for API response
+            _, buffer = cv2.imencode('.jpg', annotated_img)
+            visualized_image_base64 = base64.b64encode(buffer).decode('utf-8')
 
         # JSON 저장
         result_json = {
@@ -362,7 +467,14 @@ async def detect_objects(
             'total_detections': len(detections),
             'processing_time': time.time() - start_time,
             'model_used': YOLO_MODEL_PATH,
-            'image_size': {'width': img_width, 'height': img_height}
+            'image_size': {'width': img_width, 'height': img_height},
+            'filtering_stats': {
+                'original_count': original_count,
+                'after_text_filter': filtered_count,
+                'final_count': final_count,
+                'text_blocks_removed': original_count - filtered_count,
+                'duplicates_removed': filtered_count - final_count
+            }
         }
 
         json_path = RESULTS_DIR / f"{file_id}_result.json"
@@ -378,7 +490,8 @@ async def detect_objects(
             total_detections=len(detections),
             processing_time=processing_time,
             model_used=YOLO_MODEL_PATH,
-            image_size={'width': img_width, 'height': img_height}
+            image_size={'width': img_width, 'height': img_height},
+            visualized_image=visualized_image_base64
         )
 
     except Exception as e:

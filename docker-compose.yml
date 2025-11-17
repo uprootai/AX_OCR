@@ -263,12 +263,13 @@ services:
     volumes:
       - ./gateway-api/uploads:/tmp/gateway/uploads
       - ./gateway-api/results:/tmp/gateway/results
+      - ./datasets:/datasets:ro
     environment:
       - GATEWAY_PORT=8000
       - GATEWAY_WORKERS=4
       - EDOCR_V1_URL=http://edocr2-api:5001
       - EDOCR_V2_URL=http://edocr2-v2-api:5002
-      - EDOCR2_URL=http://edocr2-api:5001
+      - EDOCR2_URL=http://edocr2-v2-api:5002
       - EDGNET_URL=http://edgnet-api:5002
       - SKINMODEL_URL=http://skinmodel-api:5003
       - VL_API_URL=http://vl-api:5004

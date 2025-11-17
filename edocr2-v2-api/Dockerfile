@@ -35,6 +35,12 @@ COPY gpu_preprocessing.py .
 # Create directories
 RUN mkdir -p /tmp/edocr2/uploads /tmp/edocr2/results /models
 
+# Configure CUDA library path for CuPy
+RUN echo '/usr/local/lib/python3.10/site-packages/nvidia/cuda_nvrtc/lib' > /etc/ld.so.conf.d/cuda-nvrtc.conf && \
+    echo '/usr/local/lib/python3.10/site-packages/nvidia/cuda_runtime/lib' >> /etc/ld.so.conf.d/cuda-nvrtc.conf && \
+    echo '/usr/local/lib/python3.10/site-packages/nvidia/cublas/lib' >> /etc/ld.so.conf.d/cuda-nvrtc.conf && \
+    ldconfig
+
 # Expose port
 EXPOSE 5001
 

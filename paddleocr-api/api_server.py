@@ -198,6 +198,15 @@ async def perform_ocr(
     if ocr_model is None:
         raise HTTPException(status_code=503, detail="PaddleOCR model not loaded")
 
+    # Form 파라미터 타입 변환 (multipart/form-data는 모두 문자열로 전달됨)
+    try:
+        min_confidence = float(min_confidence) if isinstance(min_confidence, str) else min_confidence
+        det_db_thresh = float(det_db_thresh) if isinstance(det_db_thresh, str) else det_db_thresh
+        det_db_box_thresh = float(det_db_box_thresh) if isinstance(det_db_box_thresh, str) else det_db_box_thresh
+        use_angle_cls = use_angle_cls if isinstance(use_angle_cls, bool) else (use_angle_cls.lower() == 'true' if isinstance(use_angle_cls, str) else bool(use_angle_cls))
+    except (ValueError, AttributeError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid parameter type: {e}")
+
     try:
         # 이미지 읽기
         image_bytes = await file.read()
@@ -208,44 +217,59 @@ async def perform_ocr(
         logger.info(f"Image shape: {img_array.shape}")
 
         # PaddleOCR 실행
-        # result format: [[[bbox], (text, confidence)], ...]
-        # Note: PaddleOCR 3.x uses cls parameter differently
+        # NOTE: PaddleOCR 3.x returns list of OCRResult objects (dict-like)
         results = ocr_model.ocr(img_array)
 
-        # 결과가 None이거나 비어있는 경우 처리
-        if not results or results[0] is None:
-            logger.warning("No text detected in image")
-            detections = []
+        logger.info(f"PaddleOCR results type: {type(results)}, len: {len(results) if hasattr(results, '__len__') else 'N/A'}")
+
+        # Handle PaddleOCR 3.x OCRResult format
+        detections = []
+
+        if results and len(results) > 0:
+            # results is a list, typically with one OCRResult per page
+            ocr_result = results[0]  # Get first page result
+
+            # OCRResult is a dict-like object with keys: 'rec_texts', 'rec_scores', 'rec_polys'
+            if hasattr(ocr_result, 'get'):
+                rec_texts = ocr_result.get('rec_texts', [])
+                rec_scores = ocr_result.get('rec_scores', [])
+                rec_polys = ocr_result.get('rec_polys', ocr_result.get('dt_polys', []))
+
+                logger.info(f"Detected {len(rec_texts)} text regions")
+
+                # Zip together: polys, texts, scores
+                for idx, (poly, text, score) in enumerate(zip(rec_polys, rec_texts, rec_scores)):
+                    # Convert numpy array to list of [x, y] points
+                    if hasattr(poly, 'tolist'):
+                        bbox = poly.tolist()
+                    else:
+                        bbox = poly
+
+                    # Ensure bbox is in correct format [[x1,y1], [x2,y2], ...]
+                    if isinstance(bbox, list) and len(bbox) > 0:
+                        if not isinstance(bbox[0], list):
+                            # Convert from flat array to list of points
+                            bbox = [[float(bbox[i]), float(bbox[i+1])] for i in range(0, len(bbox), 2)]
+
+                    # Filter by confidence
+                    confidence = float(score)
+                    if confidence < min_confidence:
+                        continue
+
+                    # Calculate position from bbox
+                    position = bbox_to_position(bbox)
+
+                    detection = TextDetection(
+                        text=str(text),
+                        confidence=confidence,
+                        bbox=bbox,
+                        position=position
+                    )
+                    detections.append(detection)
+            else:
+                logger.warning(f"Unexpected OCRResult format: {type(ocr_result)}")
         else:
-            # 결과 파싱
-            detections = []
-            for line in results[0]:
-                # PaddleOCR 3.x format: [bbox, (text, confidence)]
-                # or sometimes just [bbox, text, confidence]
-                bbox = line[0]  # [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-
-                # Handle different PaddleOCR return formats
-                if isinstance(line[1], tuple):
-                    text, confidence = line[1]  # (text, confidence)
-                else:
-                    # Fallback: assume line[1] is text and line[2] is confidence
-                    text = line[1] if len(line) > 1 else ""
-                    confidence = line[2] if len(line) > 2 else 0.0
-
-                # 최소 신뢰도 필터링
-                if confidence < min_confidence:
-                    continue
-
-                # 위치 정보 계산
-                position = bbox_to_position(bbox)
-
-                detection = TextDetection(
-                    text=text,
-                    confidence=float(confidence),
-                    bbox=[[float(x), float(y)] for x, y in bbox],
-                    position=position
-                )
-                detections.append(detection)
+            logger.warning("No OCR results returned")
 
         processing_time = time.time() - start_time
 

@@ -110,15 +110,15 @@ class OCRRequest(BaseModel):
     extract_text: bool = Field(True, description="텍스트 정보 추출 여부")
     use_vl_model: bool = Field(False, description="Vision Language 모델 사용 여부 (GPT-4o/Qwen2-VL)")
     visualize: bool = Field(False, description="시각화 이미지 생성 여부")
-    use_gpu_preprocessing: bool = Field(True, description="GPU 전처리 사용 여부 (CLAHE, denoising)")
+    use_gpu_preprocessing: bool = Field(False, description="GPU 전처리 사용 여부 (CLAHE, denoising)")
 
 
 class DimensionData(BaseModel):
-    value: float
+    value: Any  # Can be float or str (for recognized text dimensions)
     unit: str
     type: str
     tolerance: Optional[str] = None
-    location: Optional[Dict[str, float]] = None
+    location: Optional[Any] = None  # Can be dict or list
 
 
 class GDTData(BaseModel):
@@ -126,6 +126,12 @@ class GDTData(BaseModel):
     value: float
     datum: Optional[str] = None
     location: Optional[Dict[str, float]] = None
+
+
+class PossibleTextData(BaseModel):
+    """Text annotations or labels found but not classified as dimensions"""
+    text: str
+    location: Optional[Any] = None
 
 
 class TextData(BaseModel):
@@ -227,7 +233,7 @@ def process_ocr(
     extract_text: bool = True,
     use_vl_model: bool = False,
     visualize: bool = False,
-    use_gpu_preprocessing: bool = True
+    use_gpu_preprocessing: bool = False
 ) -> Dict[str, Any]:
     """
     OCR 처리 로직 (실제 eDOCr2 파이프라인 사용)
@@ -307,7 +313,8 @@ def process_ocr(
             "dimensions": [],
             "gdt": [],
             "text": {},
-            "tables": []
+            "tables": [],
+            "possible_text": []  # New field for lower-confidence text annotations
         }
 
         # 2. OCR Tables
@@ -356,8 +363,21 @@ def process_ocr(
                 backg_save=False
             )
 
+            # DEBUG: Log raw recognition results
+            logger.info(f"    DEBUG: Raw dimensions type: {type(dimensions)}, len: {len(dimensions) if hasattr(dimensions, '__len__') else 'N/A'}")
+            logger.info(f"    DEBUG: other_info type: {type(other_info)}, len: {len(other_info) if hasattr(other_info, '__len__') else 'N/A'}")
+            if dimensions:
+                for idx, dim_item in enumerate(dimensions[:3]):  # Log first 3
+                    logger.info(f"    DEBUG: dimensions[{idx}]: type={type(dim_item)}, value={dim_item}")
+            if other_info:
+                for idx, info_item in enumerate(other_info[:3]):  # Log first 3
+                    logger.info(f"    DEBUG: other_info[{idx}]: type={type(info_item)}, value={info_item}")
+
             # Convert to API format
             dim_list = []
+            possible_text_list = []
+
+            # Process main dimensions (high confidence - contains digits)
             for dim_item in dimensions:
                 if isinstance(dim_item, dict):
                     dim_list.append({
@@ -367,9 +387,48 @@ def process_ocr(
                         "tolerance": dim_item.get("tolerance"),
                         "location": dim_item.get("location")
                     })
+                elif isinstance(dim_item, tuple) and len(dim_item) >= 2:
+                    # Handle tuple format: (text, bbox)
+                    text = str(dim_item[0]).strip()
+                    if text:
+                        dim_list.append({
+                            "value": text,
+                            "unit": "mm",
+                            "type": "linear",
+                            "tolerance": None,
+                            "location": dim_item[1].tolist() if hasattr(dim_item[1], 'tolist') else dim_item[1]
+                        })
+
+            # Process other_info (lower confidence - may be text or misrecognized dimensions)
+            for info_item in other_info:
+                if isinstance(info_item, tuple) and len(info_item) >= 2:
+                    text = str(info_item[0]).strip()
+                    # Apply improved filtering logic
+                    if text and len(text) >= 2:
+                        # Check if it could be a dimension or useful text
+                        has_digit = any(c.isdigit() for c in text)
+                        has_special = any(c in 'Ø±°φ⌀∅' for c in text)
+                        has_alphanum = any(c.isalnum() for c in text)
+
+                        if has_digit or has_special:
+                            # Likely a dimension - add to main list
+                            dim_list.append({
+                                "value": text,
+                                "unit": "mm",
+                                "type": "text_dimension",  # Mark as lower confidence
+                                "tolerance": None,
+                                "location": info_item[1].tolist() if hasattr(info_item[1], 'tolist') else info_item[1]
+                            })
+                        elif has_alphanum and len(text) >= 2:
+                            # Text annotation or label - add to possible_text
+                            possible_text_list.append({
+                                "text": text,
+                                "location": info_item[1].tolist() if hasattr(info_item[1], 'tolist') else info_item[1]
+                            })
 
             result["dimensions"] = dim_list
-            logger.info(f"    Extracted {len(dim_list)} dimensions")
+            result["possible_text"] = possible_text_list  # New field for text annotations
+            logger.info(f"    Extracted {len(dim_list)} dimensions, {len(possible_text_list)} text annotations")
 
         # 5. Extract text info from tables
         if extract_text and result.get("tables"):
@@ -473,7 +532,7 @@ async def process_drawing(
     extract_text: bool = Form(True, description="텍스트 정보 추출"),
     use_vl_model: bool = Form(False, description="Vision Language 모델 사용"),
     visualize: bool = Form(False, description="시각화 이미지 생성"),
-    use_gpu_preprocessing: bool = Form(True, description="GPU 전처리 사용")
+    use_gpu_preprocessing: bool = Form(False, description="GPU 전처리 사용")
 ):
     """
     도면 OCR 처리

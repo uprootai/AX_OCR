@@ -25,8 +25,8 @@ try:
     import cupyx.scipy.ndimage as cupy_ndimage
     GPU_AVAILABLE = True
     logger.info("✅ GPU preprocessing enabled (cuPy)")
-except ImportError:
-    logger.warning("⚠️  cuPy not available, falling back to CPU preprocessing")
+except (ImportError, RuntimeError, OSError) as e:
+    logger.warning(f"⚠️  cuPy not available, falling back to CPU preprocessing: {e}")
     cp = None
 
 

@@ -104,3 +104,5 @@ ocr_performance_comparison_*.json
 test_results/
 */results/*.json
 */results/*.png
+external_datasets/
+/home/uproot/ax/external_datasets/

@@ -1,0 +1,64 @@
+{
+  "ground_truth": {
+    "부품명": "Intermediate Shaft (중간축)",
+    "모델": "S60ME-C",
+    "회사": "DOOSAN ENGINE CO., LTD.",
+    "주요 치수": {
+      "외경": "Ø476",
+      "중간 직경": "Ø370",
+      "내경 관련": "Ø324",
+      "길이": "163+2/-1.2",
+      "깊이": "7-9"
+    },
+    "GD&T 기호": {
+      "평행도": "∥ 0.2",
+      "진원도": [
+        "Rev.1",
+        "Rev.2",
+        "Rev.3"
+      ],
+      "기준면": [
+        "△A",
+        "△B"
+      ],
+      "표면거칠기": [
+        "Ra 3.2",
+        "Ra 6.3"
+      ]
+    },
+    "참조 도면": [
+      "18166834-2 (Rev.1)",
+      "18166840 (Rev.3)",
+      "12-206840 (Rev.2)",
+      "A12-311197-9",
+      "E30008100 (Rev.1)"
+    ],
+    "뷰 정보": {
+      "상단": "직사각형 단면도 (해칭 포함)",
+      "하단": "원형 정면도 (3개 동심원)",
+      "우측 상단": "상세 단면도"
+    }
+  },
+  "test_image": "/home/uproot/ax/poc/test_samples/drawings/S60ME-C INTERM-SHAFT_대 주조전.jpg",
+  "results": {
+    "yolo": {
+      "success": true,
+      "total_objects": 76,
+      "classes": {
+        "unknown": 76
+      }
+    },
+    "edocr_v1": {
+      "success": false
+    },
+    "edocr_v2": {
+      "success": false
+    },
+    "paddleocr": {
+      "success": false
+    },
+    "edgnet": {
+      "success": false
+    }
+  }
+}

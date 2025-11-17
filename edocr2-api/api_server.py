@@ -110,7 +110,7 @@ class OCRRequest(BaseModel):
     extract_text: bool = Field(True, description="텍스트 정보 추출 여부")
     use_vl_model: bool = Field(False, description="Vision Language 모델 사용 여부 (GPT-4o/Qwen2-VL)")
     visualize: bool = Field(False, description="시각화 이미지 생성 여부")
-    use_gpu_preprocessing: bool = Field(True, description="GPU 전처리 사용 여부 (CLAHE, denoising)")
+    use_gpu_preprocessing: bool = Field(False, description="GPU 전처리 사용 여부 (CLAHE, denoising)")
 
 
 class DimensionData(BaseModel):
@@ -227,7 +227,7 @@ def process_ocr(
     extract_text: bool = True,
     use_vl_model: bool = False,
     visualize: bool = False,
-    use_gpu_preprocessing: bool = True
+    use_gpu_preprocessing: bool = False
 ) -> Dict[str, Any]:
     """
     OCR 처리 로직 (실제 eDOCr2 파이프라인 사용)
@@ -473,7 +473,7 @@ async def process_drawing(
     extract_text: bool = Form(True, description="텍스트 정보 추출"),
     use_vl_model: bool = Form(False, description="Vision Language 모델 사용"),
     visualize: bool = Form(False, description="시각화 이미지 생성"),
-    use_gpu_preprocessing: bool = Form(True, description="GPU 전처리 사용")
+    use_gpu_preprocessing: bool = Form(False, description="GPU 전처리 사용")
 ):
     """
     도면 OCR 처리

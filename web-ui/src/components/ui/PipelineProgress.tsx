@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from './Card';
-import { CheckCircle, Circle, Loader2, AlertCircle, Clock } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, AlertCircle, Clock, Timer } from 'lucide-react';
+import { useEstimatedTime } from '../../hooks/useEstimatedTime';
 
 interface ProgressUpdate {
   timestamp: string;
@@ -33,6 +34,7 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
   const [isConnected, setIsConnected] = useState(false);
   const [startTime] = useState(Date.now());
   const [elapsed, setElapsed] = useState(0);
+  const [finalTime, setFinalTime] = useState<number | null>(null);
 
   useEffect(() => {
     if (!jobId) return;
@@ -54,15 +56,22 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
 
           if (data.status === 'done') {
             eventSource?.close();
+            // Save final time when pipeline completes
+            setFinalTime(Date.now() - startTime);
             if (onComplete) {
-              const lastUpdate = updates[updates.length - 1];
-              onComplete(lastUpdate?.data || {});
+              // Use callback form to get latest updates
+              setUpdates((prevUpdates) => {
+                const lastUpdate = prevUpdates[prevUpdates.length - 1];
+                onComplete(lastUpdate?.data || {});
+                return prevUpdates;
+              });
             }
             return;
           }
 
           if (data.status === 'timeout') {
             eventSource?.close();
+            setFinalTime(Date.now() - startTime);
             if (onError) {
               onError('진행 상황 추적 시간 초과');
             }
@@ -87,6 +96,7 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
 
     connectSSE();
 
+    // Update elapsed time continuously
     intervalId = setInterval(() => {
       setElapsed(Date.now() - startTime);
     }, 100);
@@ -169,17 +179,38 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
   const currentStepIndex = !isPipelineComplete ? mainSteps.findIndex(step => getMainStepStatus(step) === 'running') : -1;
   const currentStep = currentStepIndex >= 0 ? mainSteps[currentStepIndex] : null;
 
+  // 완료된 단계 수 계산
+  const completedSteps = mainSteps.filter(step => getMainStepStatus(step) === 'completed').length;
+
+  // 예상 남은 시간 계산
+  const { estimatedTime } = useEstimatedTime({
+    totalSteps: mainSteps.length,
+    completedSteps,
+    startTime,
+    isComplete: isPipelineComplete
+  });
+
   return (
     <Card className="mt-4">
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <div>
+          <div className="flex-1">
             <h3 className="text-lg font-semibold">파이프라인 진행 상황</h3>
-            <p className="text-sm text-muted-foreground">
-              {displayMode === 'hybrid' ? '🔵 하이브리드 모드' : '🟢 속도 우선 모드'}
-              {' · '}
-              <Clock className="inline w-4 h-4" /> {formatTime(elapsed)}
-            </p>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+              <span>
+                {displayMode === 'hybrid' ? '🔵 하이브리드 모드' : '🟢 속도 우선 모드'}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {formatTime(finalTime !== null ? finalTime : elapsed)}
+              </span>
+              {!isPipelineComplete && completedSteps > 0 && (
+                <span className="flex items-center gap-1 text-blue-600">
+                  <Timer className="w-4 h-4" />
+                  {estimatedTime}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {isConnected && !isPipelineComplete && (
@@ -347,7 +378,7 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
               ✅ 파이프라인 완료
             </h4>
             <p className="text-sm text-green-800 dark:text-green-200">
-              총 처리 시간: {formatTime(elapsed)}
+              총 처리 시간: {formatTime(finalTime !== null ? finalTime : elapsed)}
             </p>
           </div>
         )}

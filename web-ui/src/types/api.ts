@@ -121,6 +121,19 @@ export interface AnalysisResult {
   status: 'success' | 'error';
   data: {
     job_id?: string;
+    yolo_results?: {
+      status: string;
+      file_id: string;
+      detections: any[];
+      total_detections: number;
+      processing_time: number;
+      model_used: string;
+      image_size: {
+        width: number;
+        height: number;
+      };
+      visualized_image?: string; // Base64 encoded visualization
+    };
     segmentation?: {
       status: string;
       data: SegmentationResult;
@@ -137,6 +150,20 @@ export interface AnalysisResult {
       status: string;
       data: ToleranceResult;
       processing_time: number;
+    };
+    yolo_crop_ocr_results?: {
+      dimensions: any[];
+      total_texts: number;
+      crop_count: number;
+      successful_crops: number;
+      processing_time: number;
+    };
+    ensemble?: {
+      dimensions: any[];
+      yolo_detections_count: number;
+      ocr_dimensions_count: number;
+      yolo_crop_ocr_count?: number;
+      strategy: string;
     };
   };
   processing_time: number;
