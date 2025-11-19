@@ -12,6 +12,7 @@ import json
 import time
 import asyncio
 import logging
+import base64
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -25,10 +26,30 @@ from pydantic import BaseModel, Field
 import uvicorn
 import fitz  # PyMuPDF
 from PIL import Image
+import cv2
+import numpy as np
 
 # Import cost estimator and PDF generator
 from cost_estimator import get_cost_estimator
 from pdf_generator import get_pdf_generator
+
+# Import refactored modules
+from models import (
+    HealthResponse, ProcessRequest, ProcessResponse, ProcessData,
+    YOLOResults, OCRResults, SegmentationResults, ToleranceResult,
+    QuoteRequest, QuoteResponse, QuoteData, CostBreakdown
+)
+from utils import (
+    ProgressTracker, progress_store,
+    is_false_positive, pdf_to_image, calculate_bbox_iou,
+    format_class_name, redraw_yolo_visualization, crop_bbox,
+    match_yolo_with_ocr
+)
+from services import (
+    call_yolo_detect, call_edocr2_ocr, call_paddleocr,
+    call_edgnet_segment, call_skinmodel_tolerance,
+    process_yolo_crop_ocr, ensemble_ocr_results, calculate_quote
+)
 
 # Logging setup
 logging.basicConfig(
@@ -75,272 +96,6 @@ RESULTS_DIR = Path("/tmp/gateway/results")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-
-# =====================
-# Progress Tracking
-# =====================
-
-# Global dictionary to store progress for each job_id
-progress_store: Dict[str, List[Dict[str, Any]]] = {}
-
-class ProgressTracker:
-    """Track pipeline progress for real-time updates"""
-
-    def __init__(self, job_id: str):
-        self.job_id = job_id
-        progress_store[job_id] = []
-
-    def update(self, step: str, status: str, message: str, data: Dict[str, Any] = None):
-        """Add progress update"""
-        progress_entry = {
-            "timestamp": datetime.now().isoformat(),
-            "step": step,
-            "status": status,  # 'started', 'running', 'completed', 'error'
-            "message": message,
-            "data": data or {}
-        }
-        progress_store[self.job_id].append(progress_entry)
-        logger.info(f"[{self.job_id}] {step}: {message}")
-
-    def get_progress(self) -> List[Dict[str, Any]]:
-        """Get all progress updates"""
-        return progress_store.get(self.job_id, [])
-
-    def cleanup(self):
-        """Remove progress data after completion"""
-        if self.job_id in progress_store:
-            del progress_store[self.job_id]
-
-
-# =====================
-# Pydantic Models
-# =====================
-
-class HealthResponse(BaseModel):
-    status: str
-    service: str
-    version: str
-    timestamp: str
-    services: Dict[str, str]
-
-
-class ProcessRequest(BaseModel):
-    use_segmentation: bool = Field(True, description="EDGNet 세그멘테이션 사용")
-    use_ocr: bool = Field(True, description="eDOCr2 OCR 사용")
-    use_tolerance: bool = Field(True, description="Skin Model 공차 예측 사용")
-    visualize: bool = Field(True, description="시각화 생성")
-
-
-class DetectionResult(BaseModel):
-    """YOLO 검출 결과"""
-    class_id: int = Field(..., description="클래스 ID")
-    class_name: str = Field(..., description="클래스 이름")
-    confidence: float = Field(..., description="신뢰도 (0-1)")
-    bbox: Dict[str, int] = Field(..., description="바운딩 박스 {x, y, width, height}")
-
-class YOLOResults(BaseModel):
-    """YOLO 검출 결과"""
-    detections: List[DetectionResult] = Field(default=[], description="검출된 객체 목록")
-    total_detections: int = Field(0, description="총 검출 개수")
-    processing_time: float = Field(0, description="YOLO 처리 시간 (초)")
-    model_used: Optional[str] = Field(None, description="사용된 모델")
-    visualized_image: Optional[str] = Field(None, description="Base64 인코딩된 시각화 이미지")
-
-class DimensionData(BaseModel):
-    """치수 정보"""
-    value: Optional[str] = Field(None, description="치수 값")
-    unit: Optional[str] = Field(None, description="단위")
-    tolerance: Optional[Dict[str, Any]] = Field(None, description="공차 정보")
-    bbox: Optional[Dict[str, int]] = Field(None, description="위치")
-
-class OCRResults(BaseModel):
-    """OCR 결과"""
-    dimensions: List[DimensionData] = Field(default=[], description="추출된 치수")
-    gdt_symbols: List[Dict[str, Any]] = Field(default=[], description="GD&T 기호")
-    text_blocks: List[Dict[str, Any]] = Field(default=[], description="텍스트 블록")
-    tables: List[Dict[str, Any]] = Field(default=[], description="테이블 데이터")
-    processing_time: float = Field(0, description="OCR 처리 시간 (초)")
-
-class ComponentData(BaseModel):
-    """세그멘테이션 컴포넌트"""
-    component_id: int = Field(..., description="컴포넌트 ID")
-    class_id: int = Field(..., description="클래스 ID (0=배경, 1=윤곽선, 2=텍스트, 3=치수)")
-    bbox: Dict[str, int] = Field(..., description="바운딩 박스")
-    area: int = Field(..., description="면적 (픽셀)")
-
-class SegmentationResults(BaseModel):
-    """세그멘테이션 결과"""
-    components: List[ComponentData] = Field(default=[], description="감지된 컴포넌트")
-    total_components: int = Field(0, description="총 컴포넌트 수")
-    processing_time: float = Field(0, description="세그멘테이션 처리 시간 (초)")
-
-class ToleranceResult(BaseModel):
-    """공차 예측 결과"""
-    feasibility_score: Optional[float] = Field(None, description="제조 가능성 점수 (0-1)")
-    predicted_tolerance: Optional[float] = Field(None, description="예측된 공차 (mm)")
-    material: Optional[str] = Field(None, description="재질")
-    manufacturing_process: Optional[str] = Field(None, description="제조 공정")
-    processing_time: float = Field(0, description="공차 예측 처리 시간 (초)")
-
-    class Config:
-        extra = "allow"  # Allow additional fields from Skin Model API
-
-class ProcessData(BaseModel):
-    """전체 처리 결과 데이터"""
-    yolo_results: Optional[YOLOResults] = Field(None, description="YOLO 검출 결과")
-    ocr_results: Optional[OCRResults] = Field(None, description="OCR 추출 결과")
-    segmentation_results: Optional[SegmentationResults] = Field(None, description="세그멘테이션 결과")
-    tolerance_results: Optional[ToleranceResult] = Field(None, description="공차 예측 결과")
-    pipeline_mode: str = Field("hybrid", description="사용된 파이프라인 모드")
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "yolo_results": {
-                    "detections": [
-                        {
-                            "class_id": 1,
-                            "class_name": "linear_dim",
-                            "confidence": 0.92,
-                            "bbox": {"x": 100, "y": 200, "width": 50, "height": 30}
-                        }
-                    ],
-                    "total_detections": 28,
-                    "processing_time": 0.15
-                },
-                "ocr_results": {
-                    "dimensions": [
-                        {
-                            "value": "50.5",
-                            "unit": "mm",
-                            "tolerance": {"upper": "+0.1", "lower": "-0.1"}
-                        }
-                    ],
-                    "processing_time": 2.34
-                },
-                "segmentation_results": {
-                    "components": [
-                        {
-                            "component_id": 1,
-                            "class_id": 1,
-                            "bbox": {"x": 10, "y": 20, "width": 100, "height": 50},
-                            "area": 5000
-                        }
-                    ],
-                    "total_components": 15,
-                    "processing_time": 1.23
-                },
-                "tolerance_results": {
-                    "feasibility_score": 0.85,
-                    "predicted_tolerance": 0.05,
-                    "material": "aluminum",
-                    "manufacturing_process": "machining",
-                    "processing_time": 0.45
-                },
-                "pipeline_mode": "hybrid"
-            }
-        }
-    }
-
-class ProcessResponse(BaseModel):
-    """전체 파이프라인 처리 응답"""
-    status: str = Field(..., description="처리 상태 (success/error)")
-    data: ProcessData = Field(..., description="처리 결과 데이터")
-    processing_time: float = Field(..., description="총 처리 시간 (초)")
-    file_id: str = Field(..., description="파일 식별자")
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "status": "success",
-                "data": {
-                    "yolo_results": {
-                        "total_detections": 28,
-                        "processing_time": 0.15
-                    },
-                    "ocr_results": {
-                        "dimensions": [],
-                        "processing_time": 2.34
-                    },
-                    "pipeline_mode": "hybrid"
-                },
-                "processing_time": 5.67,
-                "file_id": "abc123-def456"
-            }
-        }
-    }
-
-
-class QuoteRequest(BaseModel):
-    material_cost_per_kg: float = Field(5.0, description="재료 단가 (USD/kg)")
-    machining_rate_per_hour: float = Field(50.0, description="가공 시간당 비용 (USD/hour)")
-    tolerance_premium_factor: float = Field(1.2, description="공차 정밀도 비용 계수")
-
-
-class CostBreakdown(BaseModel):
-    """비용 세부 내역"""
-    material_cost: float = Field(..., description="재료비 (USD)")
-    machining_cost: float = Field(..., description="가공비 (USD)")
-    tolerance_premium: float = Field(..., description="공차 정밀도 추가 비용 (USD)")
-    total_cost: float = Field(..., description="총 비용 (USD)")
-
-class QuoteData(BaseModel):
-    """견적서 데이터"""
-    quote_number: str = Field(..., description="견적서 번호")
-    part_name: Optional[str] = Field(None, description="부품 이름")
-    material: Optional[str] = Field(None, description="재질")
-    estimated_weight: Optional[float] = Field(None, description="예상 중량 (kg)")
-    estimated_machining_time: Optional[float] = Field(None, description="예상 가공 시간 (시간)")
-    cost_breakdown: CostBreakdown = Field(..., description="비용 세부 내역")
-    dimensions_analyzed: int = Field(0, description="분석된 치수 개수")
-    gdt_analyzed: int = Field(0, description="분석된 GD&T 개수")
-    confidence_score: float = Field(0, description="견적 신뢰도 (0-1)")
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "quote_number": "Q2025-001",
-                "part_name": "Intermediate Shaft",
-                "material": "Steel",
-                "estimated_weight": 2.5,
-                "estimated_machining_time": 4.5,
-                "cost_breakdown": {
-                    "material_cost": 12.50,
-                    "machining_cost": 225.00,
-                    "tolerance_premium": 27.00,
-                    "total_cost": 264.50
-                },
-                "dimensions_analyzed": 15,
-                "gdt_analyzed": 5,
-                "confidence_score": 0.88
-            }
-        }
-    }
-
-class QuoteResponse(BaseModel):
-    """견적서 생성 응답"""
-    status: str = Field(..., description="처리 상태 (success/error)")
-    data: QuoteData = Field(..., description="견적서 데이터")
-    processing_time: float = Field(..., description="처리 시간 (초)")
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "status": "success",
-                "data": {
-                    "quote_number": "Q2025-001",
-                    "cost_breakdown": {
-                        "material_cost": 12.50,
-                        "machining_cost": 225.00,
-                        "tolerance_premium": 27.00,
-                        "total_cost": 264.50
-                    },
-                    "confidence_score": 0.88
-                },
-                "processing_time": 1.23
-            }
-        }
-    }
 
 
 # =====================
@@ -605,6 +360,263 @@ async def call_yolo_detect(file_bytes: bytes, filename: str, conf_threshold: flo
     except Exception as e:
         logger.error(f"YOLO API call failed: {e}")
         raise HTTPException(status_code=500, detail=f"YOLO error: {str(e)}")
+
+
+def calculate_bbox_iou(bbox1: Dict[str, int], bbox2: Dict[str, int]) -> float:
+    """
+    두 바운딩 박스의 IoU (Intersection over Union) 계산
+
+    Args:
+        bbox1, bbox2: {x, y, width, height} 형식의 바운딩 박스
+
+    Returns:
+        IoU 값 (0.0 ~ 1.0)
+    """
+    x1_1, y1_1 = bbox1['x'], bbox1['y']
+    x2_1, y2_1 = x1_1 + bbox1['width'], y1_1 + bbox1['height']
+
+    x1_2, y1_2 = bbox2['x'], bbox2['y']
+    x2_2, y2_2 = x1_2 + bbox2['width'], y1_2 + bbox2['height']
+
+    # Intersection
+    x1_i = max(x1_1, x1_2)
+    y1_i = max(y1_1, y1_2)
+    x2_i = min(x2_1, x2_2)
+    y2_i = min(y2_1, y2_2)
+
+    if x2_i < x1_i or y2_i < y1_i:
+        return 0.0
+
+    intersection = (x2_i - x1_i) * (y2_i - y1_i)
+
+    # Union
+    area1 = bbox1['width'] * bbox1['height']
+    area2 = bbox2['width'] * bbox2['height']
+    union = area1 + area2 - intersection
+
+    return intersection / union if union > 0 else 0.0
+
+
+# YOLO 클래스명 매핑 (시각화용)
+CLASS_DISPLAY_NAMES = {
+    'diameter_dim': 'Diameter (Ø)',
+    'linear_dim': 'Linear Dim',
+    'radius_dim': 'Radius (R)',
+    'angular_dim': 'Angular',
+    'chamfer_dim': 'Chamfer',
+    'tolerance_dim': 'Tolerance',
+    'reference_dim': 'Reference',
+    'flatness': 'Flatness (⏥)',
+    'cylindricity': 'Cylindricity (⌭)',
+    'position': 'Position (⌖)',
+    'perpendicularity': 'Perpendicular (⊥)',
+    'parallelism': 'Parallel (∥)',
+    'surface_roughness': 'Roughness (Ra)',
+    'text_block': 'Text'
+}
+
+
+def format_class_name(class_name: str) -> str:
+    """클래스명을 사람이 읽기 쉬운 형태로 변환"""
+    return CLASS_DISPLAY_NAMES.get(class_name, class_name)
+
+
+def redraw_yolo_visualization(image_bytes: bytes, detections: List[Dict]) -> str:
+    """
+    매칭된 검출 결과로 시각화 이미지 재생성
+
+    Args:
+        image_bytes: 원본 이미지 바이트
+        detections: 검출 목록 (bbox, class_name, class_id, confidence, value 포함)
+
+    Returns:
+        Base64 인코딩된 시각화 이미지
+    """
+    # bytes → numpy array
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    annotated_img = image.copy()
+
+    # 색상 정의 (BGR)
+    colors = {
+        'dimension': (255, 100, 0),     # Blue
+        'gdt': (0, 255, 100),           # Green
+        'surface': (0, 165, 255),       # Orange
+        'text': (255, 255, 0)           # Cyan
+    }
+
+    for det in detections:
+        bbox = det.get('bbox', {})
+        x1 = bbox.get('x', 0)
+        y1 = bbox.get('y', 0)
+        x2 = x1 + bbox.get('width', 0)
+        y2 = y1 + bbox.get('height', 0)
+
+        class_id = det.get('class_id', 0)
+        class_name = det.get('class_name', '')
+        confidence = det.get('confidence', 0.0)
+        value = det.get('value')
+
+        # 색상 선택
+        if class_id <= 6:
+            color = colors['dimension']
+        elif class_id <= 11:
+            color = colors['gdt']
+        elif class_id == 12:
+            color = colors['surface']
+        else:
+            color = colors['text']
+
+        # 박스 그리기
+        cv2.rectangle(annotated_img, (x1, y1), (x2, y2), color, 2)
+
+        # 라벨 그리기 (OCR 값 포함)
+        display_name = format_class_name(class_name)
+        if value:
+            # OCR 값이 있으면 표시
+            label = f"{display_name}: {value} ({confidence:.2f})"
+        else:
+            # OCR 값이 없으면 클래스명과 신뢰도만
+            label = f"{display_name} ({confidence:.2f})"
+
+        (label_w, label_h), _ = cv2.getTextSize(
+            label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+        )
+
+        # 라벨 배경
+        cv2.rectangle(
+            annotated_img,
+            (x1, y1 - label_h - 12),
+            (x1 + label_w + 10, y1),
+            color,
+            -1
+        )
+
+        # 라벨 텍스트
+        cv2.putText(
+            annotated_img,
+            label,
+            (x1 + 5, y1 - 6),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            2
+        )
+
+    # 범례(Legend) 추가
+    legend_height = 140
+    legend_width = 280
+    legend_x = 10
+    legend_y = 10
+
+    # 범례 배경
+    overlay = annotated_img.copy()
+    cv2.rectangle(overlay, (legend_x, legend_y), (legend_x + legend_width, legend_y + legend_height), (0, 0, 0), -1)
+    cv2.addWeighted(overlay, 0.7, annotated_img, 0.3, 0, annotated_img)
+
+    # 범례 테두리
+    cv2.rectangle(annotated_img, (legend_x, legend_y), (legend_x + legend_width, legend_y + legend_height), (255, 255, 255), 2)
+
+    # 범례 제목
+    cv2.putText(annotated_img, "Detection Classes", (legend_x + 10, legend_y + 25),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+    # 범례 항목
+    legend_items = [
+        ("Dimensions", colors['dimension']),
+        ("GD&T Symbols", colors['gdt']),
+        ("Surface Roughness", colors['surface']),
+        ("Text Blocks", colors['text'])
+    ]
+
+    y_offset = legend_y + 50
+    for label, color in legend_items:
+        # 색상 박스
+        cv2.rectangle(annotated_img, (legend_x + 10, y_offset - 10), (legend_x + 30, y_offset + 5), color, -1)
+        cv2.rectangle(annotated_img, (legend_x + 10, y_offset - 10), (legend_x + 30, y_offset + 5), (255, 255, 255), 1)
+        # 라벨
+        cv2.putText(annotated_img, label, (legend_x + 40, y_offset),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        y_offset += 25
+
+    # numpy array → Base64
+    _, buffer = cv2.imencode('.jpg', annotated_img)
+    img_base64 = base64.b64encode(buffer).decode('utf-8')
+
+    return img_base64
+
+
+def match_yolo_with_ocr(yolo_detections: List[Dict], ocr_dimensions: List[Dict], iou_threshold: float = 0.3) -> List[Dict]:
+    """
+    YOLO 검출 결과와 OCR 치수 결과를 매칭
+
+    Args:
+        yolo_detections: YOLO 검출 목록 (bbox, class_name, confidence 포함)
+        ocr_dimensions: OCR 치수 목록 (bbox or location, value 포함)
+        iou_threshold: IoU 임계값 (기본 0.3)
+
+    Returns:
+        value 필드가 추가된 YOLO 검출 목록
+    """
+    # Debug: OCR dimensions 구조 확인
+    if ocr_dimensions:
+        logger.info(f"[DEBUG] First OCR dimension keys: {list(ocr_dimensions[0].keys())}")
+        logger.info(f"[DEBUG] First OCR dimension sample: {ocr_dimensions[0]}")
+
+    if yolo_detections:
+        logger.info(f"[DEBUG] First YOLO detection keys: {list(yolo_detections[0].keys())}")
+        logger.info(f"[DEBUG] First YOLO bbox: {yolo_detections[0].get('bbox', {})}")
+
+    matched_detections = []
+
+    for idx, yolo_det in enumerate(yolo_detections):
+        yolo_bbox = yolo_det.get('bbox', {})
+        matched_value = None
+        max_iou = 0.0
+        best_ocr_idx = -1
+
+        # OCR 결과와 매칭 시도
+        for ocr_idx, ocr_dim in enumerate(ocr_dimensions):
+            # OCR bbox 처리: bbox 필드가 있으면 사용, 없으면 location 폴리곤을 bbox로 변환
+            ocr_bbox = ocr_dim.get('bbox')
+            if not ocr_bbox and 'location' in ocr_dim:
+                # location은 [[x1,y1], [x2,y2], [x3,y3], [x4,y4]] 형태의 폴리곤
+                location = ocr_dim['location']
+                if location and len(location) >= 2:
+                    # 모든 점의 x, y 좌표에서 최소/최대값 추출
+                    xs = [p[0] for p in location]
+                    ys = [p[1] for p in location]
+                    x_min, x_max = min(xs), max(xs)
+                    y_min, y_max = min(ys), max(ys)
+                    ocr_bbox = {
+                        'x': x_min,
+                        'y': y_min,
+                        'width': x_max - x_min,
+                        'height': y_max - y_min
+                    }
+
+            if not ocr_bbox:
+                continue
+
+            iou = calculate_bbox_iou(yolo_bbox, ocr_bbox)
+
+            # IoU가 임계값 이상이고 최대값이면 매칭
+            if iou > iou_threshold and iou > max_iou:
+                max_iou = iou
+                matched_value = ocr_dim.get('value', ocr_dim.get('text'))
+                best_ocr_idx = ocr_idx
+
+        # 매칭 결과 추가
+        matched_det = yolo_det.copy()
+        if matched_value:
+            matched_det['value'] = matched_value
+            matched_det['matched_iou'] = round(max_iou, 3)
+            logger.info(f"[MATCH] YOLO #{idx} matched with OCR #{best_ocr_idx}: value='{matched_value}', IoU={max_iou:.3f}")
+
+        matched_detections.append(matched_det)
+
+    return matched_detections
 
 
 def upscale_image_region(image_bytes: bytes, bbox: Dict[str, int], scale: int = 4) -> bytes:
@@ -1629,7 +1641,8 @@ async def process_drawing(
             if use_ocr:
                 result["ocr_results"] = results[idx] if not isinstance(results[idx], Exception) else {"error": str(results[idx])}
                 if not isinstance(results[idx], Exception):
-                    dims_count = len(results[idx].get("data", {}).get("dimensions", []))
+                    # call_edocr2_ocr() returns edocr_data directly, not wrapped in "data" key
+                    dims_count = len(results[idx].get("dimensions", []))
                     tracker.update("ocr", "completed", f"eDOCr2 완료: {dims_count}개 치수 추출", {
                         "dimensions_count": dims_count
                     })
@@ -1663,7 +1676,10 @@ async def process_drawing(
                     yolo_crop_ocr_result = await process_yolo_crop_ocr(
                         image_bytes=file_bytes,
                         yolo_detections=yolo_detections,
-                        dimension_class_ids=[0, 1, 2, 3, 4, 5, 6],  # dimension-related classes
+                        call_edocr2_ocr_func=call_edocr2_ocr,
+                        crop_bbox_func=crop_bbox,
+                        is_false_positive_func=is_false_positive,
+                        dimension_class_ids=[0, 1, 2, 3, 4, 5, 6],
                         min_confidence=paddle_min_confidence,
                         padding=0.1
                     )
@@ -1691,7 +1707,37 @@ async def process_drawing(
         # 앙상블 전략: YOLO Crop OCR + eDOCr v2 결과 융합
         if result.get("yolo_results") and result.get("ocr_results"):
             yolo_detections = result["yolo_results"].get("detections", [])
-            ocr_dimensions = result["ocr_results"].get("data", {}).get("dimensions", [])
+            # ocr_results는 call_edocr2_ocr()에서 edocr_data를 직접 반환하므로 {"dimensions": [...], ...} 형태
+            ocr_results_data = result["ocr_results"]
+            ocr_dimensions = ocr_results_data.get("dimensions", [])
+
+            # =============================================
+            # YOLO 검출 결과에 OCR 값 매칭
+            # =============================================
+            logger.info(f"Matching YOLO detections ({len(yolo_detections)}) with OCR dimensions ({len(ocr_dimensions)})")
+            matched_yolo_detections = match_yolo_with_ocr(
+                yolo_detections=yolo_detections,
+                ocr_dimensions=ocr_dimensions,
+                iou_threshold=0.3
+            )
+
+            # 매칭된 결과로 YOLO 결과 업데이트
+            result["yolo_results"]["detections"] = matched_yolo_detections
+            matched_count = sum(1 for d in matched_yolo_detections if d.get('value'))
+            logger.info(f"Matched {matched_count}/{len(yolo_detections)} YOLO detections with OCR values")
+
+            # 시각화 이미지 재생성 (OCR 값이 포함된 버전)
+            # YOLO 시각화가 이미 생성되어 있고, 매칭된 값이 있으면 재생성
+            if result["yolo_results"].get("visualized_image") and matched_count > 0:
+                try:
+                    logger.info(f"Regenerating visualization with {matched_count} matched OCR values...")
+                    updated_viz_base64 = redraw_yolo_visualization(file_bytes, matched_yolo_detections)
+                    result["yolo_results"]["visualized_image"] = updated_viz_base64
+                    logger.info(f"✅ Updated visualization with {matched_count} matched values")
+                except Exception as e:
+                    logger.error(f"Failed to regenerate visualization: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
 
             # 고급 앙상블 전략 사용 시
             if use_ensemble and use_yolo_crop_ocr and result.get("yolo_crop_ocr_results"):
@@ -1802,11 +1848,65 @@ async def process_drawing(
             viz_len_final = len(result.get("yolo_results", {}).get("visualized_image", "")) if has_viz_final else 0
             logger.info(f"[FINAL RESPONSE DEBUG] yolo_results has visualized_image: {has_viz_final}, length: {viz_len_final}")
 
+        # =============================================
+        # 결과 저장 (JSON + 시각화 이미지) - 프로젝트별 디렉토리
+        # =============================================
+        saved_files = {}
+
+        # 프로젝트별 디렉토리 생성
+        project_dir = RESULTS_DIR / file_id
+        project_dir.mkdir(parents=True, exist_ok=True)
+
+        # JSON 결과 저장
+        result_json_path = project_dir / "result.json"
+        with open(result_json_path, 'w', encoding='utf-8') as f:
+            json.dump({
+                "file_id": file_id,
+                "filename": file.filename,
+                "timestamp": datetime.now().isoformat(),
+                "pipeline_mode": pipeline_mode,
+                "processing_time": round(processing_time, 2),
+                "data": result
+            }, f, indent=2, ensure_ascii=False, default=str)
+        saved_files["result_json"] = str(result_json_path)
+        logger.info(f"✅ Saved result JSON: {result_json_path}")
+
+        # YOLO 시각화 이미지 저장
+        if "yolo_results" in result and result["yolo_results"].get("visualized_image"):
+            try:
+                viz_img_base64 = result["yolo_results"]["visualized_image"]
+                viz_img_data = base64.b64decode(viz_img_base64)
+                viz_img_path = project_dir / "yolo_visualization.jpg"
+                with open(viz_img_path, 'wb') as f:
+                    f.write(viz_img_data)
+                saved_files["yolo_visualization"] = str(viz_img_path)
+                logger.info(f"✅ Saved YOLO visualization: {viz_img_path}")
+            except Exception as e:
+                logger.error(f"Failed to save YOLO visualization: {e}")
+
+        # 원본 파일 저장 (참고용)
+        original_file_path = project_dir / f"original{Path(file.filename).suffix}"
+        with open(original_file_path, 'wb') as f:
+            f.write(file_bytes)
+        saved_files["original_file"] = str(original_file_path)
+        logger.info(f"✅ Saved original file: {original_file_path}")
+
+        # 다운로드 URL 생성
+        download_urls = {}
+        if "yolo_visualization" in saved_files:
+            download_urls["yolo_visualization"] = f"/api/v1/download/{file_id}/yolo_visualization"
+        if "result_json" in saved_files:
+            download_urls["result_json"] = f"/api/v1/download/{file_id}/result_json"
+        if "original_file" in saved_files:
+            download_urls["original"] = f"/api/v1/download/{file_id}/original"
+
         return {
             "status": "success",
             "data": result,
             "processing_time": round(processing_time, 2),
-            "file_id": file_id
+            "file_id": file_id,
+            "saved_files": saved_files,  # 저장된 파일 경로 정보 (서버 내부용)
+            "download_urls": download_urls  # 다운로드 URL (클라이언트용)
         }
 
     except Exception as e:
@@ -2068,6 +2168,57 @@ async def process_with_vl(
 
     except Exception as e:
         logger.error(f"VL-based processing failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/download/{file_id}/{file_type}")
+async def download_result_file(file_id: str, file_type: str):
+    """
+    결과 파일 다운로드
+
+    Args:
+        file_id: 파일 ID
+        file_type: 파일 타입 (original, yolo_visualization, result_json)
+    """
+    try:
+        project_dir = RESULTS_DIR / file_id
+
+        if not project_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Project {file_id} not found")
+
+        # 파일 타입에 따른 경로 결정
+        if file_type == "yolo_visualization":
+            file_path = project_dir / "yolo_visualization.jpg"
+            media_type = "image/jpeg"
+            filename = f"{file_id}_yolo_visualization.jpg"
+        elif file_type == "result_json":
+            file_path = project_dir / "result.json"
+            media_type = "application/json"
+            filename = f"{file_id}_result.json"
+        elif file_type == "original":
+            # 원본 파일 찾기 (확장자 모름)
+            original_files = list(project_dir.glob("original.*"))
+            if not original_files:
+                raise HTTPException(status_code=404, detail="Original file not found")
+            file_path = original_files[0]
+            media_type = "application/octet-stream"
+            filename = f"{file_id}_original{file_path.suffix}"
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid file_type: {file_type}")
+
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail=f"File {file_type} not found")
+
+        return FileResponse(
+            path=str(file_path),
+            media_type=media_type,
+            filename=filename
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

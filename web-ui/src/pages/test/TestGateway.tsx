@@ -583,12 +583,66 @@ export default function TestGateway() {
                       </div>
                     </div>
 
+                    {/* Legend Explanation */}
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/30 dark:to-green-950/30 border border-blue-200 dark:border-blue-800 rounded-lg space-y-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <span>🎨</span>
+                        색상 범례 (Detection Classes)
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-blue-500 border border-blue-700 rounded"></div>
+                          <span><strong>파란색</strong>: 치수 (Dimensions)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-green-500 border border-green-700 rounded"></div>
+                          <span><strong>초록색</strong>: GD&T 기호</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-orange-500 border border-orange-700 rounded"></div>
+                          <span><strong>주황색</strong>: 표면 조도</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-cyan-400 border border-cyan-600 rounded"></div>
+                          <span><strong>청록색</strong>: 텍스트 블록</span>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
+                        <p className="text-xs text-muted-foreground">
+                          <strong>라벨 형식:</strong> <code className="bg-white/50 dark:bg-black/30 px-1.5 py-0.5 rounded">클래스명 (신뢰도)</code>
+                          <br />
+                          <strong>예시:</strong> <code className="bg-white/50 dark:bg-black/30 px-1.5 py-0.5 rounded">linear_dim (0.85)</code> = 선형 치수, 신뢰도 85%
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Visualization Image */}
                     {result.data.yolo_results.visualized_image ? (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          💡 클릭하면 크게 볼 수 있습니다
-                        </p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm text-muted-foreground">
+                            💡 클릭하면 크게 볼 수 있습니다
+                          </p>
+                          {result.download_urls?.yolo_visualization && (
+                            <a
+                              href={`http://localhost:8000${result.download_urls.yolo_visualization}`}
+                              download
+                              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (result.download_urls?.yolo_visualization) {
+                                  navigator.clipboard.writeText(`http://localhost:8000${result.download_urls.yolo_visualization}`);
+                                  alert('다운로드 URL이 클립보드에 복사되었습니다!');
+                                }
+                              }}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                              다운로드 / URL 복사
+                            </a>
+                          )}
+                        </div>
                         <img
                           src={`data:image/jpeg;base64,${result.data.yolo_results.visualized_image}`}
                           alt="YOLO Detection Visualization"
@@ -606,6 +660,48 @@ export default function TestGateway() {
                             document.body.appendChild(modal);
                           }}
                         />
+
+                        {/* Color Legend */}
+                        <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                          <h4 className="text-sm font-semibold mb-3 text-slate-900 dark:text-slate-100">
+                            📊 바운딩 박스 색상 범례
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="w-6 h-6 rounded border-2 border-blue-500 bg-blue-500/20 flex-shrink-0 mt-0.5"></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">파란색 (Blue)</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">치수 (Dimensions): 지름(Ø), 선형(Linear), 반지름(R), 각도, 모따기, 공차, 기준 치수</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <div className="w-6 h-6 rounded border-2 border-green-500 bg-green-500/20 flex-shrink-0 mt-0.5"></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">초록색 (Green)</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">GD&T 기호: 평면도(⏥), 원통도(⌭), 위치도(⌖), 직각도(⊥), 평행도(∥)</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <div className="w-6 h-6 rounded border-2 border-orange-500 bg-orange-500/20 flex-shrink-0 mt-0.5"></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">주황색 (Orange)</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">표면 조도 (Surface Roughness): Ra, Rz 등 표면 마감 품질 표시</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <div className="w-6 h-6 rounded border-2 border-cyan-500 bg-cyan-500/20 flex-shrink-0 mt-0.5"></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">청록색 (Cyan)</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400">텍스트 블록 (Text Blocks): 부품명, 재질, 스케일, 주석 등 일반 텍스트</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              💡 <strong>괄호 안의 숫자는 신뢰도(Confidence)</strong>입니다. 예: <code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-xs">linear_dim (0.58)</code>은 YOLO 모델이 해당 영역을 선형 치수로 58% 확신함을 의미합니다.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">

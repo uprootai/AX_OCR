@@ -168,6 +168,11 @@ export interface AnalysisResult {
   };
   processing_time: number;
   file_id: string;
+  download_urls?: {
+    yolo_visualization?: string;
+    result_json?: string;
+    original?: string;
+  };
 }
 
 export interface QuoteRequest {

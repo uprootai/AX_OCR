@@ -1,0 +1,165 @@
+"""
+OCR Service
+
+eDOCr2 및 PaddleOCR API 호출
+"""
+import os
+import logging
+import mimetypes
+from typing import Dict, Any
+import httpx
+from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
+
+# Configuration
+EDOCR_V2_URL = os.getenv("EDOCR_V2_URL", "http://edocr2-v2-api:5002")
+EDOCR2_URL = os.getenv("EDOCR2_URL", EDOCR_V2_URL)
+PADDLEOCR_API_URL = os.getenv("PADDLEOCR_API_URL", "http://paddleocr-api:5006")
+
+
+async def call_edocr2_ocr(
+    file_bytes: bytes,
+    filename: str,
+    extract_dimensions: bool = True,
+    extract_gdt: bool = True,
+    extract_text: bool = True,
+    extract_tables: bool = True,
+    visualize: bool = False,
+    language: str = 'eng',
+    cluster_threshold: int = 20
+) -> Dict[str, Any]:
+    """
+    eDOCr2 API 호출
+
+    Args:
+        file_bytes: 파일 바이트
+        filename: 파일 이름
+        extract_dimensions: 치수 추출 여부
+        extract_gdt: GD&T 추출 여부
+        extract_text: 텍스트 추출 여부
+        extract_tables: 테이블 추출 여부
+        visualize: 시각화 생성 여부
+        language: OCR 언어 (기본 'eng')
+        cluster_threshold: 클러스터링 임계값
+
+    Returns:
+        eDOCr2 결과 dict (data 필드 직접 반환)
+    """
+    try:
+        # 파일 확장자에서 content-type 결정 (PDF 또는 이미지)
+        content_type = mimetypes.guess_type(filename)[0]
+        if content_type is None:
+            # 파일 확장자로 추측
+            if filename.lower().endswith('.pdf'):
+                content_type = "application/pdf"
+            else:
+                content_type = "image/png"
+
+        logger.info(f"Calling eDOCr2 API for {filename} (content-type: {content_type})")
+        logger.info(
+            f"  extract: dim={extract_dimensions}, gdt={extract_gdt}, "
+            f"text={extract_text}, tables={extract_tables}"
+        )
+        logger.info(f"  visualize={visualize}, language={language}, cluster_threshold={cluster_threshold}")
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            files = {"file": (filename, file_bytes, content_type)}
+            data = {
+                "extract_dimensions": extract_dimensions,
+                "extract_gdt": extract_gdt,
+                "extract_text": extract_text,
+                "extract_tables": extract_tables,
+                "visualize": visualize,
+                "language": language,
+                "cluster_threshold": cluster_threshold
+            }
+
+            response = await client.post(
+                f"{EDOCR2_URL}/api/v2/ocr",
+                files=files,
+                data=data
+            )
+
+            logger.info(f"eDOCr2 API status: {response.status_code}")
+            if response.status_code == 200:
+                edocr_response = response.json()
+                logger.info(f"eDOCr2 response keys: {edocr_response.keys()}")
+
+                # eDOCr v2 returns data in "data" field
+                edocr_data = edocr_response.get('data', {})
+                dimensions_count = len(edocr_data.get('dimensions', []))
+                gdt_count = len(edocr_data.get('gdt', []))
+                possible_text_count = len(edocr_data.get('possible_text', []))
+                logger.info(
+                    f"eDOCr2 results: {dimensions_count} dims, "
+                    f"{gdt_count} gdts, {possible_text_count} possible_text"
+                )
+
+                # Return the data field (not the full response)
+                return edocr_data
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"eDOCr2 failed: {response.text}"
+                )
+
+    except Exception as e:
+        logger.error(f"eDOCr2 API call failed: {e}")
+        raise HTTPException(status_code=500, detail=f"eDOCr2 error: {str(e)}")
+
+
+async def call_paddleocr(
+    file_bytes: bytes,
+    filename: str,
+    min_confidence: float = 0.3,
+    det_db_thresh: float = 0.3,
+    det_db_box_thresh: float = 0.5,
+    use_angle_cls: bool = True
+) -> Dict[str, Any]:
+    """
+    PaddleOCR API 호출
+
+    Args:
+        file_bytes: 파일 바이트
+        filename: 파일 이름
+        min_confidence: 최소 신뢰도 (기본 0.3)
+        det_db_thresh: DB 검출 임계값 (기본 0.3)
+        det_db_box_thresh: DB 박스 임계값 (기본 0.5)
+        use_angle_cls: 각도 분류 사용 여부 (기본 True)
+
+    Returns:
+        PaddleOCR 결과 dict
+    """
+    try:
+        content_type = mimetypes.guess_type(filename)[0] or "image/png"
+        logger.info(f"Calling PaddleOCR API for {filename} (min_conf={min_confidence})")
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            files = {"file": (filename, file_bytes, content_type)}
+            data = {
+                "min_confidence": str(min_confidence),
+                "det_db_thresh": str(det_db_thresh),
+                "det_db_box_thresh": str(det_db_box_thresh),
+                "use_angle_cls": str(use_angle_cls).lower()
+            }
+
+            response = await client.post(
+                f"{PADDLEOCR_API_URL}/api/v1/ocr",
+                files=files,
+                data=data
+            )
+
+            if response.status_code == 200:
+                ocr_response = response.json()
+                logger.info(f"PaddleOCR detected {ocr_response.get('total_texts', 0)} texts")
+                return ocr_response
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"PaddleOCR failed: {response.text}"
+                )
+
+    except Exception as e:
+        logger.error(f"PaddleOCR API call failed: {e}")
+        raise HTTPException(status_code=500, detail=f"PaddleOCR error: {str(e)}")

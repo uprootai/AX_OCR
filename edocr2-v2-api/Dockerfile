@@ -31,6 +31,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY api_server.py .
 COPY gpu_preprocessing.py .
+COPY models/ ./models/
+COPY services/ ./services/
+COPY utils/ ./utils/
 
 # Create directories
 RUN mkdir -p /tmp/edocr2/uploads /tmp/edocr2/results /models

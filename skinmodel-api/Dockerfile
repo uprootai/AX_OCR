@@ -21,8 +21,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api_server.py .
 COPY ml_predictor.py .
 
-# Copy all models directory
+# Copy module directories
 COPY models ./models
+COPY services ./services
+COPY utils ./utils
 
 # Create directories
 RUN mkdir -p /tmp/skinmodel/data /tmp/skinmodel/output

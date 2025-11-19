@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
 COPY api_server.py .
+COPY models/ ./models/
+COPY services/ ./services/
+COPY utils/ ./utils/
 
 # PaddleOCR 모델 다운로드를 위한 디렉토리 생성
 RUN mkdir -p /root/.paddleocr

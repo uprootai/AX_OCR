@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 YOLOv11 API Server for Engineering Drawing Analysis
-포트: 5005
+Port: 5005
 """
 import os
 import time
@@ -9,16 +9,16 @@ import json
 import uuid
 import base64
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Optional
 
 import cv2
-import numpy as np
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from ultralytics import YOLO
 import torch
+
+from models.schemas import Detection, DetectionResponse, HealthResponse
+from services.inference import YOLOInferenceService
+from utils.helpers import draw_detections_on_image
 
 # =====================
 # Configuration
@@ -29,60 +29,21 @@ YOLO_MODEL_PATH = os.getenv('YOLO_MODEL_PATH', '/app/models/best.pt')
 UPLOAD_DIR = Path('/tmp/yolo-api/uploads')
 RESULTS_DIR = Path('/tmp/yolo-api/results')
 
-# 디렉토리 생성
+# Create directories
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # =====================
-# Models
-# =====================
-
-class Detection(BaseModel):
-    """단일 검출 결과"""
-    class_id: int = Field(..., description="클래스 ID (0-13)")
-    class_name: str = Field(..., description="클래스 이름")
-    confidence: float = Field(..., description="신뢰도 (0-1)")
-    bbox: Dict[str, int] = Field(..., description="바운딩 박스 {x, y, width, height}")
-    value: Optional[str] = Field(None, description="검출된 텍스트 값 (OCR 필요)")
-
-class DetectionResponse(BaseModel):
-    """검출 API 응답"""
-    status: str = Field(default="success")
-    file_id: str = Field(..., description="파일 ID")
-    detections: List[Detection] = Field(..., description="검출 목록")
-    total_detections: int = Field(..., description="총 검출 개수")
-    processing_time: float = Field(..., description="처리 시간 (초)")
-    model_used: str = Field(..., description="사용된 모델")
-    image_size: Dict[str, int] = Field(..., description="이미지 크기")
-    visualized_image: Optional[str] = Field(None, description="Base64 encoded visualization image")
-
-class DimensionExtraction(BaseModel):
-    """치수 추출 결과"""
-    dimensions: List[Detection]
-    gdt_symbols: List[Detection]
-    surface_roughness: List[Detection]
-    text_blocks: List[Detection]
-
-class HealthResponse(BaseModel):
-    """Health check 응답"""
-    status: str = "healthy"
-    model_loaded: bool
-    model_path: str
-    device: str
-    gpu_available: bool
-    gpu_name: Optional[str] = None
-
-# =====================
-# Global Variables
+# FastAPI App
 # =====================
 
 app = FastAPI(
     title="YOLOv11 Drawing Analysis API",
-    description="공학 도면 치수/GD&T 추출 API",
+    description="Engineering drawing dimension/GD&T extraction API",
     version="1.0.0"
 )
 
-# CORS 설정
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -91,260 +52,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 전역 모델 변수
-yolo_model: Optional[YOLO] = None
-device: str = "cpu"
+# Global inference service
+inference_service: Optional[YOLOInferenceService] = None
 
-# 클래스 이름 매핑
-CLASS_NAMES = {
-    0: 'diameter_dim',
-    1: 'linear_dim',
-    2: 'radius_dim',
-    3: 'angular_dim',
-    4: 'chamfer_dim',
-    5: 'tolerance_dim',
-    6: 'reference_dim',
-    7: 'flatness',
-    8: 'cylindricity',
-    9: 'position',
-    10: 'perpendicularity',
-    11: 'parallelism',
-    12: 'surface_roughness',
-    13: 'text_block'
-}
-
-# =====================
-# Utility Functions
-# =====================
-
-def load_model():
-    """모델 로드"""
-    global yolo_model, device
-
-    # GPU 사용 가능 확인
-    if torch.cuda.is_available():
-        device = "0"
-        print(f"✅ GPU available: {torch.cuda.get_device_name(0)}")
-        print(f"   VRAM: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
-    else:
-        device = "cpu"
-        print("⚠️  GPU not available, using CPU")
-
-    # 모델 파일 확인
-    if not Path(YOLO_MODEL_PATH).exists():
-        print(f"⚠️  Model not found at {YOLO_MODEL_PATH}")
-        print(f"   Using default YOLOv11n pretrained model for prototype")
-        yolo_model = YOLO('yolo11n.pt')  # 기본 모델
-    else:
-        print(f"📥 Loading model from {YOLO_MODEL_PATH}")
-        yolo_model = YOLO(YOLO_MODEL_PATH)
-
-    print(f"✅ Model loaded successfully on {device}")
-
-def filter_text_blocks(detections: List[Detection], min_confidence=0.65) -> List[Detection]:
-    """
-    Text Block 필터링 - 노이즈 제거
-
-    전략:
-    1. 우선순위 클래스(치수, GD&T)는 모두 유지
-    2. text_block은 높은 신뢰도(>0.65)만 유지
-    3. reference_dim도 유지
-    """
-    priority_classes = [
-        'diameter_dim', 'linear_dim', 'radius_dim', 'angular_dim', 'chamfer_dim',
-        'tolerance_dim', 'reference_dim',
-        'flatness', 'cylindricity', 'position', 'perpendicularity', 'parallelism',
-        'surface_roughness'
-    ]
-
-    filtered = []
-    for det in detections:
-        # 우선순위 클래스는 모두 유지
-        if det.class_name in priority_classes:
-            filtered.append(det)
-        # text_block은 높은 신뢰도만
-        elif det.class_name == 'text_block' and det.confidence >= min_confidence:
-            filtered.append(det)
-
-    return filtered
-
-def remove_duplicate_detections(detections: List[Detection], iou_threshold=0.3) -> List[Detection]:
-    """
-    중복 검출 제거
-    같은 클래스의 겹치는 bbox 중 신뢰도가 낮은 것 제거
-    """
-    if not detections:
-        return []
-
-    # 클래스별로 그룹화
-    class_groups = {}
-    for det in detections:
-        if det.class_name not in class_groups:
-            class_groups[det.class_name] = []
-        class_groups[det.class_name].append(det)
-
-    result = []
-
-    for cls, dets in class_groups.items():
-        # 신뢰도 순으로 정렬
-        sorted_dets = sorted(dets, key=lambda x: x.confidence, reverse=True)
-
-        keep = []
-        for det in sorted_dets:
-            should_keep = True
-            for kept_det in keep:
-                if calculate_iou(det, kept_det) > iou_threshold:
-                    should_keep = False
-                    break
-
-            if should_keep:
-                keep.append(det)
-
-        result.extend(keep)
-
-    return result
-
-def calculate_iou(det1: Detection, det2: Detection) -> float:
-    """두 bbox의 IOU 계산"""
-    x1_1 = det1.bbox['x']
-    y1_1 = det1.bbox['y']
-    x2_1 = x1_1 + det1.bbox['width']
-    y2_1 = y1_1 + det1.bbox['height']
-
-    x1_2 = det2.bbox['x']
-    y1_2 = det2.bbox['y']
-    x2_2 = x1_2 + det2.bbox['width']
-    y2_2 = y1_2 + det2.bbox['height']
-
-    # Intersection
-    x1_i = max(x1_1, x1_2)
-    y1_i = max(y1_1, y1_2)
-    x2_i = min(x2_1, x2_2)
-    y2_i = min(y2_1, y2_2)
-
-    if x2_i < x1_i or y2_i < y1_i:
-        return 0.0
-
-    intersection = (x2_i - x1_i) * (y2_i - y1_i)
-
-    # Union
-    area1 = det1.bbox['width'] * det1.bbox['height']
-    area2 = det2.bbox['width'] * det2.bbox['height']
-    union = area1 + area2 - intersection
-
-    if union == 0:
-        return 0.0
-
-    return intersection / union
-
-def yolo_to_detection_format(result, image_shape) -> List[Detection]:
-    """
-    YOLO 결과를 Detection 포맷으로 변환
-
-    Args:
-        result: YOLO detection result
-        image_shape: (height, width, channels)
-
-    Returns:
-        List[Detection]: 검출 목록
-    """
-    detections = []
-    boxes = result.boxes
-
-    for box in boxes:
-        cls_id = int(box.cls[0])
-        confidence = float(box.conf[0])
-        class_name = CLASS_NAMES.get(cls_id, 'unknown')
-
-        # 바운딩 박스 (xyxy 포맷)
-        x1, y1, x2, y2 = box.xyxy[0].tolist()
-
-        # 픽셀 좌표로 변환
-        bbox = {
-            'x': int(x1),
-            'y': int(y1),
-            'width': int(x2 - x1),
-            'height': int(y2 - y1)
-        }
-
-        detection = Detection(
-            class_id=cls_id,
-            class_name=class_name,
-            confidence=confidence,
-            bbox=bbox,
-            value=None  # OCR refinement 필요
-        )
-
-        detections.append(detection)
-
-    return detections
-
-def draw_detections_on_image(image: np.ndarray, detections: List[Detection]) -> np.ndarray:
-    """
-    이미지에 검출 결과 그리기
-
-    Args:
-        image: numpy array (BGR)
-        detections: 검출 목록
-
-    Returns:
-        numpy array: 어노테이션된 이미지
-    """
-    annotated_img = image.copy()
-
-    # 색상 정의 (BGR)
-    colors = {
-        'dimension': (255, 100, 0),     # Blue
-        'gdt': (0, 255, 100),           # Green
-        'surface': (0, 165, 255),       # Orange
-        'text': (255, 255, 0)           # Cyan
-    }
-
-    for det in detections:
-        bbox = det.bbox
-        x1 = bbox['x']
-        y1 = bbox['y']
-        x2 = x1 + bbox['width']
-        y2 = y1 + bbox['height']
-
-        # 색상 선택
-        if det.class_id <= 6:
-            color = colors['dimension']
-        elif det.class_id <= 11:
-            color = colors['gdt']
-        elif det.class_id == 12:
-            color = colors['surface']
-        else:
-            color = colors['text']
-
-        # 박스 그리기
-        cv2.rectangle(annotated_img, (x1, y1), (x2, y2), color, 2)
-
-        # 라벨 그리기
-        label = f"{det.class_name} {det.confidence:.2f}"
-        (label_w, label_h), _ = cv2.getTextSize(
-            label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1
-        )
-
-        cv2.rectangle(
-            annotated_img,
-            (x1, y1 - label_h - 10),
-            (x1 + label_w, y1),
-            color,
-            -1
-        )
-
-        cv2.putText(
-            annotated_img,
-            label,
-            (x1, y1 - 5),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            1
-        )
-
-    return annotated_img
 
 # =====================
 # Startup / Shutdown
@@ -352,19 +62,26 @@ def draw_detections_on_image(image: np.ndarray, detections: List[Detection]) -> 
 
 @app.on_event("startup")
 async def startup_event():
-    """서버 시작 시 모델 로드"""
+    """Load model on startup"""
+    global inference_service
+
     print("=" * 70)
     print("🚀 YOLOv11 API Server Starting...")
     print("=" * 70)
-    load_model()
+
+    inference_service = YOLOInferenceService(YOLO_MODEL_PATH)
+    inference_service.load_model()
+
     print("=" * 70)
     print(f"✅ Server ready on port {YOLO_API_PORT}")
     print("=" * 70)
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
-    """서버 종료 시 정리"""
+    """Cleanup on shutdown"""
     print("🛑 Shutting down YOLOv11 API Server...")
+
 
 # =====================
 # API Endpoints
@@ -372,48 +89,49 @@ async def shutdown_event():
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
-    """Health check"""
+    """Health check endpoint"""
     gpu_name = None
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
 
     return HealthResponse(
         status="healthy",
-        model_loaded=yolo_model is not None,
+        model_loaded=inference_service is not None and inference_service.model is not None,
         model_path=YOLO_MODEL_PATH,
-        device=device,
+        device=inference_service.device if inference_service else "unknown",
         gpu_available=torch.cuda.is_available(),
         gpu_name=gpu_name
     )
 
+
 @app.post("/api/v1/detect", response_model=DetectionResponse)
 async def detect_objects(
     file: UploadFile = File(...),
-    conf_threshold: float = Form(default=0.35),  # 정확도 향상 (0.25 → 0.35)
-    iou_threshold: float = Form(default=0.45),   # NMS 최적화 (0.7 → 0.45)
+    conf_threshold: float = Form(default=0.35),
+    iou_threshold: float = Form(default=0.45),
     imgsz: int = Form(default=1280),
     visualize: bool = Form(default=True)
 ):
     """
-    객체 검출 (모든 클래스)
+    Object detection endpoint (all classes)
 
     Args:
-        file: 이미지 파일
-        conf_threshold: 신뢰도 임계값 (0-1)
-        iou_threshold: NMS IoU 임계값 (0-1)
-        imgsz: 입력 이미지 크기
-        visualize: 시각화 이미지 생성 여부
+        file: Image file
+        conf_threshold: Confidence threshold (0-1)
+        iou_threshold: NMS IoU threshold (0-1)
+        imgsz: Input image size
+        visualize: Generate visualization image
 
     Returns:
-        DetectionResponse: 검출 결과
+        DetectionResponse with detection results
     """
-    if yolo_model is None:
+    if inference_service is None or inference_service.model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     start_time = time.time()
 
     try:
-        # 파일 저장
+        # Save uploaded file
         file_id = str(uuid.uuid4())
         file_ext = Path(file.filename).suffix
         file_path = UPLOAD_DIR / f"{file_id}{file_ext}"
@@ -422,45 +140,40 @@ async def detect_objects(
         with open(file_path, 'wb') as f:
             f.write(content)
 
-        # 이미지 로드
+        # Load image for size info
         image = cv2.imread(str(file_path))
         if image is None:
             raise HTTPException(status_code=400, detail="Invalid image file")
 
         img_height, img_width = image.shape[:2]
 
-        # YOLO 추론
-        results = yolo_model.predict(
-            source=str(file_path),
-            conf=conf_threshold,
-            iou=iou_threshold,
-            imgsz=imgsz,
-            device=device,
-            verbose=False
+        # Run YOLO inference
+        detections = inference_service.predict(
+            image_path=str(file_path),
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+            imgsz=imgsz
         )
 
-        # 결과 변환
-        detections = yolo_to_detection_format(results[0], image.shape)
-
-        # 후처리: Text Block 필터링 및 중복 제거
+        # Post-processing: filter text blocks and remove duplicates
         original_count = len(detections)
-        detections = filter_text_blocks(detections, min_confidence=0.65)
+        detections = inference_service.filter_text_blocks(detections, min_confidence=0.65)
         filtered_count = len(detections)
-        detections = remove_duplicate_detections(detections, iou_threshold=0.3)
+        detections = inference_service.remove_duplicate_detections(detections, iou_threshold=0.3)
         final_count = len(detections)
 
-        # 시각화 이미지 생성
+        # Generate visualization
         visualized_image_base64 = None
         if visualize and len(detections) > 0:
             annotated_img = draw_detections_on_image(image, detections)
             viz_path = RESULTS_DIR / f"{file_id}_annotated.jpg"
             cv2.imwrite(str(viz_path), annotated_img)
 
-            # Encode to base64 for API response
+            # Encode to base64
             _, buffer = cv2.imencode('.jpg', annotated_img)
             visualized_image_base64 = base64.b64encode(buffer).decode('utf-8')
 
-        # JSON 저장
+        # Save JSON result
         result_json = {
             'file_id': file_id,
             'detections': [det.dict() for det in detections],
@@ -497,24 +210,25 @@ async def detect_objects(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 
+
 @app.post("/api/v1/extract_dimensions")
 async def extract_dimensions(
     file: UploadFile = File(...),
-    conf_threshold: float = Form(default=0.35),  # 정확도 향상 (0.25 → 0.35)
+    conf_threshold: float = Form(default=0.35),
     imgsz: int = Form(default=1280)
 ):
     """
-    치수 추출 (dimensions, GD&T, surface roughness 분리)
+    Extract dimensions (dimensions, GD&T, surface roughness separated)
 
     Args:
-        file: 이미지 파일
-        conf_threshold: 신뢰도 임계값
-        imgsz: 입력 이미지 크기
+        file: Image file
+        conf_threshold: Confidence threshold
+        imgsz: Input image size
 
     Returns:
-        DimensionExtraction: 분류된 검출 결과
+        Classified detection results
     """
-    # detect API 호출
+    # Call detect API
     detection_result = await detect_objects(
         file=file,
         conf_threshold=conf_threshold,
@@ -522,7 +236,7 @@ async def extract_dimensions(
         visualize=True
     )
 
-    # 클래스별로 분류
+    # Classify by class
     dimensions = [d for d in detection_result.detections if d.class_id <= 6]
     gdt_symbols = [d for d in detection_result.detections if 7 <= d.class_id <= 11]
     surface_roughness = [d for d in detection_result.detections if d.class_id == 12]
@@ -540,21 +254,24 @@ async def extract_dimensions(
         'model_used': detection_result.model_used
     }
 
+
 @app.get("/api/v1/download/{file_id}")
 async def download_result(
     file_id: str,
-    result_type: str = "annotated"  # annotated, json
+    result_type: str = "annotated"
 ):
     """
-    결과 파일 다운로드
+    Download result file
 
     Args:
-        file_id: 파일 ID
-        result_type: 결과 타입 (annotated, json)
+        file_id: File ID
+        result_type: Result type (annotated, json)
 
     Returns:
-        FileResponse: 파일
+        File response
     """
+    from fastapi.responses import FileResponse
+
     if result_type == "annotated":
         file_path = RESULTS_DIR / f"{file_id}_annotated.jpg"
         media_type = "image/jpeg"
@@ -573,9 +290,10 @@ async def download_result(
         filename=file_path.name
     )
 
+
 @app.get("/")
 async def root():
-    """루트 엔드포인트"""
+    """Root endpoint"""
     return {
         "service": "YOLOv11 Drawing Analysis API",
         "version": "1.0.0",
@@ -588,6 +306,7 @@ async def root():
             "docs": "/docs"
         }
     }
+
 
 # =====================
 # Main

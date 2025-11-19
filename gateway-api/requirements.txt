@@ -7,3 +7,5 @@ aiofiles==23.2.1
 PyMuPDF==1.23.8
 Pillow==10.1.0
 reportlab==4.0.7
+opencv-python-headless==4.8.1.78
+numpy==1.26.2

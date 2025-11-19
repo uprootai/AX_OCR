@@ -20,6 +20,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY api_server.py cost_estimator.py pdf_generator.py advanced_features.py .
 
+# Copy refactored modules
+COPY models/ ./models/
+COPY utils/ ./utils/
+COPY services/ ./services/
+
 # Create directories
 RUN mkdir -p /tmp/gateway/uploads /tmp/gateway/results
 
