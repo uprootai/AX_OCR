@@ -7,9 +7,12 @@ import { ZoomIn } from 'lucide-react';
 interface YOLOVisualizationProps {
   imageFile: File;
   detections: Array<{
-    class: string;
+    class?: string;           // Legacy field name
+    class_name?: string;      // New API field name
     confidence: number;
     bbox: number[] | { x: number; y: number; width: number; height: number };
+    value?: string | null;    // Extracted text value
+    extracted_text?: string | null;  // Alternative field name for extracted text
   }>;
   onZoomClick?: (imageDataUrl: string) => void;
 }
@@ -23,6 +26,7 @@ interface BoundingBox {
   confidence: number;
   className: string;
   color: string;
+  extractedText?: string;  // Extracted text from OCR
 }
 
 // 클래스별 색상 매핑
@@ -34,7 +38,7 @@ const CLASS_COLORS: Record<string, string> = {
   angular_dim: '#2563eb',      // 진한 파랑
   chamfer_dim: '#1d4ed8',      // 매우 진한 파랑
   tolerance_dim: '#1e40af',    // 가장 진한 파랑
-  reference_dim: '#3730a3',    // 남색
+  reference_dim: '#8b5cf6',    // 보라색 (파랑/초록과 명확히 구분)
 
   // GD&T
   flatness: '#10b981',         // 초록
@@ -45,10 +49,10 @@ const CLASS_COLORS: Record<string, string> = {
 
   // 기타
   surface_roughness: '#f59e0b', // 주황
-  text_block: '#ef4444',        // 빨강
+  text_block: '#ec4899',        // 핫핑크 (더 눈에 띄는 색상)
 };
 
-// 클래스 이름 한글 변환
+// 클래스 이름 한글 변환 (한글명 + 영문명 + 약어)
 const CLASS_NAMES: Record<string, string> = {
   diameter_dim: '직경',
   linear_dim: '선형',
@@ -63,7 +67,32 @@ const CLASS_NAMES: Record<string, string> = {
   perpendicularity: '수직도',
   parallelism: '평행도',
   surface_roughness: '표면거칠기',
-  text_block: '텍스트',
+  text_block: '텍스트 블록',
+};
+
+// 상세 설명 (한글명 + 영문 + 약어)
+const CLASS_DETAILS: Record<string, { korean: string; english: string; abbr: string }> = {
+  diameter_dim: { korean: '직경 치수', english: 'Diameter', abbr: 'Ø' },
+  linear_dim: { korean: '선형 치수', english: 'Linear', abbr: 'L' },
+  radius_dim: { korean: '반경 치수', english: 'Radius', abbr: 'R' },
+  angular_dim: { korean: '각도 치수', english: 'Angular', abbr: '°' },
+  chamfer_dim: { korean: '모따기 치수', english: 'Chamfer', abbr: 'C' },
+  tolerance_dim: { korean: '공차 치수', english: 'Tolerance', abbr: '±' },
+  reference_dim: { korean: '참조 치수', english: 'Reference', abbr: '()' },
+  flatness: { korean: '평면도', english: 'Flatness', abbr: '⏥' },
+  cylindricity: { korean: '원통도', english: 'Cylindricity', abbr: '⌭' },
+  position: { korean: '위치도', english: 'Position', abbr: '⊕' },
+  perpendicularity: { korean: '수직도', english: 'Perpendicularity', abbr: '⊥' },
+  parallelism: { korean: '평행도', english: 'Parallelism', abbr: '∥' },
+  surface_roughness: { korean: '표면 조도', english: 'Surface Roughness', abbr: 'Ra' },
+  text_block: { korean: '텍스트 블록', english: 'Text Block', abbr: 'TXT' },
+};
+
+// 카테고리 그룹
+const CLASS_CATEGORIES = {
+  dimensions: ['diameter_dim', 'linear_dim', 'radius_dim', 'angular_dim', 'chamfer_dim', 'tolerance_dim', 'reference_dim'],
+  gdt: ['flatness', 'cylindricity', 'position', 'perpendicularity', 'parallelism'],
+  other: ['surface_roughness', 'text_block'],
 };
 
 export default function YOLOVisualization({ imageFile, detections, onZoomClick }: YOLOVisualizationProps) {
@@ -95,19 +124,35 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
         height = det.bbox.height;
       }
 
-      const className = det.class;
+      // Support both 'class' and 'class_name' field names
+      const className = det.class_name || det.class || 'unknown';
       const color = CLASS_COLORS[className] || '#6b7280'; // 기본 회색
       const koreanName = CLASS_NAMES[className] || className;
+
+      // Get extracted text if available
+      const extractedText = det.extracted_text || det.value;
+
+      // Build label: Korean name + confidence + extracted text (if available)
+      let label = `${koreanName} (${(det.confidence * 100).toFixed(1)}%)`;
+      if (extractedText && extractedText !== 'null') {
+        // Trim long text values
+        const displayText = extractedText.length > 20 ? extractedText.substring(0, 20) + '...' : extractedText;
+        label += ` - ${displayText}`;
+      } else {
+        // If no extracted text, show bbox size for reference
+        label += ` [${Math.round(width)}×${Math.round(height)}]`;
+      }
 
       boxes.push({
         x,
         y,
         width,
         height,
-        label: `${koreanName} (${(det.confidence * 100).toFixed(1)}%)`,
+        label,
         confidence: det.confidence,
         className,
         color,
+        extractedText: extractedText || undefined,
       });
     });
 
@@ -135,6 +180,16 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
       // Draw image
       ctx.drawImage(img, 0, 0);
 
+      // Track used label positions to prevent overlap
+      const usedLabelPositions: Array<{x: number; y: number; width: number; height: number}> = [];
+
+      const checkLabelOverlap = (x: number, y: number, width: number, height: number): boolean => {
+        return usedLabelPositions.some(used =>
+          !(x + width < used.x || x > used.x + used.width ||
+            y + height < used.y || y > used.y + used.height)
+        );
+      };
+
       // Draw bounding boxes
       boundingBoxes.forEach((box) => {
         const x = box.x;
@@ -143,35 +198,52 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
         const boxHeight = box.height;
         const color = box.color;
 
-        // Draw semi-transparent box
-        ctx.fillStyle = color + '30';
+        // Draw semi-transparent box (higher opacity for better visibility)
+        ctx.fillStyle = color + '40';  // 40 = 25% opacity (was 30 = 18%)
         ctx.fillRect(x, y, boxWidth, boxHeight);
 
-        // Draw border
+        // Draw border (thicker for text_block)
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = box.className === 'text_block' ? 4 : 2;  // Thicker border for text blocks
         ctx.strokeRect(x, y, boxWidth, boxHeight);
 
         // Draw label background
-        ctx.font = 'bold 12px Arial';
+        ctx.font = 'bold 11px Arial';  // Slightly smaller font to reduce overlap
         const textMetrics = ctx.measureText(box.label);
-        const padding = 4;
+        const padding = 3;
         const labelWidth = textMetrics.width + padding * 2;
-        const labelHeight = 18;
+        const labelHeight = 16;
 
-        // Position label above bbox, or below if not enough space
+        // Try to position label above bbox first
         let labelX = x;
         let labelY = y - labelHeight - 2;
 
-        // If label would go off top of canvas, put it below
+        // If label would go off top, try below
         if (labelY < 0) {
           labelY = y + boxHeight + 2;
         }
 
-        // If label would go off right of canvas, align to right
-        if (labelX + labelWidth > canvas.width) {
-          labelX = canvas.width - labelWidth;
+        // Check for overlap and adjust position
+        let attempts = 0;
+        while (checkLabelOverlap(labelX, labelY, labelWidth, labelHeight) && attempts < 4) {
+          attempts++;
+          // Try different positions: above, below, left, right
+          if (attempts === 1) {
+            labelY = y + boxHeight + 2; // below
+          } else if (attempts === 2) {
+            labelX = x - labelWidth - 2; // left
+            labelY = y;
+          } else if (attempts === 3) {
+            labelX = x + boxWidth + 2; // right
+            labelY = y;
+          }
         }
+
+        // If label would go off canvas edges, constrain it
+        if (labelX < 0) labelX = 2;
+        if (labelY < 0) labelY = 2;
+        if (labelX + labelWidth > canvas.width) labelX = canvas.width - labelWidth - 2;
+        if (labelY + labelHeight > canvas.height) labelY = canvas.height - labelHeight - 2;
 
         // Draw label background
         ctx.fillStyle = color;
@@ -181,6 +253,9 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
         ctx.fillStyle = '#ffffff';
         ctx.textBaseline = 'top';
         ctx.fillText(box.label, labelX + padding, labelY + 2);
+
+        // Record this label position to prevent future overlaps
+        usedLabelPositions.push({x: labelX, y: labelY, width: labelWidth, height: labelHeight});
       });
 
       setImageLoaded(true);
@@ -225,22 +300,6 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
           </div>
         </div>
 
-        {/* Legend - 클래스별 카운트 */}
-        {Object.keys(classCounts).length > 0 && (
-          <div className="flex flex-wrap gap-3 text-xs">
-            {Object.entries(classCounts).map(([className, count]) => (
-              <div key={className} className="flex items-center gap-1.5">
-                <div
-                  className="w-3 h-3 rounded"
-                  style={{ backgroundColor: CLASS_COLORS[className] || '#6b7280' }}
-                ></div>
-                <span>
-                  {CLASS_NAMES[className] || className} ({count}개)
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Canvas */}
         <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
@@ -262,6 +321,94 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
           </p>
         )}
 
+        {/* Comprehensive Legend */}
+        {Object.keys(classCounts).length > 0 && (
+          <div className="space-y-3 p-4 bg-accent/30 rounded-lg border">
+            <h4 className="font-semibold text-sm">검출 클래스 범례</h4>
+
+            {/* Dimensions Category */}
+            {CLASS_CATEGORIES.dimensions.some(cls => classCounts[cls]) && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">📏 치수 (Dimensions)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {CLASS_CATEGORIES.dimensions.map((className) => {
+                    const count = classCounts[className];
+                    if (!count) return null;
+                    const details = CLASS_DETAILS[className];
+                    return (
+                      <div key={className} className="flex items-center gap-2 text-xs">
+                        <div
+                          className="w-4 h-4 rounded flex-shrink-0"
+                          style={{ backgroundColor: CLASS_COLORS[className] }}
+                        ></div>
+                        <span className="flex-1">
+                          <span className="font-medium">{details.korean}</span>
+                          <span className="text-muted-foreground"> ({details.english}, {details.abbr})</span>
+                          <span className="text-blue-600 ml-1">· {count}개</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* GD&T Category */}
+            {CLASS_CATEGORIES.gdt.some(cls => classCounts[cls]) && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">🎯 GD&T (Geometric Dimensioning & Tolerancing)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {CLASS_CATEGORIES.gdt.map((className) => {
+                    const count = classCounts[className];
+                    if (!count) return null;
+                    const details = CLASS_DETAILS[className];
+                    return (
+                      <div key={className} className="flex items-center gap-2 text-xs">
+                        <div
+                          className="w-4 h-4 rounded flex-shrink-0"
+                          style={{ backgroundColor: CLASS_COLORS[className] }}
+                        ></div>
+                        <span className="flex-1">
+                          <span className="font-medium">{details.korean}</span>
+                          <span className="text-muted-foreground"> ({details.english}, {details.abbr})</span>
+                          <span className="text-green-600 ml-1">· {count}개</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Other Category */}
+            {CLASS_CATEGORIES.other.some(cls => classCounts[cls]) && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">🔧 기타 (Other)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {CLASS_CATEGORIES.other.map((className) => {
+                    const count = classCounts[className];
+                    if (!count) return null;
+                    const details = CLASS_DETAILS[className];
+                    return (
+                      <div key={className} className="flex items-center gap-2 text-xs">
+                        <div
+                          className="w-4 h-4 rounded flex-shrink-0"
+                          style={{ backgroundColor: CLASS_COLORS[className] }}
+                        ></div>
+                        <span className="flex-1">
+                          <span className="font-medium">{details.korean}</span>
+                          <span className="text-muted-foreground"> ({details.english}, {details.abbr})</span>
+                          <span className="text-orange-600 ml-1">· {count}개</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Details List */}
         <div className="space-y-2">
           <h4 className="font-medium">검출된 객체 상세 ({totalDetections}개)</h4>
@@ -275,11 +422,18 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
                   className="w-3 h-3 rounded flex-shrink-0"
                   style={{ backgroundColor: box.color }}
                 ></div>
-                <span className="flex-1 font-medium">{box.label}</span>
-                <span className="text-muted-foreground text-xs">
+                <div className="flex-1">
+                  <span className="font-medium">{box.label}</span>
+                  {box.extractedText && (
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      텍스트: "{box.extractedText}"
+                    </div>
+                  )}
+                </div>
+                <span className="text-muted-foreground text-xs whitespace-nowrap">
                   위치: ({Math.round(box.x)}, {Math.round(box.y)})
                 </span>
-                <span className="text-muted-foreground text-xs">
+                <span className="text-muted-foreground text-xs whitespace-nowrap">
                   크기: {Math.round(box.width)}×{Math.round(box.height)}
                 </span>
               </div>

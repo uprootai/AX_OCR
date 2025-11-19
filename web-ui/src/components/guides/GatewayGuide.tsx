@@ -153,11 +153,98 @@ sequenceDiagram
             <Mermaid chart={systemDiagram} />
           </div>
 
+          {/* 📋 추가 옵션별 파이프라인 영향 */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 p-6 rounded-lg border-2 border-amber-200 dark:border-amber-800">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              📋 추가 옵션별 파이프라인 영향
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              체크박스 선택에 따라 파이프라인이 동적으로 변경됩니다
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4 mb-4">
+              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  ✅ OCR 실행
+                  <Badge variant="outline" className="text-xs">eDOCr v2</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  ❌ 비활성화 시: OCR 단계 전체 건너뜀<br/>
+                  ✅ 활성화 시: eDOCr v2로 치수 텍스트 추출 (92% 정확도)
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  ✅ 세그멘테이션 실행
+                  <Badge variant="outline" className="text-xs">EDGNet</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  ❌ 비활성화 시: 구조 분석 없이 YOLO + OCR만 수행<br/>
+                  ✅ 활성화 시: GraphSAGE 기반 레이어 분류 (90.82% 정확도)
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  ✅ 공차 분석 실행
+                  <Badge variant="outline" className="text-xs">Skin Model</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  ❌ 비활성화 시: 치수 추출까지만 수행<br/>
+                  ✅ 활성화 시: 제조 가능성 및 공차 예측 추가
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  ✅ 시각화
+                  <Badge variant="outline" className="text-xs">이미지 생성</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  ❌ 비활성화 시: JSON 데이터만 반환<br/>
+                  ✅ 활성화 시: 바운딩 박스 overlay 이미지 생성 (처리 시간 +0.5초)
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                🎯 고급 OCR 전략
+                <Badge variant="success" className="text-xs">재현율 향상</Badge>
+              </h4>
+
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-1">🎯 YOLO Crop OCR</p>
+                    <p className="text-xs text-muted-foreground">
+                      YOLO가 검출한 각 치수 영역을 개별 크롭하여 PaddleOCR로 텍스트 추출<br/>
+                      <strong>효과:</strong> 재현율 76.7% → 93.3% (+16.7%p), 처리 시간 +2.1%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-1">🚀 앙상블 전략 (YOLO Crop + eDOCr v2)</p>
+                    <p className="text-xs text-muted-foreground">
+                      두 방식의 결과를 신뢰도 기반 가중치 융합 (중복 제거 + 누락 보완)<br/>
+                      <strong>효과:</strong> 정밀도 60% → 93% (+33%p), 예상 F1 Score 95%+<br/>
+                      <strong>조건:</strong> YOLO Crop OCR이 먼저 활성화되어야 함
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* 🚀 치수 추출 최적화 파이프라인 */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-800">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              🚀 치수 추출 최적화 파이프라인
-              <Badge variant="default">NEW</Badge>
+              🚀 파이프라인 모드 비교
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
               목적에 맞게 최적화된 두 가지 처리 전략을 선택할 수 있습니다

@@ -18,15 +18,15 @@ interface PipelineProgressProps {
   onError?: (error: string) => void;
 }
 
-// 메인 단계만 표시
-const mainSteps: Array<{ id: string; label: string; subSteps: string[]; parallel?: boolean }> = [
-  { id: 'initialize', label: '📋 초기화', subSteps: [] },
-  { id: 'yolo', label: '🎯 YOLO 검출', subSteps: [] },
-  { id: 'ocr', label: '📝 OCR 분석', subSteps: [], parallel: true },
-  { id: 'edgnet', label: '🎨 EDGNet 분석', subSteps: [], parallel: true },
-  { id: 'ensemble', label: '🔀 결과 병합', subSteps: [] },
-  { id: 'tolerance', label: '📐 공차 예측', subSteps: [] },
-  { id: 'complete', label: '✅ 완료', subSteps: [] }
+// 메인 단계만 표시 (subSteps에 관련 하위 단계 포함)
+const mainSteps: Array<{ id: string; label: string; description: string; subSteps: string[]; parallel?: boolean }> = [
+  { id: 'initialize', label: '📋 초기화', description: '파이프라인 준비', subSteps: ['pipeline'] },
+  { id: 'yolo', label: '🎯 객체 검출', description: 'YOLOv11로 치수 영역 찾기', subSteps: [] },
+  { id: 'ocr', label: '📝 텍스트 추출', description: 'eDOCr로 치수 값 읽기', subSteps: ['parallel', 'upscale'], parallel: true },
+  { id: 'edgnet', label: '🎨 구조 분석', description: 'EDGNet으로 레이어 분류', subSteps: [], parallel: true },
+  { id: 'ensemble', label: '🔀 결과 통합', description: '모든 결과 병합', subSteps: [] },
+  { id: 'tolerance', label: '📐 공차 계산', description: 'Skin Model로 예측', subSteps: [] },
+  { id: 'complete', label: '✅ 완료', description: '모든 처리 완료', subSteps: [] }
 ];
 
 export default function PipelineProgress({ jobId, pipelineMode, onComplete, onError }: PipelineProgressProps) {
@@ -146,8 +146,13 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
     // 가장 최근 업데이트
     const latestUpdate = relevantUpdates[relevantUpdates.length - 1];
 
+    // Debug: Check if message is missing
+    if (!latestUpdate.message) {
+      console.warn(`[PipelineProgress] Missing message for step ${step.id}:`, latestUpdate);
+    }
+
     return {
-      message: latestUpdate.message,
+      message: latestUpdate.message || `${step.label} 진행 중...`,  // Fallback message
       data: latestUpdate.data
     };
   };
@@ -310,13 +315,13 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
             const status = getMainStepStatus(step);
             const details = getMainStepDetails(step);
 
-            if (status === 'pending') return null;
-
+            // Show all steps, but style pending ones differently
             return (
               <div
                 key={step.id}
                 className={`
                   flex items-start gap-3 p-3 rounded-lg transition-all
+                  ${status === 'pending' ? 'bg-gray-50/50 dark:bg-gray-900/50 opacity-60' : ''}
                   ${status === 'running' ? 'bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800' : ''}
                   ${status === 'completed' ? 'bg-gray-50 dark:bg-gray-900' : ''}
                   ${status === 'error' ? 'bg-red-50 dark:bg-red-950' : ''}
@@ -336,11 +341,15 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
                       </span>
                     )}
                   </div>
-                  {details && (
+                  {details ? (
                     <p className="text-sm text-muted-foreground mt-1">
                       {details.message}
                     </p>
-                  )}
+                  ) : status === 'pending' ? (
+                    <p className="text-sm text-muted-foreground mt-1 italic">
+                      {step.description}
+                    </p>
+                  ) : null}
                   {details?.data && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {details.data.detection_count !== undefined && (

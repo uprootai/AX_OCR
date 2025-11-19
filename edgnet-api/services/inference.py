@@ -9,16 +9,20 @@ from typing import Dict, Any, Optional
 import numpy as np
 from fastapi import HTTPException
 
+from utils.visualization import create_edgnet_visualization
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Add edgnet to path
+# Add edgnet to path (now safe since /app/models renamed to /app/trained_models)
 EDGNET_PATH = Path("/app/edgnet")
 if not EDGNET_PATH.exists():
     # Fallback to relative path for local development
     EDGNET_PATH = Path(__file__).parent.parent.parent.parent / "dev" / "edgnet"
+
+# Add to sys.path for imports
 sys.path.insert(0, str(EDGNET_PATH))
-logger.info(f"EDGNet path: {EDGNET_PATH}")
+logger.info(f"EDGNet path added: {EDGNET_PATH}")
 
 # Import EDGNet pipeline
 try:
@@ -166,8 +170,32 @@ class EDGNetInferenceService:
                 "components": components
             }
 
-            if visualize and output_dir:
-                result["visualization_url"] = f"/api/v1/result/{file_path.stem}/predictions.png"
+            # Generate visualization
+            if visualize:
+                logger.info("  Generating visualization...")
+                try:
+                    # Convert components to format expected by visualization
+                    viz_components = []
+                    for comp in components:
+                        # Map classification to class_id (0=BG, 1=Contour, 2=Text, 3=Dimension)
+                        class_map = {"contour": 1, "text": 2, "dimension": 3, "other": 0}
+                        class_id = class_map.get(comp.get("classification", "other"), 0)
+
+                        viz_components.append({
+                            "bbox": comp.get("bbox"),
+                            "class_id": class_id
+                        })
+
+                    viz_result = {"components": viz_components}
+                    visualized_image = create_edgnet_visualization(str(file_path), viz_result)
+
+                    if visualized_image:
+                        result["visualized_image"] = visualized_image
+                        logger.info("  ✅ Visualization created")
+                    else:
+                        logger.warning("  ⚠️ Visualization generation failed")
+                except Exception as e:
+                    logger.warning(f"  ⚠️ Visualization error: {e}")
 
             if save_graph and output_dir:
                 result["graph_url"] = f"/api/v1/result/{file_path.stem}/graph.pkl"

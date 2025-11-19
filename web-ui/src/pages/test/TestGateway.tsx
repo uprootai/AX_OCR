@@ -13,6 +13,7 @@ import RequestTimeline from '../../components/debug/RequestTimeline';
 import ErrorPanel from '../../components/debug/ErrorPanel';
 import OCRVisualization from '../../components/debug/OCRVisualization';
 import SegmentationVisualization from '../../components/debug/SegmentationVisualization';
+import PipelineStepsVisualization from '../../components/debug/PipelineStepsVisualization';
 import GatewayGuide from '../../components/guides/GatewayGuide';
 import PipelineProgress from '../../components/ui/PipelineProgress';
 import { gatewayApi } from '../../lib/api';
@@ -193,8 +194,13 @@ export default function TestGateway() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Pipeline Mode Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">파이프라인 모드</label>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-semibold">파이프라인 모드</label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    목적에 따라 최적화된 처리 전략을 선택하세요
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -213,6 +219,9 @@ export default function TestGateway() {
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       정확도 ~95% | 40-50초
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">
+                      순차 처리 + 업스케일링
                     </div>
                   </button>
                   <button
@@ -233,7 +242,43 @@ export default function TestGateway() {
                     <div className="text-xs text-muted-foreground mt-1">
                       정확도 ~93% | 35-45초
                     </div>
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
+                      병렬 처리 + 빠른 응답
+                    </div>
                   </button>
+                </div>
+
+                {/* Mode Explanation */}
+                <div className={`p-3 rounded-lg text-sm ${
+                  pipelineMode === 'hybrid'
+                    ? 'bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800'
+                    : 'bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800'
+                }`}>
+                  {pipelineMode === 'hybrid' ? (
+                    <div>
+                      <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        🔵 하이브리드 모드 처리 흐름
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        1단계: YOLO 검출 → 2단계: 검출 영역 업스케일 + OCR & EDGNet 병렬 → 3단계: 결과 병합 → 4단계: 공차 예측
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        💡 작은 텍스트도 업스케일링으로 정확하게 인식합니다
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                        ⚡ 속도 우선 모드 처리 흐름
+                      </p>
+                      <p className="text-xs text-green-700 dark:text-green-300">
+                        1단계: YOLO & OCR & EDGNet 모두 병렬 실행 → 2단계: 결과 병합 → 3단계: 공차 예측
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        💡 모든 단계를 동시에 처리하여 대량 도면 처리에 최적화
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -453,6 +498,14 @@ export default function TestGateway() {
           {/* Results */}
           {result && (
             <div className="space-y-4">
+              {/* Pipeline Steps Visualization */}
+              {file && (
+                <PipelineStepsVisualization
+                  imageFile={file}
+                  result={result}
+                />
+              )}
+
               {/* Summary Card */}
               <Card>
                 <CardHeader>

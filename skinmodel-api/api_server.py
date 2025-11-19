@@ -27,6 +27,9 @@ from models.schemas import (
 # Import services
 from services.tolerance import tolerance_service
 
+# Import utilities
+from utils.visualization import create_tolerance_visualization
+
 # Logging setup
 logging.basicConfig(
     level=logging.INFO,
@@ -104,6 +107,15 @@ async def predict_tolerance(request: ToleranceRequest):
             request.manufacturing_process,
             request.correlation_length
         )
+
+        # 시각화 생성 (항상 생성)
+        try:
+            visualized_image = create_tolerance_visualization(prediction_result)
+            if visualized_image:
+                prediction_result["visualized_image"] = visualized_image
+                logger.info("✅ Tolerance visualization created")
+        except Exception as e:
+            logger.warning(f"⚠️ Visualization creation failed: {e}")
 
         processing_time = time.time() - start_time
 

@@ -15,6 +15,11 @@ from .image_utils import (
     CLASS_DISPLAY_NAMES
 )
 from .helpers import match_yolo_with_ocr
+from .visualization import (
+    create_ocr_visualization,
+    create_edgnet_visualization,
+    create_ensemble_visualization
+)
 
 __all__ = [
     # Progress tracking
@@ -31,5 +36,9 @@ __all__ = [
     "crop_bbox",
     "CLASS_DISPLAY_NAMES",
     # Helpers
-    "match_yolo_with_ocr"
+    "match_yolo_with_ocr",
+    # Visualization
+    "create_ocr_visualization",
+    "create_edgnet_visualization",
+    "create_ensemble_visualization"
 ]

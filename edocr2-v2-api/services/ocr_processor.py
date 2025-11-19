@@ -11,6 +11,8 @@ import cv2
 import numpy as np
 from fastapi import HTTPException
 
+from utils.visualization import create_ocr_visualization
+
 logger = logging.getLogger(__name__)
 
 # Add edocr2 to path
@@ -349,7 +351,15 @@ class EDOCr2Processor:
             # 6. Visualization
             if visualize:
                 logger.info("  Generating visualization...")
-                result["visualization_url"] = f"/api/v1/visualization/{file_path.name}"
+                try:
+                    visualized_image = create_ocr_visualization(str(file_path), result)
+                    if visualized_image:
+                        result["visualized_image"] = visualized_image
+                        logger.info("  ✅ Visualization created")
+                    else:
+                        logger.warning("  ⚠️ Visualization generation failed")
+                except Exception as e:
+                    logger.warning(f"  ⚠️ Visualization error: {e}")
 
             logger.info(f"✅ OCR completed: {len(result['dimensions'])} dims, {len(result['gdt'])} gdts")
             return result

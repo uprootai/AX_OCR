@@ -20,7 +20,7 @@ import uvicorn
 import torch
 
 # Import from modules
-from models.schemas import (
+from trained_models.schemas import (
     HealthResponse,
     SegmentRequest,
     SegmentResponse,
@@ -53,7 +53,7 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'tiff', 'bmp'}
 
-MODEL_PATH = Path("/models/graphsage_dimension_classifier.pth")
+MODEL_PATH = Path("/trained_models/graphsage_dimension_classifier.pth")
 
 # =====================
 # FastAPI App
@@ -121,6 +121,14 @@ async def startup_event():
                 model_path=str(MODEL_PATH),
                 device=device
             )
+
+            # Load the model
+            try:
+                inference_service.load_model()
+                logger.info("EDGNet model loaded successfully")
+            except Exception as e:
+                logger.error(f"Failed to load EDGNet model: {e}")
+                inference_service = None
 
             logger.info("EDGNet API ready for segmentation")
 

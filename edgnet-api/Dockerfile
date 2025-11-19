@@ -25,12 +25,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY api_server.py .
-COPY models/ ./models/
+COPY models/ ./trained_models/
 COPY services/ ./services/
 COPY utils/ ./utils/
 
 # Create directories
-RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results /models
+RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results /trained_models
 
 # Set Python path
 ENV PYTHONPATH=/app

@@ -93,13 +93,13 @@ services:
       - "5012:5002"
     volumes:
       - /home/uproot/ax/dev/edgnet:/app/edgnet:ro
-      - /home/uproot/ax/dev/test_results/sample_tests/graphsage_models:/models:ro
+      - /home/uproot/ax/dev/test_results/sample_tests/graphsage_models:/trained_models:ro
       - ./edgnet-api/uploads:/tmp/edgnet/uploads
       - ./edgnet-api/results:/tmp/edgnet/results
     environment:
       - EDGNET_PORT=5002
       - EDGNET_WORKERS=2
-      - EDGNET_MODEL_PATH=/models/graphsage_dimension_classifier.pth
+      - EDGNET_MODEL_PATH=/trained_models/graphsage_dimension_classifier.pth
       - EDGNET_LOG_LEVEL=INFO
       - PYTHONUNBUFFERED=1
     networks:

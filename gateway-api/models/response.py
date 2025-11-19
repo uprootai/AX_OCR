@@ -48,6 +48,7 @@ class OCRResults(BaseModel):
     text_blocks: List[Dict[str, Any]] = Field(default=[], description="텍스트 블록")
     tables: List[Any] = Field(default=[], description="테이블 데이터 (nested structure)")
     processing_time: float = Field(0, description="OCR 처리 시간 (초)")
+    visualized_image: Optional[str] = Field(None, description="Base64 인코딩된 시각화 이미지")
 
 
 class ComponentData(BaseModel):
@@ -63,6 +64,7 @@ class SegmentationResults(BaseModel):
     components: List[ComponentData] = Field(default=[], description="감지된 컴포넌트")
     total_components: int = Field(0, description="총 컴포넌트 수")
     processing_time: float = Field(0, description="세그멘테이션 처리 시간 (초)")
+    visualized_image: Optional[str] = Field(None, description="Base64 인코딩된 시각화 이미지")
 
 
 class ToleranceResult(BaseModel):
@@ -83,6 +85,7 @@ class ProcessData(BaseModel):
     ocr_results: Optional[OCRResults] = Field(None, description="OCR 추출 결과")
     segmentation_results: Optional[SegmentationResults] = Field(None, description="세그멘테이션 결과")
     tolerance_results: Optional[ToleranceResult] = Field(None, description="공차 예측 결과")
+    ensemble: Optional[Dict[str, Any]] = Field(None, description="앙상블 병합 결과")
     pipeline_mode: str = Field("hybrid", description="사용된 파이프라인 모드")
 
     model_config = {
