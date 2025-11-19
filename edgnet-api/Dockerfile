@@ -32,6 +32,9 @@ COPY utils/ ./utils/
 # Create directories
 RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results /models
 
+# Set Python path
+ENV PYTHONPATH=/app
+
 # Expose port
 EXPOSE 5002
 

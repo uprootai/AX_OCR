@@ -34,6 +34,14 @@ export function CardTitle({ children, className = '' }: CardSubComponentProps) {
   );
 }
 
+export function CardDescription({ children, className = '' }: CardSubComponentProps) {
+  return (
+    <p className={`text-sm text-muted-foreground ${className}`}>
+      {children}
+    </p>
+  );
+}
+
 export function CardContent({ children, className = '' }: CardSubComponentProps) {
   return (
     <div className={`px-6 py-4 ${className}`}>

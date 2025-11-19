@@ -335,15 +335,13 @@ async def cleanup_files(max_age_hours: int = 24):
 
 if __name__ == "__main__":
     port = int(os.getenv("EDGNET_PORT", 5002))
-    workers = int(os.getenv("EDGNET_WORKERS", 2))
 
-    logger.info(f"Starting EDGNet API on port {port} with {workers} workers")
+    logger.info(f"Starting EDGNet API on port {port}")
 
     uvicorn.run(
         "api_server:app",
         host="0.0.0.0",
         port=port,
-        workers=workers,
         log_level="info",
         reload=False
     )

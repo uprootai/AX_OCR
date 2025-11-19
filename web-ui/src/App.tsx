@@ -20,6 +20,7 @@ import TestEdgnet from './pages/test/TestEdgnet';
 import TestSkinmodel from './pages/test/TestSkinmodel';
 import TestGateway from './pages/test/TestGateway';
 import TestYolo from './pages/test/TestYolo';
+import TestVL from './pages/test/TestVL';
 import Analyze from './pages/analyze/Analyze';
 import Monitor from './pages/monitor/Monitor';
 import Admin from './pages/admin/Admin';
@@ -69,6 +70,7 @@ function App() {
               <Route path="/test/edgnet" element={<TestEdgnet />} />
               <Route path="/test/skinmodel" element={<TestSkinmodel />} />
               <Route path="/test/gateway" element={<TestGateway />} />
+              <Route path="/test/vl" element={<TestVL />} />
 
               {/* 분석 페이지 */}
               <Route path="/analyze" element={<Analyze />} />

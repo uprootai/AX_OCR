@@ -3,8 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { FileDropzone } from '../../components/upload/FileDropzone';
-import { FilePreview } from '../../components/upload/FilePreview';
+import { FileUploadSection } from '../../components/upload/FileUploadSection';
 import { DimensionChart } from '../../components/charts/DimensionChart';
 import { ProcessingTimeChart } from '../../components/charts/ProcessingTimeChart';
 import { ResultActions } from '../../components/results/ResultActions';
@@ -21,25 +20,6 @@ import { useMonitoringStore } from '../../store/monitoringStore';
 import { getHyperParameters } from '../../hooks/useHyperParameters';
 import { Loader2, Play, Zap, CheckCircle, BookOpen } from 'lucide-react';
 import type { AnalysisResult, RequestTrace } from '../../types/api';
-
-// Sample images for quick testing
-const SAMPLE_IMAGES = [
-  {
-    name: '합성 테스트 도면 1',
-    path: '/datasets/combined/images/test/synthetic_random_synthetic_test_000003.jpg',
-    description: '치수 표기가 있는 합성 테스트 도면'
-  },
-  {
-    name: '합성 테스트 도면 2',
-    path: '/datasets/combined/images/test/synthetic_random_synthetic_test_000001.jpg',
-    description: '다양한 치수 정보가 포함된 도면'
-  },
-  {
-    name: '합성 테스트 도면 3',
-    path: '/datasets/combined/images/test/synthetic_random_synthetic_test_000002.jpg',
-    description: '복잡한 형상의 테스트 도면'
-  }
-];
 
 export default function TestGateway() {
   const [file, setFile] = useState<File | null>(null);
@@ -60,26 +40,6 @@ export default function TestGateway() {
 
   const { traces, addTrace } = useMonitoringStore();
   const gatewayTraces = traces.filter((t) => t.endpoint.includes('process') || t.endpoint.includes('gateway'));
-
-  // Load sample image from server
-  const loadSampleImage = async (imagePath: string) => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/v1/sample-image?path=${encodeURIComponent(imagePath)}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to load image: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
-      const fileName = imagePath.split('/').pop() || 'sample.jpg';
-      // Ensure correct MIME type for image
-      const file = new File([blob], fileName, { type: 'image/jpeg' });
-      setFile(file);
-    } catch (error) {
-      console.error('Failed to load sample image:', error);
-      alert('샘플 이미지를 불러오는데 실패했습니다.');
-    }
-  };
 
   const mutation = useMutation({
     mutationFn: async (file: File) => {
@@ -211,58 +171,18 @@ export default function TestGateway() {
             <CardHeader>
               <CardTitle>1. 파일 업로드</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {!file ? (
-                <>
-                  <FileDropzone
-                    onFileSelect={setFile}
-                    disabled={mutation.isPending}
-                  />
-
-                  {/* Sample Images */}
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="text-sm font-medium text-muted-foreground">
-                        또는 샘플 이미지로 빠르게 테스트
-                      </label>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {SAMPLE_IMAGES.map((sample, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => loadSampleImage(sample.path)}
-                          disabled={mutation.isPending}
-                          className="p-3 text-left border-2 border-dashed rounded-lg
-                                   hover:border-primary hover:bg-accent/50
-                                   transition-all duration-200
-                                   disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded bg-primary/10
-                                          flex items-center justify-center text-primary font-bold">
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {sample.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {sample.description}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <FilePreview
-                  file={file}
-                  onRemove={() => setFile(null)}
-                />
-              )}
+            <CardContent>
+              <FileUploadSection
+                onFileSelect={setFile}
+                currentFile={file}
+                accept={{
+                  'image/*': ['.png', '.jpg', '.jpeg'],
+                  'application/pdf': ['.pdf']
+                }}
+                maxSize={10 * 1024 * 1024}  // 10MB in bytes
+                disabled={mutation.isPending}
+                showSamples={true}
+              />
             </CardContent>
           </Card>
 

@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import FileUploader from '../../components/debug/FileUploader';
+import { FileUploadSection } from '../../components/upload/FileUploadSection';
 import JSONViewer from '../../components/debug/JSONViewer';
 import RequestInspector from '../../components/debug/RequestInspector';
 import RequestTimeline from '../../components/debug/RequestTimeline';
@@ -350,7 +350,14 @@ export default function TestYolo() {
               <CardTitle>1. 이미지 업로드</CardTitle>
             </CardHeader>
             <CardContent>
-              <FileUploader currentFile={file} onFileSelect={setFile} />
+              <FileUploadSection
+                onFileSelect={setFile}
+                currentFile={file}
+                accept={{ 'image/*': ['.png', '.jpg', '.jpeg'] }}
+                maxSize={10 * 1024 * 1024}
+                disabled={mutation.isPending}
+                showSamples={true}
+              />
             </CardContent>
           </Card>
 
