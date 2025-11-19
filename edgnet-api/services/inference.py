@@ -143,11 +143,13 @@ class EDGNetInferenceService:
             if predictions is not None:
                 for i, (bezier, pred) in enumerate(zip(bezier_curves, predictions)):
                     bbox = bezier_to_bbox(bezier)
-                    classification = class_map.get(int(pred), "unknown")
+                    pred_int = int(pred)
+                    classification = class_map.get(pred_int, "unknown")
 
                     components.append({
                         "id": i,
                         "classification": classification,
+                        "class_id": pred_int,  # Add class_id for compatibility
                         "bbox": bbox,
                         "confidence": 0.9  # EDGNet doesn't provide confidence scores
                     })
@@ -157,6 +159,7 @@ class EDGNetInferenceService:
 
             result = {
                 "num_components": len(bezier_curves),
+                "total_components": len(bezier_curves),  # Add for compatibility
                 "classifications": class_counts,
                 "graph": {
                     "nodes": G.number_of_nodes(),

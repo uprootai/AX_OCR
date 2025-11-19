@@ -53,18 +53,27 @@ class OCRResults(BaseModel):
 
 class ComponentData(BaseModel):
     """세그멘테이션 컴포넌트"""
-    component_id: int = Field(..., description="컴포넌트 ID")
-    class_id: int = Field(..., description="클래스 ID (0=배경, 1=윤곽선, 2=텍스트, 3=치수)")
-    bbox: Dict[str, int] = Field(..., description="바운딩 박스")
-    area: int = Field(..., description="면적 (픽셀)")
+    component_id: Optional[int] = Field(None, description="컴포넌트 ID")
+    id: Optional[int] = Field(None, description="컴포넌트 ID (alternative)")
+    class_id: Optional[int] = Field(None, description="클래스 ID")
+    classification: Optional[str] = Field(None, description="분류 이름")
+    bbox: Dict[str, Any] = Field(default={}, description="바운딩 박스")
+    area: Optional[int] = Field(None, description="면적 (픽셀)")
+    confidence: Optional[float] = Field(None, description="신뢰도")
+
+    class Config:
+        extra = "allow"  # Allow additional fields from EDGNet
 
 
 class SegmentationResults(BaseModel):
     """세그멘테이션 결과"""
-    components: List[ComponentData] = Field(default=[], description="감지된 컴포넌트")
+    components: List[Any] = Field(default=[], description="감지된 컴포넌트")  # Changed to Any for flexibility
     total_components: int = Field(0, description="총 컴포넌트 수")
     processing_time: float = Field(0, description="세그멘테이션 처리 시간 (초)")
     visualized_image: Optional[str] = Field(None, description="Base64 인코딩된 시각화 이미지")
+
+    class Config:
+        extra = "allow"  # Allow additional fields
 
 
 class ToleranceResult(BaseModel):

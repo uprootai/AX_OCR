@@ -1175,17 +1175,26 @@ async def process_drawing(
                     idx += 1
 
                 if use_segmentation:
-                    result["segmentation_results"] = results[idx] if not isinstance(results[idx], Exception) else {"error": str(results[idx])}
                     if not isinstance(results[idx], Exception):
-                        comps_count = results[idx].get("data", {}).get("num_components", 0)
+                        # Extract data from EDGNet API response
+                        edgnet_data = results[idx].get("data", {})
+                        result["segmentation_results"] = {
+                            "components": edgnet_data.get("components", []),
+                            "total_components": edgnet_data.get("total_components", edgnet_data.get("num_components", 0)),
+                            "processing_time": results[idx].get("processing_time", 0)
+                        }
+                        comps_count = result["segmentation_results"]["total_components"]
                         tracker.update("edgnet", "completed", f"EDGNet 세그멘테이션 완료: {comps_count}개 컴포넌트", {
                             "components_count": comps_count
                         })
+                    else:
+                        result["segmentation_results"] = {"error": str(results[idx])}
 
-                        # Generate EDGNet visualization
+                    # Generate EDGNet visualization
+                    if not isinstance(results[idx], Exception):
                         try:
-                            # EDGNet returns {data: {components: [...], ...}}
-                            edgnet_data = result["segmentation_results"].get("data", {})
+                            # result["segmentation_results"] already has the correct structure
+                            edgnet_data = result["segmentation_results"]
                             if edgnet_data.get("components"):
                                 edgnet_vis = create_edgnet_visualization(
                                     image_bytes if not is_pdf else file_bytes,
@@ -1279,20 +1288,26 @@ async def process_drawing(
                 idx += 1
 
             if use_segmentation:
-                result["segmentation_results"] = results[idx] if not isinstance(results[idx], Exception) else {"error": str(results[idx])}
                 if not isinstance(results[idx], Exception):
-                    comps_count = results[idx].get("data", {}).get("num_components", 0)
+                    # Extract data from EDGNet API response (speed mode)
+                    edgnet_data = results[idx].get("data", {})
+                    result["segmentation_results"] = {
+                        "components": edgnet_data.get("components", []),
+                        "total_components": edgnet_data.get("total_components", edgnet_data.get("num_components", 0)),
+                        "processing_time": results[idx].get("processing_time", 0)
+                    }
+                    comps_count = result["segmentation_results"]["total_components"]
                     tracker.update("edgnet", "completed", f"EDGNet 완료: {comps_count}개 컴포넌트", {
                         "components_count": comps_count
                     })
 
                     # Generate EDGNet visualization (speed mode)
                     try:
-                        edgnet_data = result["segmentation_results"].get("data", {})
-                        if edgnet_data.get("components"):
+                        # result["segmentation_results"] already has the correct structure
+                        if result["segmentation_results"].get("components"):
                             edgnet_vis = create_edgnet_visualization(
                                 image_bytes if not is_pdf else file_bytes,
-                                edgnet_data
+                                result["segmentation_results"]
                             )
                             if edgnet_vis:
                                 result["segmentation_results"]["visualized_image"] = edgnet_vis
@@ -1300,6 +1315,7 @@ async def process_drawing(
                     except Exception as e:
                         logger.warning(f"Failed to create EDGNet visualization: {e}")
                 else:
+                    result["segmentation_results"] = {"error": str(results[idx])}
                     tracker.update("edgnet", "error", f"EDGNet 실패: {str(results[idx])}")
 
             tracker.update("parallel", "completed", "3-way 병렬 처리 완료")
