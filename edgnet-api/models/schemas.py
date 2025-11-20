@@ -53,3 +53,18 @@ class VectorizeResponse(BaseModel):
     data: Dict[str, Any]
     processing_time: float
     file_id: str
+
+
+class UNetSegmentRequest(BaseModel):
+    """UNet 세그멘테이션 요청 파라미터"""
+    threshold: float = Field(0.5, description="세그멘테이션 임계값 (0.0~1.0)", ge=0.0, le=1.0)
+    visualize: bool = Field(True, description="세그멘테이션 결과 시각화 생성 여부")
+    return_mask: bool = Field(False, description="세그멘테이션 마스크 반환 여부 (base64)")
+
+
+class UNetSegmentResponse(BaseModel):
+    """UNet 세그멘테이션 응답"""
+    status: str = Field(..., description="처리 상태 (success/error)")
+    data: Dict[str, Any] = Field(..., description="세그멘테이션 결과 데이터")
+    processing_time: float = Field(..., description="처리 시간 (초)")
+    file_id: str = Field(..., description="업로드된 파일 ID")

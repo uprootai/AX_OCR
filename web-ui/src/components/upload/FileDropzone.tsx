@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FolderOpen } from 'lucide-react';
 
@@ -17,16 +18,18 @@ export function FileDropzone({
   maxSize = 10485760, // 10MB
   disabled = false
 }: FileDropzoneProps) {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      onFileSelect(acceptedFiles[0]);
+    }
+  }, [onFileSelect]);
+
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     accept,
     maxSize,
     multiple: false,
     disabled,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        onFileSelect(acceptedFiles[0]);
-      }
-    }
+    onDrop
   });
 
   return (

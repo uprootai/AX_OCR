@@ -44,7 +44,7 @@ http://localhost:5173
 | **Gateway API** | 8000 | 통합 파이프라인 오케스트레이터 | ✅ |
 | **YOLO API** | 5005 | 객체 검출 (YOLO v11) | ✅ |
 | **eDOCr2 v2 API** | 5002 | 도면 특화 OCR | ✅ |
-| **EDGNet API** | 5012 | 그래프 기반 세그멘테이션 | ✅ |
+| **EDGNet API** | 5012 | 세그멘테이션 (GraphSAGE + UNet) | ✅ |
 | **Skin Model API** | 5003 | 공차 예측 (XGBoost) | ✅ |
 | **PaddleOCR API** | 5006 | 범용 OCR (보조) | ✅ |
 | **VL API** | 5004 | 비전-언어 모델 (API 키 필요) | 🔑 |
@@ -148,11 +148,13 @@ http://localhost:5173
 │   │   ├── api_server.py            # FastAPI 서버 (349 라인)
 │   │   ├── models/
 │   │   │   ├── schemas.py
-│   │   │   └── graphsage_*.pth      # GraphSAGE 모델
+│   │   │   ├── graphsage_*.pth      # GraphSAGE 모델
+│   │   │   └── edgnet_large.pth     # UNet 모델 (355MB)
 │   │   ├── services/
-│   │   │   └── inference.py         # EDGNet 파이프라인
+│   │   │   ├── inference.py         # EDGNet 파이프라인
+│   │   │   └── unet_inference.py    # UNet 추론 서비스
 │   │   └── utils/
-│   │       ├── visualization.py     # EDGNet 시각화 ⭐
+│   │       ├── visualization.py     # EDGNet/UNet 시각화 ⭐
 │   │       └── helpers.py
 │   │
 │   ├── skinmodel-api/               # Skin Model 공차 예측 (Port 5003)
@@ -456,6 +458,12 @@ Proprietary - AX Project (2025)
 ---
 
 ## 🎊 Changelog
+
+### 2.1.0 (2025-11-20)
+- ✨ **UNet 엣지 세그멘테이션 모델 통합** (355MB, IoU 85.8%)
+- 🚀 **EDGNet API 듀얼 모델 지원** (GraphSAGE + UNet)
+- 📊 **새 엔드포인트**: `/api/v1/segment_unet`
+- 🎨 **UNet 시각화**: 시안 오버레이 + 통계 표시
 
 ### 2.0.0 (2025-11-19)
 - ✨ **파이프라인 시각화 시스템 추가**

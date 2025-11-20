@@ -1,6 +1,6 @@
 # 🐛 Known Issues & Problem Tracker
 
-**Last Updated**: 2025-11-19
+**Last Updated**: 2025-11-20
 **Purpose**: Track all reported issues, their status, and resolutions
 
 ---
@@ -11,9 +11,9 @@
 |--------|-------|
 | 🔴 Critical | 0 |
 | 🟠 High | 0 |
-| 🟡 Medium | 4 |
+| 🟡 Medium | 3 |
 | 🟢 Low | 0 |
-| ✅ Resolved | 4 |
+| ✅ Resolved | 5 |
 
 ---
 
@@ -91,6 +91,11 @@ rmdir web-ui/src/components/upload
 - 현재 FileUploader가 모든 기능을 제공하므로 긴급하지 않음
 - 하지만 기술 부채로 남아있어 해결 필요
 
+**Decision (2025-11-20)**:
+- ✅ User decided to keep and complete (not delete)
+- Will proceed with Option 2: 완성 (completion)
+- Tracked in ROADMAP.md Phase 3
+
 ---
 
 ### Issue #M003: Gateway API 샘플 이미지 엔드포인트 미사용
@@ -134,6 +139,10 @@ async def get_sample_image(path: str):
 **Notes**:
 - Issue #M002를 삭제로 해결하면 이것도 삭제해야 함
 - Issue #M002를 완성으로 해결하면 이것도 사용해야 함
+
+**Decision (2025-11-20)**:
+- ✅ Will be completed together with Issue #M002
+- User decided to complete FileDropzone integration
 
 ---
 
@@ -199,6 +208,11 @@ async def process_with_vl(...):
 - Gateway API의 VL 통합 엔드포인트만 미사용
 - 긴 코드(170줄)가 사용되지 않고 있음
 
+**Decision (2025-11-20)**:
+- ✅ User decided to complete VL API integration (not delete)
+- Will proceed with Option 2: Web UI 연동
+- Tracked in ROADMAP.md Phase 3
+
 ---
 
 ### Issue #M005: VL API 테스트 페이지 미존재
@@ -256,11 +270,120 @@ VL API가 실행 중이지만 테스트할 수 있는 Web UI 페이지가 없음
 - Issue #M004와 함께 해결하는 것이 효율적
 - VL API는 정상 작동하므로 테스트 페이지만 추가하면 됨
 
+**Decision (2025-11-20)**:
+- ✅ Will be completed together with Issue #M004
+- User decided to complete VL API integration
+
 ---
 
 ---
 
 ## ✅ Resolved Issues
+
+### Issue #R004: EDGNet Visualization Showing 0 Components ✅
+
+**Status**: ✅ **RESOLVED** (2025-11-20)
+**Severity**: High → Resolved
+**Component**: EDGNet API, Gateway API
+**Discovered**: 2025-11-20
+**Resolved**: 2025-11-20 12:05
+**Resolution Time**: ~2 hours
+
+**Original Report** (User):
+> "해결해요 제발" (Please fix it)
+> EDGNet showing 0 components instead of 804
+
+**Symptoms**:
+- EDGNet API processing 804 components but UI showing 0
+- Frontend visualization completely empty
+- Gateway API receiving correct data but not displaying
+
+**Root Causes Identified**:
+1. **Missing `class_id` field**: EDGNet components had `classification` string but no numeric `class_id`
+2. **Missing `total_components` field**: EDGNet response had `num_components` but Gateway expected `total_components`
+3. **Gateway response structure mismatch**: Gateway assigning raw EDGNet response instead of extracting nested data
+4. **Pydantic validation too strict**: ComponentData required fields that EDGNet didn't provide
+
+**Solution Applied**:
+
+**Part 1: EDGNet API** (edgnet-api/services/inference.py)
+```python
+# Line 152: Added class_id field
+components.append({
+    "id": i,
+    "classification": classification,
+    "class_id": pred_int,  # NEW: Add numeric class ID
+    "bbox": bbox,
+    "confidence": 0.9
+})
+
+# Line 162: Added total_components field
+"total_components": len(bezier_curves),  # NEW: For compatibility
+```
+
+**Part 2: Gateway API** (gateway-api/api_server.py)
+```python
+# Lines 1178-1185 (hybrid mode): Extract nested data
+edgnet_data = results[idx].get("data", {})
+result["segmentation_results"] = {
+    "components": edgnet_data.get("components", []),
+    "total_components": edgnet_data.get("total_components",
+                                       edgnet_data.get("num_components", 0)),
+    "processing_time": results[idx].get("processing_time", 0)
+}
+
+# Lines 1291-1298 (speed mode): Same fix applied
+```
+
+**Part 3: Pydantic Models** (gateway-api/models/response.py)
+```python
+# Lines 54-76: Made fields optional and flexible
+class ComponentData(BaseModel):
+    component_id: Optional[int] = None  # Changed to Optional
+    id: Optional[int] = None
+    class_id: Optional[int] = None  # NEW: Support numeric class ID
+    classification: Optional[str] = None
+    # ... all fields now Optional
+
+    class Config:
+        extra = "allow"  # NEW: Accept additional fields
+
+class SegmentationResults(BaseModel):
+    components: List[Any] = Field(default=[], ...)  # Changed to Any
+    # ...
+    class Config:
+        extra = "allow"  # NEW: Flexible validation
+```
+
+**Deployment Method**:
+Used `docker cp` to avoid rebuild timeout:
+```bash
+docker cp edgnet-api/services/inference.py edgnet-api:/app/services/inference.py
+docker restart edgnet-api
+docker cp gateway-api/api_server.py gateway-api:/app/api_server.py
+docker cp gateway-api/models/response.py gateway-api:/app/models/response.py
+docker restart gateway-api
+```
+
+**Verification**:
+- ✅ EDGNet API: 804 components with `class_id` field
+- ✅ Gateway API: Correct data extraction from nested structure
+- ✅ Pydantic validation: No errors, flexible field handling
+- ✅ Frontend visualization: 804 components displayed correctly
+
+**Location**:
+- edgnet-api/services/inference.py:152, 162
+- gateway-api/api_server.py:1178-1185, 1291-1298
+- gateway-api/models/response.py:54-76
+
+**Lessons Learned**:
+- Always check both API response structure AND Gateway parsing
+- Numeric class IDs essential for visualization color mapping
+- Field name consistency matters (`num_components` vs `total_components`)
+- Pydantic `extra="allow"` enables flexibility for varying API formats
+- `docker cp` faster than rebuild for quick fixes
+
+---
 
 ### Issue #H001: EDGNet Container Unhealthy ✅
 
@@ -604,11 +727,28 @@ tables: List[Any] = Field(default=[], description="테이블 데이터 (nested s
 |--------|--------|----------|------|
 | 2025-11-18 | 1 | 1 | 100% |
 | 2025-11-19 | 3 | 3 | 100% |
-| **Total** | **4** | **4** | **100%** |
+| 2025-11-20 | 1 | 1 | 100% |
+| **Total** | **5** | **5** | **100%** |
 
 ---
 
 ## 🔍 Common Problems & Quick Fixes
+
+### "EDGNet 컴포넌트가 0개로 나와요"
+**Quick Check**:
+```bash
+# Check EDGNet API response structure
+docker logs edgnet-api | grep "components"
+
+# Check if class_id field exists
+curl http://localhost:5012/api/v1/health
+
+# Verify Gateway is extracting nested data correctly
+docker logs gateway-api | grep "segmentation_results"
+
+# Common fix: Check class_id field and total_components field
+# See Issue #R004 resolution
+```
 
 ### "바운딩박스 옆에 값이 안나와요"
 **Quick Check**:

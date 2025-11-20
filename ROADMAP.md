@@ -1,6 +1,6 @@
 # 🗺️ Project Roadmap & Issue Tracker
 
-**Last Updated**: 2025-11-19
+**Last Updated**: 2025-11-20
 **Project**: 도면 OCR 및 제조 견적 자동화 시스템
 
 ---
@@ -78,17 +78,20 @@
 
 ---
 
-## 🚧 Phase 2: Infrastructure & Quality (In Progress)
+## ✅ Phase 2: Infrastructure & Quality (2025-11-19 ~ 2025-11-20)
 
 ### Issue Resolution
 
-- [!] EDGNet API container health issue
-  - **Status**: Blocked - Container unhealthy
-  - **Root Cause**: Unknown (pre-existing)
-  - **Impact**: Gateway API shows "degraded" status
-  - **Priority**: Medium
-  - **Assigned**: TBD
-  - **Notes**: Not caused by refactoring
+- [x] EDGNet 시각화 수정 (2025-11-20)
+  - **Status**: ✅ Complete
+  - **Before**: EDGNet 컴포넌트 0개 표시
+  - **After**: 804개 컴포넌트 정상 표시
+  - **Changes**:
+    - `class_id` 필드 추가
+    - `total_components` 필드 추가
+    - Gateway API 응답 구조 재구성
+    - Pydantic 모델 유연화
+  - **Completed**: 2025-11-20 12:05
 
 - [x] Optimize CLAUDE.md (2025-11-19 10:56)
   - **Status**: ✅ Complete
@@ -96,8 +99,36 @@
   - **After**: 129 lines (within best practice)
   - **Approach**: Split into QUICK_START.md, ARCHITECTURE.md, WORKFLOWS.md, KNOWN_ISSUES.md, ROADMAP.md
   - **Created**: .claude/commands/ directory with 5 custom workflow commands
-  - **Started**: 2025-11-19 02:00
   - **Completed**: 2025-11-19 10:56
+
+- [x] 파이프라인 시각화 시스템 구축 (2025-11-19)
+  - **Status**: ✅ Complete
+  - **Implemented**:
+    - Gateway API: utils/visualization.py (OCR, EDGNet, Ensemble)
+    - eDOCr2-v2 API: utils/visualization.py (치수/GD&T/텍스트)
+    - EDGNet API: utils/visualization.py (클래스별 색상)
+    - Skin Model API: utils/visualization.py (공차 게이지)
+  - **Colors**: 고대비 팔레트 (라임그린, 시안, 오렌지)
+  - **Completed**: 2025-11-19 20:00
+
+- [x] 프로젝트 구조 정리 (2025-11-20)
+  - **Status**: ✅ Complete
+  - **Before**: 70개 루트 파일
+  - **After**: 9개 핵심 문서
+  - **Actions**:
+    - experiments/ 삭제
+    - gateway-api 불필요 파일 3개 삭제
+    - admin-dashboard/ → docs/archive/
+    - 과거 문서 → docs/archive/analysis/
+  - **Saved**: ~3.7MB
+  - **Completed**: 2025-11-20 13:00
+
+- [x] 전체 파일 활용도 분석 (2025-11-20)
+  - **Status**: ✅ Complete
+  - **Analyzed**: 42,770개 파일, 2,922개 디렉토리
+  - **Report**: COMPREHENSIVE_FILE_USAGE_ANALYSIS.md (666줄)
+  - **Decisions**: edocr2-api v1, FileDropzone, VL API 모두 유지
+  - **Completed**: 2025-11-20 13:00
 
 ### Testing
 
@@ -123,19 +154,68 @@
 
 ---
 
-## 🔮 Phase 3: Features & Enhancements (Planned)
+## 🔮 Phase 3: Features & Enhancements (2025-11-20 ~ In Progress)
 
-### Performance
+### 시각화 완성
 
-- [ ] API response caching
-  - [ ] Redis integration
-  - [ ] Cache invalidation strategy
+- [-] Ensemble/Tolerance 시각화 완성 (In Progress)
+  - [ ] Ensemble 결과 시각화 Gateway 통합
+  - [ ] Tolerance 게이지 시각화 Gateway 통합
+  - [ ] 프론트엔드 표시 확인
+  - **Status**: 현재 ✗ 상태, Gateway에서 생성 필요
+  - **Started**: 2025-11-20
 
-- [ ] Parallel processing optimization
-  - [ ] Analyze bottlenecks
-  - [ ] Implement async improvements
+### VL API 통합 완성
 
-### Monitoring
+- [-] VL API 완성 (In Progress)
+  - [ ] API 키 설정 가이드 작성
+  - [ ] TestVL.tsx 완성 (현재 70%)
+  - [ ] VL API 에러 처리 개선
+  - [ ] 문서화 업데이트
+  - **Status**: KNOWN_ISSUES #M004
+  - **Started**: 2025-11-20
+
+### FileDropzone/FilePreview 완성
+
+- [-] FileDropzone/FilePreview 구현 완성 (In Progress)
+  - [ ] Gateway API 샘플 목록 엔드포인트 추가 (`/api/v1/samples`)
+  - [ ] FileDropzone에 샘플 선택 UI 구현
+  - [ ] FilePreview 통합 테스트
+  - [ ] FileUploader와 기능 동등성 확보
+  - [ ] 모든 테스트 페이지 마이그레이션
+  - **Status**: KNOWN_ISSUES #M002
+  - **Started**: 2025-11-20
+
+### 성능 최적화
+
+- [x] UNet 모델 통합 (2025-11-20)
+  - **Status**: ✅ Complete
+  - **Model**: edgnet_large.pth (355MB, 31M parameters)
+  - **Performance**: IoU 85.8% (epoch 48)
+  - **Architecture**: UNet (Encoder-Decoder with skip connections)
+  - **Features**:
+    - Pixel-level edge segmentation
+    - GPU support (CUDA)
+    - Base64 visualization
+    - Threshold control (0.0~1.0)
+  - **Endpoint**: `/api/v1/segment_unet`
+  - **Completed**: 2025-11-20 14:30
+
+- [-] EDGNet 대규모 학습 (In Progress)
+  - [-] edgnet_dataset_large 활용
+  - [-] 학습 스크립트 실행 중
+  - [ ] 모델 평가 및 교체
+  - **Target**: 25KB → 500MB+ 모델
+  - **Expected**: 성능 대폭 향상
+  - **Started**: 2025-11-20
+
+- [ ] runs/train/ 정리
+  - [ ] 오래된 학습 결과 확인
+  - [ ] 중요 파일 선별
+  - [ ] 압축 또는 삭제
+  - **Savings**: ~150MB
+
+### Monitoring (Planned)
 
 - [ ] Prometheus metrics
   - [ ] API response times
@@ -146,17 +226,6 @@
   - [ ] Real-time monitoring
   - [ ] Historical trends
   - [ ] Alerting
-
-### Features
-
-- [ ] Web UI enhancements
-  - [ ] Component-based architecture
-  - [ ] Custom hooks for API calls
-  - [ ] Better error handling
-
-- [ ] Additional OCR strategies
-  - [ ] Tesseract OCR integration
-  - [ ] Multi-model ensemble
 
 ---
 
@@ -199,6 +268,7 @@ None currently
 |-----|--------|---------|--------|
 | YOLO inference | <1s | 0.26s | ✅ Excellent |
 | eDOCr2 OCR | <30s | 17.8s | ✅ Good |
+| UNet segmentation | <2s | ~1s | ✅ Excellent |
 | Gateway pipeline | <20s | 18.9s | ✅ Good |
 
 ### Reliability

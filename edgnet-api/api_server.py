@@ -27,10 +27,18 @@ from trained_models.schemas import (
     VectorizeRequest,
     VectorizeResponse
 )
+from models.schemas import (
+    UNetSegmentRequest,
+    UNetSegmentResponse
+)
 from services.inference import (
     EDGNetInferenceService,
     check_edgnet_availability,
     check_model_exists
+)
+from services.unet_inference import (
+    UNetInferenceService,
+    check_unet_model_exists
 )
 from utils.helpers import allowed_file, cleanup_old_files
 
@@ -53,7 +61,9 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'tiff', 'bmp'}
 
-MODEL_PATH = Path("/trained_models/graphsage_dimension_classifier.pth")
+# Model paths
+GRAPHSAGE_MODEL_PATH = Path("/trained_models/graphsage_dimension_classifier.pth")
+UNET_MODEL_PATH = Path("/app/models/edgnet_large.pth")
 
 # =====================
 # FastAPI App
@@ -76,8 +86,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global inference service
-inference_service: EDGNetInferenceService = None
+# Global inference services
+edgnet_service: EDGNetInferenceService = None
+unet_service: UNetInferenceService = None
 
 
 # =====================
@@ -86,14 +97,22 @@ inference_service: EDGNetInferenceService = None
 
 @app.on_event("startup")
 async def startup_event():
-    """Validate EDGNet pipeline and model on startup"""
-    global inference_service
+    """Validate EDGNet pipeline and UNet model on startup"""
+    global edgnet_service, unet_service
 
     logger.info("Starting EDGNet API...")
-    logger.info("Validating EDGNet pipeline...")
 
+    # Auto-detect GPU availability
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    logger.info(f"Using device: {device}")
+    if device == 'cuda':
+        logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
+        logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+
+    # ====== EDGNet (GraphSAGE) Initialization ======
+    logger.info("Validating EDGNet pipeline...")
     edgnet_available = check_edgnet_availability()
-    model_exists = check_model_exists(str(MODEL_PATH))
+    graphsage_exists = check_model_exists(str(GRAPHSAGE_MODEL_PATH))
 
     if not edgnet_available:
         logger.error("EDGNet pipeline NOT available")
@@ -102,35 +121,51 @@ async def startup_event():
     else:
         logger.info("EDGNet pipeline available")
 
-        if not model_exists:
-            logger.error(f"Model file NOT found: {MODEL_PATH}")
+        if not graphsage_exists:
+            logger.error(f"GraphSAGE model NOT found: {GRAPHSAGE_MODEL_PATH}")
             logger.error("   Download model from: [model_url]")
-            logger.error("   EDGNet API will return 503 errors until model is available")
+            logger.error("   /api/v1/segment endpoint will return 503 errors")
         else:
-            logger.info(f"Model file found: {MODEL_PATH}")
+            logger.info(f"GraphSAGE model found: {GRAPHSAGE_MODEL_PATH}")
 
-            # Auto-detect GPU availability
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            logger.info(f"Using device: {device}")
-            if device == 'cuda':
-                logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
-                logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
-
-            # Initialize inference service
-            inference_service = EDGNetInferenceService(
-                model_path=str(MODEL_PATH),
+            # Initialize EDGNet service
+            edgnet_service = EDGNetInferenceService(
+                model_path=str(GRAPHSAGE_MODEL_PATH),
                 device=device
             )
 
             # Load the model
             try:
-                inference_service.load_model()
-                logger.info("EDGNet model loaded successfully")
+                edgnet_service.load_model()
+                logger.info("✅ EDGNet GraphSAGE model loaded successfully")
             except Exception as e:
                 logger.error(f"Failed to load EDGNet model: {e}")
-                inference_service = None
+                edgnet_service = None
 
-            logger.info("EDGNet API ready for segmentation")
+    # ====== UNet Initialization ======
+    logger.info("Validating UNet model...")
+    unet_exists = check_unet_model_exists(str(UNET_MODEL_PATH))
+
+    if not unet_exists:
+        logger.warning(f"UNet model NOT found: {UNET_MODEL_PATH}")
+        logger.warning("   /api/v1/segment_unet endpoint will return 503 errors")
+    else:
+        logger.info(f"UNet model found: {UNET_MODEL_PATH}")
+
+        # Initialize UNet service
+        unet_service = UNetInferenceService(
+            model_path=str(UNET_MODEL_PATH),
+            device=device,
+            image_size=512
+        )
+
+        # Load the model
+        try:
+            unet_service.load_model()
+            logger.info("✅ UNet model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load UNet model: {e}")
+            unet_service = None
 
     logger.info("EDGNet API startup complete")
 
@@ -157,8 +192,13 @@ async def health_check():
     Health check endpoint
 
     Returns the current health status of the EDGNet API service.
+    Checks both GraphSAGE and UNet models availability.
     """
-    is_ready = check_edgnet_availability() and check_model_exists(str(MODEL_PATH))
+    graphsage_ready = check_edgnet_availability() and check_model_exists(str(GRAPHSAGE_MODEL_PATH))
+    unet_ready = check_unet_model_exists(str(UNET_MODEL_PATH))
+
+    # Service is healthy if at least one model is available
+    is_ready = graphsage_ready or unet_ready
     status = "healthy" if is_ready else "degraded"
 
     return {
@@ -216,13 +256,13 @@ async def segment_drawing(
         logger.info(f"File uploaded: {file_id} ({file_size / 1024:.2f} KB)")
 
         # Process segmentation
-        if inference_service is None:
+        if edgnet_service is None:
             raise HTTPException(
                 status_code=503,
-                detail="Inference service not initialized"
+                detail="EDGNet inference service not initialized"
             )
 
-        segment_result = inference_service.process_segmentation(
+        segment_result = edgnet_service.process_segmentation(
             file_path,
             visualize=visualize,
             num_classes=num_classes,
@@ -281,13 +321,13 @@ async def vectorize_drawing(
         logger.info(f"File uploaded for vectorization: {file_id}")
 
         # Process vectorization
-        if inference_service is None:
+        if edgnet_service is None:
             raise HTTPException(
                 status_code=503,
-                detail="Inference service not initialized"
+                detail="EDGNet inference service not initialized"
             )
 
-        vectorize_result = inference_service.process_vectorization(
+        vectorize_result = edgnet_service.process_vectorization(
             file_path,
             save_bezier=save_bezier
         )
@@ -324,6 +364,141 @@ async def get_result_file(filename: str):
         media_type='application/octet-stream',
         filename=filename
     )
+
+
+@app.post("/api/v1/segment_unet", response_model=UNetSegmentResponse)
+async def segment_unet(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(..., description="도면 이미지 (PNG, JPG, JPEG, TIFF, BMP)"),
+    threshold: float = Form(0.5, description="세그멘테이션 임계값 (0.0~1.0)", ge=0.0, le=1.0),
+    visualize: bool = Form(True, description="시각화 이미지 생성 여부"),
+    return_mask: bool = Form(False, description="세그멘테이션 마스크 반환 여부 (base64)")
+):
+    """
+    UNet 기반 도면 엣지 세그멘테이션
+
+    **UNet (U-Shaped Network)**:
+    - Encoder-Decoder 구조의 픽셀 단위 세그멘테이션 모델
+    - 도면에서 선/윤곽선/엣지를 감지하여 마스크 생성
+    - GraphSAGE 기반 segment 엔드포인트와 달리 픽셀 레벨로 동작
+
+    **사용 사례**:
+    - 도면의 선/경계 추출
+    - 전처리 단계로 사용 (노이즈 제거, 엣지 강조)
+    - 스캔 품질이 낮은 도면의 개선
+    - 도면 벡터화 전처리
+
+    **Parameters**:
+    - **file**: 도면 이미지 파일
+    - **threshold**: 세그멘테이션 임계값 (0.0~1.0, 기본값: 0.5)
+      - 높을수록 엣지 감지 엄격 (false positive 감소)
+      - 낮을수록 엣지 감지 관대 (recall 증가)
+    - **visualize**: 시각화 이미지 생성 여부 (기본값: True)
+      - True: 원본 이미지에 감지된 엣지를 오버레이한 시각화 반환
+      - False: 통계 정보만 반환
+    - **return_mask**: 세그멘테이션 마스크 반환 여부 (기본값: False)
+      - True: PNG로 인코딩된 base64 마스크 반환 (추가 처리용)
+      - False: 마스크 미반환 (응답 크기 감소)
+
+    **Returns**:
+    ```json
+    {
+      "status": "success",
+      "data": {
+        "mask_shape": [height, width],
+        "edge_pixel_count": 123456,
+        "edge_percentage": 12.34,
+        "threshold_used": 0.5,
+        "model_info": {
+          "architecture": "UNet",
+          "input_size": 512,
+          "parameters": 31042369,
+          "device": "cuda"
+        },
+        "visualized_image": "base64_encoded_jpg...",
+        "segmentation_mask": "base64_encoded_png..." // return_mask=True인 경우에만
+      },
+      "processing_time": 0.87,
+      "file_id": "1234567890_drawing.png"
+    }
+    ```
+
+    **모델 정보**:
+    - 아키텍처: UNet (Encoder-Decoder with Skip Connections)
+    - 파라미터 수: 31,042,369
+    - 입력 크기: 512x512 (자동 리사이즈)
+    - 학습 데이터: 20장 (증강 포함)
+    - 성능: IoU 85.8% (Validation)
+
+    **GraphSAGE /api/v1/segment와의 차이**:
+    | 특징 | UNet (/segment_unet) | GraphSAGE (/segment) |
+    |------|---------------------|---------------------|
+    | 출력 | 픽셀 마스크 | 컴포넌트 분류 |
+    | 레벨 | Low-level (엣지) | High-level (의미) |
+    | 용도 | 전처리, 엣지 추출 | 컴포넌트 구분 |
+    | 속도 | 빠름 (~1초) | 느림 (~5초) |
+    """
+    start_time = time.time()
+
+    # Validate file
+    if not allowed_file(file.filename, ALLOWED_EXTENSIONS):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
+    # Check file size
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Max size: {MAX_FILE_SIZE / 1024 / 1024}MB"
+        )
+
+    # Save file
+    file_id = f"{int(time.time())}_{file.filename}"
+    file_path = UPLOAD_DIR / file_id
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        logger.info(f"File uploaded for UNet segmentation: {file_id} ({file_size / 1024:.2f} KB)")
+
+        # Process UNet segmentation
+        if unet_service is None:
+            raise HTTPException(
+                status_code=503,
+                detail="UNet inference service not initialized. Model may not be loaded."
+            )
+
+        segment_result = unet_service.process_segmentation(
+            file_path,
+            threshold=threshold,
+            visualize=visualize,
+            return_mask=return_mask
+        )
+
+        processing_time = time.time() - start_time
+
+        # Background task: cleanup old files
+        background_tasks.add_task(cleanup_old_files, UPLOAD_DIR)
+
+        return {
+            "status": "success",
+            "data": segment_result,
+            "processing_time": round(processing_time, 2),
+            "file_id": file_id
+        }
+
+    except Exception as e:
+        logger.error(f"Error processing UNet segmentation: {e}")
+        if file_path.exists():
+            file_path.unlink()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/api/v1/cleanup")

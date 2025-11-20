@@ -1,95 +1,76 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { X, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { File as FileIcon, X, Image as ImageIcon } from 'lucide-react';
+import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 
 interface FilePreviewProps {
   file: File;
-  onRemove?: () => void;
+  onRemove: () => void;
 }
 
 export function FilePreview({ file, onRemove }: FilePreviewProps) {
-  const [preview, setPreview] = useState<string>('');
-  const isImage = file.type.startsWith('image/');
+  const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isImage) {
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result as string);
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
       reader.readAsDataURL(file);
+    } else {
+      setPreview(null);
     }
 
     return () => {
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
+      setPreview(null);
     };
-  }, [file, isImage]);
+  }, [file]);
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base">업로드된 파일</CardTitle>
-        {onRemove && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRemove}
-            aria-label="파일 제거"
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent>
-        {/* Preview */}
-        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-4">
-          {isImage ? (
+      <CardContent className="p-6">
+        <div className="flex items-start gap-4">
+          {preview ? (
             <img
               src={preview}
-              alt={`${file.name} 미리보기`}
-              className="object-contain w-full h-full"
+              alt="미리보기"
+              className="w-24 h-24 object-cover rounded border"
             />
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">PDF 파일</p>
-              </div>
+            <div className="w-24 h-24 bg-accent rounded border flex items-center justify-center">
+              {file.type === 'application/pdf' ? (
+                <FileIcon className="h-8 w-8 text-muted-foreground" />
+              ) : (
+                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+              )}
             </div>
           )}
-        </div>
-
-        {/* File Info */}
-        <div className="space-y-2 text-sm">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-muted-foreground flex-shrink-0">파일명</span>
-            <span className="font-medium text-right break-all">{file.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">크기</span>
-            <span className="font-medium">{formatFileSize(file.size)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">타입</span>
-            <span className="font-medium">
-              {file.type || '알 수 없음'}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">수정일</span>
-            <span className="font-medium">
-              {new Date(file.lastModified).toLocaleDateString('ko-KR')}
-            </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{file.name}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {formatFileSize(file.size)} · {file.type || '알 수 없음'}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRemove}
+                className="flex-shrink-0"
+                aria-label="파일 제거"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>

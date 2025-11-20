@@ -93,6 +93,15 @@ export default function Sidebar() {
           >
             • Skin Model
           </Link>
+          <Link
+            to="/test/vl"
+            className="flex items-center gap-1 hover:underline text-muted-foreground"
+          >
+            <span>• VL Model</span>
+            <span className="px-1 py-0.5 text-[10px] font-semibold bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
+              LLM
+            </span>
+          </Link>
         </div>
       </div>
     </aside>

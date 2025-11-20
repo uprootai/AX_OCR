@@ -94,6 +94,7 @@ services:
     volumes:
       - /home/uproot/ax/dev/edgnet:/app/edgnet:ro
       - /home/uproot/ax/dev/test_results/sample_tests/graphsage_models:/trained_models:ro
+      - ./edgnet-api/models:/app/models:ro  # UNet 모델 마운트
       - ./edgnet-api/uploads:/tmp/edgnet/uploads
       - ./edgnet-api/results:/tmp/edgnet/results
     environment:

@@ -145,6 +145,9 @@ export default function APIStatusMonitor() {
           {services.edocr2_v1 && (
             <ServiceHealthCard service={services.edocr2_v1} />
           )}
+          {services.edocr2_v2 && (
+            <ServiceHealthCard service={services.edocr2_v2} />
+          )}
           {services.paddleocr && (
             <ServiceHealthCard service={services.paddleocr} />
           )}
