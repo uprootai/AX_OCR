@@ -66,7 +66,7 @@ docker logs gateway-api -f
 
 1. **Find the service file**
 ```bash
-grep -r "conf_threshold" yolo-api/services/
+grep -r "conf_threshold" models/yolo-api/services/
 # Result: services/inference.py:145
 ```
 
@@ -83,7 +83,7 @@ def predict(
 
 3. **Restart and test**
 ```bash
-docker-compose restart yolo-api
+docker-compose restart yolo-api  # Container name stays the same
 curl -X POST -F "file=@test.jpg" http://localhost:5005/api/v1/detect
 ```
 

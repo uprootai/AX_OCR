@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  edocr2-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edocr2-api-standalone
+    ports:
+      - "5001:5001"
+    volumes:
+      - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2:/app/edocr2:ro
+      - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2/models:/models:ro
+      - ./uploads:/tmp/edocr2/uploads
+      - ./results:/tmp/edocr2/results
+    environment:
+      - EDOCR2_PORT=5001
+      - EDOCR2_WORKERS=4
+      - EDOCR2_MODEL_PATH=/models
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

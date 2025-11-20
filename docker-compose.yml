@@ -9,7 +9,7 @@ services:
   # =====================
   edocr2-api:
     build:
-      context: ./edocr2-api
+      context: ./models/edocr2-api
       dockerfile: Dockerfile
     container_name: edocr2-api
     ports:
@@ -17,8 +17,8 @@ services:
     volumes:
       - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2:/app/edocr2:ro
       - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2/models:/models:ro
-      - ./edocr2-api/uploads:/tmp/edocr2/uploads
-      - ./edocr2-api/results:/tmp/edocr2/results
+      - ./models/edocr2-api/uploads:/tmp/edocr2/uploads
+      - ./models/edocr2-api/results:/tmp/edocr2/results
     environment:
       - EDOCR2_PORT=5001
       - EDOCR2_WORKERS=4
@@ -47,7 +47,7 @@ services:
   # =====================
   edocr2-v2-api:
     build:
-      context: ./edocr2-v2-api
+      context: ./models/edocr2-v2-api
       dockerfile: Dockerfile
     container_name: edocr2-v2-api
     ports:
@@ -55,8 +55,8 @@ services:
     volumes:
       - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2:/app/edocr2:ro
       - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2/models:/models:ro
-      - ./edocr2-v2-api/uploads:/tmp/edocr2/uploads
-      - ./edocr2-v2-api/results:/tmp/edocr2/results
+      - ./models/edocr2-v2-api/uploads:/tmp/edocr2/uploads
+      - ./models/edocr2-v2-api/results:/tmp/edocr2/results
     environment:
       - EDOCR2_PORT=5002
       - EDOCR2_WORKERS=4
@@ -86,7 +86,7 @@ services:
   # =====================
   edgnet-api:
     build:
-      context: ./edgnet-api
+      context: ./models/edgnet-api
       dockerfile: Dockerfile
     container_name: edgnet-api
     ports:
@@ -94,9 +94,9 @@ services:
     volumes:
       - /home/uproot/ax/dev/edgnet:/app/edgnet:ro
       - /home/uproot/ax/dev/test_results/sample_tests/graphsage_models:/trained_models:ro
-      - ./edgnet-api/models:/app/models:ro  # UNet 모델 마운트
-      - ./edgnet-api/uploads:/tmp/edgnet/uploads
-      - ./edgnet-api/results:/tmp/edgnet/results
+      - ./models/edgnet-api/models:/app/models:ro  # UNet 모델 마운트
+      - ./models/edgnet-api/uploads:/tmp/edgnet/uploads
+      - ./models/edgnet-api/results:/tmp/edgnet/results
     environment:
       - EDGNET_PORT=5002
       - EDGNET_WORKERS=2
@@ -126,15 +126,15 @@ services:
   # =====================
   skinmodel-api:
     build:
-      context: ./skinmodel-api
+      context: ./models/skinmodel-api
       dockerfile: Dockerfile
     container_name: skinmodel-api
     ports:
       - "5003:5003"
     volumes:
       - ./dev/skinmodel:/app/skinmodel:ro
-      - ./skinmodel-api/data:/tmp/skinmodel/data
-      - ./skinmodel-api/output:/tmp/skinmodel/output
+      - ./models/skinmodel-api/data:/tmp/skinmodel/data
+      - ./models/skinmodel-api/output:/tmp/skinmodel/output
     environment:
       - SKINMODEL_PORT=5003
       - SKINMODEL_WORKERS=2
@@ -155,13 +155,13 @@ services:
   # =====================
   vl-api:
     build:
-      context: ./vl-api
+      context: ./models/vl-api
       dockerfile: Dockerfile
     container_name: vl-api
     ports:
       - "5004:5004"
     volumes:
-      - ./vl-api/uploads:/tmp/vl-api/uploads
+      - ./models/vl-api/uploads:/tm./models/vl-api/uploads
     environment:
       - VL_API_PORT=5004
       - VL_API_WORKERS=2
@@ -183,15 +183,15 @@ services:
   # =====================
   yolo-api:
     build:
-      context: ./yolo-api
+      context: ./models/yolo-api
       dockerfile: Dockerfile
     container_name: yolo-api
     ports:
       - "5005:5005"
     volumes:
-      - ./yolo-api/models:/app/models:ro
-      - ./yolo-api/uploads:/tmp/yolo-api/uploads
-      - ./yolo-api/results:/tmp/yolo-api/results
+      - ./models/yolo-api/models:/app/models:ro
+      - ./models/yolo-api/uploads:/tm./models/yolo-api/uploads
+      - ./models/yolo-api/results:/tm./models/yolo-api/results
     environment:
       - YOLO_API_PORT=5005
       - YOLO_MODEL_PATH=/app/models/best.pt
@@ -219,14 +219,14 @@ services:
   # =====================
   paddleocr-api:
     build:
-      context: ./paddleocr-api
+      context: ./models/paddleocr-api
       dockerfile: Dockerfile
     container_name: paddleocr-api
     ports:
       - "5006:5006"
     volumes:
-      - ./paddleocr-api/uploads:/tmp/paddleocr-api/uploads
-      - ./paddleocr-api/results:/tmp/paddleocr-api/results
+      - ./models/paddleocr-api/uploads:/tm./models/paddleocr-api/uploads
+      - ./models/paddleocr-api/results:/tm./models/paddleocr-api/results
     environment:
       - PADDLEOCR_PORT=5006
       - USE_GPU=true

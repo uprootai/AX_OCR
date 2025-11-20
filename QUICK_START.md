@@ -33,13 +33,15 @@ api_server.py (200-350 lines) + models/ + services/ + utils/
 
 ```
 /home/uproot/ax/poc/
-├── gateway-api/      ⭐ Main orchestrator (Port 8000)
-├── yolo-api/         🎯 Object detection (Port 5005)
-├── edocr2-v2-api/    📝 OCR service (Port 5002)
-├── edgnet-api/       🎨 Segmentation (Port 5012) [⚠️ unhealthy]
-├── skinmodel-api/    📐 Tolerance (Port 5003)
-├── paddleocr-api/    📄 Aux OCR (Port 5006)
-└── web-ui/           🌐 React frontend (Port 5173)
+├── gateway-api/           ⭐ Main orchestrator (Port 8000)
+├── web-ui/                🌐 React frontend (Port 5173)
+└── models/                🆕 All inference APIs (standalone ready)
+    ├── yolo-api/          🎯 Object detection (Port 5005)
+    ├── edocr2-v2-api/     📝 OCR service (Port 5002)
+    ├── edgnet-api/        🎨 Segmentation (Port 5012)
+    ├── skinmodel-api/     📐 Tolerance (Port 5003)
+    ├── paddleocr-api/     📄 Aux OCR (Port 5006)
+    └── vl-api/            🔑 Vision-Language (Port 5004)
 ```
 
 ---
@@ -69,7 +71,17 @@ curl -X POST -F "file=@test.jpg" \
 ### View Logs
 ```bash
 docker logs gateway-api --tail 50
-docker logs yolo-api -f
+docker logs yolo-api -f  # Note: Container names remain the same
+```
+
+### Run Individual API
+```bash
+# Standalone execution
+cd models/yolo-api
+docker-compose -f docker-compose.single.yml up -d
+
+# Check API docs
+http://localhost:5005/docs
 ```
 
 ---

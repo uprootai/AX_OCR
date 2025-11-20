@@ -106,3 +106,14 @@ test_results/
 */results/*.png
 external_datasets/
 /home/uproot/ax/external_datasets/
+
+# Runtime directories (auto-generated)
+logs/
+__pycache__/
+*.pyc
+test_results/
+
+# Training outputs (로컬에만)
+models/*/training/runs/
+models/*/training/datasets/**/checkpoints/
+

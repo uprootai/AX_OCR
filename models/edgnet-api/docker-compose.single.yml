@@ -1,0 +1,58 @@
+version: '3.8'
+
+# EDGNet API - Standalone Deployment
+# Dual-model segmentation: GraphSAGE + UNet
+
+services:
+  edgnet-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edgnet-api-standalone
+    ports:
+      - "5012:5002"  # External:Internal
+    volumes:
+      # EDGNet source code (read-only)
+      - /home/uproot/ax/dev/edgnet:/app/edgnet:ro
+
+      # GraphSAGE model
+      - /home/uproot/ax/dev/test_results/sample_tests/graphsage_models:/trained_models:ro
+
+      # UNet model
+      - ./models:/app/models:ro
+
+      # Working directories
+      - ./uploads:/tmp/edgnet/uploads
+      - ./results:/tmp/edgnet/results
+    environment:
+      - EDGNET_PORT=5002
+      - EDGNET_WORKERS=2
+      - EDGNET_MODEL_PATH=/trained_models/graphsage_dimension_classifier.pth
+      - EDGNET_LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+    # GPU support
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Usage:
+# docker-compose -f docker-compose.single.yml up -d
+# http://localhost:5012/docs (external) or http://localhost:5002/docs (container)
+#
+# API Endpoints:
+# - /api/v1/segment (GraphSAGE component classification)
+# - /api/v1/segment_unet (UNet edge detection)
+# - /api/v1/vectorize (Bezier curve processing)

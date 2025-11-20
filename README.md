@@ -74,9 +74,8 @@ http://localhost:5173
 │   ├── WORKFLOWS.md                 # 개발 워크플로우 가이드
 │   ├── ROADMAP.md                   # 프로젝트 진행 상황 및 계획
 │   ├── KNOWN_ISSUES.md              # 알려진 이슈 추적
-│   ├── LLM_USABILITY_GUIDE.md       # LLM 최적화 가이드
-│   ├── FILE_AUDIT_REPORT.md         # 파일 감사 보고서
-│   └── README_DASHBOARD.md          # 대시보드 문서
+│   └── docs/
+│       └── DEPLOYMENT_GUIDE.md      # 🆕 API 배포 가이드
 │
 ├── 🌐 Frontend (Web UI)
 │   └── web-ui/                      # React + TypeScript + Vite
@@ -122,128 +121,149 @@ http://localhost:5173
 │   │   ├── uploads/                 # 업로드 임시 저장
 │   │   └── results/                 # 결과 저장
 │   │
-│   ├── yolo-api/                    # YOLO 객체 검출 (Port 5005)
-│   │   ├── api_server.py            # FastAPI 서버 (324 라인)
-│   │   ├── models/
-│   │   │   ├── schemas.py           # Pydantic 스키마
-│   │   │   └── yolo11n.pt           # YOLO v11 nano 모델
-│   │   ├── services/
-│   │   │   └── inference.py         # YOLO 추론 로직
-│   │   └── utils/
-│   │       └── helpers.py
-│   │
-│   ├── edocr2-v2-api/               # eDOCr v2 OCR (Port 5002)
-│   │   ├── api_server.py            # FastAPI 서버 (228 라인)
-│   │   ├── models/
-│   │   │   ├── schemas.py
-│   │   │   └── edocr_*.ckpt         # eDOCr2 체크포인트
-│   │   ├── services/
-│   │   │   └── ocr_processor.py     # OCR 처리 (Singleton)
-│   │   ├── utils/
-│   │   │   ├── visualization.py     # OCR 시각화 ⭐
-│   │   │   └── helpers.py
-│   │   └── enhancers/               # 전처리 모듈
-│   │
-│   ├── edgnet-api/                  # EDGNet 세그멘테이션 (Port 5012)
-│   │   ├── api_server.py            # FastAPI 서버 (349 라인)
-│   │   ├── models/
-│   │   │   ├── schemas.py
-│   │   │   ├── graphsage_*.pth      # GraphSAGE 모델
-│   │   │   └── edgnet_large.pth     # UNet 모델 (355MB)
-│   │   ├── services/
-│   │   │   ├── inference.py         # EDGNet 파이프라인
-│   │   │   └── unet_inference.py    # UNet 추론 서비스
-│   │   └── utils/
-│   │       ├── visualization.py     # EDGNet/UNet 시각화 ⭐
-│   │       └── helpers.py
-│   │
-│   ├── skinmodel-api/               # Skin Model 공차 예측 (Port 5003)
-│   │   ├── api_server.py            # FastAPI 서버 (205 라인)
-│   │   ├── models/
-│   │   │   ├── schemas.py
-│   │   │   └── xgb_model.json       # XGBoost 모델
-│   │   ├── services/
-│   │   │   └── tolerance.py         # 공차 예측 로직
-│   │   ├── utils/
-│   │   │   ├── visualization.py     # 공차 게이지 시각화 ⭐
-│   │   │   └── helpers.py
-│   │   └── data/                    # 학습 데이터
-│   │
-│   ├── paddleocr-api/               # PaddleOCR (Port 5006)
-│   │   ├── api_server.py            # FastAPI 서버 (203 라인)
-│   │   ├── services/
-│   │   │   └── ocr.py               # PaddleOCR 래퍼
-│   │   └── utils/
-│   │
-│   └── vl-api/                      # Vision-Language API (Port 5004)
-│       ├── api_server.py            # FastAPI 서버
-│       └── uploads/
+│   └── models/                      # 🆕 모든 추론 API (독립 실행 가능)
+│       │
+│       ├── yolo-api/                # YOLO 객체 검출 (Port 5005)
+│       │   ├── docker-compose.single.yml  # 🆕 단독 실행
+│       │   ├── README.md            # 🆕 API 문서
+│       │   ├── api_server.py        # FastAPI 서버 (324 라인)
+│       │   ├── models/
+│       │   │   ├── schemas.py       # Pydantic 스키마
+│       │   │   └── best.pt          # YOLO v11 학습된 모델
+│       │   ├── services/
+│       │   │   └── inference.py     # YOLO 추론 로직
+│       │   ├── utils/
+│       │   │   └── helpers.py
+│       │   └── training/            # 🆕 학습 자료
+│       │       ├── datasets/        # YOLO 학습 데이터
+│       │       ├── runs/            # 학습 결과
+│       │       ├── scripts/         # 학습 스크립트
+│       │       └── README.md
+│       │
+│       ├── edocr2-api/              # eDOCr v1 OCR (Port 5001)
+│       │   ├── docker-compose.single.yml  # 🆕 단독 실행
+│       │   ├── README.md            # 🆕 API 문서
+│       │   ├── api_server.py
+│       │   └── ...
+│       │
+│       ├── edocr2-v2-api/           # eDOCr v2 OCR (Port 5002)
+│       │   ├── docker-compose.single.yml  # 🆕 단독 실행
+│       │   ├── README.md            # 🆕 API 문서
+│       │   ├── api_server.py        # FastAPI 서버 (228 라인)
+│       │   ├── models/
+│       │   │   ├── schemas.py
+│       │   │   └── recognizer_*.txt # eDOCr2 체크포인트
+│       │   ├── services/
+│       │   │   └── ocr_processor.py # OCR 처리 (Singleton)
+│       │   ├── utils/
+│       │   │   ├── visualization.py # OCR 시각화 ⭐
+│       │   │   └── helpers.py
+│       │   └── enhancers/           # 전처리 모듈
+│       │
+│       ├── edgnet-api/              # EDGNet 세그멘테이션 (Port 5012)
+│       │   ├── docker-compose.single.yml  # 🆕 단독 실행
+│       │   ├── README.md            # 🆕 API 문서
+│       │   ├── api_server.py        # FastAPI 서버 (349 라인)
+│       │   ├── models/
+│       │   │   ├── schemas.py
+│       │   │   ├── training_history.json
+│       │   │   └── training_metadata.json
+│       │   ├── services/
+│       │   │   ├── inference.py     # EDGNet 파이프라인
+│       │   │   └── unet_inference.py # UNet 추론 서비스
+│       │   ├── utils/
+│       │   │   ├── visualization.py # EDGNet/UNet 시각화 ⭐
+│       │   │   └── helpers.py
+│       │   └── training/            # 🆕 학습 자료
+│       │       ├── datasets/        # EDGNet 학습 데이터
+│       │       ├── scripts/         # 학습 스크립트
+│       │       └── README.md
+│       │
+│       ├── skinmodel-api/           # Skin Model 공차 예측 (Port 5003)
+│       │   ├── docker-compose.single.yml  # 🆕 단독 실행
+│       │   ├── README.md            # 🆕 API 문서
+│       │   ├── api_server.py        # FastAPI 서버 (205 라인)
+│       │   ├── models/
+│       │   │   ├── schemas.py
+│       │   │   ├── *_predictor_xgboost.pkl  # XGBoost 모델
+│       │   │   └── model_metadata_xgboost.json
+│       │   ├── services/
+│       │   │   └── tolerance.py     # 공차 예측 로직
+│       │   ├── utils/
+│       │   │   ├── visualization.py # 공차 게이지 시각화 ⭐
+│       │   │   └── helpers.py
+│       │   └── training/            # 🆕 학습 자료
+│       │       ├── scripts/         # 학습 스크립트
+│       │       └── README.md
+│       │
+│       ├── paddleocr-api/           # PaddleOCR (Port 5006)
+│       │   ├── docker-compose.single.yml  # 🆕 단독 실행
+│       │   ├── README.md            # 🆕 API 문서
+│       │   ├── api_server.py        # FastAPI 서버 (203 라인)
+│       │   ├── services/
+│       │   │   └── ocr.py           # PaddleOCR 래퍼
+│       │   └── utils/
+│       │
+│       └── vl-api/                  # Vision-Language API (Port 5004)
+│           ├── docker-compose.single.yml  # 🆕 단독 실행
+│           ├── README.md            # 🆕 API 문서
+│           ├── api_server.py        # FastAPI 서버
+│           └── requirements.txt
 │
-├── 📊 Datasets
-│   ├── datasets/                    # 학습/테스트 데이터셋
-│   │   ├── combined/                # 통합 데이터셋
-│   │   ├── engineering_drawings/    # 기계 도면
-│   │   ├── pid_symbols/             # P&ID 심볼
-│   │   ├── synthetic_random/        # 합성 데이터 (랜덤)
-│   │   └── synthetic_test/          # 합성 데이터 (테스트)
-│   ├── edgnet_dataset/              # EDGNet 원본 데이터 (5개)
-│   │   └── drawings/
-│   ├── edgnet_dataset_augmented/    # EDGNet 증강 데이터
-│   │   └── drawings/
-│   ├── edgnet_dataset_large/        # EDGNet 대규모 데이터
-│   └── test_samples/                # 테스트 샘플 이미지
-│       ├── Mechanical-Engineering-Drawings/
-│       ├── MechanicalBlueprints/
-│       └── drawings/
+├── 📊 Test Samples
+│   └── samples/                     # 대표 테스트 샘플 이미지
+│       ├── A12-311197-9 Rev.2 Interm Shaft-Acc_y_1.jpg
+│       └── S60ME-C INTERM-SHAFT_대 주조전.jpg
+│
+│   # 📝 Note: 학습 데이터셋은 각 API의 training/ 디렉토리로 이동
+│   #   - models/yolo-api/training/datasets/
+│   #   - models/edgnet-api/training/datasets/
 │
 ├── 🔧 Scripts & Tools
-│   └── scripts/                     # 유틸리티 스크립트
-│       ├── tests/                   # 주요 테스트 스크립트
+│   └── scripts/                     # 프로젝트 관리 스크립트
+│       ├── deployment/              # 🆕 배포 스크립트
+│       │   ├── install.sh
+│       │   └── export_images.sh
+│       ├── management/              # 🆕 관리 스크립트
+│       │   ├── backup.sh
+│       │   ├── restore.sh
+│       │   ├── check_system.sh
+│       │   └── health_check.sh
+│       ├── tests/                   # 테스트 스크립트
 │       │   ├── test_full_pipeline.py
 │       │   ├── test_yolo_api_direct.py
-│       │   ├── test_pid_ocr.py
 │       │   └── test_sample_final.py
-│       ├── test/                    # 기타 테스트
-│       ├── deploy/                  # 배포 스크립트
-│       └── archive/                 # 보관된 스크립트
+│       └── README.md                # 🆕 스크립트 가이드
+│
+│   # 📝 Note: 학습 스크립트는 각 API의 training/scripts/로 이동
+│   #   - models/yolo-api/training/scripts/train_yolo.py
+│   #   - models/edgnet-api/training/scripts/train_edgnet_large.py
+│   #   - models/skinmodel-api/training/scripts/upgrade_skinmodel_xgboost.py
 │
 ├── 📚 Documentation
 │   └── docs/
-│       ├── archive/                 # 아카이브 (과거 문서)
-│       │   ├── TODO/                # 과거 TODO 및 보고서
-│       │   ├── analysis/            # 과거 분석 문서
-│       │   ├── refactoring/         # 리팩토링 문서
-│       │   └── screenshots/         # 스크린샷
-│       ├── architecture/            # 아키텍처 문서
-│       ├── developer/               # 개발자 가이드
-│       ├── user/                    # 사용자 가이드
-│       ├── technical/               # 기술 문서
-│       ├── testing/                 # 테스트 문서
-│       ├── reports/                 # 보고서
-│       ├── references/              # 참고 자료
-│       └── opensource/              # 오픈소스 문서
+│       ├── DEPLOYMENT_GUIDE.md      # 🆕 API 독립 배포 가이드
+│       ├── LLM_USABILITY_GUIDE.md   # LLM 사용성 가이드
+│       └── archive/                 # 아카이브
+│           ├── COMPREHENSIVE_FILE_USAGE_ANALYSIS.md
+│           └── docker-configs/      # 사용하지 않는 설정 파일
+│               ├── docker-compose.enhanced.yml
+│               └── security_config.yaml.template
 │
 ├── 🛠️ Development
-│   ├── dev/                         # 개발 중인 기능
-│   │   ├── edgnet/                  # EDGNet 개발
-│   │   ├── edocr2/                  # eDOCr2 개발
+│   ├── dev/                         # 외부 의존성 (심볼릭 링크)
+│   │   ├── edgnet/                  # EDGNet 소스 코드
+│   │   ├── edocr2/                  # eDOCr2 소스 코드
 │   │   ├── skinmodel/               # Skin Model 개발
 │   │   └── test_results/            # 테스트 결과
-│   ├── experiments/                 # 실험적 기능
-│   ├── common/                      # 공통 모듈
-│   └── admin-dashboard/             # 관리 대시보드 (구버전)
-│       ├── dashboard.py
-│       ├── training_manager.py
-│       └── templates/
+│   └── common/                      # 공통 모듈 (auth, monitoring, rate_limiter)
 │
-├── 📈 Monitoring & Logs
-│   ├── monitoring/                  # 모니터링 설정
-│   │   ├── prometheus/              # Prometheus 설정
-│   │   └── grafana/                 # Grafana 대시보드
-│   ├── logs/                        # 애플리케이션 로그
-│   ├── runs/                        # YOLO 학습/검출 결과
-│   │   ├── train/                   # 학습 결과
-│   │   └── detect/                  # 검출 결과
+├── 📈 Monitoring
+│   └── monitoring/                  # 모니터링 설정
+│       ├── prometheus/              # Prometheus 설정
+│       └── grafana/                 # Grafana 대시보드
+│
+│   # 📝 Note: logs/, runs/ 등은 런타임에 자동 생성 (.gitignore에 포함)
 │   └── test_results/                # 테스트 결과
 │       └── archive/                 # 보관된 테스트 결과
 │
@@ -316,6 +336,57 @@ http://localhost:5173
 - ✅ **Error Handling**: 포괄적 에러 처리
 - ✅ **Logging**: 구조화된 로깅 시스템
 - ✅ **CORS**: 프론트엔드 통합 지원
+
+---
+
+## 📦 API 독립 배포 (NEW)
+
+각 API는 **독립적으로 실행 및 배포 가능**합니다.
+
+### 구조
+
+```
+models/
+├── paddleocr-api/
+│   ├── docker-compose.single.yml   # 단독 실행
+│   ├── README.md                   # API 문서
+│   ├── api_server.py
+│   └── ...
+├── yolo-api/
+├── edgnet-api/
+└── ...
+```
+
+### 단독 실행
+
+```bash
+# API 디렉토리로 이동
+cd models/paddleocr-api
+
+# 단독 실행
+docker-compose -f docker-compose.single.yml up -d
+
+# API 문서 확인
+http://localhost:5006/docs
+```
+
+### Docker Image 배포
+
+```bash
+# 이미지 빌드
+docker build -t ax-paddleocr-api .
+
+# 이미지 저장 (전달용)
+docker save ax-paddleocr-api -o paddleocr-api.tar
+
+# 수신 측에서 로드
+docker load -i paddleocr-api.tar
+
+# 실행
+docker run -d -p 5006:5006 --gpus all ax-paddleocr-api
+```
+
+**자세한 내용**: [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 
 ---
 

@@ -1,0 +1,42 @@
+version: '3.8'
+
+# YOLOv11 API - Standalone Deployment
+# Object detection service for engineering drawings
+
+services:
+  yolo-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yolo-api-standalone
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./models:/app/models:ro
+      - ./uploads:/tmp/yolo-api/uploads
+      - ./results:/tmp/yolo-api/results
+    environment:
+      - YOLO_API_PORT=5005
+      - YOLO_MODEL_PATH=/app/models/best.pt
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+    # GPU support (required for good performance)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5005/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Usage:
+# docker-compose -f docker-compose.single.yml up -d
+# http://localhost:5005/docs

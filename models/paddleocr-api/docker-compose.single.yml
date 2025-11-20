@@ -1,0 +1,52 @@
+version: '3.8'
+
+# PaddleOCR API - Standalone Deployment
+# This file allows running PaddleOCR API independently without the full AX PoC system
+
+services:
+  paddleocr-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paddleocr-api-standalone
+    ports:
+      - "5006:5006"
+    volumes:
+      - ./uploads:/tmp/paddleocr-api/uploads
+      - ./results:/tmp/paddleocr-api/results
+    environment:
+      - PADDLEOCR_PORT=5006
+      - USE_GPU=true
+      - USE_ANGLE_CLS=true
+      - OCR_LANG=en
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+    # GPU support (comment out if running on CPU)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Usage:
+# 1. Build and run:
+#    docker-compose -f docker-compose.single.yml up -d
+#
+# 2. Check health:
+#    curl http://localhost:5006/health
+#
+# 3. API documentation:
+#    http://localhost:5006/docs
+#
+# 4. Stop:
+#    docker-compose -f docker-compose.single.yml down

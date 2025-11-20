@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  skinmodel-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skinmodel-api-standalone
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./dev/skinmodel:/app/skinmodel:ro
+      - ./data:/tmp/skinmodel/data
+      - ./output:/tmp/skinmodel/output
+    environment:
+      - SKINMODEL_PORT=5003
+      - SKINMODEL_WORKERS=2
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
