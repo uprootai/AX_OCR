@@ -24,6 +24,7 @@ COPY api_server.py pdf_generator.py cost_estimator.py .
 COPY models/ ./models/
 COPY utils/ ./utils/
 COPY services/ ./services/
+COPY blueprintflow/ ./blueprintflow/
 
 # Create directories
 RUN mkdir -p /tmp/gateway/uploads /tmp/gateway/results

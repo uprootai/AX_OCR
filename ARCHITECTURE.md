@@ -11,8 +11,11 @@ Automated mechanical drawing analysis and manufacturing quote generation
 
 ### Tech Stack
 - **Backend**: FastAPI (Python 3.10)
-- **Frontend**: React + TypeScript
+- **Frontend**: React + TypeScript + ReactFlow
 - **Models**: YOLO v11, eDOCr2, EDGNet, Skin Model
+- **Workflow**: BlueprintFlow (Visual workflow builder) ⭐ NEW
+- **State Management**: Zustand
+- **i18n**: react-i18next (Korean/English)
 - **Deployment**: Docker Compose
 - **GPU**: NVIDIA RTX 3080 (CUDA-enabled services)
 
@@ -25,11 +28,15 @@ Automated mechanical drawing analysis and manufacturing quote generation
 ```mermaid
 graph TB
     UI[Web UI :5173] --> GW[Gateway API :8000]
+    UI --> BF[🔮 BlueprintFlow<br/>Visual Workflow Builder]
+    BF --> GW
     GW --> YOLO[YOLO API :5005]
     GW --> EDOCR[eDOCr2 v2 :5002]
     GW --> EDGE[EDGNet :5012]
     GW --> SKIN[Skin Model :5003]
     GW --> PADDLE[PaddleOCR :5006]
+
+    style BF fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
 ```
 
 ### Service Responsibilities

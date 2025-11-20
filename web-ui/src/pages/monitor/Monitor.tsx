@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Activity, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import axios from 'axios';
@@ -34,6 +35,7 @@ interface SystemStats {
 }
 
 export default function Monitor() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +59,7 @@ export default function Monitor() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-lg">시스템 상태를 불러오는 중...</div>
+        <div className="text-lg">{t('monitor.loadingStatus')}</div>
       </div>
     );
   }
@@ -65,7 +67,7 @@ export default function Monitor() {
   if (!status) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-lg text-red-500">시스템 상태를 불러올 수 없습니다</div>
+        <div className="text-lg text-red-500">{t('monitor.loadFailed')}</div>
       </div>
     );
   }
@@ -79,10 +81,10 @@ export default function Monitor() {
       <div>
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
           <Activity className="h-8 w-8" />
-          실시간 모니터링
+          {t('monitor.title')}
         </h1>
         <p className="text-muted-foreground">
-          API 성능, GPU 상태, 시스템 리소스를 실시간으로 모니터링합니다. (5초 자동 갱신)
+          {t('monitor.subtitle')}
         </p>
       </div>
 
@@ -91,7 +93,7 @@ export default function Monitor() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">API 상태</p>
+              <p className="text-sm text-muted-foreground">{t('monitor.apiStatus')}</p>
               <p className="text-2xl font-bold">
                 {healthyAPIs}/{totalAPIs}
               </p>
@@ -107,7 +109,7 @@ export default function Monitor() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">CPU 사용률</p>
+              <p className="text-sm text-muted-foreground">{t('monitor.cpuUsage')}</p>
               <p className="text-2xl font-bold">{status.system.cpu_percent.toFixed(1)}%</p>
             </div>
             <TrendingUp className="h-8 w-8 text-blue-500" />
@@ -117,7 +119,7 @@ export default function Monitor() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">메모리 사용률</p>
+              <p className="text-sm text-muted-foreground">{t('monitor.memoryUsage')}</p>
               <p className="text-2xl font-bold">{status.system.memory_percent.toFixed(1)}%</p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-500" />
@@ -128,7 +130,7 @@ export default function Monitor() {
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">GPU 메모리</p>
+                <p className="text-sm text-muted-foreground">{t('monitor.gpuMemory')}</p>
                 <p className="text-2xl font-bold">
                   {((status.gpu.used_memory / status.gpu.total_memory) * 100).toFixed(1)}%
                 </p>
@@ -141,7 +143,7 @@ export default function Monitor() {
 
       {/* API Status Details */}
       <Card>
-        <h2 className="text-xl font-semibold mb-4">API 상태 상세</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('monitor.apiStatusDetails')}</h2>
         <div className="space-y-3">
           {status.apis.map(api => (
             <div
@@ -196,7 +198,7 @@ export default function Monitor() {
       {/* GPU Status */}
       {status.gpu.available && (
         <Card>
-          <h2 className="text-xl font-semibold mb-4">GPU 상태</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('monitor.gpuStatus')}</h2>
           <div className="space-y-4">
             <div>
               <div className="flex justify-between mb-2">
@@ -219,15 +221,15 @@ export default function Monitor() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
               <div>
-                <p className="text-sm text-muted-foreground">사용 중</p>
+                <p className="text-sm text-muted-foreground">{t('monitor.used')}</p>
                 <p className="text-xl font-bold">{status.gpu.used_memory} MB</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">여유</p>
+                <p className="text-sm text-muted-foreground">{t('monitor.free')}</p>
                 <p className="text-xl font-bold text-green-500">{status.gpu.free_memory} MB</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">활용률</p>
+                <p className="text-sm text-muted-foreground">{t('monitor.utilization')}</p>
                 <p className="text-xl font-bold">{status.gpu.utilization}%</p>
               </div>
             </div>
@@ -237,7 +239,7 @@ export default function Monitor() {
 
       {/* System Resources */}
       <Card>
-        <h2 className="text-xl font-semibold mb-4">시스템 리소스</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('monitor.systemResources')}</h2>
         <div className="space-y-4">
           <div>
             <div className="flex justify-between mb-1">

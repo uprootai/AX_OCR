@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 
 export default function Analyze() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'ocr' | 'segmentation' | 'tolerance'>('overview');
 
   const {
@@ -66,7 +68,7 @@ export default function Analyze() {
     },
     onError: (error: any) => {
       setStatus('error');
-      const errorMessage = error.response?.data?.detail || error.message || '분석 중 오류가 발생했습니다';
+      const errorMessage = error.response?.data?.detail || error.message || t('analyze.analysisError');
       setError(errorMessage);
     },
   });
@@ -95,12 +97,12 @@ export default function Analyze() {
   };
 
   const getProgressStage = () => {
-    if (status === 'uploading') return '파일 업로드 중...';
+    if (status === 'uploading') return t('analyze.uploading');
     if (status === 'analyzing') {
-      if (progress < 30) return 'OCR 분석 중...';
-      if (progress < 60) return '세그멘테이션 처리 중...';
-      if (progress < 90) return '공차 분석 중...';
-      return '결과 생성 중...';
+      if (progress < 30) return t('analyze.ocrProcessing');
+      if (progress < 60) return t('analyze.segmentationProcessing');
+      if (progress < 90) return t('analyze.toleranceProcessing');
+      return t('analyze.generatingResults');
     }
     return '';
   };
@@ -109,9 +111,9 @@ export default function Analyze() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">도면 분석</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('analyze.title')}</h1>
         <p className="text-muted-foreground">
-          도면을 업로드하여 OCR, 세그멘테이션, 공차 분석을 수행합니다.
+          {t('analyze.subtitle')}
         </p>
       </div>
 
@@ -125,13 +127,13 @@ export default function Analyze() {
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
-              통합 분석 안내
+              {t('analyze.integratedAnalysis')}
             </h3>
             <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-              <li>• 이 페이지는 Gateway API를 통해 모든 분석을 한 번에 수행합니다</li>
-              <li>• <strong>세그멘테이션 옵션 사용 시 이미지 파일(JPG, PNG) 권장</strong></li>
-              <li>• PDF 파일은 OCR 및 공차 분석만 지원됩니다</li>
-              <li>• 개별 API 테스트는 Test 메뉴를 이용하세요</li>
+              <li>• {t('analyze.integratedInfo1')}</li>
+              <li>• <strong>{t('analyze.integratedInfo2')}</strong></li>
+              <li>• {t('analyze.integratedInfo3')}</li>
+              <li>• {t('analyze.integratedInfo4')}</li>
             </ul>
           </div>
         </div>
@@ -143,7 +145,7 @@ export default function Analyze() {
           {/* File Upload */}
           <Card>
             <CardHeader>
-              <CardTitle>1. 파일 선택</CardTitle>
+              <CardTitle>{t('analyze.fileSelection')}</CardTitle>
             </CardHeader>
             <CardContent>
               <FileUploader
@@ -162,7 +164,7 @@ export default function Analyze() {
           {/* Analysis Options */}
           <Card>
             <CardHeader>
-              <CardTitle>2. 분석 옵션</CardTitle>
+              <CardTitle>{t('analyze.analysisOptions')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -178,7 +180,7 @@ export default function Analyze() {
                     <FileText className="h-4 w-4" />
                     <span className="font-medium">OCR</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">치수, GD&T, 텍스트 추출</p>
+                  <p className="text-xs text-muted-foreground">{t('analyze.ocrOption')}</p>
                 </div>
               </label>
 
@@ -193,9 +195,9 @@ export default function Analyze() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Network className="h-4 w-4" />
-                    <span className="font-medium">세그멘테이션</span>
+                    <span className="font-medium">{t('analyze.segmentation')}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">요소 분류 및 그래프 생성</p>
+                  <p className="text-xs text-muted-foreground">{t('analyze.segmentationOption')}</p>
                 </div>
               </label>
 
@@ -210,9 +212,9 @@ export default function Analyze() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Target className="h-4 w-4" />
-                    <span className="font-medium">공차 분석</span>
+                    <span className="font-medium">{t('analyze.toleranceAnalysis')}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">제조 가능성 분석</p>
+                  <p className="text-xs text-muted-foreground">{t('analyze.toleranceOption')}</p>
                 </div>
               </label>
 
@@ -225,8 +227,8 @@ export default function Analyze() {
                   disabled={status === 'analyzing' || status === 'uploading'}
                 />
                 <div className="flex-1">
-                  <span className="font-medium">시각화</span>
-                  <p className="text-xs text-muted-foreground">결과 이미지 생성</p>
+                  <span className="font-medium">{t('common.export')}</span>
+                  <p className="text-xs text-muted-foreground">{t('analyze.visualizeOption')}</p>
                 </div>
               </label>
             </CardContent>
@@ -235,7 +237,7 @@ export default function Analyze() {
           {/* Execute */}
           <Card>
             <CardHeader>
-              <CardTitle>3. 분석 실행</CardTitle>
+              <CardTitle>{t('analyze.execute')}</CardTitle>
             </CardHeader>
             <CardContent>
               <Button
@@ -247,12 +249,12 @@ export default function Analyze() {
                 {mutation.isPending ? (
                   <>
                     <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    분석 중...
+                    {t('analyze.analyzing')}
                   </>
                 ) : (
                   <>
                     <Play className="h-5 w-5 mr-2" />
-                    분석 시작
+                    {t('analyze.startAnalysis')}
                   </>
                 )}
               </Button>
@@ -287,7 +289,7 @@ export default function Analyze() {
                     <TrendingUp className="h-5 w-5 text-destructive" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-destructive mb-1">분석 실패</h3>
+                    <h3 className="font-semibold text-destructive mb-1">{t('analyze.analysisFailed')}</h3>
                     <p className="text-sm text-destructive/80">{error}</p>
                   </div>
                 </div>
@@ -560,7 +562,7 @@ export default function Analyze() {
                   {activeTab === 'tolerance' && result.data?.tolerance && (
                     <div className="space-y-4">
                       <div>
-                        <p className="font-semibold mb-3">제조 가능성</p>
+                        <p className="font-semibold mb-3">{t('analyze.manufacturability')}</p>
                         <div className="space-y-3">
                           <div className="flex items-center justify-between p-4 bg-background border rounded">
                             <span>점수</span>
@@ -628,9 +630,9 @@ export default function Analyze() {
             <Card>
               <CardContent className="py-16 text-center text-muted-foreground">
                 <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">분석을 시작하려면 파일을 업로드하세요</p>
+                <p className="text-lg mb-2">{t('analyze.uploadPrompt')}</p>
                 <p className="text-sm">
-                  왼쪽에서 파일을 선택하고 분석 옵션을 설정한 후 실행하세요
+                  {t('analyze.uploadInstruction')}
                 </p>
               </CardContent>
             </Card>

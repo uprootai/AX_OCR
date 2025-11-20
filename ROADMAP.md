@@ -154,7 +154,53 @@
 
 ---
 
-## 🔮 Phase 3: Features & Enhancements (2025-11-20 ~ In Progress)
+## 🔮 Phase 3: BlueprintFlow & Features (2025-11-20 ~ In Progress)
+
+### BlueprintFlow: Visual Workflow Builder ⭐
+
+- [x] **Phase 1-3 Complete** (2025-11-20)
+  - [x] ReactFlow integration & Canvas setup
+  - [x] 9 Node types implementation (API 6 + Control 3)
+  - [x] Node metadata system (nodeDefinitions.ts, 265 lines)
+  - [x] NodeDetailPanel with real-time parameter editing (270 lines)
+  - [x] Workflow save/load (localStorage)
+  - [x] 4 Template workflows (Basic, Advanced, Loop, Multi-model)
+  - [x] Full i18n support (Korean/English)
+  - [x] Node selection visual feedback
+  - [x] Individual node deletion (Delete key)
+  - [x] BlueprintFlowBuilder page (300 lines)
+  - [x] WorkflowList page (150 lines)
+  - [x] WorkflowTemplates page (200 lines)
+  - [x] NodePalette component (150 lines)
+  - [x] Zustand state management (workflowStore.ts)
+  - **Completed**: 2025-11-20 20:00
+  - **Lines of Code**: ~1,800 (frontend only)
+
+- [ ] **Phase 4: Backend Engine** (Planned)
+  - [ ] Gateway API workflow endpoints
+    - [ ] POST /api/v1/workflow/execute
+    - [ ] GET /api/v1/workflow/{id}
+    - [ ] POST /api/v1/workflow/save
+    - [ ] GET /api/v1/workflow/list
+  - [ ] Pipeline execution engine (blueprintflow/pipeline_engine.py)
+    - [ ] Topological sort for node execution order
+    - [ ] Data flow mapping
+    - [ ] Error handling & retry logic
+    - [ ] Progress tracking
+  - [ ] Workflow manager (blueprintflow/workflow_manager.py)
+    - [ ] CRUD operations
+    - [ ] Validation
+    - [ ] Persistence (SQLite or JSON)
+  - **Target**: 2025-11-21 ~ 2025-11-22
+  - **Estimated LOC**: ~800 lines
+
+- [ ] **Phase 5: Testing & Optimization** (Planned)
+  - [ ] Unit tests for pipeline engine
+  - [ ] Integration tests for workflow execution
+  - [ ] Performance optimization
+  - [ ] Error recovery testing
+  - [ ] Documentation completion
+  - **Target**: 2025-11-23
 
 ### 시각화 완성
 
@@ -258,9 +304,11 @@ None currently
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Average file size | <200 lines | 152 lines | ✅ Excellent |
+| Average file size | <200 lines | 168 lines | ✅ Excellent |
 | Test coverage | >80% | 0% | ❌ Needs work |
 | Documentation coverage | 100% | 100% | ✅ Complete |
+| Frontend LOC | - | ~1,800 (BlueprintFlow) | ✅ Added |
+| Total files created | - | +15 (BlueprintFlow) | ✅ Added |
 
 ### Performance
 
@@ -302,6 +350,36 @@ None currently
 
 ## 📝 Decision Log
 
+### 2025-11-20: BlueprintFlow Implementation Approach
+**Decision**: Full ReactFlow-based visual workflow builder (Frontend-first)
+**Rationale**:
+- User needs to understand node inputs/outputs before building workflows
+- Visual feedback (selection, parameter editing) critical for UX
+- Can implement backend engine separately without blocking user testing
+**Result**:
+- Frontend 100% complete (~1,800 LOC)
+- Users can now visually design workflows
+- NodeDetailPanel solves "어떻게 빌드해야할지 전혀감이 안오는" problem
+**Alternatives Considered**:
+- Hybrid approach (simple UI): Would not solve core UX problem
+- Backend-first: Would delay user feedback
+**Next**: Backend pipeline engine (Phase 4)
+
+### 2025-11-20: Node Selection Visual Feedback Fix
+**Decision**: Use ReactFlow's `selected` prop instead of `data.selected`
+**Rationale**: ReactFlow manages selection state automatically via props
+**Problem**: Users reported "테두리 빛남 없음" (no border glow)
+**Solution**:
+- Added `selected` to destructured props
+- Used inline styles instead of dynamic Tailwind classes
+- Added proper box-shadow for glow effect
+**Result**: Selection feedback now works perfectly
+
+### 2025-11-20: i18n for BlueprintFlow
+**Decision**: Full Korean/English translation using react-i18next
+**Rationale**: Project requirement for bilingual support
+**Result**: All BlueprintFlow UI fully translated (ko.json, en.json)
+
 ### 2025-11-19: Refactoring Strategy
 **Decision**: Use modular architecture (models/, services/, utils/)
 **Rationale**: Improves LLM usability, reduces file sizes, enables testing
@@ -331,4 +409,5 @@ None currently
 
 **Managed By**: Claude Code (Sonnet 4.5)
 **Review Frequency**: Weekly
-**Last Review**: 2025-11-19
+**Last Review**: 2025-11-20
+**Last Major Update**: 2025-11-20 (BlueprintFlow Phase 1-3 완료)

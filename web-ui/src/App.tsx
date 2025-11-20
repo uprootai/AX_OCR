@@ -26,6 +26,11 @@ import Monitor from './pages/monitor/Monitor';
 import Admin from './pages/admin/Admin';
 import Settings from './pages/settings/Settings';
 
+// BlueprintFlow Pages
+import BlueprintFlowBuilder from './pages/blueprintflow/BlueprintFlowBuilder';
+import BlueprintFlowList from './pages/blueprintflow/BlueprintFlowList';
+import BlueprintFlowTemplates from './pages/blueprintflow/BlueprintFlowTemplates';
+
 // React Query Client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +79,11 @@ function App() {
 
               {/* 분석 페이지 */}
               <Route path="/analyze" element={<Analyze />} />
+
+              {/* BlueprintFlow 페이지 */}
+              <Route path="/blueprintflow/builder" element={<BlueprintFlowBuilder />} />
+              <Route path="/blueprintflow/list" element={<BlueprintFlowList />} />
+              <Route path="/blueprintflow/templates" element={<BlueprintFlowTemplates />} />
 
               {/* 모니터링 페이지 */}
               <Route path="/monitor" element={<Monitor />} />

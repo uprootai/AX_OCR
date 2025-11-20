@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -154,6 +155,7 @@ const defaultModels: ModelConfig[] = [
 ];
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [models, setModels] = useState<ModelConfig[]>(defaultModels);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -376,10 +378,10 @@ export default function Settings() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      success('설정이 성공적으로 백업되었습니다.');
+      success(t('settings.backupSuccess'));
     } catch (err) {
       console.error('백업 실패:', err);
-      error('설정 백업에 실패했습니다.');
+      error(t('settings.backupFailed'));
     }
   };
 
@@ -468,12 +470,12 @@ export default function Settings() {
           }
 
           // Reload page to apply settings
-          success('설정이 성공적으로 복원되었습니다.\n\n페이지를 새로고침합니다.');
+          success(t('settings.restoreSuccess'));
           setTimeout(() => window.location.reload(), 1000);
         } catch (err) {
           console.error('복원 실패:', err);
-          const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
-          error(`설정 복원 실패\n\n${errorMsg}\n\n올바른 백업 파일인지 확인해주세요.`, 5000);
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+          error(`${t('settings.restoreFailed')}\n\n${errorMsg}`, 5000);
         }
       };
 
@@ -516,27 +518,27 @@ export default function Settings() {
         <div className="flex items-center gap-3">
           <SettingsIcon className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">모델 설정</h1>
-            <p className="text-muted-foreground">각 AI 모델의 설정 및 하이퍼파라미터 관리</p>
+            <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
+            <p className="text-muted-foreground">{t('settings.subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {saved && <span className="text-sm text-green-600">✓ 저장됨</span>}
-          <Button variant="outline" size="sm" onClick={handleImport} title="백업 파일에서 설정 복원">
+          {saved && <span className="text-sm text-green-600">✓ {t('settings.saved')}</span>}
+          <Button variant="outline" size="sm" onClick={handleImport} title={t('settings.restore')}>
             <Upload className="w-4 h-4 mr-2" />
-            복원
+            {t('settings.restore')}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} title="현재 설정을 파일로 백업">
+          <Button variant="outline" size="sm" onClick={handleExport} title={t('settings.backup')}>
             <Download className="w-4 h-4 mr-2" />
-            백업
+            {t('settings.backup')}
           </Button>
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            초기화
+            {t('settings.reset')}
           </Button>
           <Button size="sm" onClick={handleSave} disabled={loading}>
             <Save className="w-4 h-4 mr-2" />
-            {loading ? '저장 중...' : '저장'}
+            {loading ? t('settings.saving') : t('common.save')}
           </Button>
         </div>
       </div>
@@ -546,7 +548,7 @@ export default function Settings() {
         <div className="flex items-start gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            <strong>주의:</strong> 설정 변경 후 Docker 컨테이너를 재시작해야 적용됩니다. GPU 사용을 위해서는 NVIDIA Docker가 필요합니다.
+            {t('settings.warning')}
           </p>
         </div>
       </div>

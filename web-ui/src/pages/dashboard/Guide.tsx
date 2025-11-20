@@ -1,17 +1,20 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import Mermaid from '../../components/ui/Mermaid';
 import { BookOpen, Layers, Zap, Code, Database, Server } from 'lucide-react';
 
 export default function Guide() {
+  const { t } = useTranslation();
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-          📚 AX 실증산단 프로젝트 가이드
+          {t('guide.title')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          YOLOv11 기반 공학 도면 분석 시스템의 전체 구조와 사용 방법
+          {t('guide.subtitle')}
         </p>
       </div>
 
@@ -20,51 +23,49 @@ export default function Guide() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <BookOpen className="w-5 h-5 mr-2" />
-            프로젝트 개요
+            {t('guide.projectOverview')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <p className="text-gray-700 dark:text-gray-300">
-              이 프로젝트는 <strong>공학 도면에서 치수, GD&T, 공차 등을 자동으로 추출</strong>하는
-              마이크로서비스 기반 시스템입니다. YOLOv11을 주력 엔진으로 사용하며,
-              여러 보조 API들과 통합되어 있습니다.
+              {t('guide.projectDescription')}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <div className="flex items-center mb-2">
                   <Zap className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">핵심 성능</h3>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">{t('guide.corePerformance')}</h3>
                 </div>
                 <ul className="text-sm space-y-1 text-blue-800 dark:text-blue-200">
-                  <li>• <strong>mAP50: 80.4%</strong></li>
-                  <li>• eDOCr 대비 10배 향상</li>
-                  <li>• 완전 무료 (자체 호스팅)</li>
+                  <li>• <strong>{t('guide.corePerf1')}</strong></li>
+                  <li>• {t('guide.corePerf2')}</li>
+                  <li>• {t('guide.corePerf3')}</li>
                 </ul>
               </div>
 
               <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <div className="flex items-center mb-2">
                   <Database className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                  <h3 className="font-semibold text-green-900 dark:text-green-100">학습 데이터</h3>
+                  <h3 className="font-semibold text-green-900 dark:text-green-100">{t('guide.trainingData')}</h3>
                 </div>
                 <ul className="text-sm space-y-1 text-green-800 dark:text-green-200">
-                  <li>• 합성 데이터 1,000장</li>
-                  <li>• 자동 라벨링 (100% 정확)</li>
-                  <li>• 무한 확장 가능</li>
+                  <li>• {t('guide.trainingData1')}</li>
+                  <li>• {t('guide.trainingData2')}</li>
+                  <li>• {t('guide.trainingData3')}</li>
                 </ul>
               </div>
 
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                 <div className="flex items-center mb-2">
                   <Server className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">마이크로서비스</h3>
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">{t('guide.microservices')}</h3>
                 </div>
                 <ul className="text-sm space-y-1 text-purple-800 dark:text-purple-200">
-                  <li>• 6개 독립 API 서버</li>
-                  <li>• Docker Compose 통합</li>
-                  <li>• REST API + Swagger UI</li>
+                  <li>• {t('guide.microservices1')}</li>
+                  <li>• {t('guide.microservices2')}</li>
+                  <li>• {t('guide.microservices3')}</li>
                 </ul>
               </div>
             </div>
@@ -77,14 +78,14 @@ export default function Guide() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Layers className="w-5 h-5 mr-2" />
-            시스템 아키텍처
+            {t('guide.systemArchitecture')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
-                📊 전체 시스템 구조
+                {t('guide.systemStructure')}
               </h3>
               <Mermaid chart={`graph TB
     subgraph Frontend
@@ -121,10 +122,10 @@ export default function Guide() {
     SYN -.학습.-> MODEL
     MODEL --> YOLO
 
-    style YOLO fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
-    style UI fill:#f3e5f5,stroke:#7b1fa2
-    style GW fill:#fff3e0,stroke:#f57c00
-    style MODEL fill:#e8f5e9,stroke:#388e3c`} />
+    style YOLO stroke:#1976d2,stroke-width:3px
+    style UI stroke:#7b1fa2
+    style GW stroke:#f57c00
+    style MODEL stroke:#388e3c`} />
             </div>
           </div>
         </CardContent>
@@ -135,14 +136,14 @@ export default function Guide() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Code className="w-5 h-5 mr-2" />
-            YOLOv11 파이프라인
+            {t('guide.yoloPipeline')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
-                🔄 학습 → 추론 파이프라인
+                {t('guide.trainingInferencePipeline')}
               </h3>
               <Mermaid chart={`sequenceDiagram
     participant User as 사용자
@@ -176,7 +177,7 @@ export default function Guide() {
       {/* Service Details */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>각 서비스 역할 및 포트</CardTitle>
+          <CardTitle>{t('guide.serviceRoles')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -267,7 +268,7 @@ export default function Guide() {
       {/* Quick Start */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>빠른 시작 가이드</CardTitle>
+          <CardTitle>{t('guide.quickStartGuide')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -329,18 +330,18 @@ export default function Guide() {
       {/* Documentation Links */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>📖 전체 문서 가이드</CardTitle>
+          <CardTitle>{t('guide.documentation')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            전체 문서는 <strong>용도별로 7개 카테고리</strong>로 정리되어 있습니다.
+            {t('guide.docDescription')}
           </p>
 
           {/* 사용자 가이드 */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center text-blue-900 dark:text-blue-100">
               <span className="bg-blue-100 dark:bg-blue-900 p-2 rounded mr-2">📖</span>
-              사용자 가이드 (user/)
+              {t('guide.userGuide')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
@@ -366,7 +367,7 @@ export default function Guide() {
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center text-green-900 dark:text-green-100">
               <span className="bg-green-100 dark:bg-green-900 p-2 rounded mr-2">👨‍💻</span>
-              개발자 가이드 (developer/)
+              {t('guide.developerGuide')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 rounded">
@@ -392,7 +393,7 @@ export default function Guide() {
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center text-purple-900 dark:text-purple-100">
               <span className="bg-purple-100 dark:bg-purple-900 p-2 rounded mr-2">🔧</span>
-              기술 구현 가이드 (technical/)
+              {t('guide.technicalGuide')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="p-3 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20 rounded">
@@ -426,7 +427,7 @@ export default function Guide() {
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center text-orange-900 dark:text-orange-100">
               <span className="bg-orange-100 dark:bg-orange-900 p-2 rounded mr-2">🏗️</span>
-              아키텍처 & 분석 (architecture/)
+              {t('guide.architectureAnalysis')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="p-3 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20 rounded">
@@ -456,7 +457,7 @@ export default function Guide() {
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center text-red-900 dark:text-red-100">
               <span className="bg-red-100 dark:bg-red-900 p-2 rounded mr-2">📋</span>
-              최종 보고서 (reports/)
+              {t('guide.finalReports')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="p-3 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 rounded">
@@ -474,7 +475,7 @@ export default function Guide() {
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-gray-100">
               <span className="bg-gray-100 dark:bg-gray-800 p-2 rounded mr-2">📄</span>
-              루트 문서
+              {t('guide.rootDocs')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="p-3 border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-800 rounded">
@@ -498,13 +499,436 @@ export default function Guide() {
 
           <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 flex items-center">
-              <span className="mr-2">💡</span> 문서 접근 방법
+              <span className="mr-2">{t('guide.docAccess')}</span>
             </h4>
             <ul className="text-sm space-y-1 text-yellow-800 dark:text-yellow-200">
               <li>• <strong>로컬 접근:</strong> <code className="bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">/home/uproot/ax/poc/docs/</code></li>
               <li>• <strong>GitHub:</strong> 프로젝트 저장소의 docs/ 디렉토리</li>
               <li>• <strong>전체 색인:</strong> <code className="bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">docs/README.md</code> 참조</li>
             </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* BlueprintFlow Architecture (Future Design) */}
+      <Card className="mb-6 border-4 border-cyan-500">
+        <CardHeader className="bg-cyan-50 dark:bg-cyan-900/20">
+          <CardTitle className="flex items-center text-cyan-900 dark:text-cyan-100">
+            <span className="text-2xl mr-2">🔮</span>
+            {t('guide.blueprintflowArchitecture')}
+          </CardTitle>
+          <p className="text-sm text-cyan-800 dark:text-cyan-200 mt-2">
+            {t('guide.blueprintflowSubtitle')}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* 현재 vs BlueprintFlow 비교 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 border-l-4 border-gray-500 rounded">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  {t('guide.currentArchitecture')}
+                </h3>
+                <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                  <li>✅ {t('guide.currentArch1')}</li>
+                  <li>✅ {t('guide.currentArch2')}</li>
+                  <li>✅ {t('guide.currentArch3')}</li>
+                  <li>❌ {t('guide.currentArch4')}</li>
+                  <li>❌ {t('guide.currentArch5')}</li>
+                </ul>
+              </div>
+
+              <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-500 rounded">
+                <h3 className="font-bold text-cyan-900 dark:text-cyan-100 mb-2">
+                  {t('guide.blueprintflowArch')}
+                </h3>
+                <ul className="text-sm space-y-1 text-cyan-700 dark:text-cyan-300">
+                  <li>✅ {t('guide.bfArch1')}</li>
+                  <li>✅ {t('guide.bfArch2')}</li>
+                  <li>✅ {t('guide.bfArch3')}</li>
+                  <li>✅ {t('guide.bfArch4')}</li>
+                  <li>✅ {t('guide.bfArch5')}</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 전체 시스템 아키텍처 */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
+                {t('guide.bfSystemStructure')}
+              </h3>
+              <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
+graph TB
+    subgraph "Frontend Layer :5173"
+        UI["React App"]
+        WB["WorkflowBuilder<br/>ReactFlow Canvas"]
+        WM["WorkflowManager<br/>Save/Load/Share"]
+        EX["ExecutionMonitor<br/>실시간 WebSocket"]
+        NP["NodePalette<br/>8 API + 3 제어 노드"]
+    end
+
+    subgraph "Gateway API :8000"
+        GW["FastAPI Server"]
+        WE["/api/v1/workflow/execute<br/>POST 엔드포인트"]
+        WR["/api/v1/workflow/save<br/>저장 엔드포인트"]
+        PE["PipelineEngine<br/>DAG 실행 엔진"]
+        DV["DAGValidator<br/>순환 참조 검증"]
+        TS["TopologicalSort<br/>실행 순서 정렬"]
+        DM["DataMapper<br/>노드 간 데이터 매핑"]
+    end
+
+    subgraph "Data Layer"
+        WS["PostgreSQL<br/>workflow_definitions"]
+        WH["Workflow History<br/>execution_logs"]
+    end
+
+    subgraph "Node Executors (gateway-api/executors/)"
+        NE1["yolo_executor.py"]
+        NE2["edocr_executor.py"]
+        NE3["edgnet_executor.py"]
+        NE4["skinmodel_executor.py"]
+        NE5["if_executor.py<br/>조건 분기"]
+        NE6["merge_executor.py<br/>병렬 합병"]
+        NE7["loop_executor.py<br/>반복 처리"]
+        NE8["vl_executor.py"]
+    end
+
+    subgraph "Model APIs (독립 컨테이너)"
+        YOLO["YOLO API :5005<br/>객체 검출"]
+        ED2["eDOCr2 v2 :5002<br/>차원 OCR"]
+        EG["EDGNet :5012<br/>엣지 세그먼트"]
+        SK["Skin Model :5003<br/>공차 분석"]
+        VL["VL API :5004<br/>멀티모달 분석"]
+        PD["PaddleOCR :5006<br/>범용 OCR"]
+    end
+
+    UI --> WB
+    UI --> WM
+    UI --> EX
+    WB --> NP
+
+    WB -->|"workflow JSON"| WE
+    WM -->|"save/load"| WR
+    EX -->|"ws://status"| GW
+
+    WE --> PE
+    WR --> WS
+    PE --> WH
+    PE --> DV
+    PE --> TS
+    PE --> DM
+
+    PE -.->|"dynamic dispatch"| NE1
+    PE -.->|"dynamic dispatch"| NE2
+    PE -.->|"dynamic dispatch"| NE3
+    PE -.->|"dynamic dispatch"| NE4
+    PE -.->|"dynamic dispatch"| NE5
+    PE -.->|"dynamic dispatch"| NE6
+    PE -.->|"dynamic dispatch"| NE7
+    PE -.->|"dynamic dispatch"| NE8
+
+    NE1 -->|"HTTP POST"| YOLO
+    NE2 -->|"HTTP POST"| ED2
+    NE3 -->|"HTTP POST"| EG
+    NE4 -->|"HTTP POST"| SK
+    NE8 -->|"HTTP POST"| VL
+
+    style WB stroke:#1976d2,stroke-width:3px
+    style PE stroke:#f57c00,stroke-width:3px
+    style GW stroke:#7b1fa2,stroke-width:2px
+    style DV stroke:#d32f2f,stroke-width:2px
+    style NE5 stroke:#388e3c,stroke-width:2px`} />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                💡 Executor는 Gateway 내부 모듈로 각 API를 호출하는 어댑터 역할
+              </p>
+            </div>
+
+            {/* 워크플로우 빌더 UI */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
+                {t('guide.workflowBuilderUI')}
+              </h3>
+              <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
+graph TB
+    subgraph "BlueprintFlowBuilder.tsx (메인 페이지)"
+        WBP["워크플로우 상태 관리<br/>useWorkflowStore()"]
+
+        subgraph "좌측 사이드바 (w-64)"
+            NP["NodePalette.tsx"]
+            NPG1["API 노드 그룹"]
+            NPG2["제어 노드 그룹"]
+            NPY["YoloNode<br/>드래그 가능"]
+            NPE["EdocrNode<br/>드래그 가능"]
+            NPI["IfNode<br/>조건 분기"]
+            NPM["MergeNode<br/>병렬 합병"]
+        end
+
+        subgraph "중앙 캔버스 (flex-1)"
+            RF["ReactFlow 컴포넌트"]
+            CN["CustomNode.tsx<br/>노드 렌더러"]
+            CE["CustomEdge.tsx<br/>엣지 렌더러"]
+            MN["MiniMap<br/>미니맵"]
+            CT["Controls<br/>줌/핏"]
+            BG["Background<br/>격자무늬"]
+        end
+
+        subgraph "우측 패널 (w-80)"
+            PP["PropertyPanel.tsx"]
+            NI["NodeInspector<br/>선택된 노드 정보"]
+            PF["ParamEditor<br/>동적 파라미터 폼"]
+            VL["ValidationLog<br/>실시간 검증"]
+        end
+
+        subgraph "상단 툴바"
+            TB["Toolbar.tsx"]
+            SA["Save/Load 버튼"]
+            EX["Execute 버튼"]
+            VA["Validate 버튼"]
+            UN["Undo/Redo"]
+        end
+
+        subgraph "하단 모니터"
+            EM["ExecutionMonitor.tsx"]
+            PR["ProgressBar<br/>전체 진행률"]
+            NL["NodeLog<br/>노드별 상태"]
+            WS["WebSocket 연결<br/>실시간 업데이트"]
+        end
+    end
+
+    WBP --> NP
+    WBP --> RF
+    WBP --> PP
+    WBP --> TB
+    WBP --> EM
+
+    NP --> NPG1
+    NP --> NPG2
+    NPG1 --> NPY
+    NPG1 --> NPE
+    NPG2 --> NPI
+    NPG2 --> NPM
+
+    RF --> CN
+    RF --> CE
+    RF --> MN
+    RF --> CT
+    RF --> BG
+
+    PP --> NI
+    PP --> PF
+    PP --> VL
+
+    TB --> SA
+    TB --> EX
+    TB --> VA
+    TB --> UN
+
+    EM --> PR
+    EM --> NL
+    EM --> WS
+
+    style RF stroke:#1976d2,stroke-width:3px
+    style WBP stroke:#7b1fa2,stroke-width:2px
+    style CN stroke:#388e3c,stroke-width:2px
+    style EM stroke:#f57c00,stroke-width:2px`} />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                💡 ReactFlow: 드래그 앤 드롭, 줌/팬, 연결 자동 생성 기능 제공
+              </p>
+            </div>
+
+            {/* 파이프라인 엔진 실행 흐름 */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
+                {t('guide.pipelineEngineFlow')}
+              </h3>
+              <Mermaid chart={`sequenceDiagram
+    participant U as 사용자
+    participant WB as Workflow Builder
+    participant GW as Gateway API
+    participant PE as Pipeline Engine
+    participant YE as YOLO Executor
+    participant OE as OCR Executor
+
+    U->>WB: 1. 노드 배치 (드래그 앤 드롭)
+    U->>WB: 2. 노드 연결 (화살표)
+    U->>WB: 3. 파라미터 설정
+
+    U->>WB: 4. "실행" 클릭
+    WB->>GW: 5. POST /api/v1/workflow/execute
+    Note over WB,GW: workflow_definition JSON
+
+    GW->>PE: 6. 워크플로우 실행 시작
+    PE->>PE: 7. DAG 검증 (순환 참조, 고아 노드)
+    PE->>PE: 8. Topological Sort (실행 순서)
+
+    PE->>YE: 9. YOLO 노드 실행
+    YE-->>PE: 10. {detections: [...]}
+
+    PE->>PE: 11. 조건 평가 (IF 노드)
+    PE->>OE: 12. OCR 노드 실행
+    OE-->>PE: 13. {dimensions: [...]}
+
+    PE-->>GW: 14. 실행 완료
+    GW-->>WB: 15. 결과 반환
+    WB-->>U: 16. 시각화 표시`} />
+            </div>
+
+            {/* 조건부 분기 예시 */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
+                {t('guide.conditionalBranchExample')}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                {t('guide.conditionalBranchDesc')}
+              </p>
+              <Mermaid chart={`sequenceDiagram
+    participant PE as Pipeline Engine
+    participant Y as YOLO Executor
+    participant I as IF Executor
+    participant E as eDOCr2 Executor
+    participant P as PaddleOCR Executor
+
+    PE->>Y: YOLO 실행
+    Y-->>PE: {total_detections: 15}
+
+    PE->>I: IF 노드 실행
+    I->>I: 조건 평가<br/>detections > 0 ?
+    Note over I: TRUE
+    I-->>PE: next_branch: "edocr2"
+
+    PE->>E: eDOCr2 실행
+    Note over P: PaddleOCR 스킵됨
+    E-->>PE: {dimensions: [...]}
+
+    PE-->>PE: 실행 완료`} />
+            </div>
+
+            {/* 구현 로드맵 */}
+            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
+              <h3 className="font-semibold mb-3 text-cyan-900 dark:text-cyan-100">
+                {t('guide.implementationRoadmap')}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-cyan-500">
+                  <div className="font-medium text-cyan-900 dark:text-cyan-100">
+                    Phase 1: 기반 구조 (1주)
+                  </div>
+                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>• Pipeline Engine 기본 구조</li>
+                    <li>• DAG 빌더 & 검증기</li>
+                    <li>• ReactFlow 통합</li>
+                    <li>• 기본 Canvas 컴포넌트</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-blue-500">
+                  <div className="font-medium text-blue-900 dark:text-blue-100">
+                    Phase 2: 노드 구현 (1.5주)
+                  </div>
+                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>• 8개 API Executor 구현</li>
+                    <li>• IF/Merge/Loop 제어 노드</li>
+                    <li>• 노드 UI 컴포넌트 (8개)</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-purple-500">
+                  <div className="font-medium text-purple-900 dark:text-purple-100">
+                    Phase 3: 데이터 흐름 (1주)
+                  </div>
+                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>• 데이터 매핑 엔진</li>
+                    <li>• Topological Sort & 병렬화</li>
+                    <li>• 실행 모니터링 (SSE)</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-green-500">
+                  <div className="font-medium text-green-900 dark:text-green-100">
+                    Phase 4: 워크플로우 관리 (0.5주)
+                  </div>
+                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>• PostgreSQL 스키마</li>
+                    <li>• 저장/로드 API</li>
+                    <li>• 버전 관리 UI</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-orange-500 md:col-span-2">
+                  <div className="font-medium text-orange-900 dark:text-orange-100">
+                    Phase 5: 테스트 및 최적화 (1주)
+                  </div>
+                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>• 단위/통합 테스트 (90% 커버리지)</li>
+                    <li>• 성능 최적화 (오버헤드 5% 이내)</li>
+                    <li>• 메모리 누수 제거</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* 코드 변경 규모 */}
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 flex items-center">
+                <span className="mr-2">{t('guide.implementationComplexity')}</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-medium text-yellow-900 dark:text-yellow-100 mb-1">
+                    Frontend 변경
+                  </div>
+                  <ul className="text-xs space-y-1 text-yellow-800 dark:text-yellow-200">
+                    <li>• 신규 파일: 10-15개</li>
+                    <li>• 추가 코드: ~4,000줄</li>
+                    <li>• 의존성: ReactFlow, Zustand</li>
+                  </ul>
+                </div>
+                <div>
+                  <div className="font-medium text-yellow-900 dark:text-yellow-100 mb-1">
+                    Backend 변경
+                  </div>
+                  <ul className="text-xs space-y-1 text-yellow-800 dark:text-yellow-200">
+                    <li>• 신규 파일: 8-10개</li>
+                    <li>• 추가 코드: ~3,500줄</li>
+                    <li>• 데이터베이스: PostgreSQL</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-3 p-2 bg-yellow-100 dark:bg-yellow-900 rounded">
+                <p className="text-xs text-yellow-900 dark:text-yellow-100">
+                  <strong>총 개발 공수:</strong> 약 34일 (5주) |
+                  <strong> 추가 코드:</strong> 7,500줄 |
+                  <strong> ROI:</strong> 하이브리드 대비 절반
+                </p>
+              </div>
+            </div>
+
+            {/* 참고 문서 */}
+            <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
+              <h4 className="font-semibold text-cyan-900 dark:text-cyan-100 mb-2 flex items-center">
+                <span className="mr-2">{t('guide.detailedDesignDocs')}</span>
+              </h4>
+              <ul className="text-sm space-y-2 text-cyan-800 dark:text-cyan-200">
+                <li>
+                  • <strong>완전한 설계서:</strong>{' '}
+                  <code className="bg-cyan-100 dark:bg-cyan-900 px-2 py-1 rounded text-xs">
+                    docs/BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md
+                  </code>
+                </li>
+                <li>
+                  • <strong>현재 vs BlueprintFlow 평가:</strong>{' '}
+                  <code className="bg-cyan-100 dark:bg-cyan-900 px-2 py-1 rounded text-xs">
+                    docs/BLUEPRINTFLOW_ARCHITECTURE_EVALUATION.md
+                  </code>
+                </li>
+                <li>
+                  • <strong>하이브리드 vs 완전 구현:</strong>{' '}
+                  <code className="bg-cyan-100 dark:bg-cyan-900 px-2 py-1 rounded text-xs">
+                    docs/HYBRID_VS_FULL_BLUEPRINTFLOW_COMPARISON.md
+                  </code>
+                </li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>

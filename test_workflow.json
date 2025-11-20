@@ -1,0 +1,51 @@
+{
+  "workflow": {
+    "name": "Test Workflow - 3 Nodes",
+    "description": "3개의 test 노드로 구성된 간단한 테스트 워크플로우",
+    "version": "1.0.0",
+    "nodes": [
+      {
+        "id": "node1",
+        "type": "test",
+        "label": "Node 1",
+        "parameters": {
+          "message": "Hello from Node 1",
+          "delay": 0.5
+        }
+      },
+      {
+        "id": "node2",
+        "type": "test",
+        "label": "Node 2",
+        "parameters": {
+          "message": "Hello from Node 2",
+          "delay": 0.3
+        }
+      },
+      {
+        "id": "node3",
+        "type": "test",
+        "label": "Node 3",
+        "parameters": {
+          "message": "Hello from Node 3",
+          "delay": 0.2
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "node1",
+        "target": "node2"
+      },
+      {
+        "id": "e2",
+        "source": "node1",
+        "target": "node3"
+      }
+    ]
+  },
+  "inputs": {
+    "test_input": "Initial data"
+  }
+}

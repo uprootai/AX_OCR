@@ -1,4 +1,5 @@
 import { useState, useCallback, type DragEvent, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Upload, File, X, AlertCircle, Image } from 'lucide-react';
 import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -50,6 +51,7 @@ export default function FileUploader({
   maxSize = 10,
   currentFile = null,
 }: FileUploaderProps) {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export default function FileUploader({
       const response = await fetch(samplePath);
 
       if (!response.ok) {
-        throw new Error('샘플 파일을 로드할 수 없습니다.');
+        throw new Error(t('fileUpload.sampleLoadError'));
       }
 
       const blob = await response.blob();
@@ -177,7 +179,7 @@ export default function FileUploader({
 
       handleFile(file);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '샘플 파일 로드 중 오류가 발생했습니다.');
+      setError(err instanceof Error ? err.message : t('fileUpload.sampleLoadFailed'));
     }
   };
 
@@ -219,10 +221,10 @@ export default function FileUploader({
                 }`}
               />
               <p className="text-lg font-medium mb-2">
-                {isDragging ? '파일을 놓으세요' : '파일을 선택하거나 드래그하세요'}
+                {isDragging ? t('fileUpload.dropHere') : t('fileUpload.dragHere')}
               </p>
               <p className="text-sm text-muted-foreground">
-                지원 형식: 이미지, PDF (최대 {maxSize}MB)
+                {t('fileUpload.supportedFormats', { maxSize })}
               </p>
             </label>
           </div>
@@ -231,7 +233,7 @@ export default function FileUploader({
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
               <Image className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm font-medium">또는 샘플 파일을 선택하세요</p>
+              <p className="text-sm font-medium">{t('fileUpload.orSelectSample')}</p>
             </div>
             <select
               onChange={(e) => handleSampleSelect(e.target.value)}
@@ -239,7 +241,7 @@ export default function FileUploader({
               defaultValue=""
             >
               <option value="" disabled>
-                샘플 파일 선택...
+                {t('fileUpload.selectSampleFile')}
               </option>
               {SAMPLE_FILES.map((sample, index) => (
                 <option key={index} value={sample.path}>

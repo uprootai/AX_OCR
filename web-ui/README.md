@@ -42,9 +42,20 @@ React + Vite + TypeScript 기반의 디버깅 중심 웹 인터페이스입니�
 
 ### ✅ Phase 7: Docker 배포 (완료)
 - **Dockerfile**: 멀티스테이지 빌드 (Node.js → Nginx)
-- **nginx.conf**: SPA 라우팅, Gzip 압축, 캐싱, 보안 헤더
+- **nginx.conf**: SPA 라우팅, Gzip 압압, 캐싱, 보안 헤더
 - **.dockerignore**: 빌드 최적화
 - **docker-compose.yml**: web-ui 서비스 추가 (포트 5173)
+
+### ✅ Phase 8: 🔮 BlueprintFlow (완료 - 2025-11-20)
+- **비주얼 워크플로우 빌더**: ReactFlow 기반 드래그 앤 드롭 에디터
+- **9개 노드 타입**: API 6개 (YOLO, eDOCr2, EDGNet, SkinModel, PaddleOCR, VL) + Control 3개 (IF, Loop, Merge)
+- **노드 상세 패널**: 입출력, 파라미터, 사용 예시 완전 문서화
+- **실시간 파라미터 편집**: 슬라이더, 드롭다운, 텍스트 입력, 체크박스
+- **워크플로우 관리**: 저장/불러오기 (localStorage), 목록 관리
+- **4가지 템플릿**: 기본 검출, 고급 OCR, 루프 검출, 멀티 모델
+- **완전한 i18n**: 한국어/영어 전환 (react-i18next)
+- **UX 최적화**: 선택 시각 피드백, Delete 키 삭제, 노드 메타데이터 시스템
+- **접속**: http://localhost:5173/blueprintflow
 
 ---
 
@@ -125,11 +136,16 @@ web-ui/
 │   │   ├── ui/              ✅ 기본 UI (Button, Card, Badge)
 │   │   ├── layout/          ✅ 레이아웃 (Header, Sidebar, Layout)
 │   │   ├── monitoring/      ✅ 모니터링 (ServiceHealthCard, APIStatusMonitor)
-│   │   └── debug/           ✅ 디버깅 (FileUploader, JSONViewer, RequestInspector, etc)
+│   │   ├── debug/           ✅ 디버깅 (FileUploader, JSONViewer, RequestInspector, etc)
+│   │   └── blueprintflow/   ✅ 🔮 BlueprintFlow (NodePalette, NodeDetailPanel, nodes/)
 │   │
 │   ├── pages/
 │   │   ├── Landing.tsx             ✅ 랜딩 페이지
 │   │   ├── dashboard/Dashboard.tsx ✅ 대시보드 + 실시간 모니터링
+│   │   ├── blueprintflow/          ✅ 🔮 비주얼 워크플로우 빌더
+│   │   │   ├── BlueprintFlowBuilder.tsx  ✅ 캔버스 에디터
+│   │   │   ├── WorkflowList.tsx          ✅ 워크플로우 목록
+│   │   │   └── WorkflowTemplates.tsx     ✅ 템플릿 갤러리
 │   │   ├── test/
 │   │   │   ├── TestHub.tsx         ✅ 테스트 허브
 │   │   │   ├── TestEdocr2.tsx      ✅ OCR 테스트
@@ -139,8 +155,14 @@ web-ui/
 │   │   ├── analyze/Analyze.tsx     ✅ 통합 분석 페이지
 │   │   └── monitor/Monitor.tsx     ✅ 모니터링 페이지
 │   │
+│   ├── config/
+│   │   └── nodeDefinitions.ts ✅ 🔮 노드 메타데이터 (9개 노드, 265 lines)
 │   ├── lib/api.ts           ✅ API 클라이언트 (4개 서비스 통합)
-│   ├── store/               ✅ 상태 관리 (UI, Analysis, Monitoring)
+│   ├── store/
+│   │   ├── ...              ✅ 상태 관리 (UI, Analysis, Monitoring)
+│   │   └── workflowStore.ts ✅ 🔮 워크플로우 상태 (Zustand)
+│   ├── locales/             ✅ 🔮 i18n (ko.json, en.json)
+│   ├── i18n.ts              ✅ 🔮 i18n 설정
 │   └── types/api.ts         ✅ 타입 정의
 │
 ├── Dockerfile               ✅ Docker 이미지 빌드
@@ -235,7 +257,11 @@ dist/assets/index-*.js          427.69 kB │ gzip: 124.11 kB
 
 ### State Management
 - **TanStack Query**: 서버 상태 관리 (캐싱, 자동 refetch)
-- **Zustand**: 클라이언트 상태 관리 (UI, Analysis, Monitoring)
+- **Zustand**: 클라이언트 상태 관리 (UI, Analysis, Monitoring, Workflow)
+
+### Workflow
+- **ReactFlow**: 노드 기반 비주얼 에디터
+- **react-i18next**: 다국어 지원 (한국어/영어)
 
 ### HTTP & API
 - **Axios**: HTTP 클라이언트
@@ -333,8 +359,8 @@ Docker 환경에서는 `docker-compose.yml`에서 자동 설정됩니다.
 
 ---
 
-**버전**: 1.0.0 (Production Ready)
+**버전**: 1.1.0 (BlueprintFlow Added)
 **작성일**: 2025-10-27
-**최종 업데이트**: 2025-10-27
+**최종 업데이트**: 2025-11-20
 
-**상태**: ✅ 전체 Phase 완료, 프로덕션 배포 준비 완료
+**상태**: ✅ 전체 Phase 1-8 완료, 프로덕션 배포 준비 완료 + BlueprintFlow 통합

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import APIStatusMonitor from '../../components/monitoring/APIStatusMonitor';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -5,12 +6,14 @@ import { Link } from 'react-router-dom';
 import { TestTube, Activity, FileText, TrendingUp } from 'lucide-react';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
         <p className="text-muted-foreground">
-          실시간 API 모니터링 및 시스템 상태를 확인하세요.
+          {t('dashboard.subtitle')}
         </p>
       </div>
 
@@ -24,12 +27,12 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TestTube className="h-5 w-5 text-primary" />
-                API Tests
+                {t('dashboard.apiTests')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                각 API를 개별적으로 테스트하고 응답을 확인하세요.
+                {t('dashboard.apiTestsDesc')}
               </p>
             </CardContent>
           </Link>
@@ -40,12 +43,12 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                Analyze
+                {t('dashboard.analyzeTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                도면을 업로드하여 통합 분석을 실행하세요.
+                {t('dashboard.analyzeDesc')}
               </p>
             </CardContent>
           </Link>
@@ -56,12 +59,12 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
-                Monitor
+                {t('dashboard.monitorTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                상세한 성능 메트릭과 로그를 확인하세요.
+                {t('dashboard.monitorDesc')}
               </p>
             </CardContent>
           </Link>

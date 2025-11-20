@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom';
-import { Moon, Sun, Menu } from 'lucide-react';
+import { Moon, Sun, Menu, Languages } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../../store/uiStore';
 
 export default function Header() {
   const { theme, toggleTheme, toggleSidebar } = useUIStore();
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'ko' ? 'en' : 'ko';
+    i18n.changeLanguage(newLang);
+  };
 
   return (
     <header className="border-b bg-card">
@@ -16,35 +23,18 @@ export default function Header() {
             <Menu className="h-5 w-5" />
           </button>
           <Link to="/dashboard" className="text-xl font-bold">
-            AX 도면 분석 시스템
+            {t('header.title')}
           </Link>
         </div>
 
-        <nav className="flex items-center gap-6">
-          <Link
-            to="/dashboard"
-            className="text-sm font-medium hover:text-primary"
+        <nav className="flex items-center gap-2">
+          <button
+            onClick={toggleLanguage}
+            className="p-2 hover:bg-accent rounded-md"
+            title={i18n.language === 'ko' ? '한국어' : 'English'}
           >
-            Dashboard
-          </Link>
-          <Link
-            to="/test"
-            className="text-sm font-medium hover:text-primary"
-          >
-            Test
-          </Link>
-          <Link
-            to="/analyze"
-            className="text-sm font-medium hover:text-primary"
-          >
-            Analyze
-          </Link>
-          <Link
-            to="/monitor"
-            className="text-sm font-medium hover:text-primary"
-          >
-            Monitor
-          </Link>
+            <Languages className="h-5 w-5" />
+          </button>
 
           <button
             onClick={toggleTheme}

@@ -27,6 +27,14 @@ Web UI (React) → Gateway API → [ YOLO | eDOCr2 | EDGNet | Skin Model ]
 api_server.py (200-350 lines) + models/ + services/ + utils/
 ```
 
+**🔮 BlueprintFlow** ⭐ NEW (2025-11-20)
+```
+비주얼 워크플로우 빌더 - 드래그 앤 드롭으로 API 조합
+9 노드 타입 | 실시간 파라미터 편집 | 저장/불러오기 | 한영 지원
+```
+
+**Access**: http://localhost:5173/blueprintflow
+
 ---
 
 ## 📁 Project Structure
@@ -104,4 +112,28 @@ http://localhost:5005/docs
 
 ---
 
-**Updated**: 2025-11-19
+**Updated**: 2025-11-20
+
+## 🔮 BlueprintFlow Quick Tour
+
+**URL**: http://localhost:5173/blueprintflow
+
+### 3 Main Pages:
+1. **Builder** - 드래그 앤 드롭 캔버스 에디터
+2. **Templates** - 4가지 미리 만들어진 워크플로우
+3. **My Workflows** - 저장된 워크플로우 목록
+
+### How to Build:
+1. 왼쪽 팔레트에서 노드 드래그
+2. 노드 클릭 → 오른쪽 패널에서 입출력/파라미터 확인
+3. 노드 연결 (핸들 클릭 후 드래그)
+4. 파라미터 실시간 조정
+5. 저장 버튼 클릭
+
+### 9 Node Types:
+- **API**: YOLO, eDOCr2, EDGNet, SkinModel, PaddleOCR, VL
+- **Control**: IF (조건), Loop (반복), Merge (병합)
+
+---
+
+**Project Version**: 2.2.0

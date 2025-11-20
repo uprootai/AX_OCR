@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown, Book } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -155,6 +156,7 @@ function FolderTree({ items, onSelectFile }: { items: DocFile[]; onSelectFile: (
 }
 
 export default function Docs() {
+  const { t } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<string | null>('/README.md');
   const [markdown, setMarkdown] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -175,7 +177,7 @@ export default function Docs() {
         setMarkdown(text);
       } catch (err) {
         console.error('Error fetching markdown:', err);
-        setError(`문서를 불러올 수 없습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+        setError(`${t('docs.notFound')}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setMarkdown('');
       } finally {
         setLoading(false);
@@ -192,10 +194,10 @@ export default function Docs() {
         <div className="p-4 border-b bg-accent/30">
           <div className="flex items-center gap-2">
             <Book className="w-5 h-5 text-blue-500" />
-            <h2 className="font-bold text-lg">문서</h2>
+            <h2 className="font-bold text-lg">{t('docs.title')}</h2>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            총 31개 문서 파일
+            {t('docs.subtitle')}
           </p>
         </div>
         <div className="p-2">
@@ -208,13 +210,13 @@ export default function Docs() {
         <div className="max-w-4xl mx-auto p-8">
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <div className="text-muted-foreground">문서를 불러오는 중...</div>
+              <div className="text-muted-foreground">{t('docs.loading')}</div>
             </div>
           )}
 
           {error && (
             <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-6">
-              <h3 className="font-semibold text-red-700 dark:text-red-300 mb-2">오류</h3>
+              <h3 className="font-semibold text-red-700 dark:text-red-300 mb-2">{t('common.error')}</h3>
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}

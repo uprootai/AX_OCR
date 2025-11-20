@@ -33,6 +33,13 @@ import numpy as np
 from cost_estimator import get_cost_estimator
 from pdf_generator import get_pdf_generator
 
+# Import BlueprintFlow
+from blueprintflow import (
+    PipelineEngine,
+    WorkflowExecutionRequest,
+    WorkflowExecutionResponse,
+)
+
 # Import refactored modules
 from models import (
     HealthResponse, ProcessRequest, ProcessResponse, ProcessData,
@@ -1919,6 +1926,70 @@ async def download_quote(quote_number: str):
     except Exception as e:
         logger.error(f"Error downloading quote: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =====================
+# BlueprintFlow Endpoints
+# =====================
+
+# PipelineEngine 인스턴스 (싱글톤)
+blueprint_engine = PipelineEngine()
+
+
+@app.post("/api/v1/workflow/execute", response_model=WorkflowExecutionResponse)
+async def execute_workflow(request: WorkflowExecutionRequest):
+    """
+    BlueprintFlow 워크플로우 실행 엔드포인트
+
+    사용자가 정의한 워크플로우를 동적으로 실행합니다.
+    """
+    try:
+        logger.info(f"워크플로우 실행 요청: {request.workflow.name}")
+
+        result = await blueprint_engine.execute_workflow(
+            workflow=request.workflow,
+            inputs=request.inputs,
+            config=request.config,
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"워크플로우 실행 중 에러: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/workflow/node-types")
+async def get_available_node_types():
+    """사용 가능한 노드 타입 목록 조회"""
+    from blueprintflow.executors.executor_registry import ExecutorRegistry
+
+    node_types = ExecutorRegistry.get_all_types()
+
+    return {
+        "node_types": node_types,
+        "count": len(node_types),
+        "categories": {
+            "api_nodes": [nt for nt in node_types if nt in ["yolo", "edocr2", "edgnet", "skinmodel", "vl", "paddleocr"]],
+            "control_nodes": [nt for nt in node_types if nt in ["if", "merge", "loop"]],
+        }
+    }
+
+
+@app.get("/api/v1/workflow/health")
+async def workflow_health():
+    """BlueprintFlow 시스템 상태 체크"""
+    return {
+        "status": "healthy",
+        "engine": "PipelineEngine",
+        "version": "1.0.0",
+        "features": {
+            "dag_validation": True,
+            "parallel_execution": True,
+            "conditional_branching": False,  # Phase 2에서 구현 예정
+            "loop_execution": False,  # Phase 2에서 구현 예정
+        }
+    }
 
 
 # =====================

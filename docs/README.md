@@ -74,6 +74,16 @@ docs/
 | [VL_API_IMPLEMENTATION_GUIDE.md](technical/VL_API_IMPLEMENTATION_GUIDE.md) | Vision Language Model API 구현 |
 | [SYNTHETIC_DATA_STRATEGY.md](technical/SYNTHETIC_DATA_STRATEGY.md) | 합성 데이터 생성 전략 |
 
+### **🔮 BlueprintFlow - 비주얼 워크플로우 빌더** ⭐ NEW
+
+| 문서 | 설명 | 상태 |
+|------|------|------|
+| [BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md](BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md) | 완전한 설계 문서 및 구현 현황 | ✅ Phase 1-3 완료 |
+| [BLUEPRINTFLOW_ARCHITECTURE_EVALUATION.md](BLUEPRINTFLOW_ARCHITECTURE_EVALUATION.md) | Before/After 평가 보고서 | ✅ 업데이트 완료 |
+| [HYBRID_VS_FULL_BLUEPRINTFLOW_COMPARISON.md](HYBRID_VS_FULL_BLUEPRINTFLOW_COMPARISON.md) | 구현 방식 비교 및 실제 결과 | ✅ 업데이트 완료 |
+
+**구현 결과**: ~1,800 LOC, 15개 파일, Frontend 100% 완료 (2025-11-20)
+
 ---
 
 ## 🏗️ **architecture/ - 아키텍처 & 분석**
@@ -218,6 +228,6 @@ docs/
 
 ---
 
-**최종 업데이트**: 2025-11-12
+**최종 업데이트**: 2025-11-20
 **작성자**: Claude Code
-**버전**: v2.0
+**버전**: v2.1 (BlueprintFlow 추가)
