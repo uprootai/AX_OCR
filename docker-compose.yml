@@ -300,10 +300,17 @@ services:
   web-ui:
     build:
       context: ./web-ui
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: web-ui
     ports:
-      - "5173:80"
+      - "5173:5173"
+    volumes:
+      - ./web-ui/src:/app/src
+      - ./web-ui/public:/app/public
+      - ./web-ui/index.html:/app/index.html
+      - ./web-ui/vite.config.ts:/app/vite.config.ts
+      - ./web-ui/tsconfig.json:/app/tsconfig.json
+      - ./web-ui/tailwind.config.js:/app/tailwind.config.js
     environment:
       - VITE_GATEWAY_URL=http://localhost:8000
       - VITE_EDOCR2_URL=http://localhost:5001
@@ -315,7 +322,7 @@ services:
     depends_on:
       - gateway-api
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5173/"]
       interval: 30s
       timeout: 15s
       retries: 5

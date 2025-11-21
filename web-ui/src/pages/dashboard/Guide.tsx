@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import Mermaid from '../../components/ui/Mermaid';
+import ImageZoom from '../../components/ui/ImageZoom';
 import { BookOpen, Layers, Zap, Code, Database, Server } from 'lucide-react';
 
 export default function Guide() {
@@ -87,7 +88,8 @@ export default function Guide() {
               <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
                 {t('guide.systemStructure')}
               </h3>
-              <Mermaid chart={`graph TB
+              <ImageZoom>
+                <Mermaid chart={`graph TB
     subgraph Frontend
         UI["Web UI :5173\nReact + Vite"]
     end
@@ -126,6 +128,7 @@ export default function Guide() {
     style UI stroke:#7b1fa2
     style GW stroke:#f57c00
     style MODEL stroke:#388e3c`} />
+              </ImageZoom>
             </div>
           </div>
         </CardContent>
@@ -145,7 +148,8 @@ export default function Guide() {
               <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
                 {t('guide.trainingInferencePipeline')}
               </h3>
-              <Mermaid chart={`sequenceDiagram
+              <ImageZoom>
+                <Mermaid chart={`sequenceDiagram
     participant User as 사용자
     participant Gen as 합성 데이터 생성기
     participant Train as 학습 스크립트
@@ -169,6 +173,7 @@ export default function Guide() {
     Model-->>API: 11. 검출 결과
     API-->>Web: 12. JSON + 시각화
     Web-->>User: 13. 결과 표시`} />
+              </ImageZoom>
             </div>
           </div>
         </CardContent>
@@ -627,87 +632,74 @@ export default function Guide() {
               <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
                 {t('guide.bfSystemStructure')}
               </h3>
-              <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
-graph TB
-    subgraph "Frontend Layer :5173"
-        UI["React App"]
-        WB["WorkflowBuilder<br/>ReactFlow Canvas"]
-        WM["WorkflowManager<br/>Save/Load/Share"]
-        EX["ExecutionMonitor<br/>실시간 WebSocket"]
-        NP["NodePalette<br/>8 API + 3 제어 노드"]
+              <ImageZoom>
+                <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
+graph TD
+    subgraph F["🌐 Frontend Layer (Port 5173)"]
+        direction TB
+        UI["React App<br/>BlueprintFlowBuilder.tsx"]
+        WB["워크플로우 빌더<br/>ReactFlow Canvas"]
+        NP["노드 팔레트<br/>8 API + 3 Control"]
+        UI --> WB
+        WB --> NP
     end
 
-    subgraph "Gateway API :8000"
+    subgraph G["⚙️ Gateway API (Port 8000)"]
+        direction TB
         GW["FastAPI Server"]
-        WE["/api/v1/workflow/execute<br/>POST 엔드포인트"]
-        WR["/api/v1/workflow/save<br/>저장 엔드포인트"]
+        WE["POST /api/v1/workflow/execute"]
         PE["PipelineEngine<br/>DAG 실행 엔진"]
         DV["DAGValidator<br/>순환 참조 검증"]
-        TS["TopologicalSort<br/>실행 순서 정렬"]
-        DM["DataMapper<br/>노드 간 데이터 매핑"]
+        GW --> WE
+        WE --> PE
+        PE --> DV
     end
 
-    subgraph "Data Layer"
-        WS["PostgreSQL<br/>workflow_definitions"]
-        WH["Workflow History<br/>execution_logs"]
-    end
-
-    subgraph "Node Executors (gateway-api/executors/)"
+    subgraph E["🔧 Node Executors (gateway-api/executors/)"]
+        direction LR
         NE1["yolo_executor.py"]
         NE2["edocr_executor.py"]
         NE3["edgnet_executor.py"]
         NE4["skinmodel_executor.py"]
-        NE5["if_executor.py<br/>조건 분기"]
-        NE6["merge_executor.py<br/>병렬 합병"]
-        NE7["loop_executor.py<br/>반복 처리"]
-        NE8["vl_executor.py"]
+        NE5["if_executor.py"]
+        NE6["vl_executor.py"]
     end
 
-    subgraph "Model APIs (독립 컨테이너)"
-        YOLO["YOLO API :5005<br/>객체 검출"]
-        ED2["eDOCr2 v2 :5002<br/>차원 OCR"]
-        EG["EDGNet :5012<br/>엣지 세그먼트"]
-        SK["Skin Model :5003<br/>공차 분석"]
-        VL["VL API :5004<br/>멀티모달 분석"]
+    subgraph M["🤖 Model APIs (독립 컨테이너)"]
+        direction LR
+        YOLO["YOLO :5005<br/>객체 검출"]
+        ED2["eDOCr2 :5002<br/>차원 OCR"]
+        EG["EDGNet :5012<br/>엣지 분할"]
+        SK["SkinModel :5003<br/>공차 분석"]
+        VL["VL :5004<br/>멀티모달"]
         PD["PaddleOCR :5006<br/>범용 OCR"]
     end
 
-    UI --> WB
-    UI --> WM
-    UI --> EX
-    WB --> NP
+    subgraph D["💾 Data Layer"]
+        direction TB
+        WS["PostgreSQL<br/>workflow_definitions"]
+        WH["execution_logs"]
+    end
 
-    WB -->|"workflow JSON"| WE
-    WM -->|"save/load"| WR
-    EX -->|"ws://status"| GW
+    F -->|"workflow JSON"| G
+    G -->|"동적 디스패치"| E
+    E -->|"HTTP POST"| M
+    G -->|"저장/조회"| D
 
-    WE --> PE
-    WR --> WS
-    PE --> WH
-    PE --> DV
-    PE --> TS
-    PE --> DM
+    NE1 -.-> YOLO
+    NE2 -.-> ED2
+    NE3 -.-> EG
+    NE4 -.-> SK
+    NE6 -.-> VL
 
-    PE -.->|"dynamic dispatch"| NE1
-    PE -.->|"dynamic dispatch"| NE2
-    PE -.->|"dynamic dispatch"| NE3
-    PE -.->|"dynamic dispatch"| NE4
-    PE -.->|"dynamic dispatch"| NE5
-    PE -.->|"dynamic dispatch"| NE6
-    PE -.->|"dynamic dispatch"| NE7
-    PE -.->|"dynamic dispatch"| NE8
-
-    NE1 -->|"HTTP POST"| YOLO
-    NE2 -->|"HTTP POST"| ED2
-    NE3 -->|"HTTP POST"| EG
-    NE4 -->|"HTTP POST"| SK
-    NE8 -->|"HTTP POST"| VL
-
-    style WB stroke:#1976d2,stroke-width:3px
-    style PE stroke:#f57c00,stroke-width:3px
-    style GW stroke:#7b1fa2,stroke-width:2px
-    style DV stroke:#d32f2f,stroke-width:2px
-    style NE5 stroke:#388e3c,stroke-width:2px`} />
+    style F fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style G fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style M fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style D fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style PE stroke:#f57c00,stroke-width:4px
+    style WB stroke:#1976d2,stroke-width:3px`} />
+              </ImageZoom>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 💡 Executor는 Gateway 내부 모듈로 각 API를 호출하는 어댑터 역할
               </p>
@@ -718,7 +710,8 @@ graph TB
               <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
                 {t('guide.workflowBuilderUI')}
               </h3>
-              <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
+              <ImageZoom>
+                <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
 graph TB
     subgraph "BlueprintFlowBuilder.tsx (메인 페이지)"
         WBP["워크플로우 상태 관리<br/>useWorkflowStore()"]
@@ -801,6 +794,7 @@ graph TB
     style WBP stroke:#7b1fa2,stroke-width:2px
     style CN stroke:#388e3c,stroke-width:2px
     style EM stroke:#f57c00,stroke-width:2px`} />
+              </ImageZoom>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 💡 ReactFlow: 드래그 앤 드롭, 줌/팬, 연결 자동 생성 기능 제공
               </p>
@@ -811,7 +805,8 @@ graph TB
               <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
                 {t('guide.pipelineEngineFlow')}
               </h3>
-              <Mermaid chart={`sequenceDiagram
+              <ImageZoom>
+                <Mermaid chart={`sequenceDiagram
     participant U as 사용자
     participant WB as Workflow Builder
     participant GW as Gateway API
@@ -841,6 +836,7 @@ graph TB
     PE-->>GW: 14. 실행 완료
     GW-->>WB: 15. 결과 반환
     WB-->>U: 16. 시각화 표시`} />
+              </ImageZoom>
             </div>
 
             {/* 조건부 분기 예시 */}
@@ -851,7 +847,8 @@ graph TB
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 {t('guide.conditionalBranchDesc')}
               </p>
-              <Mermaid chart={`sequenceDiagram
+              <ImageZoom>
+                <Mermaid chart={`sequenceDiagram
     participant PE as Pipeline Engine
     participant Y as YOLO Executor
     participant I as IF Executor
@@ -871,6 +868,7 @@ graph TB
     E-->>PE: {dimensions: [...]}
 
     PE-->>PE: 실행 완료`} />
+              </ImageZoom>
             </div>
 
             {/* 구현 로드맵 */}

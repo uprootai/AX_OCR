@@ -1,15 +1,82 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import APIStatusMonitor from '../../components/monitoring/APIStatusMonitor';
 import AddAPIDialog from '../../components/dashboard/AddAPIDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { TestTube, Activity, FileText, TrendingUp, Plus } from 'lucide-react';
+import { TestTube, Activity, FileText, TrendingUp, Plus, RefreshCw } from 'lucide-react';
+import { useAPIConfigStore } from '../../store/apiConfigStore';
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const [isAddAPIDialogOpen, setIsAddAPIDialogOpen] = useState(false);
+  const [isAutoDiscovering, setIsAutoDiscovering] = useState(false);
+  const { addAPI, customAPIs } = useAPIConfigStore();
+
+  /**
+   * Gateway API Registry에서 자동으로 API 검색
+   */
+  const handleAutoDiscover = async () => {
+    setIsAutoDiscovering(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/registry/list');
+      if (response.ok) {
+        const data = await response.json();
+        const apis = data.apis || [];
+
+        // 현재 등록된 API 목록을 store에서 직접 가져오기 (stale closure 방지)
+        const currentAPIs = useAPIConfigStore.getState().customAPIs;
+
+        let addedCount = 0;
+        apis.forEach((apiInfo: any) => {
+          // 이미 추가된 API는 건너뛰기
+          if (currentAPIs.find(api => api.id === apiInfo.id)) {
+            return;
+          }
+
+          // APIConfig 형식으로 변환하여 추가
+          addAPI({
+            id: apiInfo.id,
+            name: apiInfo.name,
+            displayName: apiInfo.display_name,
+            baseUrl: apiInfo.base_url,
+            port: apiInfo.port,
+            icon: apiInfo.icon,
+            color: apiInfo.color,
+            category: apiInfo.category === 'control' ? 'control' : 'api',
+            description: apiInfo.description,
+            enabled: apiInfo.status === 'healthy',
+            inputs: apiInfo.inputs || [],
+            outputs: apiInfo.outputs || [],
+            parameters: apiInfo.parameters || [],
+          });
+          addedCount++;
+        });
+
+        if (addedCount > 0) {
+          alert(`✅ ${addedCount}개의 새 API가 자동으로 추가되었습니다!`);
+        } else {
+          alert(`ℹ️ 모든 API가 이미 등록되어 있습니다.`);
+        }
+      }
+    } catch (error) {
+      console.error('Auto-discover failed:', error);
+      alert('⚠️ API 자동 검색에 실패했습니다. Gateway API가 실행 중인지 확인하세요.');
+    } finally {
+      setIsAutoDiscovering(false);
+    }
+  };
+
+  // 앱 시작 시 자동 검색 (최초 1회만)
+  useEffect(() => {
+    // localStorage에서 자동 검색 수행 여부 확인
+    const hasAutoDiscovered = localStorage.getItem('auto-discovered');
+    if (!hasAutoDiscovered) {
+      handleAutoDiscover();
+      localStorage.setItem('auto-discovered', 'true');
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -20,10 +87,20 @@ export default function Dashboard() {
             {t('dashboard.subtitle')}
           </p>
         </div>
-        <Button onClick={() => setIsAddAPIDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          API 추가
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleAutoDiscover}
+            disabled={isAutoDiscovering}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isAutoDiscovering ? 'animate-spin' : ''}`} />
+            {isAutoDiscovering ? '검색 중...' : 'API 자동 검색'}
+          </Button>
+          <Button onClick={() => setIsAddAPIDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            API 추가
+          </Button>
+        </div>
       </div>
 
       {/* API Status Monitor */}

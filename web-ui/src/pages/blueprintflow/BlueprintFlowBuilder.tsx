@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useMemo, useEffect } from 'react';
+import { useCallback, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
@@ -28,7 +28,7 @@ import {
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
 import { Play, Save, Trash2, Upload, X } from 'lucide-react';
-import { workflowApi, type WorkflowExecutionRequest } from '../../lib/api';
+import { workflowApi } from '../../lib/api';
 
 // Base node type mapping
 const baseNodeTypes = {

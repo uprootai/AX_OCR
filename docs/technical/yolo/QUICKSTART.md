@@ -1,271 +1,277 @@
-# YOLOv11 빠른 시작 가이드
+# 빠른 시작 가이드
 
-**작성일**: 2025-10-31
-**목적**: 5분 안에 YOLOv11 프로토타입 실행
+AX 실증산단 마이크로서비스 API 시스템 - 5분 안에 시작하기
 
----
+## 📋 사전 요구사항
 
-## 🚀 빠른 시작 (Prototype)
+- Docker 20.10+ 설치
+- Docker Compose 2.0+ 설치
+- 최소 8GB RAM
+- 샘플 도면 파일 (선택사항)
 
-### 1. 의존성 설치
+## 🚀 1단계: 전체 시스템 실행
 
 ```bash
+# POC 디렉토리로 이동
 cd /home/uproot/ax/poc
-pip install ultralytics torch torchvision opencv-python pillow
+
+# 전체 시스템 빌드 및 실행 (최초 1회, 5-10분 소요)
+docker-compose up -d --build
+
+# 또는 이미 빌드된 경우
+docker-compose up -d
 ```
 
-### 2. 프로토타입 테스트 (사전 학습 모델)
-
-사전 학습된 YOLOv11n 모델로 즉시 테스트 가능합니다.
+## ⏱️ 2단계: 서비스 준비 대기
 
 ```bash
-# Python으로 직접 테스트
-python3 -c "
-from ultralytics import YOLO
+# 로그 확인 (모든 서비스가 "Application startup complete" 표시될 때까지 대기)
+docker-compose logs -f
 
-# 모델 로드 (첫 실행 시 자동 다운로드)
-model = YOLO('yolo11n.pt')
-
-# 테스트 이미지로 추론
-results = model.predict(
-    source='https://ultralytics.com/images/bus.jpg',
-    save=True,
-    conf=0.25
-)
-
-print(f'✅ Detection complete! Found {len(results[0].boxes)} objects')
-print(f'📁 Results saved to: runs/detect/predict/')
-"
+# Ctrl+C로 로그 종료
 ```
 
-### 3. YOLO API 서버 실행 (단독)
+**예상 대기 시간**: 약 1-2분
+
+## ✅ 3단계: 헬스체크
 
 ```bash
-# 1. API 서버 시작 (포트 5005)
-cd yolo-api
-python api_server.py &
-
-# 2. Health Check
-curl http://localhost:5005/api/v1/health
-
-# 3. 테스트 이미지 다운로드
-curl -o test_drawing.jpg https://ultralytics.com/images/bus.jpg
-
-# 4. Detection API 호출
-curl -X POST "http://localhost:5005/api/v1/detect" \
-  -F "file=@test_drawing.jpg" \
-  -F "conf_threshold=0.25" \
-  -F "visualize=true"
+# 전체 시스템 상태 확인
+curl http://localhost:8000/api/v1/health
 ```
 
-### 4. Docker로 전체 시스템 실행
-
-```bash
-# 1. YOLO API 서비스만 빌드
-docker-compose build yolo-api
-
-# 2. YOLO API 서비스 시작
-docker-compose up -d yolo-api
-
-# 3. 로그 확인
-docker logs -f yolo-api
-
-# 4. Health Check
-curl http://localhost:5005/api/v1/health
-
-# 5. API 테스트
-curl -X POST "http://localhost:5005/api/v1/detect" \
-  -F "file=@test_drawing.jpg" \
-  -F "conf_threshold=0.25"
+**응답 예시**:
+```json
+{
+  "status": "healthy",
+  "service": "Gateway API",
+  "version": "1.0.0",
+  "timestamp": "2025-11-13T07:01:09.730557",
+  "services": {
+    "edocr2": "healthy",
+    "edgnet": "healthy",
+    "skinmodel": "healthy",
+    "paddleocr": "healthy"
+  }
+}
 ```
 
----
+**참고**:
+- `status`가 "healthy"일 때 모든 서비스가 정상입니다
+- `status`가 "degraded"일 때 일부 서비스에 문제가 있습니다
+- 각 서비스별 상태는 `services` 객체에서 확인할 수 있습니다
 
-## 📚 전체 워크플로우
+## 🧪 4단계: 자동 테스트 실행
 
-### Phase 1: 프로토타입 (현재 단계)
+### 방법 1: Bash 스크립트 (권장)
 
 ```bash
-# 사전 학습 모델로 즉시 테스트
-python -c "from ultralytics import YOLO; YOLO('yolo11n.pt').predict('test.jpg', save=True)"
+bash scripts/test/test_apis.sh
+```
+
+### 방법 2: Python 스크립트
+
+```bash
+python3 scripts/test/test_apis.py
 ```
 
 **예상 결과**:
-- 일반 객체 검출 가능 (사람, 차, 등)
-- 공학 도면 특화 학습 전: F1 40-50% (eDOCr 대비 5배)
+```
+=========================================
+AX 실증산단 API 시스템 테스트
+=========================================
 
----
+1. Health Check Tests
+-------------------------------------------
+Testing eDOCr2 API... ✓ PASS (HTTP 200)
+Testing EDGNet API... ✓ PASS (HTTP 200)
+Testing Skin Model API... ✓ PASS (HTTP 200)
+Testing Gateway API... ✓ PASS (HTTP 200)
 
-### Phase 2: 데이터셋 준비 (Week 1)
+...
 
-```bash
-# 1. eDOCr 결과를 YOLO 포맷으로 변환
-python scripts/prepare_dataset.py
-
-# 2. 데이터셋 확인
-ls -R datasets/engineering_drawings/
+✓ 모든 테스트 통과!
 ```
 
-**필요 작업**:
-- eDOCr API로 최소 100장 처리
-- 또는 수동 라벨링 (Roboflow/LabelImg)
+## 📝 5단계: API 문서 확인
 
----
+브라우저에서 다음 URL 접속:
 
-### Phase 3: 모델 학습 (Week 2-3)
+- **Gateway API (통합)**: `http://localhost:8000/docs`
+- **eDOCr2 API (OCR)**: `http://localhost:5001/docs`
+- **EDGNet API (세그멘테이션)**: `http://localhost:5012/docs`
+- **Skin Model API (공차 예측)**: `http://localhost:5003/docs`
 
-```bash
-# Transfer Learning (권장)
-python scripts/train_yolo.py \
-  --model-size n \
-  --epochs 100 \
-  --batch 16 \
-  --device 0
+## 🎨 6단계: 실제 도면 처리
 
-# 학습 모니터링
-tensorboard --logdir runs/train
-```
-
-**예상 시간**:
-- GPU (RTX 3060): 2-3시간 (100 epochs)
-- CPU: 10-15시간
-
----
-
-### Phase 4: 평가 및 추론 (Week 3)
+### 샘플 도면 준비
 
 ```bash
-# 1. 모델 평가
-python scripts/evaluate_yolo.py \
-  --model runs/train/engineering_drawings/weights/best.pt \
-  --split test
-
-# 2. 추론 실행
-python scripts/inference_yolo.py \
-  --model runs/train/engineering_drawings/weights/best.pt \
-  --source test_images/ \
-  --output runs/inference/test
-
-# 3. 결과 확인
-ls runs/inference/test/*_annotated.jpg
-cat runs/inference/test/summary.json
+# 샘플 도면 경로
+DRAWING="/home/uproot/ax/reference/02. 수요처 및 도메인 자료/2. 도면(샘플)/A12-311197-9 Rev.2 Interm Shaft-Acc_y_1.jpg"
 ```
 
----
-
-### Phase 5: API 배포 (Week 4)
+### 전체 파이프라인 실행
 
 ```bash
-# 1. 학습된 모델 복사
-cp runs/train/engineering_drawings/weights/best.pt yolo-api/models/
+curl -X POST http://localhost:8000/api/v1/process \
+  -F "file=@$DRAWING" \
+  -F "use_segmentation=true" \
+  -F "use_ocr=true" \
+  -F "use_tolerance=true" \
+  -F "visualize=true" \
+  > result.json
 
-# 2. Docker 빌드 및 실행
-docker-compose up -d yolo-api
-
-# 3. API 테스트
-curl -X POST "http://localhost:5005/api/v1/extract_dimensions" \
-  -F "file=@drawing.pdf"
+# 결과 확인
+cat result.json | python3 -m json.tool
 ```
 
----
-
-## 🔍 트러블슈팅
-
-### Issue 1: CUDA not available
+### 견적서 생성
 
 ```bash
-# GPU 확인
-nvidia-smi
+curl -X POST http://localhost:8000/api/v1/quote \
+  -F "file=@$DRAWING" \
+  -F "material_cost_per_kg=5.0" \
+  -F "machining_rate_per_hour=50.0" \
+  > quote.json
 
-# PyTorch CUDA 지원 확인
-python -c "import torch; print(torch.cuda.is_available())"
-
-# CPU로 실행 (느리지만 작동)
-python scripts/train_yolo.py --device cpu
+# 견적 확인
+cat quote.json | python3 -m json.tool
 ```
 
-### Issue 2: 메모리 부족
+## 🛠️ 문제 해결
+
+### 서비스가 시작되지 않을 때
 
 ```bash
-# 배치 크기 줄이기
-python scripts/train_yolo.py --batch 4
+# 모든 컨테이너 중지
+docker-compose down
 
-# 이미지 크기 줄이기
-python scripts/train_yolo.py --imgsz 640
+# 볼륨까지 삭제 (완전 초기화)
+docker-compose down -v
+
+# 다시 시작
+docker-compose up -d --build
 ```
 
-### Issue 3: 모델 파일 없음
+### 특정 서비스 오류 확인
 
 ```bash
-# API 서버는 모델 없어도 시작 가능 (기본 yolo11n.pt 사용)
-# 학습 후 모델 복사
-cp runs/train/engineering_drawings/weights/best.pt yolo-api/models/
-docker-compose restart yolo-api
+# 개별 서비스 로그
+docker logs edocr2-api
+docker logs edgnet-api
+docker logs skinmodel-api
+docker logs gateway-api
 ```
 
----
+### 포트 충돌
 
-## 📊 예상 성능
-
-| 단계 | 모델 | 데이터 | F1 Score | 시간 |
-|------|------|--------|----------|------|
-| **Prototype** | yolo11n.pt | 0장 | 40-50% | **즉시** |
-| **Transfer Learning** | best.pt | 100장 | 70-80% | 2-3일 |
-| **Full Training** | best.pt | 500장 | 85-90% | 1-2주 |
-| **Production** | best.pt | 1000장+ | 90-96% | 1-2개월 |
-
----
-
-## 🎯 다음 단계
-
-1. **즉시 (오늘)**:
-   ```bash
-   # 프로토타입 테스트
-   python -c "from ultralytics import YOLO; print(YOLO('yolo11n.pt'))"
-   ```
-
-2. **Week 1**:
-   - eDOCr로 도면 100장 처리
-   - `prepare_dataset.py` 실행
-   - 데이터셋 확인
-
-3. **Week 2-3**:
-   - `train_yolo.py` 실행
-   - 학습 모니터링
-   - 평가 및 조정
-
-4. **Week 4**:
-   - API 배포
-   - Gateway 통합
-   - Web UI 연동
-
----
-
-## 📞 지원
-
-**문서**:
-- 상세 가이드: `YOLOV11_IMPLEMENTATION_GUIDE.md`
-- 제안서: `YOLOV11_PROPOSAL.md`
-- 의사결정: `DECISION_MATRIX.md`
-
-**로그 확인**:
 ```bash
-# API 서버 로그
-docker logs yolo-api
+# 사용 중인 포트 확인
+sudo lsof -i :5001
+sudo lsof -i :5002
+sudo lsof -i :5003
+sudo lsof -i :8000
 
-# 학습 로그
-tail -f runs/train/engineering_drawings/results.txt
+# 프로세스 종료
+sudo kill -9 <PID>
 ```
 
-**API 문서**:
-- Swagger: http://localhost:5005/docs
-- ReDoc: http://localhost:5005/redoc
+## 📊 시스템 상태 모니터링
+
+### 실시간 로그 확인
+
+```bash
+# 전체 시스템
+docker-compose logs -f
+
+# 특정 서비스만
+docker-compose logs -f gateway-api
+```
+
+### 리소스 사용량
+
+```bash
+docker stats
+```
+
+### 컨테이너 상태
+
+```bash
+docker-compose ps
+```
+
+## 🛑 시스템 중지
+
+```bash
+# 컨테이너 중지 (데이터 보존)
+docker-compose stop
+
+# 컨테이너 삭제 (데이터 보존)
+docker-compose down
+
+# 완전 삭제 (볼륨까지)
+docker-compose down -v
+```
+
+## 🔄 시스템 재시작
+
+```bash
+# 중지 후 재시작
+docker-compose restart
+
+# 특정 서비스만 재시작
+docker-compose restart gateway-api
+```
+
+## 📚 다음 단계
+
+1. **API 문서 탐색**: `http://localhost:8000/docs`
+2. **개별 README 읽기**:
+   - `edocr2-api/README.md`
+   - `edgnet-api/README.md`
+   - `skinmodel-api/README.md`
+   - `gateway-api/README.md`
+3. **Python/JavaScript 클라이언트 작성**: 각 README의 예제 코드 참고
+4. **실제 도면으로 테스트**: 자체 도면 파일 업로드
+
+## ⚡ 빠른 명령어 모음
+
+```bash
+# 시스템 시작
+docker-compose up -d
+
+# 상태 확인
+curl http://localhost:8000/api/v1/health
+
+# 테스트
+./test_apis.sh
+
+# 로그 확인
+docker-compose logs -f
+
+# 중지
+docker-compose stop
+
+# 재시작
+docker-compose restart
+```
+
+## 💡 팁
+
+1. **처음 빌드는 시간이 걸립니다** (5-10분): 캐시 후에는 빠름
+2. **모든 서비스가 healthy 상태**가 될 때까지 기다리세요
+3. **샘플 도면으로 먼저 테스트**해보세요
+4. **Swagger UI**에서 대화형으로 API 테스트 가능
+
+## 🆘 도움이 필요하신가요?
+
+- **문서**: 각 서비스 디렉토리의 `README.md` 파일
+- **트러블슈팅**: `docs/TROUBLESHOOTING.md` 참조
 
 ---
 
-**작성자**: Claude 3.7 Sonnet
-**최종 업데이트**: 2025-10-31
+**준비 완료!** 🎉
 
-**핵심 메시지**:
-> 5분 만에 프로토타입 테스트 가능!
-> 사전 학습 모델로 즉시 시작하세요. 🚀
+이제 `docker-compose up -d` 명령어 하나로 전체 시스템을 실행하고,
+브라우저에서 `http://localhost:8000/docs`를 열어 API를 탐색할 수 있습니다.

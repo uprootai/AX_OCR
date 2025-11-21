@@ -58,6 +58,7 @@ from services import (
     call_edgnet_segment, call_skinmodel_tolerance,
     process_yolo_crop_ocr, ensemble_ocr_results, calculate_quote
 )
+from api_registry import get_api_registry, APIMetadata
 
 # Logging setup
 logging.basicConfig(
@@ -868,6 +869,61 @@ async def root():
         "services": services
     }
 
+
+# =====================
+# Startup/Shutdown Events
+# =====================
+
+@app.on_event("startup")
+async def startup_event():
+    """서버 시작 시 API 자동 검색 및 헬스체크 시작"""
+    logger.info("=" * 70)
+    logger.info("🚀 Gateway API 시작")
+    logger.info("=" * 70)
+
+    registry = get_api_registry()
+
+    # API 자동 검색 (Docker 네트워크 내부 + localhost)
+    logger.info("🔍 API 자동 검색 시작...")
+
+    # Docker 컨테이너 이름으로 검색
+    docker_hosts = [
+        "yolo-api",
+        "paddleocr-api",
+        "edocr2-v2-api",
+        "edgnet-api",
+        "skinmodel-api",
+    ]
+
+    # Localhost에서도 검색
+    await registry.discover_apis(host="localhost")
+
+    # Docker 네트워크에서도 검색
+    for host in docker_hosts:
+        try:
+            apis = await registry.discover_apis(host=host)
+            if apis:
+                logger.info(f"✅ {host}에서 {len(apis)}개 API 발견")
+        except Exception as e:
+            logger.debug(f"⚠️ {host} 검색 실패: {e}")
+
+    # 백그라운드 헬스체크 시작
+    registry.start_health_check_background()
+
+    logger.info("=" * 70)
+    logger.info(f"✅ Gateway API 준비 완료 (등록된 API: {len(registry.get_all_apis())}개)")
+    logger.info("=" * 70)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """서버 종료"""
+    logger.info("🛑 Gateway API 종료")
+
+
+# =====================
+# Health Check
+# =====================
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
@@ -2030,6 +2086,253 @@ async def workflow_health():
             "conditional_branching": False,  # Phase 2에서 구현 예정
             "loop_execution": False,  # Phase 2에서 구현 예정
         }
+    }
+
+
+# =====================
+# API Config Management
+# =====================
+
+from blueprintflow.api_config_manager import get_api_config_manager
+
+
+@app.get("/api/v1/api-configs")
+async def get_api_configs():
+    """모든 Custom API 설정 조회"""
+    manager = get_api_config_manager()
+    configs = manager.get_all_configs()
+
+    return {
+        "status": "success",
+        "configs": list(configs.values()),
+        "count": len(configs)
+    }
+
+
+@app.get("/api/v1/api-configs/{api_id}")
+async def get_api_config(api_id: str):
+    """특정 Custom API 설정 조회"""
+    manager = get_api_config_manager()
+    config = manager.get_config(api_id)
+
+    if not config:
+        raise HTTPException(status_code=404, detail=f"API Config not found: {api_id}")
+
+    return {
+        "status": "success",
+        "config": config
+    }
+
+
+@app.post("/api/v1/api-configs")
+async def create_api_config(config: Dict[str, Any]):
+    """새 Custom API 설정 추가"""
+    manager = get_api_config_manager()
+
+    if not config.get("id"):
+        raise HTTPException(status_code=400, detail="API Config must have an id")
+
+    success = manager.add_config(config)
+
+    if not success:
+        raise HTTPException(status_code=400, detail=f"API Config already exists: {config.get('id')}")
+
+    return {
+        "status": "success",
+        "message": f"API Config added: {config.get('id')}",
+        "config": config
+    }
+
+
+@app.put("/api/v1/api-configs/{api_id}")
+async def update_api_config(api_id: str, updates: Dict[str, Any]):
+    """Custom API 설정 업데이트"""
+    manager = get_api_config_manager()
+
+    success = manager.update_config(api_id, updates)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"API Config not found: {api_id}")
+
+    return {
+        "status": "success",
+        "message": f"API Config updated: {api_id}"
+    }
+
+
+@app.delete("/api/v1/api-configs/{api_id}")
+async def delete_api_config(api_id: str):
+    """Custom API 설정 삭제"""
+    manager = get_api_config_manager()
+
+    success = manager.delete_config(api_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"API Config not found: {api_id}")
+
+    return {
+        "status": "success",
+        "message": f"API Config deleted: {api_id}"
+    }
+
+
+@app.post("/api/v1/api-configs/{api_id}/toggle")
+async def toggle_api_config(api_id: str):
+    """Custom API 활성화/비활성화 토글"""
+    manager = get_api_config_manager()
+
+    success = manager.toggle_enabled(api_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"API Config not found: {api_id}")
+
+    config = manager.get_config(api_id)
+
+    return {
+        "status": "success",
+        "message": f"API Config toggled: {api_id}",
+        "enabled": config.get("enabled", True)
+    }
+
+
+# =====================
+# API Registry Endpoints (자동 검색 시스템)
+# =====================
+
+@app.get("/api/v1/registry/discover")
+async def discover_apis(host: str = "localhost"):
+    """
+    API 자동 검색
+
+    네트워크에서 /api/v1/info 엔드포인트를 제공하는 API를 자동으로 검색합니다.
+
+    Args:
+        host: 검색할 호스트 (기본: localhost)
+
+    Returns:
+        발견된 API 목록
+    """
+    registry = get_api_registry()
+
+    discovered = await registry.discover_apis(host=host)
+
+    return {
+        "status": "success",
+        "host": host,
+        "discovered_count": len(discovered),
+        "apis": [api.dict() for api in discovered]
+    }
+
+
+@app.get("/api/v1/registry/list")
+async def list_registered_apis():
+    """
+    등록된 모든 API 목록 조회
+
+    Returns:
+        등록된 API 목록 (상태 정보 포함)
+    """
+    registry = get_api_registry()
+    apis = registry.get_all_apis()
+
+    return {
+        "status": "success",
+        "total_count": len(apis),
+        "apis": [api.dict() for api in apis]
+    }
+
+
+@app.get("/api/v1/registry/healthy")
+async def get_healthy_apis():
+    """
+    Healthy 상태인 API만 조회
+
+    Returns:
+        Healthy 상태의 API 목록
+    """
+    registry = get_api_registry()
+    apis = registry.get_healthy_apis()
+
+    return {
+        "status": "success",
+        "count": len(apis),
+        "apis": [api.dict() for api in apis]
+    }
+
+
+@app.get("/api/v1/registry/category/{category}")
+async def get_apis_by_category(category: str):
+    """
+    카테고리별 API 목록 조회
+
+    Args:
+        category: API 카테고리 (detection, ocr, segmentation, prediction 등)
+
+    Returns:
+        해당 카테고리의 API 목록
+    """
+    registry = get_api_registry()
+    apis = registry.get_apis_by_category(category)
+
+    return {
+        "status": "success",
+        "category": category,
+        "count": len(apis),
+        "apis": [api.dict() for api in apis]
+    }
+
+
+@app.post("/api/v1/registry/health-check")
+async def trigger_health_check():
+    """
+    모든 등록된 API의 헬스체크 즉시 실행
+
+    Returns:
+        헬스체크 결과
+    """
+    registry = get_api_registry()
+    await registry.check_all_health()
+
+    apis = registry.get_all_apis()
+    healthy_count = len(registry.get_healthy_apis())
+
+    return {
+        "status": "success",
+        "total_apis": len(apis),
+        "healthy_apis": healthy_count,
+        "unhealthy_apis": len(apis) - healthy_count,
+        "apis": [
+            {
+                "id": api.id,
+                "name": api.display_name,
+                "status": api.status,
+                "last_check": api.last_check.isoformat() if api.last_check else None
+            }
+            for api in apis
+        ]
+    }
+
+
+@app.get("/api/v1/registry/{api_id}")
+async def get_api_info(api_id: str):
+    """
+    특정 API 정보 조회
+
+    Args:
+        api_id: API ID
+
+    Returns:
+        API 메타데이터
+    """
+    registry = get_api_registry()
+    api = registry.get_api(api_id)
+
+    if not api:
+        raise HTTPException(status_code=404, detail=f"API not found: {api_id}")
+
+    return {
+        "status": "success",
+        "api": api.dict()
     }
 
 

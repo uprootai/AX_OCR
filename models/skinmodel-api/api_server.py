@@ -22,7 +22,11 @@ from models.schemas import (
     ToleranceResponse,
     GDTValidateRequest,
     GDTValidateResponse,
-    MaterialInput
+    MaterialInput,
+    APIInfoResponse,
+    ParameterSchema,
+    IOSchema,
+    BlueprintFlowMetadata
 )
 
 # Import services
@@ -114,6 +118,103 @@ async def health_check():
         "version": "1.0.0",
         "timestamp": datetime.now().isoformat()
     }
+
+
+@app.get("/api/v1/info", response_model=APIInfoResponse)
+async def get_api_info():
+    """
+    API 메타데이터 엔드포인트
+
+    BlueprintFlow 및 Dashboard에서 API를 자동으로 등록하기 위한 메타데이터를 제공합니다.
+    """
+    port = int(os.getenv("SKINMODEL_PORT", 5003))
+    return APIInfoResponse(
+        id="skinmodel",
+        name="SkinModel API",
+        display_name="SkinModel 공차 예측",
+        version="1.0.0",
+        description="FEM 기반 기하공차 예측 및 제조 가능성 분석 API",
+        openapi_url="/openapi.json",
+        base_url=f"http://localhost:{port}",
+        endpoint="/api/v1/tolerance",
+        method="POST",
+        requires_image=False,
+        inputs=[
+            IOSchema(
+                name="dimensions",
+                type="array",
+                description="치수 정보 리스트 (type, value, tolerance, unit)",
+                required=True
+            ),
+            IOSchema(
+                name="material",
+                type="object",
+                description="재질 정보 (name, youngs_modulus, poisson_ratio, density) 또는 문자열 (aluminum/steel/stainless/titanium/plastic)",
+                required=True
+            )
+        ],
+        outputs=[
+            IOSchema(
+                name="tolerance_prediction",
+                type="object",
+                description="예측된 공차 값 (flatness, cylindricity, position, perpendicularity)"
+            ),
+            IOSchema(
+                name="manufacturability",
+                type="object",
+                description="제조 가능성 평가 (score, difficulty, recommendations)"
+            ),
+            IOSchema(
+                name="assemblability",
+                type="object",
+                description="조립 가능성 평가 (score, clearance, interference_risk)"
+            ),
+            IOSchema(
+                name="processing_time",
+                type="float",
+                description="처리 시간 (초)"
+            )
+        ],
+        parameters=[
+            ParameterSchema(
+                name="manufacturing_process",
+                type="select",
+                default="machining",
+                description="제조 공정 선택",
+                required=False,
+                options=["machining", "casting", "3d_printing", "welding", "sheet_metal"]
+            ),
+            ParameterSchema(
+                name="correlation_length",
+                type="number",
+                default=1.0,
+                description="Random Field 상관 길이 (표면 거칠기 영향)",
+                required=False,
+                min=0.1,
+                max=10.0,
+                step=0.1
+            ),
+            ParameterSchema(
+                name="task",
+                type="select",
+                default="tolerance",
+                description="분석 작업 선택",
+                required=False,
+                options=["tolerance", "validate", "manufacturability"]
+            )
+        ],
+        blueprintflow=BlueprintFlowMetadata(
+            icon="📐",
+            color="#ef4444",
+            category="prediction"
+        ),
+        output_mappings={
+            "tolerance_prediction": "data.tolerance_prediction",
+            "manufacturability": "data.manufacturability",
+            "assemblability": "data.assemblability",
+            "processing_time": "processing_time"
+        }
+    )
 
 
 @app.post("/api/v1/tolerance", response_model=ToleranceResponse)

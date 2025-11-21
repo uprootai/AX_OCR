@@ -57,13 +57,30 @@ class ExecutorRegistry:
             실행기 인스턴스
 
         Raises:
-            ValueError: 등록되지 않은 노드 타입
+            ValueError: 등록되지 않은 노드 타입이고 Custom API Config도 없는 경우
         """
         executor_class = cls.get(node_type)
-        if executor_class is None:
-            raise ValueError(
-                f"알 수 없는 노드 타입: {node_type}. "
-                f"등록된 타입: {', '.join(cls.get_all_types())}"
-            )
 
-        return executor_class(node_id, node_type, parameters)
+        # 등록된 executor가 있으면 사용
+        if executor_class is not None:
+            return executor_class(node_id, node_type, parameters)
+
+        # 등록된 executor가 없으면 Custom API인지 확인
+        logger.info(f"등록되지 않은 노드 타입: {node_type}, Custom API 확인 중...")
+
+        from ..api_config_manager import get_api_config_manager
+        from .generic_api_executor import create_generic_executor
+
+        api_config_manager = get_api_config_manager()
+        api_config = api_config_manager.get_config(node_type)
+
+        if api_config is not None:
+            # Custom API인 경우 GenericAPIExecutor 사용
+            logger.info(f"Custom API 발견: {node_type}, GenericAPIExecutor 사용")
+            return create_generic_executor(node_id, node_type, parameters, api_config)
+
+        # Custom API도 아니면 에러
+        raise ValueError(
+            f"알 수 없는 노드 타입: {node_type}. "
+            f"등록된 타입: {', '.join(cls.get_all_types())}"
+        )

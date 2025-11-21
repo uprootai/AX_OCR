@@ -1,8 +1,8 @@
 # 🎯 AX Drawing Analysis System
 
-**Version**: 2.2.0
+**Version**: 3.0
 **Status**: Production Ready ✅
-**Last Updated**: 2025-11-20
+**Last Updated**: 2025-11-21
 
 > **완전한 마이크로서비스 기반 AI 도면 분석 시스템**
 > YOLO + eDOCr2 + EDGNet + Skin Model을 활용한 기계 도면 자동 분석 및 견적 생성
@@ -18,20 +18,20 @@
 cd /home/uproot/ax/poc
 docker-compose up -d
 
-# 웹 UI 접속
-http://localhost:5173
+# 웹 UI 접속 (브라우저에서)
+open http://localhost:5173
 ```
 
 ### 2. 주요 페이지
 
 | 페이지 | URL | 설명 |
 |--------|-----|------|
-| **메인** | http://localhost:5173 | 랜딩 페이지 |
-| **🔮 BlueprintFlow** | http://localhost:5173/blueprintflow | 비주얼 워크플로우 빌더 ⭐ NEW |
-| **Gateway 테스트** | http://localhost:5173/test/gateway | 통합 파이프라인 테스트 |
-| **YOLO 테스트** | http://localhost:5173/test/yolo | YOLO 객체 검출 테스트 |
-| **OCR 테스트** | http://localhost:5173/test/edocr2 | eDOCr2 OCR 테스트 |
-| **EDGNet 테스트** | http://localhost:5173/test/edgnet | 그래프 세그멘테이션 테스트 |
+| **메인** | `http://localhost:5173` | 랜딩 페이지 |
+| **🔮 BlueprintFlow** | `http://localhost:5173/blueprintflow/builder` | 비주얼 워크플로우 빌더 ⭐ |
+| **Gateway 테스트** | `http://localhost:5173/test/gateway` | 통합 파이프라인 테스트 |
+| **YOLO 테스트** | `http://localhost:5173/test/yolo` | YOLO 객체 검출 테스트 |
+| **OCR 테스트** | `http://localhost:5173/test/edocr2` | eDOCr2 OCR 테스트 |
+| **EDGNet 테스트** | `http://localhost:5173/test/edgnet` | 그래프 세그멘테이션 테스트 |
 
 ---
 
@@ -352,11 +352,12 @@ http://localhost:5173
 - Tailwind CSS: 스타일링
 - react-i18next: 다국어
 
-**접속**: http://localhost:5173/blueprintflow/builder
+**접속**: `http://localhost:5173/blueprintflow/builder`
 
 **관련 문서**:
-- [BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md](docs/BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md)
-- [HYBRID_VS_FULL_BLUEPRINTFLOW_COMPARISON.md](docs/HYBRID_VS_FULL_BLUEPRINTFLOW_COMPARISON.md)
+- [BlueprintFlow 아키텍처](docs/BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md)
+- [BlueprintFlow 가이드](docs/blueprintflow/README.md)
+- [API 통합 가이드](docs/BLUEPRINTFLOW_API_INTEGRATION_GUIDE.md)
 
 ### 1. 파이프라인 시각화 시스템 ⭐ (2025-11-19)
 
@@ -437,8 +438,8 @@ cd models/paddleocr-api
 # 단독 실행
 docker-compose -f docker-compose.single.yml up -d
 
-# API 문서 확인
-http://localhost:5006/docs
+# API 문서 확인 (브라우저에서)
+open http://localhost:5006/docs
 ```
 
 ### Docker Image 배포
@@ -555,14 +556,14 @@ python3 scripts/tests/test_pid_ocr.py
   - [x] Delete 키 개별 삭제
   - [x] 선택 시각 피드백 (테두리 강조)
 
-### 🔄 In Progress (Phase 4)
+### ✅ Completed (Phase 4-5)
 
-- [ ] BlueprintFlow 백엔드 파이프라인 엔진
-- [ ] 워크플로우 실행 및 결과 시각화
-- [ ] EDGNet 대규모 학습 (25KB → 500MB+ 모델)
-- [ ] YOLO 커스텀 데이터셋 학습
+- [x] BlueprintFlow 백엔드 파이프라인 엔진
+- [x] 워크플로우 실행 및 결과 시각화
+- [x] Dynamic API 시스템
+- [x] Control Flow 노드 (IF, Loop, Merge)
 
-### 📋 Planned (Phase 5+)
+### 📋 Planned (Future)
 
 - [ ] VL API 통합 완료 (API 키 설정)
 - [ ] RESTful API 문서 자동 생성 (Swagger/OpenAPI)
@@ -651,4 +652,4 @@ Proprietary - AX Project (2025)
 
 ---
 
-**Ready to start?** Run `docker-compose up -d` and visit http://localhost:5173 🚀
+**Ready to start?** Run `docker-compose up -d` and visit `http://localhost:5173` 🚀

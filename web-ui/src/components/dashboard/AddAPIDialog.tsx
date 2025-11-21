@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, AlertCircle } from 'lucide-react';
+import { X, Plus, AlertCircle, Search, CheckCircle, Loader2 } from 'lucide-react';
 import { useAPIConfigStore, type APIConfig } from '../../store/apiConfigStore';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -40,8 +40,70 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [searchUrl, setSearchUrl] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchSuccess, setSearchSuccess] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   if (!isOpen) return null;
+
+  /**
+   * API 자동 검색 - /api/v1/info 엔드포인트에서 메타데이터 가져오기
+   */
+  const handleAutoDiscover = async () => {
+    if (!searchUrl) {
+      setSearchError('URL을 입력해주세요');
+      return;
+    }
+
+    if (!/^https?:\/\/.+/.test(searchUrl)) {
+      setSearchError('올바른 URL 형식이 아닙니다 (http:// 또는 https://로 시작)');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError('');
+    setSearchSuccess(false);
+
+    try {
+      // 1. /api/v1/info 엔드포인트 호출
+      const infoUrl = `${searchUrl}/api/v1/info`;
+      const response = await fetch(infoUrl);
+
+      if (!response.ok) {
+        throw new Error(`API 정보를 가져올 수 없습니다 (HTTP ${response.status})`);
+      }
+
+      const apiInfo = await response.json();
+
+      // 2. 폼 데이터 자동 채우기
+      const urlObj = new URL(searchUrl);
+      const port = parseInt(urlObj.port) || (urlObj.protocol === 'https:' ? 443 : 80);
+
+      setFormData({
+        id: apiInfo.id || '',
+        name: apiInfo.name || '',
+        displayName: apiInfo.display_name || apiInfo.displayName || '',
+        baseUrl: searchUrl,
+        port: port,
+        icon: apiInfo.blueprintflow?.icon || '🏷️',
+        color: apiInfo.blueprintflow?.color || '#a855f7',
+        category: apiInfo.blueprintflow?.category === 'control' ? 'control' : 'api',
+        description: apiInfo.description || '',
+        enabled: true,
+      });
+
+      setSearchSuccess(true);
+      setSearchError('');
+
+    } catch (error) {
+      console.error('API 자동 검색 실패:', error);
+      setSearchError(error instanceof Error ? error.message : 'API 정보를 가져오는데 실패했습니다');
+      setSearchSuccess(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -179,7 +241,65 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
             </div>
           </div>
 
-          {/* Form */}
+          {/* Auto Discover Section */}
+          <div className="mb-6 p-4 bg-primary/5 border-2 border-primary/20 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Search className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-primary">🚀 API 자동 검색</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              API URL을 입력하면 자동으로 정보를 가져옵니다 (예: http://localhost:5005)
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={searchUrl}
+                onChange={(e) => {
+                  setSearchUrl(e.target.value);
+                  setSearchError('');
+                  setSearchSuccess(false);
+                }}
+                placeholder="http://localhost:5009"
+                className="flex-1 px-3 py-2 border rounded-lg bg-background"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAutoDiscover();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleAutoDiscover}
+                disabled={isSearching || !searchUrl}
+                className="px-4"
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    검색 중...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    검색
+                  </>
+                )}
+              </Button>
+            </div>
+            {searchError && (
+              <div className="mt-2 p-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded text-sm text-red-600 dark:text-red-400 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{searchError}</span>
+              </div>
+            )}
+            {searchSuccess && (
+              <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                <span>✅ API 정보를 성공적으로 가져왔습니다! 아래 내용을 확인하고 저장하세요.</span>
+              </div>
+            )}
+          </div>
+
+          {/* Manual Form */}
           <div className="space-y-4">
             {/* API ID */}
             <div>

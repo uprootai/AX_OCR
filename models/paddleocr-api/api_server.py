@@ -11,7 +11,10 @@ from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 
-from models.schemas import OCRResponse, HealthResponse
+from models.schemas import (
+    OCRResponse, HealthResponse,
+    APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
+)
 from services.ocr import PaddleOCRService
 from utils.helpers import image_to_numpy
 
@@ -89,6 +92,101 @@ async def health_check():
         gpu_available=USE_GPU,
         model_loaded=ocr_service is not None and ocr_service.model is not None,
         lang=LANG
+    )
+
+
+@app.get("/api/v1/info", response_model=APIInfoResponse)
+async def get_api_info():
+    """
+    API 메타데이터 엔드포인트
+
+    BlueprintFlow 및 Dashboard에서 API를 자동으로 등록하기 위한 메타데이터를 제공합니다.
+    """
+    return APIInfoResponse(
+        id="paddleocr",
+        name="PaddleOCR API",
+        display_name="PaddleOCR 텍스트 인식",
+        version="1.0.0",
+        description="PaddlePaddle 기반 도면 텍스트 인식 API",
+        openapi_url="/openapi.json",
+        base_url=f"http://localhost:{PORT}",
+        endpoint="/api/v1/ocr",
+        method="POST",
+        requires_image=True,
+        inputs=[
+            IOSchema(
+                name="file",
+                type="file",
+                description="분석할 도면 이미지 파일",
+                required=True
+            )
+        ],
+        outputs=[
+            IOSchema(
+                name="detections",
+                type="array",
+                description="검출된 텍스트 목록 (각 텍스트는 text, confidence, bbox, position 포함)"
+            ),
+            IOSchema(
+                name="total_texts",
+                type="integer",
+                description="총 검출된 텍스트 개수"
+            ),
+            IOSchema(
+                name="processing_time",
+                type="float",
+                description="처리 시간 (초)"
+            )
+        ],
+        parameters=[
+            ParameterSchema(
+                name="det_db_thresh",
+                type="number",
+                default=0.3,
+                description="텍스트 검출 임계값 (낮을수록 더 많이 검출)",
+                required=False,
+                min=0.0,
+                max=1.0,
+                step=0.05
+            ),
+            ParameterSchema(
+                name="det_db_box_thresh",
+                type="number",
+                default=0.5,
+                description="박스 임계값 (높을수록 정확한 박스만)",
+                required=False,
+                min=0.0,
+                max=1.0,
+                step=0.05
+            ),
+            ParameterSchema(
+                name="use_angle_cls",
+                type="boolean",
+                default=True,
+                description="회전된 텍스트 감지 사용",
+                required=False
+            ),
+            ParameterSchema(
+                name="min_confidence",
+                type="number",
+                default=0.5,
+                description="최소 신뢰도 필터 (이 값 이하는 제거)",
+                required=False,
+                min=0.0,
+                max=1.0,
+                step=0.05
+            )
+        ],
+        blueprintflow=BlueprintFlowMetadata(
+            icon="📝",
+            color="#10b981",
+            category="ocr"
+        ),
+        output_mappings={
+            "detections": "detections",
+            "total_texts": "total_texts",
+            "processing_time": "processing_time"
+        }
     )
 
 

@@ -29,7 +29,11 @@ from trained_models.schemas import (
 )
 from models.schemas import (
     UNetSegmentRequest,
-    UNetSegmentResponse
+    UNetSegmentResponse,
+    APIInfoResponse,
+    ParameterSchema,
+    IOSchema,
+    BlueprintFlowMetadata
 )
 from services.inference import (
     EDGNetInferenceService,
@@ -207,6 +211,108 @@ async def health_check():
         "version": "1.0.0",
         "timestamp": datetime.now().isoformat()
     }
+
+
+@app.get("/api/v1/info", response_model=APIInfoResponse)
+async def get_api_info():
+    """
+    API 메타데이터 엔드포인트
+
+    BlueprintFlow 및 Dashboard에서 API를 자동으로 등록하기 위한 메타데이터를 제공합니다.
+    """
+    port = int(os.getenv("EDGNET_PORT", 5012))
+    return APIInfoResponse(
+        id="edgnet",
+        name="EDGNet API",
+        display_name="EDGNet 세그멘테이션",
+        version="1.0.0",
+        description="Engineering Drawing Graph Neural Network - 도면 컴포넌트 세그멘테이션 API",
+        openapi_url="/openapi.json",
+        base_url=f"http://localhost:{port}",
+        endpoint="/api/v1/segment",
+        method="POST",
+        requires_image=True,
+        inputs=[
+            IOSchema(
+                name="file",
+                type="file",
+                description="분석할 도면 이미지 파일 (PNG, JPG, TIFF, BMP)",
+                required=True
+            )
+        ],
+        outputs=[
+            IOSchema(
+                name="segments",
+                type="array",
+                description="세그멘테이션된 컴포넌트 목록 (Contour/Text/Dimension 분류)"
+            ),
+            IOSchema(
+                name="classification_stats",
+                type="object",
+                description="클래스별 컴포넌트 개수 통계"
+            ),
+            IOSchema(
+                name="visualized_image",
+                type="string",
+                description="세그멘테이션 결과 시각화 이미지 (base64)"
+            ),
+            IOSchema(
+                name="processing_time",
+                type="float",
+                description="처리 시간 (초)"
+            )
+        ],
+        parameters=[
+            ParameterSchema(
+                name="model",
+                type="select",
+                default="graphsage",
+                description="세그멘테이션 모델 선택",
+                required=False,
+                options=["graphsage", "unet"]
+            ),
+            ParameterSchema(
+                name="visualize",
+                type="boolean",
+                default=True,
+                description="세그멘테이션 결과 시각화 생성",
+                required=False
+            ),
+            ParameterSchema(
+                name="num_classes",
+                type="select",
+                default="3",
+                description="분류 클래스 수 (2: Text/Non-text, 3: Contour/Text/Dimension)",
+                required=False,
+                options=["2", "3"]
+            ),
+            ParameterSchema(
+                name="save_graph",
+                type="boolean",
+                default=False,
+                description="그래프 구조 JSON 저장 (GraphSAGE만)",
+                required=False
+            ),
+            ParameterSchema(
+                name="vectorize",
+                type="boolean",
+                default=False,
+                description="도면 벡터화 (Bezier 곡선, DXF 출력용)",
+                required=False
+            )
+        ],
+        blueprintflow=BlueprintFlowMetadata(
+            icon="🎨",
+            color="#f59e0b",
+            category="segmentation"
+        ),
+        output_mappings={
+            "segments": "data.segments",
+            "classification_stats": "data.classification_stats",
+            "visualized_image": "data.visualized_image",
+            "processing_time": "processing_time"
+        }
+    )
 
 
 @app.post("/api/v1/segment", response_model=SegmentResponse)

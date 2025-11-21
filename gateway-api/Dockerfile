@@ -18,7 +18,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY api_server.py pdf_generator.py cost_estimator.py .
+COPY api_server.py api_registry.py pdf_generator.py cost_estimator.py .
 
 # Copy refactored modules
 COPY models/ ./models/

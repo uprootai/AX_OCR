@@ -18,7 +18,10 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from models.schemas import HealthResponse, OCRResponse
+from models.schemas import (
+    HealthResponse, OCRResponse,
+    APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
+)
 from services.ocr_processor import load_models, get_processor
 from utils.helpers import allowed_file, cleanup_old_files
 
@@ -89,6 +92,7 @@ async def root():
     }
 
 
+@app.get("/api/v1/health", response_model=HealthResponse)
 @app.get("/api/v2/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint"""
@@ -98,6 +102,113 @@ async def health_check():
         "version": "1.0.0",
         "timestamp": datetime.now().isoformat()
     }
+
+
+@app.get("/api/v1/info", response_model=APIInfoResponse)
+async def get_api_info():
+    """
+    API 메타데이터 엔드포인트
+
+    BlueprintFlow 및 Dashboard에서 API를 자동으로 등록하기 위한 메타데이터를 제공합니다.
+    """
+    port = int(os.getenv("EDOCR2_PORT", 5002))
+    return APIInfoResponse(
+        id="edocr2-v2",
+        name="eDOCr2 v2 API",
+        display_name="eDOCr2 v2 OCR",
+        version="2.0.0",
+        description="Engineering Drawing OCR - 치수/GD&T/텍스트 추출 전문 API",
+        openapi_url="/openapi.json",
+        base_url=f"http://localhost:{port}",
+        endpoint="/api/v2/ocr",
+        method="POST",
+        requires_image=True,
+        inputs=[
+            IOSchema(
+                name="file",
+                type="file",
+                description="분석할 도면 이미지 파일 (PDF, PNG, JPG, JPEG, TIFF)",
+                required=True
+            )
+        ],
+        outputs=[
+            IOSchema(
+                name="dimensions",
+                type="array",
+                description="추출된 치수 정보 목록"
+            ),
+            IOSchema(
+                name="gdt_symbols",
+                type="array",
+                description="추출된 GD&T 심볼 목록"
+            ),
+            IOSchema(
+                name="text_blocks",
+                type="array",
+                description="추출된 텍스트 블록 목록"
+            ),
+            IOSchema(
+                name="processing_time",
+                type="float",
+                description="처리 시간 (초)"
+            )
+        ],
+        parameters=[
+            ParameterSchema(
+                name="extract_dimensions",
+                type="boolean",
+                default=True,
+                description="치수 정보 추출 활성화",
+                required=False
+            ),
+            ParameterSchema(
+                name="extract_gdt",
+                type="boolean",
+                default=True,
+                description="GD&T 정보 추출 활성화",
+                required=False
+            ),
+            ParameterSchema(
+                name="extract_text",
+                type="boolean",
+                default=True,
+                description="텍스트 정보 추출 활성화",
+                required=False
+            ),
+            ParameterSchema(
+                name="use_vl_model",
+                type="boolean",
+                default=False,
+                description="Vision Language 모델 사용 (더 정확하지만 느림)",
+                required=False
+            ),
+            ParameterSchema(
+                name="visualize",
+                type="boolean",
+                default=False,
+                description="결과 시각화 이미지 생성",
+                required=False
+            ),
+            ParameterSchema(
+                name="use_gpu_preprocessing",
+                type="boolean",
+                default=False,
+                description="GPU 전처리 사용 (CLAHE, 노이즈 제거)",
+                required=False
+            )
+        ],
+        blueprintflow=BlueprintFlowMetadata(
+            icon="📄",
+            color="#8b5cf6",
+            category="ocr"
+        ),
+        output_mappings={
+            "dimensions": "data.dimensions",
+            "gdt_symbols": "data.gdt_symbols",
+            "text_blocks": "data.text_blocks",
+            "processing_time": "processing_time"
+        }
+    )
 
 
 @app.post("/api/v2/ocr", response_model=OCRResponse)

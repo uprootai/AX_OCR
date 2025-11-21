@@ -23,63 +23,32 @@
 ### 1.1. Python 버전 불일치
 
 **증상**:
-```
-ERROR: Python 3.12 is not supported
-```
+"ERROR: Python 3.12 is not supported" 오류 메시지가 표시됩니다.
 
-**원인**: Ultralytics는 Python 3.8-3.11만 지원
+**원인**: Ultralytics 라이브러리는 Python 3.8-3.11만 지원합니다.
 
 **해결**:
-```bash
-# pyenv로 Python 3.10 설치
-pyenv install 3.10.12
-pyenv local 3.10.12
-
-# 또는 conda 사용
-conda create -n yolo python=3.10
-conda activate yolo
-```
+pyenv를 사용하여 Python 3.10.12 버전을 설치하고 로컬 환경으로 설정합니다. 또는 conda를 사용하여 Python 3.10 환경을 새로 생성할 수도 있습니다.
 
 ---
 
 ### 1.2. 의존성 충돌
 
 **증상**:
-```
-ERROR: Cannot install ultralytics and opencv-python
-```
+"ERROR: Cannot install ultralytics and opencv-python" 메시지가 표시됩니다.
 
 **해결**:
-```bash
-# 가상환경 재생성
-rm -rf venv
-python3.10 -m venv venv
-source venv/bin/activate
-
-# 순서대로 설치
-pip install --upgrade pip
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-pip install ultralytics
-```
+기존 가상환경을 완전히 삭제하고 Python 3.10으로 새로운 가상환경을 생성합니다. 그 다음 pip를 최신 버전으로 업그레이드하고, PyTorch와 torchvision을 CUDA 11.8 인덱스에서 설치한 후, 마지막으로 Ultralytics를 설치합니다. 이 순서를 지키는 것이 중요합니다.
 
 ---
 
 ### 1.3. 권한 문제
 
 **증상**:
-```bash
-Permission denied: '/home/uproot/ax/poc/datasets'
-```
+"Permission denied: '/home/uproot/ax/poc/datasets'" 오류가 발생합니다.
 
 **해결**:
-```bash
-# 디렉토리 권한 확인
-ls -la datasets/
-
-# 권한 부여
-chmod -R 755 datasets/
-chown -R $USER:$USER datasets/
-```
+먼저 datasets 디렉토리의 현재 권한 상태를 확인합니다. 그 다음 디렉토리에 읽기/쓰기/실행 권한(755)을 부여하고, 소유권을 현재 사용자로 변경합니다.
 
 ---
 
@@ -88,133 +57,80 @@ chown -R $USER:$USER datasets/
 ### 2.1. CUDA Out of Memory
 
 **증상**:
-```
-RuntimeError: CUDA out of memory. Tried to allocate 1.5 GB
-```
+"RuntimeError: CUDA out of memory. Tried to allocate 1.5 GB" 오류가 발생합니다.
 
 **원인**: GPU VRAM 부족
 
 **해결 1: 배치 크기 줄이기**
-```bash
-python scripts/train_yolo.py \
-    --batch 8 \  # 16 → 8로 줄임
-    --imgsz 1280  # 또는 이미지 크기 줄이기
-```
+학습 스크립트 실행 시 배치 크기를 16에서 8로 줄이거나, 이미지 크기를 1280으로 감소시킵니다. 이렇게 하면 메모리 사용량이 크게 줄어듭니다.
 
 **해결 2: 작은 모델 사용**
-```bash
-python scripts/train_yolo.py \
-    --model-size n  # nano 사용 (n < s < m < l)
-```
+모델 크기를 nano(n) 버전으로 변경합니다. 모델 크기는 n < s < m < l 순서로 커지며, 작은 모델일수록 메모리를 적게 사용합니다.
 
 **해결 3: CPU 학습**
-```bash
-python scripts/train_yolo.py \
-    --device cpu
-```
+GPU가 부족한 경우 device를 cpu로 설정하여 학습할 수 있습니다. 속도는 느리지만 메모리 제약이 없습니다.
 
 ---
 
 ### 2.2. 학습이 너무 느림
 
-**증상**: 1 epoch에 30분 이상 소요
+**증상**: 1 epoch에 30분 이상 소요됩니다.
 
 **확인**:
-```python
-import torch
-print(torch.cuda.is_available())  # True여야 함
-print(torch.cuda.get_device_name(0))
-```
+Python에서 torch.cuda.is_available()과 torch.cuda.get_device_name()을 실행하여 GPU가 인식되는지 확인합니다. 첫 번째 명령어는 True를 반환해야 하고, 두 번째 명령어는 GPU 이름을 표시해야 합니다.
 
 **해결 1: GPU 사용 확인**
-```bash
-# GPU 사용 중인지 확인
-nvidia-smi
-
-# GPU 강제 사용
-python scripts/train_yolo.py --device 0
-```
+nvidia-smi 명령어로 GPU가 실제로 사용되고 있는지 확인합니다. GPU 사용을 강제하려면 스크립트 실행 시 --device 0 옵션을 추가합니다.
 
 **해결 2: 데이터 로딩 최적화**
-```bash
-python scripts/train_yolo.py \
-    --workers 8  # CPU 코어 수에 맞게 조정
-```
+학습 스크립트에 --workers 8 옵션을 추가하여 데이터 로딩을 병렬화합니다. workers 수는 CPU 코어 수에 맞게 조정합니다.
 
 ---
 
 ### 2.3. 학습 중 중단
 
-**증상**: 학습 중 갑자기 멈춤
+**증상**: 학습 중 갑자기 프로세스가 멈춥니다.
 
 **원인 1: Timeout**
 
 **해결**:
-```bash
-# 체크포인트에서 재개
-python scripts/train_yolo.py \
-    --resume runs/train/engineering_drawings/weights/last.pt
-```
+체크포인트 파일에서 학습을 재개할 수 있습니다. 스크립트 실행 시 --resume 옵션과 함께 last.pt 체크포인트 파일 경로를 지정합니다.
 
 **원인 2: 디스크 공간 부족**
 
 **해결**:
-```bash
-# 디스크 공간 확인
-df -h
-
-# 불필요한 파일 삭제
-rm -rf runs/detect/exp*  # 이전 추론 결과 삭제
-```
+`df -h` 명령어로 디스크 여유 공간을 확인합니다. 공간이 부족하면 불필요한 파일을 삭제합니다. 예를 들어 이전 추론 결과 디렉토리를 제거할 수 있습니다.
 
 ---
 
 ### 2.4. Loss가 감소하지 않음
 
-**증상**: Loss가 계속 일정하거나 증가
+**증상**: Loss 값이 계속 일정하거나 오히려 증가합니다.
 
-**원인**: 학습률이 너무 크거나 작음
+**원인**: 학습률이 너무 크거나 작습니다.
 
 **해결**:
-```bash
-# 학습률 조정
-python scripts/train_yolo.py \
-    --lr0 0.0001  # 기본값 0.001보다 작게
-```
+학습률을 조정합니다. 기본값 0.001보다 작은 0.0001로 설정하여 더 안정적인 학습을 시도합니다.
 
 **원인 2: 데이터 문제**
 
 **확인**:
-```bash
-# 데이터셋 확인
-python -c "
-from ultralytics import YOLO
-model = YOLO('yolo11n.pt')
-model.val(data='datasets/synthetic_random/data.yaml')
-"
-```
+데이터셋 검증을 실행하여 데이터에 문제가 없는지 확인합니다. YOLO 모델의 val 메서드를 사용하여 데이터셋 구조와 라벨이 올바른지 검사할 수 있습니다.
 
 ---
 
 ### 2.5. mAP가 낮음
 
-**증상**: mAP50 < 0.3
+**증상**: mAP50 값이 0.3 미만입니다.
 
 **해결 1: 더 많은 데이터**
-```bash
-# 합성 데이터 10,000장 생성
-python scripts/generate_synthetic_random.py --count 10000
-```
+합성 데이터 생성 스크립트를 사용하여 10,000장의 학습 데이터를 추가로 생성합니다.
 
 **해결 2: 더 긴 학습**
-```bash
-python scripts/train_yolo.py --epochs 200
-```
+epoch 수를 200으로 증가시켜 모델이 충분히 학습할 수 있도록 합니다.
 
 **해결 3: 더 큰 모델**
-```bash
-python scripts/train_yolo.py --model-size m
-```
+모델 크기를 medium(m)으로 변경하여 더 많은 파라미터로 복잡한 패턴을 학습하도록 합니다.
 
 ---
 
@@ -223,105 +139,51 @@ python scripts/train_yolo.py --model-size m
 ### 3.1. 포트 이미 사용 중
 
 **증상**:
-```
-ERROR: Port 5005 is already in use
-```
+"ERROR: Port 5005 is already in use" 오류가 표시됩니다.
 
 **확인**:
-```bash
-# 포트 사용 중인 프로세스 확인
-sudo lsof -i :5005
-
-# 또는
-sudo netstat -tulpn | grep 5005
-```
+`lsof` 또는 `netstat` 명령어로 5005번 포트를 사용하는 프로세스의 PID를 확인합니다.
 
 **해결 1: 프로세스 종료**
-```bash
-# PID 확인 후 종료
-kill -9 <PID>
-```
+확인한 PID에 해당하는 프로세스를 강제 종료합니다.
 
 **해결 2: 다른 포트 사용**
-```bash
-# 환경변수 설정
-export YOLO_API_PORT=5006
-python yolo-api/api_server.py
-```
+환경 변수 YOLO_API_PORT를 5006으로 설정하고 API 서버를 시작합니다.
 
 ---
 
 ### 3.2. 모델 파일 없음
 
 **증상**:
-```
-FileNotFoundError: Model file not found: /app/models/best.pt
-```
+"FileNotFoundError: Model file not found: /app/models/best.pt" 오류가 발생합니다.
 
 **해결**:
-```bash
-# 학습된 모델 복사
-mkdir -p yolo-api/models
-cp runs/train/engineering_drawings/weights/best.pt yolo-api/models/
-
-# 또는 심볼릭 링크
-ln -s $(pwd)/runs/train/engineering_drawings/weights/best.pt yolo-api/models/best.pt
-```
+yolo-api/models 디렉토리를 생성하고 학습된 모델 파일(best.pt)을 해당 디렉토리로 복사합니다. 또는 심볼릭 링크를 생성하여 원본 파일을 참조하도록 설정할 수 있습니다.
 
 ---
 
 ### 3.3. API 응답 없음
 
-**증상**: 요청 후 응답이 없음 (타임아웃)
+**증상**: 요청 후 응답이 없고 타임아웃이 발생합니다.
 
 **확인**:
-```bash
-# API 서버 로그 확인
-tail -f yolo-api/api.log
-
-# 또는 Docker 로그
-docker logs -f yolo-api
-```
+API 서버의 로그 파일을 실시간으로 확인하여 오류 메시지를 찾습니다. Docker 환경인 경우 컨테이너 로그를 확인합니다.
 
 **해결**:
-```bash
-# 타임아웃 증가
-curl -X POST http://localhost:5005/api/v1/detect \
-  -F "file=@drawing.jpg" \
-  --max-time 300  # 5분
-```
+curl 요청 시 --max-time 옵션을 300(5분)으로 설정하여 타임아웃을 연장합니다. 대용량 이미지 처리에는 더 많은 시간이 필요할 수 있습니다.
 
 ---
 
 ### 3.4. 파일 업로드 실패
 
 **증상**:
-```json
-{
-  "error": "FILE_TOO_LARGE"
-}
-```
+JSON 응답에 "FILE_TOO_LARGE" 오류가 반환됩니다.
 
 **해결 1: 이미지 크기 줄이기**
-```bash
-# ImageMagick 사용
-convert input.jpg -resize 1920x1080 output.jpg
-
-# Python
-from PIL import Image
-img = Image.open('input.jpg')
-img.thumbnail((1920, 1080))
-img.save('output.jpg')
-```
+ImageMagick의 convert 명령어나 Python PIL 라이브러리를 사용하여 이미지를 1920x1080 크기로 리사이즈합니다. thumbnail 메서드를 사용하면 종횡비를 유지하면서 크기를 줄일 수 있습니다.
 
 **해결 2: 서버 설정 변경**
-```python
-# yolo-api/api_server.py
-app.add_middleware(
-    CORSMiddleware,
-    max_upload_size=50 * 1024 * 1024  # 50MB
-)
-```
+API 서버의 Python 코드에서 max_upload_size를 50MB(50 * 1024 * 1024 바이트)로 증가시킵니다.
 
 ---
 
@@ -330,82 +192,42 @@ app.add_middleware(
 ### 4.1. Docker 이미지 빌드 실패
 
 **증상**:
-```
-ERROR: failed to solve: process "/bin/sh -c pip install ..." did not complete
-```
+"ERROR: failed to solve: process \"/bin/sh -c pip install ...\" did not complete" 오류가 발생합니다.
 
 **해결**:
-```bash
-# 캐시 없이 재빌드
-docker build --no-cache -t yolo-api yolo-api/
-
-# 또는 buildkit 사용
-DOCKER_BUILDKIT=1 docker build -t yolo-api yolo-api/
-```
+Docker 빌드 캐시를 사용하지 않고 처음부터 다시 빌드합니다. --no-cache 옵션을 사용하거나, DOCKER_BUILDKIT=1 환경 변수를 설정하여 새로운 빌드킷을 활성화할 수 있습니다.
 
 ---
 
 ### 4.2. 컨테이너가 즉시 종료됨
 
 **증상**:
-```bash
-docker ps  # 컨테이너가 목록에 없음
-```
+`docker ps` 실행 시 컨테이너가 목록에 표시되지 않습니다.
 
 **확인**:
-```bash
-# 로그 확인
-docker logs yolo-api
-
-# 모든 컨테이너 확인 (종료된 것 포함)
-docker ps -a
-```
+해당 컨테이너의 로그를 확인하여 종료 원인을 파악합니다. `docker ps -a` 명령어로 종료된 컨테이너를 포함한 모든 컨테이너를 확인할 수 있습니다.
 
 **해결**:
-```bash
-# 인터랙티브 모드로 실행
-docker run -it yolo-api /bin/bash
-
-# 문제 확인 후 재시작
-docker restart yolo-api
-```
+인터랙티브 모드(-it 옵션)와 bash 셸로 컨테이너를 실행하여 직접 문제를 진단합니다. 문제를 해결한 후 컨테이너를 재시작합니다.
 
 ---
 
 ### 4.3. Docker Compose 실행 실패
 
 **증상**:
-```
-ERROR: Network ax_poc_network not found
-```
+"ERROR: Network ax_poc_network not found" 오류가 표시됩니다.
 
 **해결**:
-```bash
-# 네트워크 생성
-docker network create ax_poc_network
-
-# 또는 전체 재시작
-docker-compose down
-docker-compose up -d
-```
+필요한 Docker 네트워크를 수동으로 생성합니다. 또는 docker-compose를 완전히 중지했다가 다시 시작하면 필요한 네트워크가 자동으로 생성됩니다.
 
 ---
 
 ### 4.4. 볼륨 마운트 문제
 
-**증상**: 컨테이너 내에서 모델 파일 접근 불가
+**증상**: 컨테이너 내에서 모델 파일에 접근할 수 없습니다.
 
 **해결**:
-```bash
-# 절대 경로 사용
-docker run -v $(pwd)/yolo-api/models:/app/models:ro yolo-api
-
-# 권한 확인
-ls -la yolo-api/models/
-
-# SELinux가 활성화된 경우
-docker run -v $(pwd)/yolo-api/models:/app/models:ro,z yolo-api
-```
+절대 경로를 사용하여 볼륨을 마운트합니다. $(pwd) 명령어로 현재 디렉토리의 절대 경로를 얻고, :ro 옵션으로 읽기 전용 마운트를 설정합니다. 디렉토리 권한도 확인합니다. SELinux가 활성화된 시스템에서는 :ro,z 옵션을 사용하여 SELinux 컨텍스트를 자동으로 설정합니다.
 
 ---
 
@@ -413,63 +235,32 @@ docker run -v $(pwd)/yolo-api/models:/app/models:ro,z yolo-api
 
 ### 5.1. 추론이 너무 느림
 
-**증상**: 1장당 10초 이상 소요
+**증상**: 1장당 10초 이상 소요됩니다.
 
 **확인**:
-```python
-import torch
-print(torch.cuda.is_available())
-print(torch.__version__)
-```
+Python에서 torch.cuda.is_available()로 GPU 사용 가능 여부를 확인하고, torch.__version__으로 PyTorch 버전을 확인합니다.
 
 **해결 1: GPU 사용**
-```bash
-# GPU 강제 사용
-python scripts/inference_yolo.py \
-    --model best.pt \
-    --source test.jpg \
-    --device 0
-```
+추론 스크립트 실행 시 --device 0 옵션을 추가하여 GPU 0번을 강제로 사용하도록 설정합니다.
 
 **해결 2: 이미지 크기 줄이기**
-```bash
-python scripts/inference_yolo.py \
-    --imgsz 640  # 1280 → 640
-```
+--imgsz 640 옵션으로 입력 이미지 크기를 1280에서 640으로 줄입니다. 처리 속도가 크게 향상되지만 정확도는 다소 감소할 수 있습니다.
 
 **해결 3: Half precision (FP16)**
-```bash
-python scripts/inference_yolo.py \
-    --half  # GPU만 지원
-```
+--half 옵션을 사용하여 16비트 부동소수점 연산을 활성화합니다. GPU에서만 지원되며, 메모리 사용량과 처리 시간을 약 50% 감소시킵니다.
 
 ---
 
 ### 5.2. 메모리 부족
 
 **증상**:
-```
-MemoryError: Unable to allocate array
-```
+"MemoryError: Unable to allocate array" 오류가 발생합니다.
 
 **해결 1: 배치 처리 줄이기**
-```python
-# inference_yolo.py 수정
-for img_path in image_list:
-    results = model.predict(img_path)  # 한 장씩
-    # 처리 후 메모리 해제
-    del results
-    torch.cuda.empty_cache()
-```
+코드를 수정하여 이미지를 한 장씩 처리하도록 변경합니다. 각 이미지 처리 후 results 객체를 삭제하고 torch.cuda.empty_cache()를 호출하여 GPU 메모리를 해제합니다.
 
 **해결 2: Swap 메모리 증가**
-```bash
-# Linux
-sudo fallocate -l 8G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-```
+Linux 시스템에서 8GB 크기의 스왑 파일을 생성하고 활성화합니다. fallocate로 파일을 할당하고, chmod로 권한을 설정한 후, mkswap과 swapon으로 스왑을 초기화하고 활성화합니다.
 
 ---
 
@@ -478,69 +269,38 @@ sudo swapon /swapfile
 ### 6.1. 합성 데이터 생성 실패
 
 **증상**:
-```
-OSError: cannot open resource
-```
+"OSError: cannot open resource" 오류가 발생합니다.
 
-**원인**: 폰트 파일 없음
+**원인**: 폰트 파일이 없습니다.
 
 **해결**:
-```bash
-# 시스템 폰트 설치
-sudo apt-get install fonts-dejavu fonts-liberation
-
-# 또는 폰트 다운로드
-wget https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2
-tar -xvf dejavu-fonts-ttf-2.37.tar.bz2
-cp dejavu-fonts-ttf-2.37/ttf/*.ttf ~/.fonts/
-fc-cache -f -v
-```
+시스템에 DejaVu와 Liberation 폰트를 설치합니다. 또는 GitHub에서 폰트를 다운로드하여 압축을 해제하고, TTF 파일들을 홈 디렉토리의 .fonts 폴더로 복사한 후, 폰트 캐시를 갱신합니다.
 
 ---
 
 ### 6.2. 라벨 형식 오류
 
 **증상**:
-```
-ValueError: Invalid YOLO label format
-```
+"ValueError: Invalid YOLO label format" 오류가 발생합니다.
 
 **확인**:
-```bash
-# 라벨 파일 확인
-head datasets/synthetic_random/labels/train/synthetic_train_000000.txt
-```
+라벨 파일의 첫 몇 줄을 확인하여 형식이 올바른지 검사합니다.
 
 **예상 형식**:
-```
-0 0.5234 0.6123 0.0345 0.0234
-1 0.3456 0.7890 0.0456 0.0345
-```
+각 줄은 "클래스번호 중심x 중심y 너비 높이" 형식이어야 합니다. 모든 값은 0과 1 사이의 정규화된 좌표입니다. 예: "0 0.5234 0.6123 0.0345 0.0234"
 
 **해결**:
-```bash
-# 라벨 재생성
-python scripts/generate_synthetic_random.py --count 100
-```
+라벨 형식이 잘못된 경우 합성 데이터 생성 스크립트를 다시 실행하여 올바른 형식의 라벨을 재생성합니다.
 
 ---
 
 ### 6.3. 데이터셋 병합 실패
 
 **증상**:
-```
-FileNotFoundError: data.yaml not found
-```
+"FileNotFoundError: data.yaml not found" 오류가 발생합니다.
 
 **해결**:
-```bash
-# 각 데이터셋에 data.yaml이 있는지 확인
-ls datasets/synthetic_random/data.yaml
-ls datasets/engineering_drawings/data.yaml
-
-# 없으면 생성
-python scripts/prepare_dataset.py
-```
+각 데이터셋 디렉토리에 data.yaml 파일이 존재하는지 확인합니다. 파일이 없으면 데이터셋 준비 스크립트를 실행하여 생성합니다.
 
 ---
 
@@ -549,84 +309,41 @@ python scripts/prepare_dataset.py
 ### 7.1. CUDA 버전 불일치
 
 **증상**:
-```
-RuntimeError: CUDA version mismatch
-```
+"RuntimeError: CUDA version mismatch" 오류가 발생합니다.
 
 **확인**:
-```bash
-# CUDA 버전 확인
-nvcc --version
-nvidia-smi  # Driver version
-
-# PyTorch CUDA 버전
-python -c "import torch; print(torch.version.cuda)"
-```
+nvcc --version으로 CUDA 컴파일러 버전을 확인하고, nvidia-smi로 드라이버가 지원하는 CUDA 버전을 확인합니다. Python에서는 torch.version.cuda로 PyTorch가 사용하는 CUDA 버전을 확인할 수 있습니다.
 
 **해결**:
-```bash
-# PyTorch 재설치 (CUDA 11.8 기준)
-pip uninstall torch torchvision
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-```
+PyTorch와 torchvision을 제거한 후, 시스템의 CUDA 버전(예: 11.8)에 맞는 버전을 PyTorch 공식 저장소에서 재설치합니다.
 
 ---
 
 ### 7.2. GPU 인식 안 됨
 
 **증상**:
-```python
-torch.cuda.is_available()  # False
-```
+Python에서 torch.cuda.is_available()이 False를 반환합니다.
 
 **확인**:
-```bash
-# NVIDIA 드라이버 확인
-nvidia-smi
-
-# CUDA 라이브러리 확인
-ls /usr/local/cuda*/lib64/libcudart.so*
-```
+nvidia-smi로 NVIDIA 드라이버가 정상적으로 작동하는지 확인합니다. CUDA 라이브러리 파일(libcudart.so)이 존재하는지 확인합니다.
 
 **해결 1: 드라이버 재설치**
-```bash
-# Ubuntu
-sudo apt-get purge nvidia*
-sudo apt-get install nvidia-driver-535  # 최신 버전
-
-# 재부팅
-sudo reboot
-```
+기존 NVIDIA 드라이버를 완전히 제거하고 최신 버전(예: 535)을 설치합니다. 설치 후 시스템을 재부팅합니다.
 
 **해결 2: LD_LIBRARY_PATH 설정**
-```bash
-export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64:$LD_LIBRARY_PATH
-export PATH=/usr/local/cuda-11.8/bin:$PATH
-```
+환경 변수를 설정하여 CUDA 라이브러리와 바이너리 경로를 시스템에 알립니다. LD_LIBRARY_PATH에 CUDA lib64 디렉토리를, PATH에 CUDA bin 디렉토리를 추가합니다.
 
 ---
 
 ### 7.3. 다중 GPU 문제
 
-**증상**: GPU 0번만 사용됨
+**증상**: GPU 0번만 사용되고 다른 GPU는 사용되지 않습니다.
 
 **해결 1: 특정 GPU 선택**
-```bash
-# GPU 1번 사용
-CUDA_VISIBLE_DEVICES=1 python scripts/train_yolo.py --device 0
-
-# GPU 0,1번 사용
-python scripts/train_yolo.py --device 0,1
-```
+CUDA_VISIBLE_DEVICES 환경 변수로 사용할 GPU를 지정합니다. GPU 1번만 사용하려면 CUDA_VISIBLE_DEVICES=1로 설정하고, 여러 GPU를 사용하려면 --device 0,1 옵션을 추가합니다.
 
 **해결 2: DDP (DistributedDataParallel)**
-```bash
-# 멀티 GPU 학습
-python -m torch.distributed.run \
-    --nproc_per_node=2 \
-    scripts/train_yolo.py \
-    --device 0,1
-```
+PyTorch의 분산 학습을 사용하여 여러 GPU에서 병렬로 학습합니다. torch.distributed.run 모듈을 사용하고 --nproc_per_node=2로 사용할 GPU 개수를 지정합니다.
 
 ---
 
@@ -634,40 +351,15 @@ python -m torch.distributed.run \
 
 ### 1. 로그 레벨 설정
 
-```bash
-# 상세 로그
-export YOLO_VERBOSE=1
-python scripts/train_yolo.py
-
-# Python logging
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
+상세한 디버깅 정보를 얻기 위해 YOLO_VERBOSE 환경 변수를 1로 설정합니다. Python에서는 logging 모듈의 레벨을 DEBUG로 설정하여 모든 디버그 메시지를 출력할 수 있습니다.
 
 ### 2. 프로파일링
 
-```python
-import torch
-from torch.profiler import profile, ProfilerActivity
-
-with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-    results = model.predict("test.jpg")
-
-print(prof.key_averages().table(sort_by="cuda_time_total"))
-```
+PyTorch Profiler를 사용하여 CPU와 CUDA 활동을 추적합니다. 모델 추론을 프로파일러 컨텍스트 내에서 실행하고, 결과를 CUDA 시간 기준으로 정렬하여 어떤 연산이 가장 많은 시간을 소비하는지 확인할 수 있습니다.
 
 ### 3. 메모리 추적
 
-```python
-import torch
-
-# GPU 메모리 확인
-print(torch.cuda.memory_allocated() / 1024**3, "GB")
-print(torch.cuda.memory_reserved() / 1024**3, "GB")
-
-# 메모리 요약
-print(torch.cuda.memory_summary())
-```
+torch.cuda.memory_allocated()로 현재 할당된 GPU 메모리를, torch.cuda.memory_reserved()로 예약된 총 메모리를 확인합니다. GB 단위로 표시하려면 1024**3으로 나눕니다. torch.cuda.memory_summary()는 전체 메모리 사용 현황을 상세히 보여줍니다.
 
 ---
 
@@ -675,14 +367,10 @@ print(torch.cuda.memory_summary())
 
 문제가 해결되지 않는 경우:
 
-1. **GitHub Issues**: 프로젝트 이슈 등록
-2. **로그 수집**: 전체 에러 로그 첨부
-3. **환경 정보**: Python/CUDA/GPU 정보 제공
-4. **재현 방법**: 문제 재현 단계 상세히 기술
-
-**문의**:
-- 이메일: dev@uproot.com
-- 내부 Slack: #ax-support
+1. **로그 수집**: 전체 에러 로그 첨부
+2. **환경 정보**: Python/CUDA/GPU 정보 제공
+3. **재현 방법**: 문제 재현 단계 상세히 기술
+4. **문서 참조**: 관련 문서 및 가이드 확인
 
 ---
 

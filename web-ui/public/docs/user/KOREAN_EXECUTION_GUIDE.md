@@ -579,4 +579,3 @@ curl -X POST http://localhost:5005/api/v1/detect -F "file=@test.jpg"
 
 **작성자**: AX 실증사업팀
 **최종 업데이트**: 2025-11-03
-**문의**: dev@uproot.com

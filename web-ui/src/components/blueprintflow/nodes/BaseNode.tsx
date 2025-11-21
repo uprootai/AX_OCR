@@ -7,7 +7,7 @@ interface BaseNodeProps extends NodeProps {
   icon: LucideIcon;
   title: string;
   color: string;
-  category: 'api' | 'control';
+  category: 'api' | 'control' | 'input';
 }
 
 export const BaseNode = memo(({ data, selected, icon: Icon, title, color, category }: BaseNodeProps) => {

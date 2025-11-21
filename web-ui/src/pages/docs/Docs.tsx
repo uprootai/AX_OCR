@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import Mermaid from '../../components/ui/Mermaid';
+import ImageZoom from '../../components/ui/ImageZoom';
 
 interface DocFile {
   name: string;
@@ -20,8 +21,10 @@ const docStructure: DocFile[] = [
     type: 'folder',
     children: [
       { name: 'README.md', path: '/README.md', type: 'file' },
-      { name: 'INSTALLATION_GUIDE.md ⭐', path: '/INSTALLATION_GUIDE.md', type: 'file' },
-      { name: 'TROUBLESHOOTING.md ⭐', path: '/TROUBLESHOOTING.md', type: 'file' },
+      { name: 'INSTALLATION_GUIDE.md ⭐', path: '/docs/INSTALLATION_GUIDE.md', type: 'file' },
+      { name: 'TROUBLESHOOTING.md ⭐', path: '/docs/TROUBLESHOOTING.md', type: 'file' },
+      { name: 'API 교체 가이드 🔄', path: '/docs/API_REPLACEMENT_GUIDE.md', type: 'file' },
+      { name: '동적 API 시스템 가이드', path: '/DYNAMIC_API_SYSTEM_GUIDE.md', type: 'file' },
     ],
   },
   {
@@ -29,13 +32,10 @@ const docStructure: DocFile[] = [
     path: 'user',
     type: 'folder',
     children: [
-      { name: '사용자 가이드', path: '/docs/user/USER_GUIDE.md', type: 'file' },
+      { name: '사용자 가이드 ⭐', path: '/docs/user/USER_GUIDE.md', type: 'file' },
       { name: 'API 사용 매뉴얼', path: '/docs/user/API_USAGE_MANUAL.md', type: 'file' },
       { name: '한글 실행 가이드', path: '/docs/user/KOREAN_EXECUTION_GUIDE.md', type: 'file' },
-      { name: '트러블슈팅 가이드', path: '/docs/user/TROUBLESHOOTING_GUIDE.md', type: 'file' },
-      { name: '동적 API 추가 가이드 ⭐', path: '/docs/DYNAMIC_API_SYSTEM_GUIDE.md', type: 'file' },
-      { name: 'BlueprintFlow API 통합', path: '/docs/BLUEPRINTFLOW_API_INTEGRATION_GUIDE.md', type: 'file' },
-      { name: '동적 API 테스트 가이드', path: '/TESTING_GUIDE_DYNAMIC_API.md', type: 'file' },
+      { name: 'Admin 매뉴얼', path: '/docs/ADMIN_MANUAL.md', type: 'file' },
     ],
   },
   {
@@ -46,6 +46,20 @@ const docStructure: DocFile[] = [
       { name: 'Claude 가이드 (EN)', path: '/docs/developer/CLAUDE.md', type: 'file' },
       { name: 'Claude 가이드 (KR)', path: '/docs/developer/CLAUDE_KR.md', type: 'file' },
       { name: 'VL API 설정 가이드', path: '/docs/developer/VL_API_SETUP_GUIDE.md', type: 'file' },
+      { name: 'LLM 사용성 가이드', path: '/docs/LLM_USABILITY_GUIDE.md', type: 'file' },
+    ],
+  },
+  {
+    name: '🔮 BlueprintFlow',
+    path: 'blueprintflow',
+    type: 'folder',
+    children: [
+      { name: 'BlueprintFlow 개요 ⭐', path: '/docs/blueprintflow/README.md', type: 'file' },
+      { name: 'API 통합 가이드', path: '/docs/BLUEPRINTFLOW_API_INTEGRATION_GUIDE.md', type: 'file' },
+      { name: '아키텍처 설계', path: '/docs/BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md', type: 'file' },
+      { name: 'YOLO 모델 비교', path: '/docs/blueprintflow/04_optimization/yolo_models.md', type: 'file' },
+      { name: '파이프라인 옵션', path: '/docs/blueprintflow/04_optimization/pipeline_options.md', type: 'file' },
+      { name: '최적화 가이드', path: '/docs/blueprintflow/04_optimization/optimization_guide.md', type: 'file' },
     ],
   },
   {
@@ -79,13 +93,17 @@ const docStructure: DocFile[] = [
     ],
   },
   {
-    name: '📖 사용자 가이드',
-    path: 'user',
+    name: '📡 API 문서',
+    path: 'api',
     type: 'folder',
     children: [
-      { name: 'API 사용 매뉴얼 ⭐', path: '/docs/user/API_USAGE_MANUAL.md', type: 'file' },
-      { name: '한국어 실행 가이드', path: '/docs/user/KOREAN_EXECUTION_GUIDE.md', type: 'file' },
-      { name: '사용자 가이드', path: '/docs/user/USER_GUIDE.md', type: 'file' },
+      { name: 'API 개요', path: '/docs/api/README.md', type: 'file' },
+      { name: 'YOLO API 파라미터', path: '/docs/api/yolo/parameters.md', type: 'file' },
+      { name: 'eDOCr2 API 파라미터', path: '/docs/api/edocr2/parameters.md', type: 'file' },
+      { name: 'EDGNet API 파라미터', path: '/docs/api/edgnet/parameters.md', type: 'file' },
+      { name: 'SkinModel API 파라미터', path: '/docs/api/skinmodel/parameters.md', type: 'file' },
+      { name: 'VL API 파라미터', path: '/docs/api/vl/parameters.md', type: 'file' },
+      { name: 'PaddleOCR API 파라미터', path: '/docs/api/paddleocr/parameters.md', type: 'file' },
     ],
   },
   {
@@ -94,6 +112,9 @@ const docStructure: DocFile[] = [
     type: 'folder',
     children: [
       { name: 'GPU 설정 가이드', path: '/docs/GPU_CONFIGURATION_EXPLAINED.md', type: 'file' },
+      { name: 'Docker 재빌드 상태', path: '/docs/DOCKER_REBUILD_STATUS.md', type: 'file' },
+      { name: '배포 가이드', path: '/docs/DEPLOYMENT_GUIDE.md', type: 'file' },
+      { name: '온프레미스 배포', path: '/docs/ONPREMISE_DEPLOYMENT_GUIDE.md', type: 'file' },
     ],
   },
 ];
@@ -247,7 +268,9 @@ export default function Docs() {
                         if (chartCode) {
                           return (
                             <div className="my-6">
-                              <Mermaid chart={chartCode} />
+                              <ImageZoom>
+                                <Mermaid chart={chartCode} />
+                              </ImageZoom>
                             </div>
                           );
                         }

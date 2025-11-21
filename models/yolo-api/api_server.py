@@ -16,7 +16,10 @@ from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import torch
 
-from models.schemas import Detection, DetectionResponse, HealthResponse
+from models.schemas import (
+    Detection, DetectionResponse, HealthResponse,
+    APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
+)
 from services.inference import YOLOInferenceService
 from utils.helpers import draw_detections_on_image
 
@@ -101,6 +104,127 @@ async def health_check():
         device=inference_service.device if inference_service else "unknown",
         gpu_available=torch.cuda.is_available(),
         gpu_name=gpu_name
+    )
+
+
+@app.get("/api/v1/info", response_model=APIInfoResponse)
+async def get_api_info():
+    """
+    API 메타데이터 엔드포인트
+
+    BlueprintFlow 및 Dashboard에서 API를 자동으로 등록하기 위한 메타데이터를 제공합니다.
+    """
+    return APIInfoResponse(
+        id="yolo-detector",
+        name="YOLO Detection API",
+        display_name="YOLO 객체 검출",
+        version="1.0.0",
+        description="YOLOv11 기반 도면 심볼/치수/GD&T 검출 API",
+        openapi_url="/openapi.json",
+        base_url=f"http://localhost:{YOLO_API_PORT}",
+        endpoint="/api/v1/detect",
+        method="POST",
+        requires_image=True,
+        inputs=[
+            IOSchema(
+                name="file",
+                type="file",
+                description="분석할 도면 이미지 파일",
+                required=True
+            )
+        ],
+        outputs=[
+            IOSchema(
+                name="detections",
+                type="array",
+                description="검출된 객체 목록 (각 객체는 class_id, class_name, confidence, bbox 포함)"
+            ),
+            IOSchema(
+                name="total_detections",
+                type="integer",
+                description="총 검출된 객체 개수"
+            ),
+            IOSchema(
+                name="processing_time",
+                type="float",
+                description="처리 시간 (초)"
+            ),
+            IOSchema(
+                name="visualized_image",
+                type="string",
+                description="검출 결과가 표시된 이미지 (base64)"
+            )
+        ],
+        parameters=[
+            ParameterSchema(
+                name="model_type",
+                type="select",
+                default="yolo11n-general",
+                description="용도별 특화 모델 선택",
+                required=False,
+                options=[
+                    "symbol-detector-v1",
+                    "dimension-detector-v1",
+                    "gdt-detector-v1",
+                    "text-region-detector-v1",
+                    "yolo11n-general"
+                ]
+            ),
+            ParameterSchema(
+                name="confidence",
+                type="number",
+                default=0.5,
+                description="검출 신뢰도 임계값 (낮을수록 더 많이 검출)",
+                required=False,
+                min=0.0,
+                max=1.0,
+                step=0.05
+            ),
+            ParameterSchema(
+                name="iou_threshold",
+                type="number",
+                default=0.45,
+                description="NMS IoU 임계값 (겹침 제거, 높을수록 엄격)",
+                required=False,
+                min=0.0,
+                max=1.0,
+                step=0.05
+            ),
+            ParameterSchema(
+                name="imgsz",
+                type="select",
+                default="640",
+                description="입력 이미지 크기 (클수록 정확하지만 느림)",
+                required=False,
+                options=["320", "640", "1280"]
+            ),
+            ParameterSchema(
+                name="visualize",
+                type="boolean",
+                default=True,
+                description="검출 결과 시각화 이미지 생성",
+                required=False
+            ),
+            ParameterSchema(
+                name="task",
+                type="select",
+                default="detect",
+                description="검출 모드 (전체 검출 vs 세그멘테이션)",
+                required=False,
+                options=["detect", "segment"]
+            )
+        ],
+        blueprintflow=BlueprintFlowMetadata(
+            icon="🎯",
+            color="#3b82f6",
+            category="detection"
+        ),
+        output_mappings={
+            "detections": "detections",
+            "total_detections": "total_detections",
+            "processing_time": "processing_time",
+            "visualized_image": "visualized_image"
+        }
     )
 
 

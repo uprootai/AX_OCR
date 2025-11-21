@@ -30,3 +30,50 @@ class HealthResponse(BaseModel):
     gpu_available: bool = Field(..., description="GPU 사용 가능 여부")
     model_loaded: bool = Field(..., description="모델 로드 여부")
     lang: str = Field(..., description="OCR 언어 설정")
+
+
+class ParameterSchema(BaseModel):
+    """파라미터 스키마"""
+    name: str
+    type: str  # 'number', 'string', 'boolean', 'select'
+    default: Any
+    description: str
+    required: bool = False
+    options: Optional[List[str]] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+    step: Optional[float] = None
+
+
+class IOSchema(BaseModel):
+    """입출력 스키마"""
+    name: str
+    type: str  # 'string', 'array', 'integer', 'float', 'boolean', 'object', 'file'
+    description: str
+    required: bool = True
+
+
+class BlueprintFlowMetadata(BaseModel):
+    """BlueprintFlow 노드 메타데이터"""
+    icon: str
+    color: str
+    category: str
+
+
+class APIInfoResponse(BaseModel):
+    """API 메타데이터 응답"""
+    id: str
+    name: str
+    display_name: str
+    version: str
+    description: str
+    openapi_url: str
+    base_url: str
+    endpoint: str
+    method: str = "POST"
+    requires_image: bool = True
+    inputs: List[IOSchema]
+    outputs: List[IOSchema]
+    parameters: List[ParameterSchema]
+    blueprintflow: BlueprintFlowMetadata
+    output_mappings: Dict[str, str]

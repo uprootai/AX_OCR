@@ -24,43 +24,31 @@
 ### 문제 1: `docker compose up` 실패
 
 #### 증상
-```bash
-$ docker compose up -d
-Error response from daemon: driver failed programming external connectivity
-```
+Docker Compose로 시스템을 시작하려고 할 때 "driver failed programming external connectivity" 오류 메시지가 표시됩니다.
 
 #### 원인
-- 포트가 이미 사용 중
+지정된 포트가 이미 다른 프로세스에 의해 사용되고 있습니다.
 
 #### 해결 방법
 
-```bash
-# 1. 포트 사용 중인 프로세스 확인
-sudo lsof -i :8000
-sudo lsof -i :5173
+**1단계: 포트 사용 중인 프로세스 확인**
+`lsof` 명령어를 사용하여 8000번, 5173번 포트를 사용하는 프로세스를 확인합니다. 명령어 결과에서 프로세스 ID(PID)를 확인할 수 있습니다.
 
-# 2. 프로세스 종료
-sudo kill -9 <PID>
+**2단계: 프로세스 종료**
+확인된 PID를 사용하여 해당 프로세스를 강제 종료합니다.
 
-# 3. 또는 .env에서 포트 변경
-vi .env
-# WEB_UI_PORT=5174  # 변경
+**3단계: 또는 .env에서 포트 변경**
+텍스트 에디터로 `.env` 파일을 열어 충돌하는 포트를 다른 번호로 변경합니다. 예를 들어 웹 UI 포트를 5173에서 5174로 변경할 수 있습니다.
 
-# 4. 재시작
-docker compose down
-docker compose up -d
-```
+**4단계: 재시작**
+모든 서비스를 완전히 중지한 후 다시 시작합니다.
 
 ---
 
 ### 문제 2: 컨테이너가 계속 재시작됨
 
 #### 증상
-```bash
-$ docker compose ps
-NAME                STATUS
-gateway-api         Restarting (1) 5 seconds ago
-```
+`docker compose ps` 명령어로 확인 시 특정 컨테이너의 상태가 "Restarting"으로 표시되며 계속 재시작을 반복합니다.
 
 #### 원인
 - 메모리 부족
@@ -69,56 +57,45 @@ gateway-api         Restarting (1) 5 seconds ago
 
 #### 해결 방법
 
-```bash
-# 1. 로그 확인
-docker compose logs gateway-api
+**1단계: 로그 확인**
+문제가 되는 서비스의 로그를 확인하여 구체적인 오류 메시지를 파악합니다.
 
-# 2. 메모리 부족 시
-# .env 파일에서 메모리 제한 증가
-GATEWAY_MEMORY=4g  # 2g → 4g
+**2단계: 메모리 부족 시**
+`.env` 파일에서 해당 서비스의 메모리 제한을 증가시킵니다. 예를 들어 Gateway API의 메모리를 2GB에서 4GB로 증가시킬 수 있습니다.
 
-# 3. 모델 파일 확인
-ls -lh models/
-# yolo11_best.pt (필수)
-# edocr2_v2.pth (필수)
-# edgnet_weights.pth (필수)
+**3단계: 모델 파일 확인**
+`models/` 디렉토리에 필수 모델 파일들이 존재하는지 확인합니다. 필수 파일은 `yolo11_best.pt`, `edocr2_v2.pth`, `edgnet_weights.pth`입니다.
 
-# 4. 환경 변수 확인
-docker compose config | grep -A 10 environment
-```
+**4단계: 환경 변수 확인**
+Docker Compose 설정에서 환경 변수가 올바르게 설정되었는지 확인합니다. 이 명령어는 실제 적용될 설정을 보여줍니다.
 
 ---
 
 ### 문제 3: "Cannot connect to Docker daemon" 오류
 
 #### 증상
-```bash
-Cannot connect to the Docker daemon at unix:///var/run/docker.sock
-```
+Docker 명령어 실행 시 "Cannot connect to the Docker daemon at unix:///var/run/docker.sock" 오류가 발생합니다.
 
 #### 원인
-- Docker 서비스 미실행
-- 권한 문제
+- Docker 서비스가 실행되지 않음
+- 사용자 권한 문제
 
 #### 해결 방법
 
-```bash
-# 1. Docker 서비스 상태 확인
-sudo systemctl status docker
+**1단계: Docker 서비스 상태 확인**
+systemd를 통해 Docker 서비스의 현재 상태를 확인합니다.
 
-# 2. Docker 시작
-sudo systemctl start docker
+**2단계: Docker 시작**
+Docker 서비스를 시작합니다.
 
-# 3. 자동 시작 설정
-sudo systemctl enable docker
+**3단계: 자동 시작 설정**
+시스템 부팅 시 Docker가 자동으로 시작되도록 설정합니다.
 
-# 4. 사용자를 docker 그룹에 추가 (권한 문제 시)
-sudo usermod -aG docker $USER
-newgrp docker
+**4단계: 사용자를 docker 그룹에 추가 (권한 문제 시)**
+현재 사용자를 docker 그룹에 추가하여 sudo 없이 Docker 명령어를 실행할 수 있게 합니다. 그룹 변경 사항을 적용하기 위해 새로운 그룹 세션을 시작합니다.
 
-# 5. 확인
-docker ps
-```
+**5단계: 확인**
+Docker 명령어가 정상적으로 작동하는지 확인합니다. 실행 중인 컨테이너 목록이 표시되면 성공입니다.
 
 ---
 
@@ -127,8 +104,8 @@ docker ps
 ### 문제 4: API 응답 시간 느림 (>10초)
 
 #### 증상
-- YOLO 추론 시간 >5초
-- eDOCr2 OCR 시간 >10초
+- YOLO 추론 시간이 5초 이상 소요
+- eDOCr2 OCR 처리 시간이 10초 이상 소요
 
 #### 원인
 - CPU 모드 사용 (GPU 미활성화)
@@ -137,33 +114,27 @@ docker ps
 
 #### 해결 방법
 
-```bash
-# 1. GPU 사용 확인
-docker exec yolo-api nvidia-smi
+**1단계: GPU 사용 확인**
+YOLO API 컨테이너 내부에서 `nvidia-smi` 명령어를 실행하여 GPU가 인식되는지 확인합니다.
 
-# 2. GPU 미인식 시 .env 확인
-vi .env
-USE_GPU=true  # 설정 확인
+**2단계: GPU 미인식 시 .env 확인**
+`.env` 파일에서 `USE_GPU=true`로 설정되어 있는지 확인합니다.
 
-# 3. GPU 메모리 부족 시
-# .env에서 메모리 증가
-YOLO_GPU_MEMORY=6g  # 4g → 6g
+**3단계: GPU 메모리 부족 시**
+`.env` 파일에서 각 서비스의 GPU 메모리 할당량을 증가시킵니다. 예를 들어 YOLO의 GPU 메모리를 4GB에서 6GB로 증가시킬 수 있습니다.
 
-# 4. 이미지 크기 조정
-# Settings 페이지에서:
-# YOLO imgsz: 1920 → 1280 (성능 우선)
-# 또는 640 (빠른 처리)
+**4단계: 이미지 크기 조정**
+웹 UI의 Settings 페이지에서 YOLO 이미지 크기를 조정합니다. 1920에서 1280으로 줄이면 성능이 향상되고, 640으로 설정하면 매우 빠르게 처리됩니다. 단, 정확도는 다소 감소할 수 있습니다.
 
-# 5. 서비스 재시작
-docker compose restart yolo-api
-```
+**5단계: 서비스 재시작**
+설정 변경 후 해당 서비스를 재시작하여 변경사항을 적용합니다.
 
 ---
 
 ### 문제 5: 웹 UI 로딩 느림
 
 #### 증상
-- 초기 페이지 로드 >10초
+웹 페이지 초기 로드 시 10초 이상 소요됩니다.
 
 #### 원인
 - 번들 파일 크기 과다
@@ -171,21 +142,17 @@ docker compose restart yolo-api
 
 #### 해결 방법
 
-```bash
-# 1. 브라우저 캐시 확인
-# F12 → Network → Disable cache 해제
+**1단계: 브라우저 캐시 확인**
+브라우저의 개발자 도구(F12)를 열고 Network 탭에서 "Disable cache" 옵션이 해제되어 있는지 확인합니다. 캐시를 활성화하면 두 번째 로드부터 빠릅니다.
 
-# 2. 프로덕션 빌드 확인
-docker compose exec web-ui sh
-ls -lh dist/
+**2단계: 프로덕션 빌드 확인**
+웹 UI 컨테이너 내부에서 빌드된 파일들의 크기를 확인합니다.
 
-# 3. nginx gzip 압축 활성화 (web-ui/nginx.conf)
-# 이미 활성화되어 있어야 함
+**3단계: nginx gzip 압축 활성화**
+`web-ui/nginx.conf` 파일에서 gzip 압축이 활성화되어 있는지 확인합니다. 일반적으로 기본 설정에 포함되어 있어야 합니다.
 
-# 4. 로컬 네트워크 확인
-ping <서버IP>
-iperf3 -c <서버IP>
-```
+**4단계: 로컬 네트워크 확인**
+서버와의 네트워크 연결 상태를 확인합니다. ping으로 기본 연결을 테스트하고, iperf3로 대역폭을 측정할 수 있습니다.
 
 ---
 
@@ -194,10 +161,7 @@ iperf3 -c <서버IP>
 ### 문제 6: GPU 인식 안 됨
 
 #### 증상
-```bash
-$ docker exec yolo-api nvidia-smi
-OCI runtime exec failed: exec failed: unable to find user : no matching entries in passwd file
-```
+컨테이너 내부에서 `nvidia-smi` 명령어 실행 시 "unable to find user" 또는 유사한 오류가 발생합니다.
 
 #### 원인
 - NVIDIA Docker Runtime 미설치
@@ -205,42 +169,30 @@ OCI runtime exec failed: exec failed: unable to find user : no matching entries 
 
 #### 해결 방법
 
-```bash
-# 1. 호스트에서 GPU 확인
-nvidia-smi
+**1단계: 호스트에서 GPU 확인**
+먼저 호스트 시스템에서 GPU가 정상적으로 인식되는지 확인합니다. GPU 목록과 드라이버 버전이 표시되어야 합니다.
 
-# 2. NVIDIA Driver 미설치 시
-sudo apt-get install nvidia-driver-535
-sudo reboot
+**2단계: NVIDIA Driver 미설치 시**
+NVIDIA 드라이버를 설치합니다 (버전 535 권장). 설치 후 시스템을 재부팅합니다.
 
-# 3. nvidia-container-toolkit 설치
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
-    sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+**3단계: nvidia-container-toolkit 설치**
+배포판 정보를 확인하고 NVIDIA Container Toolkit을 설치합니다. 먼저 NVIDIA GPG 키를 추가하고, 저장소 목록을 등록한 후, 패키지를 설치합니다.
 
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
+**4단계: Docker 재시작**
+NVIDIA Container Toolkit 설정을 적용하기 위해 Docker 서비스를 재시작합니다.
 
-# 4. Docker 재시작
-sudo systemctl restart docker
+**5단계: 테스트**
+NVIDIA CUDA 공식 이미지를 사용하여 GPU가 Docker에서 정상적으로 작동하는지 테스트합니다. GPU 정보가 표시되면 성공입니다.
 
-# 5. 테스트
-docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
-
-# 6. AX 시스템 재시작
-docker compose down
-docker compose up -d
-```
+**6단계: AX 시스템 재시작**
+모든 AX 서비스를 중지했다가 다시 시작하여 GPU 설정을 적용합니다.
 
 ---
 
 ### 문제 7: CUDA Out of Memory 오류
 
 #### 증상
-```bash
-RuntimeError: CUDA out of memory. Tried to allocate 2.00 GiB
-```
+API 실행 중 "RuntimeError: CUDA out of memory. Tried to allocate 2.00 GiB" 오류가 발생합니다.
 
 #### 원인
 - GPU 메모리 부족
@@ -248,29 +200,22 @@ RuntimeError: CUDA out of memory. Tried to allocate 2.00 GiB
 
 #### 해결 방법
 
-```bash
-# 1. GPU 메모리 사용량 확인
-nvidia-smi
+**1단계: GPU 메모리 사용량 확인**
+현재 GPU 메모리 사용 상황을 확인합니다.
 
-# 2. 사용하지 않는 서비스 비활성화
-# Settings 페이지에서:
-# - EDGNet: 활성화 OFF (segmentation 불필요 시)
-# - PaddleOCR: 활성화 OFF (중국어/일본어 불필요 시)
+**2단계: 사용하지 않는 서비스 비활성화**
+웹 UI의 Settings 페이지에서 필요하지 않은 서비스를 비활성화합니다:
+- EDGNet: 세그멘테이션이 불필요한 경우 OFF
+- PaddleOCR: 중국어/일본어 인식이 불필요한 경우 OFF
 
-# 3. 배치 크기 감소 (코드 수정 필요)
-# 또는 입력 이미지 크기 감소
-# YOLO imgsz: 1280 → 640
+**3단계: 배치 크기 감소 또는 입력 이미지 크기 감소**
+코드를 수정하여 배치 크기를 줄이거나, Settings 페이지에서 YOLO 이미지 크기를 1280에서 640으로 줄입니다.
 
-# 4. GPU 메모리 할당량 조정
-vi .env
-YOLO_GPU_MEMORY=3g  # 4g → 3g
-EDOCR2_GPU_MEMORY=4g  # 6g → 4g
-EDGNET_GPU_MEMORY=3g  # 4g → 3g
+**4단계: GPU 메모리 할당량 조정**
+`.env` 파일에서 각 서비스의 GPU 메모리 제한을 감소시킵니다. 전체 GPU VRAM을 초과하지 않도록 적절히 배분합니다.
 
-# 5. 재시작
-docker compose down
-docker compose up -d
-```
+**5단계: 재시작**
+설정 변경 후 모든 서비스를 재시작합니다.
 
 ---
 
@@ -280,7 +225,7 @@ docker compose up -d
 
 #### 증상
 - 로컬(localhost)에서는 접속 가능
-- 다른 PC에서 접속 불가
+- 다른 PC에서는 접속 불가
 
 #### 원인
 - 방화벽 차단
@@ -288,38 +233,27 @@ docker compose up -d
 
 #### 해결 방법
 
-```bash
-# 1. 방화벽 상태 확인
-sudo ufw status
-sudo firewall-cmd --list-all
+**1단계: 방화벽 상태 확인**
+시스템의 방화벽 상태를 확인합니다. Ubuntu는 `ufw`, CentOS/RHEL은 `firewalld`를 사용합니다.
 
-# 2. 포트 열기 (Ubuntu)
-sudo ufw allow 5173/tcp
-sudo ufw allow 8000/tcp
+**2단계: 포트 열기 (Ubuntu)**
+Ubuntu UFW에서 필요한 포트를 허용합니다.
 
-# 3. 포트 열기 (CentOS/RHEL)
-sudo firewall-cmd --permanent --add-port=5173/tcp
-sudo firewall-cmd --permanent --add-port=8000/tcp
-sudo firewall-cmd --reload
+**3단계: 포트 열기 (CentOS/RHEL)**
+CentOS/RHEL firewalld에서 포트를 영구적으로 허용하고 설정을 즉시 적용합니다.
 
-# 4. docker-compose.yml 확인
-# ports:
-#   - "5173:5173"  # 모든 인터페이스
-#   - "127.0.0.1:5173:5173"  # 로컬만 (X)
+**4단계: docker-compose.yml 확인**
+포트 매핑이 "5173:5173" 형식으로 되어 있는지 확인합니다. "127.0.0.1:5173:5173" 형식은 로컬에서만 접속 가능하므로 변경이 필요합니다.
 
-# 5. 네트워크 연결 테스트
-telnet <서버IP> 5173
-curl http://<서버IP>:5173
-```
+**5단계: 네트워크 연결 테스트**
+telnet이나 curl로 서버 IP와 포트로 접속을 테스트합니다.
 
 ---
 
 ### 문제 9: API 간 통신 실패
 
 #### 증상
-```bash
-Gateway API → YOLO API: Connection refused
-```
+Gateway API에서 YOLO API로 요청 시 "Connection refused" 오류가 발생합니다.
 
 #### 원인
 - 컨테이너 네트워크 문제
@@ -327,25 +261,20 @@ Gateway API → YOLO API: Connection refused
 
 #### 해결 방법
 
-```bash
-# 1. 컨테이너 네트워크 확인
-docker network ls
-docker network inspect ax-drawing-analysis_default
+**1단계: 컨테이너 네트워크 확인**
+Docker 네트워크 목록을 확인하고, 특정 네트워크의 상세 정보를 조회하여 모든 컨테이너가 동일한 네트워크에 연결되어 있는지 확인합니다.
 
-# 2. 컨테이너 간 ping 테스트
-docker exec gateway-api ping yolo-api
+**2단계: 컨테이너 간 ping 테스트**
+Gateway API 컨테이너에서 YOLO API 컨테이너로 ping을 시도하여 네트워크 연결을 확인합니다.
 
-# 3. DNS 해석 확인
-docker exec gateway-api nslookup yolo-api
+**3단계: DNS 해석 확인**
+컨테이너 이름이 올바르게 DNS로 해석되는지 확인합니다.
 
-# 4. 재시작 (의존성 순서대로)
-docker compose down
-docker compose up -d
+**4단계: 재시작 (의존성 순서대로)**
+모든 서비스를 완전히 중지한 후 Docker Compose가 의존성 순서에 따라 자동으로 시작하도록 합니다.
 
-# 5. 헬스체크
-curl http://localhost:8000/health
-curl http://localhost:5005/health
-```
+**5단계: 헬스체크**
+각 API의 헬스체크 엔드포인트에 접속하여 정상 동작을 확인합니다.
 
 ---
 
@@ -354,9 +283,7 @@ curl http://localhost:5005/health
 ### 문제 10: "Cannot allocate memory" 오류
 
 #### 증상
-```bash
-Cannot allocate memory: fork failed
-```
+"Cannot allocate memory: fork failed" 오류 메시지가 표시됩니다.
 
 #### 원인
 - 시스템 메모리 부족
@@ -364,30 +291,20 @@ Cannot allocate memory: fork failed
 
 #### 해결 방법
 
-```bash
-# 1. 시스템 메모리 확인
-free -h
-top
+**1단계: 시스템 메모리 확인**
+현재 시스템의 메모리 사용 상황을 확인합니다. `free -h`로 전체 메모리 현황을 보고, `top`으로 프로세스별 사용량을 확인할 수 있습니다.
 
-# 2. Docker 메모리 사용량 확인
-docker stats
+**2단계: Docker 메모리 사용량 확인**
+각 Docker 컨테이너의 실시간 메모리 사용량을 모니터링합니다.
 
-# 3. 불필요한 컨테이너 제거
-docker container prune
-docker image prune -a
+**3단계: 불필요한 컨테이너 제거**
+사용하지 않는 중지된 컨테이너와 이미지를 정리하여 리소스를 확보합니다.
 
-# 4. 메모리 제한 조정
-vi .env
-# 전체 메모리 사용량을 시스템 RAM의 80% 이하로
-YOLO_MEMORY=2g  # 4g → 2g
-EDOCR2_MEMORY=2g  # 4g → 2g
+**4단계: 메모리 제한 조정**
+`.env` 파일에서 각 서비스의 메모리 제한을 시스템 RAM의 80% 이하가 되도록 조정합니다. 예를 들어 YOLO와 eDOCr2의 메모리를 각각 4GB에서 2GB로 감소시킬 수 있습니다.
 
-# 5. 스왑 메모리 설정 (임시 조치)
-sudo dd if=/dev/zero of=/swapfile bs=1G count=8
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-```
+**5단계: 스왑 메모리 설정 (임시 조치)**
+물리 메모리가 부족한 경우 스왑 파일을 생성하여 가상 메모리를 확보할 수 있습니다. 8GB 스왑 파일을 생성하고 활성화하는 과정을 거칩니다.
 
 ---
 
@@ -396,7 +313,7 @@ sudo swapon /swapfile
 ### 문제 11: 설정이 초기화됨
 
 #### 증상
-- Settings 페이지에서 저장한 설정이 사라짐
+Settings 페이지에서 저장한 설정이 브라우저를 다시 열면 사라집니다.
 
 #### 원인
 - 브라우저 localStorage 삭제
@@ -404,47 +321,38 @@ sudo swapon /swapfile
 
 #### 해결 방법
 
-```bash
-# 1. 백업 파일 확인
-# Settings 페이지에서 "복원" 버튼 클릭
-# 이전에 백업한 JSON 파일 선택
+**1단계: 백업 파일 확인**
+Settings 페이지에서 "복원" 버튼을 클릭하여 이전에 백업한 JSON 파일을 선택하고 설정을 복원합니다.
 
-# 2. 브라우저 데이터 보존 설정
-# Chrome: Settings → Privacy → Site Settings → Cookies
-# "Clear cookies and site data when you quit Chrome" OFF
+**2단계: 브라우저 데이터 보존 설정**
+Chrome의 경우 Settings → Privacy → Site Settings → Cookies로 이동하여 "Clear cookies and site data when you quit Chrome" 옵션을 비활성화합니다.
 
-# 3. 정기 백업 설정
-# Settings 페이지에서 "백업" 버튼으로 주기적으로 저장
+**3단계: 정기 백업 설정**
+중요한 설정 변경 후에는 Settings 페이지의 "백업" 버튼을 사용하여 주기적으로 JSON 파일로 저장합니다.
 
-# 4. 시스템 레벨 백업 (선택)
-# /var/lib/docker/volumes/ 에서 localStorage 볼륨 백업
-```
+**4단계: 시스템 레벨 백업 (선택)**
+필요한 경우 `/var/lib/docker/volumes/` 디렉토리의 localStorage 관련 볼륨을 시스템 레벨에서 백업할 수 있습니다.
 
 ---
 
 ### 문제 12: 업로드한 파일이 사라짐
 
 #### 증상
-- 분석한 도면 이미지가 재시작 후 사라짐
+분석한 도면 이미지가 시스템 재시작 후 사라집니다.
 
 #### 원인
-- 컨테이너 볼륨 미설정
+컨테이너 볼륨이 올바르게 설정되지 않았습니다.
 
 #### 해결 방법
 
-```bash
-# 1. docker-compose.yml에서 볼륨 확인
-# volumes:
-#   - ./data:/app/data  # 영구 저장
+**1단계: docker-compose.yml에서 볼륨 확인**
+각 서비스의 volumes 섹션에서 `./data:/app/data` 형식의 볼륨 마운트가 설정되어 있는지 확인합니다. 이렇게 하면 데이터가 호스트 시스템에 영구적으로 저장됩니다.
 
-# 2. 데이터 백업
-cp -r data/ /opt/ax-backups/data_$(date +%Y%m%d)/
+**2단계: 데이터 백업**
+현재 data 디렉토리를 날짜가 포함된 백업 위치로 복사합니다.
 
-# 3. 볼륨 복원
-docker compose down
-cp -r /opt/ax-backups/data_20251113/ ./data/
-docker compose up -d
-```
+**3단계: 볼륨 복원**
+서비스를 중지하고, 백업된 데이터를 원래 위치로 복사한 후, 서비스를 다시 시작합니다.
 
 ---
 
@@ -452,44 +360,23 @@ docker compose up -d
 
 ### 전체 로그 수집
 
-```bash
-#!/bin/bash
-# collect_logs.sh
+시스템 문제 진단을 위해 포괄적인 로그와 정보를 수집하는 스크립트입니다.
 
-BACKUP_DIR="/tmp/ax-logs-$(date +%Y%m%d_%H%M%S)"
-mkdir -p $BACKUP_DIR
+**스크립트 내용**:
+날짜와 시간이 포함된 백업 디렉토리를 생성하고 다음 정보들을 수집합니다:
+- 모든 서비스의 Docker 로그 (색상 코드 제거)
+- 각 개별 서비스(gateway-api, yolo-api, edocr2-api, edgnet-api, paddleocr-api, skinmodel-api, web-ui)의 로그
+- 컨테이너 상태 정보
+- 컨테이너 리소스 사용 통계
+- 디스크 사용량
+- 메모리 사용량
+- GPU 상태 (가능한 경우)
+- 환경 설정 파일 복사 (.env, docker-compose.yml)
 
-# Docker 로그
-docker compose logs --no-color > $BACKUP_DIR/docker-compose.log
-docker compose logs --no-color gateway-api > $BACKUP_DIR/gateway-api.log
-docker compose logs --no-color yolo-api > $BACKUP_DIR/yolo-api.log
-docker compose logs --no-color edocr2-api > $BACKUP_DIR/edocr2-api.log
-docker compose logs --no-color edgnet-api > $BACKUP_DIR/edgnet-api.log
-docker compose logs --no-color paddleocr-api > $BACKUP_DIR/paddleocr-api.log
-docker compose logs --no-color skinmodel-api > $BACKUP_DIR/skinmodel-api.log
-docker compose logs --no-color web-ui > $BACKUP_DIR/web-ui.log
+모든 정보를 수집한 후 tar.gz 형식으로 압축하여 쉽게 공유할 수 있도록 합니다.
 
-# 시스템 정보
-docker compose ps > $BACKUP_DIR/containers_status.txt
-docker stats --no-stream > $BACKUP_DIR/containers_stats.txt
-df -h > $BACKUP_DIR/disk_usage.txt
-free -h > $BACKUP_DIR/memory_usage.txt
-nvidia-smi > $BACKUP_DIR/gpu_status.txt 2>/dev/null || echo "No GPU" > $BACKUP_DIR/gpu_status.txt
-
-# 환경 설정
-cp .env $BACKUP_DIR/
-cp docker-compose.yml $BACKUP_DIR/
-
-# 압축
-tar -czf $BACKUP_DIR.tar.gz -C /tmp $(basename $BACKUP_DIR)
-echo "로그 수집 완료: $BACKUP_DIR.tar.gz"
-```
-
-실행:
-```bash
-chmod +x collect_logs.sh
-./collect_logs.sh
-```
+**실행 방법**:
+스크립트를 실행 가능하도록 권한을 부여한 후 실행합니다. 수집된 로그는 `/tmp/` 디렉토리에 압축 파일로 저장됩니다.
 
 ---
 
@@ -497,37 +384,25 @@ chmod +x collect_logs.sh
 
 ### Q1: 설정 저장 시 20초 이상 걸리는데 정상인가요?
 
-**A**: 예, 정상입니다. 설정 저장 시:
-1. localStorage에 저장 (즉시)
-2. Docker 컨테이너 재시작 필요 (수동)
+**A**: 예, 정상입니다. 설정 저장 과정은 다음과 같습니다:
+1. localStorage에 저장 (즉시 완료)
+2. Docker 컨테이너 재시작 필요 (수동 작업)
 
-설정 저장 자체는 1초 미만이지만, 실제 적용을 위해서는 컨테이너 재시작이 필요합니다.
-```bash
-docker compose restart
-```
+설정 저장 자체는 1초 미만이지만, 실제로 변경사항을 적용하려면 `docker compose restart` 명령어로 컨테이너를 재시작해야 합니다.
 
 ---
 
 ### Q2: GPU가 2개인데 특정 GPU만 사용하려면?
 
-**A**: docker-compose.yml에서 GPU 지정:
-```yaml
-services:
-  yolo-api:
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ['0']  # GPU 0번만 사용
-              capabilities: [gpu]
-```
+**A**: `docker-compose.yml` 파일에서 GPU 장치를 지정할 수 있습니다.
+
+서비스 설정의 deploy 섹션에서 reservations - devices를 사용하여 특정 GPU를 지정합니다. `device_ids: ['0']`은 GPU 0번만 사용한다는 의미이며, 여러 GPU를 사용하려면 `['0', '1']` 형식으로 지정합니다.
 
 ---
 
 ### Q3: 여러 사용자가 동시에 사용 가능한가요?
 
-**A**: 가능합니다. 단, Settings 페이지는 사용자별로 독립적입니다 (브라우저 localStorage 사용). API는 다중 사용자 동시 요청 지원합니다.
+**A**: 가능합니다. 단, Settings 페이지의 설정은 사용자별로 독립적입니다 (브라우저 localStorage 사용). API는 다중 사용자의 동시 요청을 지원합니다.
 
 ---
 
@@ -536,7 +411,7 @@ services:
 **A**: 네, 가능합니다. 사전 준비사항:
 1. Docker 이미지 사전 빌드
 2. 모델 가중치 파일 사전 배포
-3. 외부 의존성 없음
+3. 외부 의존성 없음 (모든 필요한 패키지가 이미지에 포함됨)
 
 ---
 
@@ -547,27 +422,10 @@ services:
 - 데이터 디렉토리: 주 1회
 - 로그 파일: 월 1회 (선택)
 
-자동 백업 스크립트:
-```bash
-# /etc/cron.weekly/ax-backup.sh
-#!/bin/bash
-BACKUP_DIR=/opt/ax-backups/$(date +%Y%m%d)
-mkdir -p $BACKUP_DIR
-cp /opt/ax-drawing-analysis/.env $BACKUP_DIR/
-cp -r /opt/ax-drawing-analysis/data/ $BACKUP_DIR/
-tar -czf $BACKUP_DIR.tar.gz -C /opt/ax-backups $(basename $BACKUP_DIR)
-rm -rf $BACKUP_DIR
-```
+**자동 백업 스크립트**:
+`/etc/cron.weekly/ax-backup.sh` 파일을 생성하여 주간 자동 백업을 설정할 수 있습니다.
 
----
-
-## 📞 추가 지원
-
-위의 해결 방법으로 문제가 해결되지 않을 경우:
-
-1. **로그 수집**: `collect_logs.sh` 실행
-2. **지원 요청**: support@example.com으로 로그 파일 전송
-3. **긴급 지원**: 010-1234-5678 (24/7)
+스크립트는 날짜별로 백업 디렉토리를 생성하고, `.env` 파일과 `data/` 디렉토리를 복사한 후, tar.gz로 압축합니다. 압축 후 임시 디렉토리는 삭제하여 공간을 절약합니다.
 
 ---
 
