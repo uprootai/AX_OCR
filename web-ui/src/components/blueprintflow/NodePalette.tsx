@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  Image,
   Target,
   FileText,
   Network,
@@ -18,10 +19,19 @@ interface NodeConfig {
   description: string;
   icon: React.ElementType | string; // 아이콘은 컴포넌트 또는 이모지
   color: string;
-  category: 'api' | 'control';
+  category: 'input' | 'api' | 'control';
 }
 
 const baseNodeConfigs: NodeConfig[] = [
+  // Input Node
+  {
+    type: 'imageinput',
+    label: 'Image Input',
+    description: 'Workflow starting point',
+    icon: Image,
+    color: '#f97316',
+    category: 'input',
+  },
   // API Nodes
   {
     type: 'yolo',
@@ -123,6 +133,7 @@ export default function NodePalette({ onNodeDragStart }: NodePaletteProps) {
     setAllNodeConfigs([...baseNodeConfigs, ...customNodeConfigs]);
   }, [customAPIs]);
 
+  const inputNodes = allNodeConfigs.filter((n) => n.category === 'input');
   const apiNodes = allNodeConfigs.filter((n) => n.category === 'api');
   const controlNodes = allNodeConfigs.filter((n) => n.category === 'control');
 
@@ -143,6 +154,49 @@ export default function NodePalette({ onNodeDragStart }: NodePaletteProps) {
                 Dashboard에서 추가한 API가 자동으로 노드 팔레트에 추가되었습니다.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Input Nodes */}
+      {inputNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            Input Nodes
+          </h3>
+          <div className="space-y-2">
+            {inputNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+
+              return (
+                <div
+                  key={node.type}
+                  draggable
+                  onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
+                  className="
+                    flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
+                    bg-white dark:bg-gray-700
+                    hover:shadow-md transition-shadow
+                  "
+                  style={{ borderColor: `${node.color}40` }}
+                >
+                  {isEmojiIcon ? (
+                    <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                  ) : Icon ? (
+                    <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                  ) : null}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm" style={{ color: node.color }}>
+                      {node.label}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {node.description}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

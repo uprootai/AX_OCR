@@ -12,7 +12,7 @@ export interface NodeParameter {
 export interface NodeDefinition {
   type: string;
   label: string;
-  category: 'api' | 'control';
+  category: 'input' | 'api' | 'control';
   color: string;
   icon: string;
   description: string;
@@ -31,6 +31,28 @@ export interface NodeDefinition {
 }
 
 export const nodeDefinitions: Record<string, NodeDefinition> = {
+  imageinput: {
+    type: 'imageinput',
+    label: 'Image Input',
+    category: 'input',
+    color: '#f97316',
+    icon: 'Image',
+    description: '워크플로우의 시작점. 업로드된 이미지를 다른 노드로 전달합니다.',
+    inputs: [],
+    outputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 업로드된 도면 이미지',
+      },
+    ],
+    parameters: [],
+    examples: [
+      '모든 워크플로우의 시작점으로 사용',
+      'YOLO, eDOCr2 등 API 노드의 입력 소스',
+      '이미지 업로드 후 자동으로 데이터 제공',
+    ],
+  },
   yolo: {
     type: 'yolo',
     label: 'YOLO Detection',

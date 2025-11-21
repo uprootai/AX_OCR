@@ -269,9 +269,8 @@ async def segment_drawing(
                 )
             segment_result = unet_service.process_segmentation(
                 file_path,
-                visualize=visualize,
-                results_dir=RESULTS_DIR,
-                vectorize=vectorize  # Pass vectorize parameter
+                visualize=visualize
+                # Note: UNet doesn't support results_dir or vectorize parameters
             )
         elif model.lower() == "graphsage":
             # Use GraphSAGE model (default)

@@ -44,6 +44,12 @@ def decode_base64_image(image_input: Union[str, bytes, Image.Image]) -> bytes:
         ValueError: 지원하지 않는 이미지 형식
     """
     if isinstance(image_input, str):
+        # Data URL prefix 제거 (data:image/png;base64, 등)
+        if image_input.startswith('data:'):
+            # "data:image/png;base64,..." -> "..." 추출
+            if ',' in image_input:
+                image_input = image_input.split(',', 1)[1]
+
         # Base64 디코딩
         return base64.b64decode(image_input)
     elif isinstance(image_input, bytes):

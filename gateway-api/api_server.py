@@ -1959,6 +1959,47 @@ async def execute_workflow(request: WorkflowExecutionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/v1/workflow/execute-stream")
+async def execute_workflow_stream(request: WorkflowExecutionRequest):
+    """
+    BlueprintFlow 워크플로우 실행 엔드포인트 (SSE 스트리밍)
+
+    실시간으로 워크플로우 실행 진행상황을 Server-Sent Events로 전송합니다.
+    """
+    from fastapi.responses import StreamingResponse
+
+    try:
+        logger.info(f"[SSE] 워크플로우 실행 요청: {request.workflow.name}")
+
+        async def event_stream():
+            try:
+                async for event in blueprint_engine.execute_workflow_stream(
+                    workflow=request.workflow,
+                    inputs=request.inputs,
+                    config=request.config,
+                ):
+                    yield event
+
+            except Exception as e:
+                logger.error(f"[SSE] 스트림 중 에러: {e}", exc_info=True)
+                import json
+                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",  # Nginx 버퍼링 비활성화
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"[SSE] 워크플로우 실행 중 에러: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/workflow/node-types")
 async def get_available_node_types():
     """사용 가능한 노드 타입 목록 조회"""

@@ -17,6 +17,7 @@ from .schemas.workflow import (
 # 실행기 등록을 위한 import
 from .executors import (
     test_executor,
+    imageinput_executor,
     yolo_executor,
     edocr2_executor,
     edgnet_executor,

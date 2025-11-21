@@ -21,7 +21,8 @@ async def call_edgnet_segment(
     filename: str,
     visualize: bool = True,
     num_classes: int = 3,
-    save_graph: bool = False
+    save_graph: bool = False,
+    model: str = "unet"
 ) -> Dict[str, Any]:
     """
     EDGNet API 호출
@@ -32,6 +33,7 @@ async def call_edgnet_segment(
         visualize: 시각화 생성 여부 (기본 True)
         num_classes: 클래스 수 (기본 3)
         save_graph: 그래프 저장 여부 (기본 False)
+        model: 모델 선택 (기본 "unet") - graphsage 또는 unet
 
     Returns:
         EDGNet 세그멘테이션 결과 dict
@@ -41,13 +43,14 @@ async def call_edgnet_segment(
         content_type = mimetypes.guess_type(filename)[0] or "image/png"
         logger.info(
             f"Calling EDGNet API for {filename} "
-            f"(content-type: {content_type}, num_classes={num_classes}, "
+            f"(content-type: {content_type}, model={model}, num_classes={num_classes}, "
             f"visualize={visualize}, save_graph={save_graph})"
         )
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             files = {"file": (filename, file_bytes, content_type)}
             data = {
+                "model": model,
                 "visualize": visualize,
                 "num_classes": num_classes,
                 "save_graph": save_graph

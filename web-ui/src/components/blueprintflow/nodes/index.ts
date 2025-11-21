@@ -4,6 +4,7 @@ export * from './BaseNode';
 
 // Node type mapping for ReactFlow
 export const nodeTypes = {
+  imageinput: 'imageinput',
   yolo: 'yolo',
   edocr2: 'edocr2',
   edgnet: 'edgnet',

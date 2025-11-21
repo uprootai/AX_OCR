@@ -47,7 +47,12 @@ async def collect_node_inputs(
         # 출력을 입력으로 병합
         inputs[f"from_{source_node_id}"] = source_output
 
-    # 모든 부모 출력을 단일 딕셔너리로 병합 (키 충돌 시 마지막 값 사용)
+    # 부모가 여러 개인 경우: from_ prefix 유지 (Merge 노드용)
+    if len(incoming_edges) > 1:
+        logger.debug(f"노드 {node_id}: 부모 {len(incoming_edges)}개, from_ prefix 유지")
+        return inputs
+
+    # 부모가 1개인 경우: 단일 딕셔너리로 병합 (일반 노드용)
     merged_inputs = {}
     for parent_output in inputs.values():
         if isinstance(parent_output, dict):

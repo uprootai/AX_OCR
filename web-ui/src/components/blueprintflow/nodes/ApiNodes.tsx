@@ -7,6 +7,7 @@ import {
   Ruler,
   Eye,
   FileSearch,
+  Image,
 } from 'lucide-react';
 import { BaseNode } from './BaseNode';
 
@@ -81,3 +82,15 @@ export const VlNode = memo((props: NodeProps) => (
   />
 ));
 VlNode.displayName = 'VlNode';
+
+// ImageInput Node
+export const ImageInputNode = memo((props: NodeProps) => (
+  <BaseNode
+    {...props}
+    icon={Image}
+    title="Image Input"
+    color="#f97316"
+    category="input"
+  />
+));
+ImageInputNode.displayName = 'ImageInputNode';

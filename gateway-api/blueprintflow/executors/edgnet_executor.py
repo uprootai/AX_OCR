@@ -34,6 +34,7 @@ class EdgnetExecutor(BaseNodeExecutor):
         visualize = self.parameters.get("visualize", True)
         num_classes = self.parameters.get("num_classes", 3)
         save_graph = self.parameters.get("save_graph", False)
+        model = self.parameters.get("model", "unet")  # unet 또는 graphsage
 
         # EDGNet API 호출
         result = await call_edgnet_segment(
@@ -41,7 +42,8 @@ class EdgnetExecutor(BaseNodeExecutor):
             filename=filename,
             visualize=visualize,
             num_classes=num_classes,
-            save_graph=save_graph
+            save_graph=save_graph,
+            model=model
         )
 
         return {

@@ -59,6 +59,10 @@ class ExecutionContext:
         elif status in ["completed", "failed", "skipped"]:
             self.node_statuses[node_id].end_time = current_time
 
+    def get_node_status(self, node_id: str) -> Optional[NodeExecutionStatus]:
+        """특정 노드의 실행 상태 조회"""
+        return self.node_statuses.get(node_id)
+
     def get_node_output(self, node_id: str) -> Optional[Dict[str, Any]]:
         """특정 노드의 실행 결과 조회"""
         return self.node_outputs.get(node_id)

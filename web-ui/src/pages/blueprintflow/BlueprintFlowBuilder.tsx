@@ -14,6 +14,7 @@ import { useAPIConfigStore } from '../../store/apiConfigStore';
 import NodePalette from '../../components/blueprintflow/NodePalette';
 import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import {
+  ImageInputNode,
   YoloNode,
   Edocr2Node,
   EdgnetNode,
@@ -31,6 +32,7 @@ import { workflowApi, type WorkflowExecutionRequest } from '../../lib/api';
 
 // Base node type mapping
 const baseNodeTypes = {
+  imageinput: ImageInputNode,
   yolo: YoloNode,
   edocr2: Edocr2Node,
   edgnet: EdgnetNode,
@@ -81,8 +83,10 @@ function WorkflowBuilderCanvas() {
     isExecuting,
     executionResult,
     executionError,
-    executeWorkflow,
+    executeWorkflowStream,
     updateNodeData,
+    nodeStatuses,
+    executionId,
   } = useWorkflowStore();
 
   // Track selected node
@@ -234,8 +238,8 @@ function WorkflowBuilderCanvas() {
       return;
     }
 
-    // Use store's executeWorkflow method
-    await executeWorkflow(uploadedImage);
+    // Use store's executeWorkflowStream method for real-time updates
+    await executeWorkflowStream(uploadedImage);
   };
 
   return (
@@ -319,7 +323,7 @@ function WorkflowBuilderCanvas() {
           </div>
 
           {/* Execution Status */}
-          {(executionResult || executionError) && (
+          {(isExecuting || executionResult || executionError || Object.keys(nodeStatuses).length > 0) && (
             <div className="mt-3 p-3 rounded-md bg-gray-100 dark:bg-gray-700">
               {executionError && (
                 <div className="text-red-600 dark:text-red-400 flex items-center gap-2">
@@ -327,7 +331,53 @@ function WorkflowBuilderCanvas() {
                   <span>{executionError}</span>
                 </div>
               )}
-              {executionResult && (
+
+              {/* Real-time Node Status (SSE) */}
+              {isExecuting && Object.keys(nodeStatuses).length > 0 && (
+                <div className="mb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      ⚡ Executing Workflow
+                    </span>
+                    {executionId && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        (ID: {executionId.slice(0, 8)})
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm space-y-1">
+                    {Object.values(nodeStatuses).map((nodeStatus: any) => (
+                      <div key={nodeStatus.nodeId} className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${
+                          nodeStatus.status === 'completed' ? 'bg-green-500' :
+                          nodeStatus.status === 'failed' ? 'bg-red-500' :
+                          nodeStatus.status === 'running' ? 'bg-yellow-500 animate-pulse' :
+                          'bg-gray-400'
+                        }`} />
+                        <span className="text-gray-700 dark:text-gray-300 flex-1">
+                          {nodeStatus.nodeId}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs ${
+                          nodeStatus.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                          nodeStatus.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                          nodeStatus.status === 'running' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                          {nodeStatus.status}
+                        </span>
+                        {nodeStatus.progress !== undefined && (
+                          <span className="text-xs text-gray-500">
+                            {(nodeStatus.progress * 100).toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Final Result */}
+              {executionResult && !isExecuting && (
                 <div className="text-green-600 dark:text-green-400">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold">Status:</span>
