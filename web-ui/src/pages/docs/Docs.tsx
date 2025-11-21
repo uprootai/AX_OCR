@@ -33,6 +33,9 @@ const docStructure: DocFile[] = [
       { name: 'API 사용 매뉴얼', path: '/docs/user/API_USAGE_MANUAL.md', type: 'file' },
       { name: '한글 실행 가이드', path: '/docs/user/KOREAN_EXECUTION_GUIDE.md', type: 'file' },
       { name: '트러블슈팅 가이드', path: '/docs/user/TROUBLESHOOTING_GUIDE.md', type: 'file' },
+      { name: '동적 API 추가 가이드 ⭐', path: '/docs/DYNAMIC_API_SYSTEM_GUIDE.md', type: 'file' },
+      { name: 'BlueprintFlow API 통합', path: '/docs/BLUEPRINTFLOW_API_INTEGRATION_GUIDE.md', type: 'file' },
+      { name: '동적 API 테스트 가이드', path: '/TESTING_GUIDE_DYNAMIC_API.md', type: 'file' },
     ],
   },
   {
@@ -42,8 +45,7 @@ const docStructure: DocFile[] = [
     children: [
       { name: 'Claude 가이드 (EN)', path: '/docs/developer/CLAUDE.md', type: 'file' },
       { name: 'Claude 가이드 (KR)', path: '/docs/developer/CLAUDE_KR.md', type: 'file' },
-      { name: '기여 가이드', path: '/docs/developer/CONTRIBUTING.md', type: 'file' },
-      { name: 'Git 워크플로우', path: '/docs/developer/GIT_WORKFLOW.md', type: 'file' },
+      { name: 'VL API 설정 가이드', path: '/docs/developer/VL_API_SETUP_GUIDE.md', type: 'file' },
     ],
   },
   {
@@ -51,12 +53,11 @@ const docStructure: DocFile[] = [
     path: 'technical',
     type: 'folder',
     children: [
-      { name: 'YOLO 구현 가이드', path: '/docs/technical/yolo/IMPLEMENTATION_GUIDE.md', type: 'file' },
-      { name: 'YOLO 빠른 시작', path: '/docs/technical/yolo/QUICKSTART.md', type: 'file' },
+      { name: 'YOLO 빠른 시작 ⭐', path: '/docs/technical/yolo/QUICKSTART.md', type: 'file' },
       { name: 'eDOCr v1/v2 배포', path: '/docs/technical/ocr/EDOCR_V1_V2_DEPLOYMENT.md', type: 'file' },
       { name: 'OCR 개선 전략', path: '/docs/technical/ocr/OCR_IMPROVEMENT_STRATEGY.md', type: 'file' },
-      { name: 'VL API 구현 가이드', path: '/docs/technical/VL_API_IMPLEMENTATION_GUIDE.md', type: 'file' },
       { name: '합성 데이터 전략', path: '/docs/technical/SYNTHETIC_DATA_STRATEGY.md', type: 'file' },
+      { name: 'VL API 구현 가이드', path: '/docs/technical/VL_API_IMPLEMENTATION_GUIDE.md', type: 'file' },
     ],
   },
   {
@@ -64,12 +65,8 @@ const docStructure: DocFile[] = [
     path: 'architecture',
     type: 'folder',
     children: [
-      { name: '시스템 아키텍처 ⭐', path: '/docs/architecture/system-architecture.md', type: 'file' },
-      { name: '의사결정 매트릭스', path: '/docs/architecture/DECISION_MATRIX.md', type: 'file' },
-      { name: '배포 상태', path: '/docs/architecture/DEPLOYMENT_STATUS.md', type: 'file' },
-      { name: '구현 상태', path: '/docs/architecture/IMPLEMENTATION_STATUS.md', type: 'file' },
-      { name: '프로덕션 준비도', path: '/docs/architecture/PRODUCTION_READINESS_ANALYSIS.md', type: 'file' },
-      { name: '프로젝트 구조 분석', path: '/docs/architecture/PROJECT_STRUCTURE_ANALYSIS.md', type: 'file' },
+      { name: '모델 선정 기준 ⭐', path: '/docs/architecture/MODEL_SELECTION_CRITERIA.md', type: 'file' },
+      { name: '프로덕션 준비도 분석', path: '/docs/architecture/PRODUCTION_READINESS_ANALYSIS.md', type: 'file' },
     ],
   },
   {
@@ -82,16 +79,21 @@ const docStructure: DocFile[] = [
     ],
   },
   {
-    name: '🏆 100점 달성 문서',
-    path: 'achievement',
+    name: '📖 사용자 가이드',
+    path: 'user',
     type: 'folder',
     children: [
-      { name: '100점 달성 보고서 ⭐', path: '/docs/PERFECT_SCORE_ACHIEVEMENT.md', type: 'file' },
-      { name: '최종 점수 리포트', path: '/docs/FINAL_SCORE_REPORT.md', type: 'file' },
-      { name: '시스템 이슈 분석', path: '/docs/SYSTEM_ISSUES_REPORT.md', type: 'file' },
-      { name: '적용된 수정사항', path: '/docs/FIXES_APPLIED.md', type: 'file' },
-      { name: '감점 분석', path: '/docs/DEDUCTION_ANALYSIS.md', type: 'file' },
-      { name: 'GPU 설정 설명', path: '/docs/GPU_CONFIGURATION_EXPLAINED.md', type: 'file' },
+      { name: 'API 사용 매뉴얼 ⭐', path: '/docs/user/API_USAGE_MANUAL.md', type: 'file' },
+      { name: '한국어 실행 가이드', path: '/docs/user/KOREAN_EXECUTION_GUIDE.md', type: 'file' },
+      { name: '사용자 가이드', path: '/docs/user/USER_GUIDE.md', type: 'file' },
+    ],
+  },
+  {
+    name: '⚙️ 시스템 설정',
+    path: 'system',
+    type: 'folder',
+    children: [
+      { name: 'GPU 설정 가이드', path: '/docs/GPU_CONFIGURATION_EXPLAINED.md', type: 'file' },
     ],
   },
 ];

@@ -116,7 +116,7 @@ ${errorInfo?.componentStack}
                     예상치 못한 오류가 발생했습니다
                   </h1>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    죄송합니다. 애플리케이션에서 오류가 발생했습니다. 아래 옵션을 선택하거나 기술 지원팀에 문의해주세요.
+                    죄송합니다. 애플리케이션에서 오류가 발생했습니다. 아래 옵션을 선택해주세요.
                   </p>
                 </div>
               </div>
@@ -178,13 +178,8 @@ ${errorInfo?.componentStack}
               {/* 지원 정보 */}
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  문제가 지속되면 기술 지원팀에 문의하세요:
+                  문제가 지속되면 페이지를 새로고침하거나, 브라우저 캐시를 삭제한 후 다시 시도해주세요.
                 </p>
-                <ul className="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                  <li>• 이메일: support@example.com</li>
-                  <li>• 전화: 02-1234-5678 (평일 09:00-18:00)</li>
-                  <li>• 긴급: 010-1234-5678 (24/7)</li>
-                </ul>
               </div>
             </div>
           </Card>

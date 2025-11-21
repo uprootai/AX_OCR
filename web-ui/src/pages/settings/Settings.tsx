@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -156,10 +157,31 @@ const defaultModels: ModelConfig[] = [
 
 export default function Settings() {
   const { t } = useTranslation();
+  const { customAPIs } = useAPIConfigStore();
   const [models, setModels] = useState<ModelConfig[]>(defaultModels);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const { success, error, ToastContainer } = useToast();
+
+  // 커스텀 API를 models 배열에 병합
+  useEffect(() => {
+    const customModels: ModelConfig[] = customAPIs
+      .filter((api) => api.enabled)
+      .map((api) => ({
+        name: api.id,
+        displayName: api.displayName,
+        description: api.description,
+        icon: api.icon,
+        port: api.port,
+        enabled: true,
+        device: 'cpu',
+        memory_limit: '2g',
+        hyperparams: {},
+      }));
+
+    // 기본 모델 + 커스텀 모델 병합
+    setModels([...defaultModels, ...customModels]);
+  }, [customAPIs]);
 
   useEffect(() => {
     // Load service configs
@@ -550,6 +572,50 @@ export default function Settings() {
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
             {t('settings.warning')}
           </p>
+        </div>
+      </div>
+
+      {/* 동적 API 시스템 안내 */}
+      <div className="p-4 bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 rounded-lg">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0">➕</span>
+          <div className="flex-1">
+            <h3 className="font-semibold text-cyan-900 dark:text-cyan-100 mb-2">
+              동적 API 추가 시스템
+            </h3>
+            <p className="text-sm text-cyan-800 dark:text-cyan-200 mb-3">
+              Dashboard에서 "API 추가" 버튼을 통해 새로운 API를 추가하면,
+              이 Settings 페이지에 자동으로 설정 패널이 생성됩니다.
+              코드 수정 없이 즉시 사용 가능합니다.
+            </p>
+            <div className="space-y-2 text-xs text-cyan-700 dark:text-cyan-300">
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-500">•</span>
+                <span>
+                  <strong>자동 반영:</strong> Dashboard(헬스체크), Settings(이 페이지), BlueprintFlow(노드 팔레트)에 즉시 반영
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-500">•</span>
+                <span>
+                  <strong>위치 무관:</strong> Docker 위치 상관없이 HTTP로 통신 가능하면 사용 가능
+                  (localhost, 원격 서버, 클라우드 모두 OK)
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-500">•</span>
+                <span>
+                  <strong>요구사항:</strong> API는 <code className="bg-cyan-100 dark:bg-cyan-900 px-1 py-0.5 rounded">/api/v1/health</code> 엔드포인트 필요
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-cyan-500">•</span>
+                <span>
+                  <strong>상세 가이드:</strong> Docs → 동적 API 추가 가이드 참고
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -1,24 +1,39 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import APIStatusMonitor from '../../components/monitoring/APIStatusMonitor';
+import AddAPIDialog from '../../components/dashboard/AddAPIDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { TestTube, Activity, FileText, TrendingUp } from 'lucide-react';
+import { TestTube, Activity, FileText, TrendingUp, Plus } from 'lucide-react';
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const [isAddAPIDialogOpen, setIsAddAPIDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
-        <p className="text-muted-foreground">
-          {t('dashboard.subtitle')}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
+          <p className="text-muted-foreground">
+            {t('dashboard.subtitle')}
+          </p>
+        </div>
+        <Button onClick={() => setIsAddAPIDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          API 추가
+        </Button>
       </div>
 
       {/* API Status Monitor */}
       <APIStatusMonitor />
+
+      {/* Add API Dialog */}
+      <AddAPIDialog
+        isOpen={isAddAPIDialogOpen}
+        onClose={() => setIsAddAPIDialogOpen(false)}
+      />
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-3 gap-6">

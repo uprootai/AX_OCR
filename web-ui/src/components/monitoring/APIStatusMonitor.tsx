@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { checkAllServices } from '../../lib/api';
+import { checkAllServicesIncludingCustom } from '../../lib/api';
 import { useMonitoringStore } from '../../store/monitoringStore';
+import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { useEffect } from 'react';
 import ServiceHealthCard from './ServiceHealthCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
@@ -9,10 +10,11 @@ import { RefreshCw } from 'lucide-react';
 
 export default function APIStatusMonitor() {
   const { services, updateServiceHealth } = useMonitoringStore();
+  const { customAPIs } = useAPIConfigStore();
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['health-check'],
-    queryFn: checkAllServices,
+    queryKey: ['health-check', customAPIs.length], // customAPIs 변경 시 재fetch
+    queryFn: checkAllServicesIncludingCustom,
     refetchInterval: 30000, // 30초마다 자동 갱신
   });
 
@@ -105,8 +107,29 @@ export default function APIStatusMonitor() {
           swaggerUrl: 'http://localhost:5006/docs',
         });
       }
+
+      // 커스텀 API 동적 처리
+      customAPIs.forEach((api) => {
+        if (data[api.id]) {
+          updateServiceHealth(api.id, {
+            name: api.displayName,
+            status: 'healthy',
+            latency: Math.random() * 50,
+            lastCheck: new Date(),
+            swaggerUrl: `${api.baseUrl}/docs`,
+          });
+        } else {
+          updateServiceHealth(api.id, {
+            name: api.displayName,
+            status: 'error',
+            latency: 0,
+            lastCheck: new Date(),
+            errorMessage: 'Service unavailable',
+          });
+        }
+      });
     }
-  }, [data, updateServiceHealth]);
+  }, [data, updateServiceHealth, customAPIs]);
 
   if (isLoading) {
     return (
@@ -136,6 +159,7 @@ export default function APIStatusMonitor() {
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid md:grid-cols-2 gap-4">
+          {/* 기본 API 서비스 */}
           {services.gateway && (
             <ServiceHealthCard service={services.gateway} />
           )}
@@ -160,6 +184,13 @@ export default function APIStatusMonitor() {
           {services.vl && (
             <ServiceHealthCard service={services.vl} />
           )}
+
+          {/* 커스텀 API 동적 렌더링 */}
+          {customAPIs.map((api) => {
+            const service = services[api.id];
+            if (!service) return null;
+            return <ServiceHealthCard key={api.id} service={service} />;
+          })}
         </div>
       </CardContent>
     </Card>

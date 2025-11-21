@@ -236,5 +236,6 @@ export interface ServiceHealth {
   latency: number;
   lastCheck: Date;
   errorCount?: number;
+  errorMessage?: string;
   swaggerUrl?: string;
 }

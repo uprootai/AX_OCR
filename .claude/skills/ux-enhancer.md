@@ -1,3 +1,9 @@
+---
+name: ux-enhancer
+description: Applies 2025 enterprise UI/UX best practices including accessibility (WCAG 2.1), dark mode, performance optimization, and interactive visualizations
+allowed-tools: [read, write, glob, grep]
+---
+
 # UX Enhancer Skill
 
 **목적**: 유저 관점에서 UI/UX를 고도화하여 엔터프라이즈급 도면 분석 시스템 구축

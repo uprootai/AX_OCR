@@ -1,3 +1,9 @@
+---
+name: doc-updater
+description: Automatically tracks project changes and updates relevant documentation including CLAUDE.md, README, CHANGELOG, and API docs
+allowed-tools: [read, glob, grep, bash]
+---
+
 # Documentation Updater Skill
 
 **목적**: 프로젝트 변경 사항을 자동으로 추적하고 관련 문서를 업데이트

@@ -335,5 +335,43 @@
     "used": "Used",
     "free": "Free",
     "utilization": "Utilization"
+  },
+  "addApiDialog": {
+    "title": "Add New API",
+    "warning": "Important",
+    "warningMessage": "API backend server must be running with a health check endpoint (/api/v1/health). After adding, it will be automatically reflected in Dashboard, Settings, and BlueprintFlow.",
+    "apiId": "API ID",
+    "apiIdPlaceholder": "e.g., text-classifier",
+    "apiIdHelper": "Lowercase letters, numbers, and hyphens allowed (e.g., text-classifier, ocr-v3)",
+    "apiName": "API Name (for code)",
+    "apiNamePlaceholder": "e.g., textclassifier",
+    "apiNameHelper": "Used as variable name. Letters, numbers, and underscores allowed",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "e.g., Text Classifier",
+    "displayNameHelper": "Name shown in UI",
+    "baseUrl": "Base URL",
+    "baseUrlPlaceholder": "e.g., http://localhost:5007",
+    "port": "Port",
+    "icon": "Icon",
+    "color": "Node Color",
+    "category": "Category",
+    "categoryApi": "API (Data Processing)",
+    "categoryControl": "Control (Control Flow)",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe what this API does",
+    "required": "Required",
+    "addButton": "Add API",
+    "errors": {
+      "idRequired": "API ID is required",
+      "idInvalid": "API ID must contain only lowercase letters, numbers, and hyphens",
+      "idExists": "API ID already exists",
+      "nameRequired": "API name is required",
+      "nameInvalid": "API name must contain only letters, numbers, and underscores",
+      "displayNameRequired": "Display name is required",
+      "baseUrlRequired": "Base URL is required",
+      "baseUrlInvalid": "Invalid URL format (must start with http:// or https://)",
+      "portInvalid": "Port must be between 1024 and 65535",
+      "descriptionRequired": "Description is required"
+    }
   }
 }

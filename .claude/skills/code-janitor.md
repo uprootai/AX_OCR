@@ -1,3 +1,9 @@
+---
+name: code-janitor
+description: Automatically detects and fixes code quality issues including unused imports, type hints, security vulnerabilities, and performance problems across Python and TypeScript codebases
+allowed-tools: [grep, glob, read, bash]
+---
+
 # Code Janitor Skill
 
 **목적**: 잔 오류, 코드 스멜, 베스트 프랙티스 위반을 자동으로 탐지하고 수정

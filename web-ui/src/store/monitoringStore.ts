@@ -2,17 +2,8 @@ import { create } from 'zustand';
 import type { ServiceHealth, RequestTrace } from '../types/api';
 
 interface MonitoringState {
-  // Service Health
-  services: {
-    gateway: ServiceHealth | null;
-    edocr2_v1: ServiceHealth | null;
-    edocr2_v2: ServiceHealth | null;
-    edgnet: ServiceHealth | null;
-    skinmodel: ServiceHealth | null;
-    yolo: ServiceHealth | null;
-    paddleocr: ServiceHealth | null;
-    vl: ServiceHealth | null;
-  };
+  // Service Health - 동적 서비스를 위해 Record 타입 사용
+  services: Record<string, ServiceHealth | null>;
 
   // Request Traces
   traces: RequestTrace[];
@@ -26,7 +17,7 @@ interface MonitoringState {
   };
 
   // Actions
-  updateServiceHealth: (service: keyof MonitoringState['services'], health: ServiceHealth) => void;
+  updateServiceHealth: (service: string, health: ServiceHealth) => void;
   addTrace: (trace: RequestTrace) => void;
   clearTraces: () => void;
   updateMetrics: () => void;

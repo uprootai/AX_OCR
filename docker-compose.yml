@@ -132,7 +132,6 @@ services:
     ports:
       - "5003:5003"
     volumes:
-      - ./dev/skinmodel:/app/skinmodel:ro
       - ./models/skinmodel-api/data:/tmp/skinmodel/data
       - ./models/skinmodel-api/output:/tmp/skinmodel/output
     environment:
@@ -161,7 +160,7 @@ services:
     ports:
       - "5004:5004"
     volumes:
-      - ./models/vl-api/uploads:/tm./models/vl-api/uploads
+      - ./models/vl-api/uploads:/tmp/vl-api/uploads
     environment:
       - VL_API_PORT=5004
       - VL_API_WORKERS=2
@@ -190,8 +189,8 @@ services:
       - "5005:5005"
     volumes:
       - ./models/yolo-api/models:/app/models:ro
-      - ./models/yolo-api/uploads:/tm./models/yolo-api/uploads
-      - ./models/yolo-api/results:/tm./models/yolo-api/results
+      - ./models/yolo-api/uploads:/tmp/yolo-api/uploads
+      - ./models/yolo-api/results:/tmp/yolo-api/results
     environment:
       - YOLO_API_PORT=5005
       - YOLO_MODEL_PATH=/app/models/best.pt
@@ -225,8 +224,8 @@ services:
     ports:
       - "5006:5006"
     volumes:
-      - ./models/paddleocr-api/uploads:/tm./models/paddleocr-api/uploads
-      - ./models/paddleocr-api/results:/tm./models/paddleocr-api/results
+      - ./models/paddleocr-api/uploads:/tmp/paddleocr-api/uploads
+      - ./models/paddleocr-api/results:/tmp/paddleocr-api/results
     environment:
       - PADDLEOCR_PORT=5006
       - USE_GPU=true
@@ -264,7 +263,6 @@ services:
     volumes:
       - ./gateway-api/uploads:/tmp/gateway/uploads
       - ./gateway-api/results:/tmp/gateway/results
-      - ./datasets:/datasets:ro
     environment:
       - GATEWAY_PORT=8000
       - GATEWAY_WORKERS=4

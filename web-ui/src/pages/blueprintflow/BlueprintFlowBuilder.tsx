@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
@@ -10,6 +10,7 @@ import type { ReactFlowInstance } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { useWorkflowStore } from '../../store/workflowStore';
+import { useAPIConfigStore } from '../../store/apiConfigStore';
 import NodePalette from '../../components/blueprintflow/NodePalette';
 import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import {
@@ -23,12 +24,13 @@ import {
   LoopNode,
   MergeNode,
 } from '../../components/blueprintflow/nodes';
+import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
 import { Play, Save, Trash2 } from 'lucide-react';
 import { workflowApi, type WorkflowExecutionRequest } from '../../lib/api';
 
-// Node type mapping
-const nodeTypes = {
+// Base node type mapping
+const baseNodeTypes = {
   yolo: YoloNode,
   edocr2: Edocr2Node,
   edgnet: EdgnetNode,
@@ -45,9 +47,24 @@ const getId = () => `node_${nodeId++}`;
 
 function WorkflowBuilderCanvas() {
   const { t } = useTranslation();
+  const { customAPIs } = useAPIConfigStore();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
+
+  // 동적으로 nodeTypes 생성 (기본 노드 + 커스텀 노드)
+  const nodeTypes = useMemo(() => {
+    const types: Record<string, any> = { ...baseNodeTypes };
+
+    // 커스텀 API를 모두 DynamicNode로 등록
+    customAPIs.forEach((api) => {
+      if (api.enabled) {
+        types[api.id] = DynamicNode;
+      }
+    });
+
+    return types;
+  }, [customAPIs]);
 
   const {
     nodes,
@@ -68,7 +85,7 @@ function WorkflowBuilderCanvas() {
   // Track selected node
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes }: any) => {
-      if (selectedNodes.length === 1) {
+      if (selectedNodes && Array.isArray(selectedNodes) && selectedNodes.length === 1) {
         setSelectedNode(selectedNodes[0]);
       } else {
         setSelectedNode(null);
@@ -97,6 +114,9 @@ function WorkflowBuilderCanvas() {
         y: event.clientY,
       });
 
+      // 커스텀 API인지 확인하고 아이콘/색상 정보 추가
+      const customAPI = customAPIs.find((api) => api.id === type);
+
       const newNode = {
         id: getId(),
         type,
@@ -105,12 +125,18 @@ function WorkflowBuilderCanvas() {
           label: label || type,
           description: `${label} node`,
           parameters: {},
+          // 커스텀 API인 경우 추가 정보 포함
+          ...(customAPI && {
+            icon: customAPI.icon,
+            color: customAPI.color,
+          }),
         },
+        selected: false, // ReactFlow requires this property
       };
 
       addNode(newNode);
     },
-    [reactFlowInstance, addNode]
+    [reactFlowInstance, addNode, customAPIs]
   );
 
   const onNodeDragStart = useCallback((event: React.DragEvent, nodeType: string, label: string) => {
@@ -260,8 +286,8 @@ function WorkflowBuilderCanvas() {
         {/* ReactFlow Canvas */}
         <div ref={reactFlowWrapper} className="flex-1">
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={nodes.filter((n) => n && n.id)}
+            edges={edges.filter((e) => e && e.id)}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}

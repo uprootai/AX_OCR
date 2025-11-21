@@ -42,14 +42,14 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'image',
         type: 'Image',
-        description: '분석할 기계 도면 이미지 (JPG, PNG)',
+        description: '📄 도면 이미지 파일 (JPG, PNG 등)',
       },
     ],
     outputs: [
       {
         name: 'detections',
         type: 'DetectionResult[]',
-        description: '검출된 객체 목록 (bbox, class, confidence)',
+        description: '🎯 검출된 심볼 목록 (위치, 종류, 신뢰도 포함)',
       },
     ],
     parameters: [
@@ -86,14 +86,14 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'image',
         type: 'Image | DetectionResult[]',
-        description: '전체 이미지 또는 YOLO 검출 결과',
+        description: '📄 도면 이미지 또는 🎯 YOLO 검출 영역',
       },
     ],
     outputs: [
       {
         name: 'text_results',
         type: 'OCRResult[]',
-        description: '인식된 텍스트 (text, confidence, bbox)',
+        description: '📝 인식된 텍스트 목록 (내용, 위치, 정확도)',
       },
     ],
     parameters: [],
@@ -113,14 +113,14 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'image',
         type: 'Image',
-        description: '원본 도면 이미지',
+        description: '📄 흐릿하거나 복잡한 도면 이미지',
       },
     ],
     outputs: [
       {
         name: 'segmented_image',
         type: 'Image',
-        description: '엣지가 강조된 이미지',
+        description: '✨ 윤곽선이 선명해진 처리된 이미지',
       },
     ],
     parameters: [
@@ -150,14 +150,14 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'ocr_results',
         type: 'OCRResult[]',
-        description: 'OCR로 추출된 치수 데이터',
+        description: '📝 OCR이 읽은 치수 및 공차 텍스트 (예: "50±0.1")',
       },
     ],
     outputs: [
       {
         name: 'tolerance_report',
         type: 'ToleranceReport',
-        description: '공차 분석 결과 및 제조 견적',
+        description: '📊 제조 가능 여부, 난이도, 예상 비용 분석 결과',
       },
     ],
     parameters: [],
@@ -177,14 +177,14 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'image',
         type: 'Image | DetectionResult[]',
-        description: '전체 이미지 또는 검출 영역',
+        description: '📄 도면 이미지 또는 🎯 특정 검출 영역',
       },
     ],
     outputs: [
       {
         name: 'text_results',
         type: 'OCRResult[]',
-        description: '인식된 텍스트',
+        description: '📝 인식된 영문/숫자 텍스트 목록',
       },
     ],
     parameters: [
@@ -212,14 +212,14 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'image',
         type: 'Image',
-        description: '분석할 도면 이미지',
+        description: '📄 이해하고 싶은 도면 이미지',
       },
     ],
     outputs: [
       {
         name: 'description',
         type: 'string',
-        description: '도면에 대한 자연어 설명',
+        description: '💬 도면 내용을 자연어로 설명한 텍스트',
       },
     ],
     parameters: [],
@@ -239,19 +239,19 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'data',
         type: 'any',
-        description: '조건 판단할 데이터',
+        description: '🔍 조건을 확인할 데이터 (예: YOLO 결과)',
       },
     ],
     outputs: [
       {
         name: 'true',
         type: 'any',
-        description: '조건이 참일 때의 출력',
+        description: '✅ 조건 만족 시 → 다음 노드로 전달',
       },
       {
         name: 'false',
         type: 'any',
-        description: '조건이 거짓일 때의 출력',
+        description: '❌ 조건 불만족 시 → 대안 노드로 전달',
       },
     ],
     parameters: [
@@ -278,14 +278,14 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'array',
         type: 'any[]',
-        description: '반복할 배열 데이터',
+        description: '🔁 반복할 목록 (예: YOLO가 찾은 10개 심볼)',
       },
     ],
     outputs: [
       {
         name: 'item',
         type: 'any',
-        description: '현재 반복 중인 항목',
+        description: '➡️ 현재 처리 중인 한 개 항목 (예: 1번째 심볼)',
       },
     ],
     parameters: [
@@ -312,24 +312,24 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'input1',
         type: 'any',
-        description: '첫 번째 입력',
+        description: '🔵 첫 번째 결과 (예: eDOCr2 OCR)',
       },
       {
         name: 'input2',
         type: 'any',
-        description: '두 번째 입력',
+        description: '🟢 두 번째 결과 (예: PaddleOCR)',
       },
       {
         name: 'input3',
         type: 'any',
-        description: '세 번째 입력',
+        description: '🟡 세 번째 결과 (예: VL 설명)',
       },
     ],
     outputs: [
       {
         name: 'merged',
         type: 'any[]',
-        description: '병합된 결과',
+        description: '📦 모든 결과를 합친 통합 데이터',
       },
     ],
     parameters: [],
@@ -342,4 +342,56 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
 
 export function getNodeDefinition(type: string): NodeDefinition | undefined {
   return nodeDefinitions[type];
+}
+
+/**
+ * 커스텀 API를 노드 정의로 변환합니다.
+ * localStorage의 customAPIs를 읽어서 동적으로 nodeDefinitions에 추가합니다.
+ */
+export function getAllNodeDefinitions(): Record<string, NodeDefinition> {
+  // 기본 노드 정의
+  const allDefinitions = { ...nodeDefinitions };
+
+  // 커스텀 API 로드
+  try {
+    const customAPIsJSON = localStorage.getItem('custom-apis-storage');
+    if (customAPIsJSON) {
+      const storage = JSON.parse(customAPIsJSON);
+      const customAPIs = storage.state?.customAPIs || [];
+
+      // 각 커스텀 API를 노드 정의로 변환
+      customAPIs.forEach((api: any) => {
+        if (api.enabled) {
+          allDefinitions[api.id] = {
+            type: api.id,
+            label: api.displayName,
+            category: api.category,
+            color: api.color,
+            icon: api.icon,
+            description: api.description,
+            inputs: api.inputs || [
+              {
+                name: 'input',
+                type: 'any',
+                description: '📥 입력 데이터',
+              },
+            ],
+            outputs: api.outputs || [
+              {
+                name: 'output',
+                type: 'any',
+                description: '📤 출력 데이터',
+              },
+            ],
+            parameters: api.parameters || [],
+            examples: [],
+          };
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load custom API node definitions:', error);
+  }
+
+  return allDefinitions;
 }

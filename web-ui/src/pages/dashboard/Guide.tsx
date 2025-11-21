@@ -312,6 +312,60 @@ export default function Guide() {
               </ol>
             </div>
 
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-2 flex items-center text-cyan-900 dark:text-cyan-100">
+                <span className="text-xl mr-2">➕</span>
+                2️⃣ 새로운 API 추가하기 (동적 시스템)
+              </h3>
+              <ol className="space-y-2 text-sm ml-4">
+                <li className="flex items-start">
+                  <span className="bg-cyan-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 text-xs">
+                    1
+                  </span>
+                  <span>
+                    <a href="/dashboard" className="text-cyan-600 hover:underline font-medium">
+                      Dashboard
+                    </a>에서 우측 상단 <strong>"API 추가"</strong> 버튼 클릭
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-cyan-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 text-xs">
+                    2
+                  </span>
+                  <span>API 정보 입력: ID, 이름, URL (예: <code>http://localhost:5007</code>), 포트, 아이콘, 색상</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-cyan-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 text-xs">
+                    3
+                  </span>
+                  <span>저장하면 <strong>즉시 자동 반영</strong>: Dashboard 헬스체크, Settings 패널, BlueprintFlow 노드</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-cyan-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 text-xs">
+                    4
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    <strong>위치 무관:</strong> Docker 위치 상관없이 HTTP 통신 가능하면 OK
+                    (localhost, 원격 서버, 클라우드 모두 가능)
+                  </span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-cyan-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 text-xs">
+                    5
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    <strong>필수 요구사항:</strong> API는 <code>/api/v1/health</code> 엔드포인트 필요
+                  </span>
+                </li>
+              </ol>
+              <div className="mt-3 p-3 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded">
+                <p className="text-xs text-cyan-800 dark:text-cyan-200">
+                  💡 <strong>예시:</strong> 팀원이 192.168.1.200:5007에 Text Classifier API를 배포했다면,
+                  Dashboard에서 해당 정보만 입력하면 코드 수정 없이 즉시 사용 가능!
+                </p>
+              </div>
+            </div>
+
             <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
               <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
                 💡 팁
@@ -359,6 +413,22 @@ export default function Guide() {
               <div className="p-3 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded">
                 <div className="font-medium">KOREAN_EXECUTION_GUIDE.md</div>
                 <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">한국어 실행 가이드</div>
+              </div>
+              <div className="p-3 border-l-4 border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 rounded">
+                <div className="font-medium flex items-center">
+                  DYNAMIC_API_SYSTEM_GUIDE.md ⭐
+                </div>
+                <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
+                  동적 API 추가 시스템 (Dashboard/Settings/BlueprintFlow 자동 반영)
+                </div>
+              </div>
+              <div className="p-3 border-l-4 border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 rounded">
+                <div className="font-medium">BLUEPRINTFLOW_API_INTEGRATION_GUIDE.md</div>
+                <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">BlueprintFlow API 통합 가이드</div>
+              </div>
+              <div className="p-3 border-l-4 border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 rounded">
+                <div className="font-medium">TESTING_GUIDE_DYNAMIC_API.md</div>
+                <div className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">동적 API 시스템 테스트 가이드 (23분 완전 검증)</div>
               </div>
             </div>
           </div>

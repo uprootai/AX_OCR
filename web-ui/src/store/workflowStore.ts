@@ -78,7 +78,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   addNode: (node) => {
     set({
-      nodes: [...get().nodes, node],
+      nodes: [...get().nodes, { ...node, selected: false }],
     });
   },
 
@@ -113,11 +113,32 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   loadWorkflow: (workflow) => {
+    // Transform template nodes to ReactFlow Node format
+    const transformedNodes = (workflow.nodes || [])
+      .filter((node: any) => node && node.id) // Filter out invalid nodes
+      .map((node: any) => ({
+        ...node,
+        data: {
+          label: node.label || node.data?.label || '',
+          parameters: node.parameters || node.data?.parameters || {},
+          ...node.data,
+        },
+        selected: false,
+      }));
+
+    // Transform edges with selected property
+    const transformedEdges = (workflow.edges || [])
+      .filter((edge: any) => edge && edge.id) // Filter out invalid edges
+      .map((edge: any) => ({
+        ...edge,
+        selected: false,
+      }));
+
     set({
       workflowName: workflow.name || 'Untitled Workflow',
       workflowDescription: workflow.description || '',
-      nodes: workflow.nodes || [],
-      edges: workflow.edges || [],
+      nodes: transformedNodes,
+      edges: transformedEdges,
       selectedNode: null,
       executionResult: null,
       executionError: null,

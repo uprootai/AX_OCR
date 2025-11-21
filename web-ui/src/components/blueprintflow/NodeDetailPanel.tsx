@@ -45,9 +45,10 @@ export default function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }:
   }
 
   const handleParameterChange = (paramName: string, value: any) => {
-    const currentParams = selectedNode.data.parameters || {};
+    const currentData = selectedNode.data || {};
+    const currentParams = currentData.parameters || {};
     onUpdateNode(selectedNode.id, {
-      ...selectedNode.data,
+      ...currentData,
       parameters: {
         ...currentParams,
         [paramName]: value,
@@ -167,7 +168,7 @@ export default function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }:
               <CardContent className="space-y-3">
                 {definition.parameters.map((param) => {
                   const currentValue =
-                    selectedNode.data.parameters?.[param.name] ?? param.default;
+                    selectedNode.data?.parameters?.[param.name] ?? param.default;
 
                   return (
                     <div key={param.name} className="space-y-1">
