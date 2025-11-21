@@ -51,7 +51,8 @@ class YOLOInferenceService:
         image_path: str,
         conf_threshold: float = 0.35,
         iou_threshold: float = 0.45,
-        imgsz: int = 1280
+        imgsz: int = 1280,
+        task: str = "detect"
     ) -> List[Detection]:
         """
         Run YOLO inference on image
@@ -61,6 +62,7 @@ class YOLOInferenceService:
             conf_threshold: Confidence threshold (0-1)
             iou_threshold: NMS IoU threshold (0-1)
             imgsz: Input image size
+            task: Task type (detect or segment)
 
         Returns:
             List of Detection objects
@@ -68,7 +70,16 @@ class YOLOInferenceService:
         if self.model is None:
             raise RuntimeError("Model not loaded")
 
+        # Validate task
+        if task not in ["detect", "segment"]:
+            print(f"⚠️  Invalid task '{task}', using 'detect'")
+            task = "detect"
+
         # Run inference
+        # Note: Task is determined by model file type:
+        # - Detection models: yolo11n.pt, best.pt
+        # - Segmentation models: yolo11n-seg.pt, best-seg.pt
+        # The task parameter is accepted but currently ignored until -seg models are available
         results = self.model.predict(
             source=image_path,
             conf=conf_threshold,

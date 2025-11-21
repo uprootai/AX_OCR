@@ -36,6 +36,7 @@ class YoloExecutor(BaseNodeExecutor):
         iou = self.parameters.get("iou", 0.45)
         visualize = self.parameters.get("visualize", True)
         filename = self.parameters.get("filename", "workflow_image.jpg")
+        imgsz = self.parameters.get("imgsz", 1280)
 
         # YOLO API 호출
         result = await call_yolo_detect(
@@ -43,7 +44,7 @@ class YoloExecutor(BaseNodeExecutor):
             filename=filename,
             conf_threshold=confidence,
             iou_threshold=iou,
-            imgsz=1280,
+            imgsz=imgsz,
             visualize=visualize
         )
 

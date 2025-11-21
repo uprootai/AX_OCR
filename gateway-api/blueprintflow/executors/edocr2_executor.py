@@ -34,13 +34,28 @@ class Edocr2Executor(BaseNodeExecutor):
 
         filename = self.parameters.get("filename", "workflow_image.jpg")
 
+        # 파라미터 추출
+        version = self.parameters.get("version", "v2")
+        language = self.parameters.get("language", "eng")
+        cluster_threshold = self.parameters.get("cluster_threshold", 20)
+        extract_dimensions = self.parameters.get("extract_dimensions", True)
+        extract_gdt = self.parameters.get("extract_gdt", True)
+        extract_text = self.parameters.get("extract_text", True)
+        extract_tables = self.parameters.get("extract_tables", True)
+        visualize = self.parameters.get("visualize", False)
+
         # eDOCr2 API 호출
         result = await call_edocr2_ocr(
             file_bytes=file_bytes,
             filename=filename,
-            extract_dimensions=True,
-            extract_gdt=True,
-            extract_text=True
+            version=version,
+            extract_dimensions=extract_dimensions,
+            extract_gdt=extract_gdt,
+            extract_text=extract_text,
+            extract_tables=extract_tables,
+            visualize=visualize,
+            language=language,
+            cluster_threshold=cluster_threshold
         )
 
         return {

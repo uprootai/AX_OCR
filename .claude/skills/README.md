@@ -74,6 +74,43 @@
 
 ---
 
+### 4. **workflow-optimizer** - 워크플로우 최적화 ⭐ NEW
+**용도**: 도면 유형 분석 및 최적 BlueprintFlow 파이프라인 자동 추천
+
+**실행 방법**:
+```
+/skill workflow-optimizer
+```
+
+**주요 기능**:
+- 도면 특성 분석 (심볼 종류, 텍스트 밀도, 복잡도)
+- 요구사항 파악 (속도 vs 정확도, 특정 정보 추출 목표)
+- 최적 YOLO 모델 + 후처리 조합 추천
+  - **Scenario A**: 기계 부품 (symbol-detector + CropAndScale + eDOCr2)
+  - **Scenario B**: 용접 도면 (symbol-detector + BackgroundRemoval + eDOCr2)
+  - **Scenario C**: GD&T 공차 (gdt-detector + Loop + SkinModel)
+  - **Scenario D**: 텍스트 단순 (Skip YOLO + EDGNet + eDOCr2)
+  - **Scenario E**: 영문 도면 (text-region + PaddleOCR + VL)
+- 예상 성능 메트릭 제공 (처리 시간, 정확도, 메모리)
+- BlueprintFlow 템플릿 자동 생성
+
+**언제 사용하나요?**
+- 새로운 도면 유형 분석 시작 전 (필수!)
+- 현재 파이프라인 성능이 낮을 때
+- 속도/정확도 균형 최적화 필요 시
+- BlueprintFlow 템플릿 선택 시 도움 필요
+
+**시나리오별 예상 성능**:
+| 시나리오 | 속도 | 정확도 | 적합한 도면 |
+|---------|------|--------|------------|
+| A. 기계 부품 | ⚡⚡ (2.5초) | 92% | 베어링, 기어, 샤프트 |
+| B. 용접 도면 | ⚡⚡⚡ (1.2초) | 90% | 용접 기호 7가지 |
+| C. GD&T 공차 | ⚡ (3.5초) | 85% | 기하공차 분석 |
+| D. 텍스트 단순 | ⚡⚡⚡⚡ (0.8초) | 80% | 주석/메모만 |
+| E. 영문 도면 | ⚡ (4.0초) | 90% | 해외 제조사 |
+
+---
+
 ## 🚀 빠른 시작
 
 ### Skill 실행하기
@@ -84,6 +121,7 @@ Claude Code 세션에서:
 /skill doc-updater
 /skill code-janitor
 /skill ux-enhancer
+/skill workflow-optimizer
 ```
 
 ### 여러 Skills 연속 실행
@@ -93,6 +131,11 @@ Claude Code 세션에서:
 1. /skill code-janitor  # 코드 품질 검사
 2. /skill doc-updater   # 문서 업데이트
 3. git add . && git commit -m "chore: Pre-deploy cleanup"
+
+# 새 도면 분석 시작 전
+1. /skill workflow-optimizer  # 최적 파이프라인 추천
+2. BlueprintFlow에서 추천 템플릿 적용
+3. 실제 도면으로 테스트
 ```
 
 ---
@@ -124,6 +167,23 @@ git push origin feature/new-feature
 /skill ux-enhancer
 # → Phase 1 완료 후 테스트
 # → Phase 2 진행...
+```
+
+### 4. 새 도면 유형 분석 프로젝트
+```bash
+# 1. 워크플로우 최적화 분석
+/skill workflow-optimizer
+# → 도면 유형 질문에 답변
+# → 추천 파이프라인 확인
+
+# 2. BlueprintFlow에서 적용
+http://localhost:5173/blueprintflow/builder
+# → 추천 템플릿 로드 (Template 5-8)
+# → 파라미터 조정
+
+# 3. 실제 도면으로 테스트
+# → 성능 메트릭 확인
+# → 필요 시 파이프라인 조정
 ```
 
 ### 4. 릴리스 준비

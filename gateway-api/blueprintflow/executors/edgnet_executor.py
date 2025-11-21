@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 
 from ..executors.base_executor import BaseNodeExecutor
 from ..executors.executor_registry import ExecutorRegistry
-from ..executors.image_utils import extract_image_input, decode_to_pil_image
+from ..executors.image_utils import prepare_image_for_api
 from services import call_edgnet_segment
 
 
@@ -26,17 +26,22 @@ class EdgnetExecutor(BaseNodeExecutor):
             - total_segments: 총 세그먼트 개수
             - visualized_image: 시각화 이미지 (base64)
         """
-        # 이미지 준비 (PIL Image로 변환)
-        image_input = extract_image_input(inputs, context)
-        image = decode_to_pil_image(image_input)
+        # 이미지 준비
+        file_bytes = prepare_image_for_api(inputs, context)
 
-        # crop_regions 추출 (YOLO 결과로부터)
-        crop_regions = inputs.get("crop_regions") or inputs.get("detections")
+        # 파라미터 추출
+        filename = self.parameters.get("filename", "workflow_image.jpg")
+        visualize = self.parameters.get("visualize", True)
+        num_classes = self.parameters.get("num_classes", 3)
+        save_graph = self.parameters.get("save_graph", False)
 
         # EDGNet API 호출
         result = await call_edgnet_segment(
-            image=image,
-            crop_regions=crop_regions
+            file_bytes=file_bytes,
+            filename=filename,
+            visualize=visualize,
+            num_classes=num_classes,
+            save_graph=save_graph
         )
 
         return {

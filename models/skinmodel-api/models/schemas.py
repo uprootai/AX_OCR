@@ -32,9 +32,10 @@ class MaterialInput(BaseModel):
 class ToleranceRequest(BaseModel):
     """Tolerance prediction request"""
     dimensions: List[DimensionInput]
-    material: MaterialInput
-    manufacturing_process: str = Field("machining", description="제조 공정 (machining, casting, 3d_printing)")
+    material: MaterialInput | str = Field(..., description="재질 (MaterialInput object or string: aluminum/steel/stainless/titanium/plastic)")
+    manufacturing_process: str = Field("machining", description="제조 공정 (machining, casting, 3d_printing, welding, sheet_metal)")
     correlation_length: float = Field(1.0, description="Random Field 상관 길이")
+    task: Optional[str] = Field("tolerance", description="분석 작업 (tolerance, validate, manufacturability)")
 
 
 class TolerancePrediction(BaseModel):

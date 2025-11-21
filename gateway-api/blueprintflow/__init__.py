@@ -22,6 +22,7 @@ from .executors import (
     edgnet_executor,
     skinmodel_executor,
     paddleocr_executor,
+    vl_executor,
     if_executor,
     merge_executor,
     loop_executor,

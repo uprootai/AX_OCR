@@ -135,7 +135,8 @@ async def call_claude_api(
     image_bytes: bytes,
     prompt: str,
     model: str = "claude-3-5-sonnet-20241022",
-    max_tokens: int = 4096
+    max_tokens: int = 4096,
+    temperature: float = 0.0
 ) -> str:
     """
     Claude API 호출
@@ -145,6 +146,7 @@ async def call_claude_api(
         prompt: 프롬프트
         model: 모델명
         max_tokens: 최대 토큰 수
+        temperature: 생성 다양성 (0-1, 0=결정적, 1=창의적)
 
     Returns:
         모델 응답 텍스트
@@ -174,6 +176,7 @@ async def call_claude_api(
                 json={
                     "model": model,
                     "max_tokens": max_tokens,
+                    "temperature": temperature,
                     "messages": [
                         {
                             "role": "user",
@@ -218,7 +221,8 @@ async def call_openai_gpt4v_api(
     image_bytes: bytes,
     prompt: str,
     model: str = "gpt-4o",
-    max_tokens: int = 4096
+    max_tokens: int = 4096,
+    temperature: float = 0.0
 ) -> str:
     """
     OpenAI GPT-4V API 호출
@@ -228,6 +232,7 @@ async def call_openai_gpt4v_api(
         prompt: 프롬프트
         model: 모델명
         max_tokens: 최대 토큰 수
+        temperature: 생성 다양성 (0-1, 0=결정적, 1=창의적)
 
     Returns:
         모델 응답 텍스트
@@ -272,7 +277,8 @@ async def call_openai_gpt4v_api(
                             ]
                         }
                     ],
-                    "max_tokens": max_tokens
+                    "max_tokens": max_tokens,
+                    "temperature": temperature
                 }
             )
 
@@ -433,7 +439,8 @@ async def health_check():
 async def extract_info_block(
     file: UploadFile = File(...),
     query_fields: str = Form(default='["name", "part number", "material", "scale", "weight"]'),
-    model: str = Form(default="claude-3-5-sonnet-20241022")
+    model: str = Form(default="claude-3-5-sonnet-20241022"),
+    temperature: float = Form(default=0.0, description="Generation temperature (0-1, 0=deterministic, 1=creative)")
 ):
     """
     Information Block에서 특정 정보 추출
@@ -467,9 +474,9 @@ Example format:
 
         # 모델 선택 및 호출
         if model.startswith("claude"):
-            response_text = await call_claude_api(image_bytes, prompt, model)
+            response_text = await call_claude_api(image_bytes, prompt, model, temperature=temperature)
         elif model.startswith("gpt"):
-            response_text = await call_openai_gpt4v_api(image_bytes, prompt, model)
+            response_text = await call_openai_gpt4v_api(image_bytes, prompt, model, temperature=temperature)
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported model: {model}")
 
@@ -495,7 +502,8 @@ Example format:
 @app.post("/api/v1/extract_dimensions", response_model=DimensionExtractionResponse)
 async def extract_dimensions(
     file: UploadFile = File(...),
-    model: str = Form(default="claude-3-5-sonnet-20241022")
+    model: str = Form(default="claude-3-5-sonnet-20241022"),
+    temperature: float = Form(default=0.0, description="Generation temperature (0-1)")
 ):
     """
     VL 모델로 치수 추출 (eDOCr 대체)
@@ -522,9 +530,9 @@ Return ONLY a valid JSON list of dimension strings. Do not include any other tex
 
         # 모델 선택 및 호출
         if model.startswith("claude"):
-            response_text = await call_claude_api(image_bytes, prompt, model)
+            response_text = await call_claude_api(image_bytes, prompt, model, temperature=temperature)
         elif model.startswith("gpt"):
-            response_text = await call_openai_gpt4v_api(image_bytes, prompt, model)
+            response_text = await call_openai_gpt4v_api(image_bytes, prompt, model, temperature=temperature)
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported model: {model}")
 
@@ -554,7 +562,8 @@ Return ONLY a valid JSON list of dimension strings. Do not include any other tex
 async def infer_manufacturing_process(
     info_block: UploadFile = File(...),
     part_views: UploadFile = File(...),
-    model: str = Form(default="gpt-4o")
+    model: str = Form(default="gpt-4o"),
+    temperature: float = Form(default=0.0, description="Generation temperature (0-1)")
 ):
     """
     제조 공정 추론
@@ -638,7 +647,8 @@ Return ONLY a valid JSON dictionary. Example format:
 @app.post("/api/v1/generate_qc_checklist", response_model=QCChecklistResponse)
 async def generate_qc_checklist(
     file: UploadFile = File(...),
-    model: str = Form(default="gpt-4o")
+    model: str = Form(default="gpt-4o"),
+    temperature: float = Form(default=0.0, description="Generation temperature (0-1)")
 ):
     """
     품질 관리 체크리스트 자동 생성

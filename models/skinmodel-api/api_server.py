@@ -21,7 +21,8 @@ from models.schemas import (
     ToleranceRequest,
     ToleranceResponse,
     GDTValidateRequest,
-    GDTValidateResponse
+    GDTValidateResponse,
+    MaterialInput
 )
 
 # Import services
@@ -29,6 +30,34 @@ from services.tolerance import tolerance_service
 
 # Import utilities
 from utils.visualization import create_tolerance_visualization
+
+
+# =====================
+# Helper Functions
+# =====================
+
+def get_material_properties(material_name: str) -> MaterialInput:
+    """Convert material name string to MaterialInput object with default properties"""
+    material_properties = {
+        "aluminum": {"youngs_modulus": 69.0, "poisson_ratio": 0.33, "density": 2700.0},
+        "steel": {"youngs_modulus": 200.0, "poisson_ratio": 0.30, "density": 7850.0},
+        "stainless": {"youngs_modulus": 193.0, "poisson_ratio": 0.31, "density": 8000.0},
+        "titanium": {"youngs_modulus": 110.0, "poisson_ratio": 0.34, "density": 4500.0},
+        "plastic": {"youngs_modulus": 2.5, "poisson_ratio": 0.40, "density": 1200.0}
+    }
+
+    mat_lower = material_name.lower()
+    props = material_properties.get(mat_lower, material_properties["steel"])
+
+    # Capitalize for service compatibility
+    display_name = material_name.capitalize() if mat_lower != "stainless" else "Stainless Steel"
+
+    return MaterialInput(
+        name=display_name,
+        youngs_modulus=props["youngs_modulus"],
+        poisson_ratio=props["poisson_ratio"],
+        density=props["density"]
+    )
 
 # Logging setup
 logging.basicConfig(
@@ -90,43 +119,80 @@ async def health_check():
 @app.post("/api/v1/tolerance", response_model=ToleranceResponse)
 async def predict_tolerance(request: ToleranceRequest):
     """
-    기하공차 예측
+    기하공차 예측 (통합 엔드포인트)
 
     - **dimensions**: 치수 정보 리스트
-    - **material**: 재질 정보
-    - **manufacturing_process**: 제조 공정 (machining, casting, 3d_printing)
+    - **material**: 재질 정보 (MaterialInput object or string: aluminum/steel/stainless/titanium/plastic)
+    - **manufacturing_process**: 제조 공정 (machining, casting, 3d_printing, welding, sheet_metal)
     - **correlation_length**: Random Field 상관 길이
+    - **task**: 분석 작업 (tolerance, validate, manufacturability)
     """
     start_time = time.time()
 
     try:
-        # 공차 예측
-        prediction_result = tolerance_service.predict_tolerances(
-            request.dimensions,
-            request.material,
-            request.manufacturing_process,
-            request.correlation_length
-        )
+        # Convert material string to MaterialInput if needed
+        material = request.material
+        if isinstance(material, str):
+            material = get_material_properties(material)
+            logger.info(f"Converted material string '{request.material}' to MaterialInput")
 
-        # 시각화 생성 (항상 생성)
-        try:
-            visualized_image = create_tolerance_visualization(prediction_result)
-            if visualized_image:
-                prediction_result["visualized_image"] = visualized_image
-                logger.info("✅ Tolerance visualization created")
-        except Exception as e:
-            logger.warning(f"⚠️ Visualization creation failed: {e}")
+        # Route based on task parameter
+        task = request.task or "tolerance"
+
+        if task == "tolerance":
+            # 공차 예측
+            result = tolerance_service.predict_tolerances(
+                request.dimensions,
+                material,
+                request.manufacturing_process,
+                request.correlation_length
+            )
+
+            # 시각화 생성
+            try:
+                visualized_image = create_tolerance_visualization(result)
+                if visualized_image:
+                    result["visualized_image"] = visualized_image
+                    logger.info("✅ Tolerance visualization created")
+            except Exception as e:
+                logger.warning(f"⚠️ Visualization creation failed: {e}")
+
+        elif task == "validate":
+            # GD&T 검증 (기본 스펙 사용)
+            default_gdt_specs = {"flatness": 0.05, "cylindricity": 0.05, "position": 0.05}
+            result = tolerance_service.validate_gdt(
+                request.dimensions,
+                default_gdt_specs,
+                material
+            )
+
+        elif task == "manufacturability":
+            # 제조 가능성 분석
+            full_result = tolerance_service.predict_tolerances(
+                request.dimensions,
+                material,
+                request.manufacturing_process,
+                request.correlation_length
+            )
+            result = {
+                "manufacturability": full_result["manufacturability"],
+                "assemblability": full_result.get("assemblability", {}),
+                "process_parameters": full_result.get("process_parameters", {})
+            }
+
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid task: {task}")
 
         processing_time = time.time() - start_time
 
         return {
             "status": "success",
-            "data": prediction_result,
+            "data": result,
             "processing_time": round(processing_time, 2)
         }
 
     except Exception as e:
-        logger.error(f"Error in tolerance prediction: {e}")
+        logger.error(f"Error in tolerance analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

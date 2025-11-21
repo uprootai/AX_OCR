@@ -213,17 +213,21 @@ async def health_check():
 async def segment_drawing(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="도면 이미지 (PNG, JPG)"),
+    model: str = Form("graphsage", description="모델 선택 (graphsage: 빠름, unet: 정확)"),
     visualize: bool = Form(True, description="시각화 생성"),
     num_classes: int = Form(3, description="분류 클래스 수 (2 or 3)"),
-    save_graph: bool = Form(False, description="그래프 저장")
+    save_graph: bool = Form(False, description="그래프 저장"),
+    vectorize: bool = Form(False, description="도면 벡터화 (DXF 출력용)")
 ):
     """
     도면 세그멘테이션 - 컴포넌트 분류
 
     - **file**: 도면 이미지 (PNG, JPG, TIFF)
+    - **model**: 모델 선택 (graphsage or unet)
     - **visualize**: 분류 결과 시각화 이미지 생성 여부
     - **num_classes**: 2 (Text/Non-text) 또는 3 (Contour/Text/Dimension)
     - **save_graph**: 그래프 구조 JSON 저장 여부
+    - **vectorize**: 도면 벡터화 (Bezier 곡선, DXF 출력용)
     """
     start_time = time.time()
 
@@ -255,20 +259,42 @@ async def segment_drawing(
 
         logger.info(f"File uploaded: {file_id} ({file_size / 1024:.2f} KB)")
 
-        # Process segmentation
-        if edgnet_service is None:
-            raise HTTPException(
-                status_code=503,
-                detail="EDGNet inference service not initialized"
+        # Select model based on parameter
+        if model.lower() == "unet":
+            # Use UNet model
+            if unet_service is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="UNet inference service not initialized"
+                )
+            segment_result = unet_service.process_segmentation(
+                file_path,
+                visualize=visualize,
+                results_dir=RESULTS_DIR,
+                vectorize=vectorize  # Pass vectorize parameter
             )
-
-        segment_result = edgnet_service.process_segmentation(
-            file_path,
-            visualize=visualize,
-            num_classes=num_classes,
-            save_graph=save_graph,
-            results_dir=RESULTS_DIR
-        )
+        elif model.lower() == "graphsage":
+            # Use GraphSAGE model (default)
+            if edgnet_service is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="EDGNet GraphSAGE service not initialized"
+                )
+            segment_result = edgnet_service.process_segmentation(
+                file_path,
+                visualize=visualize,
+                num_classes=num_classes,
+                save_graph=save_graph,
+                results_dir=RESULTS_DIR
+                # Note: GraphSAGE doesn't support vectorize yet
+            )
+            if vectorize:
+                logger.warning("Vectorize not yet supported for GraphSAGE model")
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid model: {model}. Choose 'graphsage' or 'unet'"
+            )
 
         processing_time = time.time() - start_time
 

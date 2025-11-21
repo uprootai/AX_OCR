@@ -34,9 +34,9 @@ class SkinmodelExecutor(BaseNodeExecutor):
             raise ValueError("dimensions 입력이 필요합니다")
 
         # 파라미터 추출
-        material = self.parameters.get("material", {"name": "Steel"})
+        material = self.parameters.get("material", "steel")  # 문자열 또는 객체
         material_type = self.parameters.get("material_type", "steel")
-        manufacturing_process = self.parameters.get("manufacturing_process", "general")
+        manufacturing_process = self.parameters.get("manufacturing_process", "machining")
         correlation_length = self.parameters.get("correlation_length", 1.0)
 
         # SkinModel API 호출

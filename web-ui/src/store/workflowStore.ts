@@ -36,6 +36,7 @@ interface WorkflowState {
   setExecuting: (isExecuting: boolean) => void;
   setExecutionResult: (result: any) => void;
   setExecutionError: (error: string | null) => void;
+  executeWorkflow: (inputImage: string) => Promise<void>;
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -150,4 +151,85 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setExecutionResult: (result) => set({ executionResult: result, executionError: null }),
 
   setExecutionError: (error) => set({ executionError: error, executionResult: null }),
+
+  executeWorkflow: async (inputImage: string) => {
+    const { nodes, edges, workflowName } = get();
+
+    // Validation
+    if (nodes.length === 0) {
+      set({ executionError: 'Workflow is empty. Add nodes to execute.' });
+      return;
+    }
+
+    if (!inputImage) {
+      set({ executionError: 'Input image is required. Please upload an image first.' });
+      return;
+    }
+
+    try {
+      set({ isExecuting: true, executionError: null, executionResult: null });
+
+      // Build workflow definition
+      const workflowDefinition = {
+        id: `workflow-${Date.now()}`,
+        name: workflowName,
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          type: node.type || 'unknown',
+          position: node.position,
+          parameters: node.data?.parameters || {},
+        })),
+        edges: edges.map((edge) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle || null,
+          targetHandle: edge.targetHandle || null,
+        })),
+      };
+
+      // Prepare request payload
+      const requestPayload = {
+        workflow: workflowDefinition,
+        inputs: {
+          image: inputImage, // Base64 encoded image
+        },
+        config: {},
+      };
+
+      console.log('🚀 Executing workflow:', workflowDefinition.name);
+      console.log('📋 Workflow definition:', workflowDefinition);
+
+      // Call Gateway API
+      const response = await fetch('http://localhost:8000/api/v1/workflow/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      console.log('✅ Workflow execution completed:', result);
+
+      set({
+        isExecuting: false,
+        executionResult: result,
+        executionError: null,
+      });
+    } catch (error: any) {
+      console.error('❌ Workflow execution failed:', error);
+      set({
+        isExecuting: false,
+        executionError: error.message || 'Unknown error occurred',
+        executionResult: null,
+      });
+    }
+  },
 }));

@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 
 from ..executors.base_executor import BaseNodeExecutor
 from ..executors.executor_registry import ExecutorRegistry
-from ..executors.image_utils import extract_image_input, decode_to_pil_image
+from ..executors.image_utils import prepare_image_for_api
 from services import call_paddleocr
 
 
@@ -25,17 +25,24 @@ class PaddleocrExecutor(BaseNodeExecutor):
             - text_results: OCR 텍스트 결과
             - total_texts: 총 텍스트 개수
         """
-        # 이미지 준비 (PIL Image로 변환)
-        image_input = extract_image_input(inputs, context)
-        image = decode_to_pil_image(image_input)
+        # 이미지 준비
+        file_bytes = prepare_image_for_api(inputs, context)
 
-        # crop_regions 추출 (YOLO 결과로부터)
-        crop_regions = inputs.get("crop_regions") or inputs.get("detections")
+        # 파라미터 추출
+        filename = self.parameters.get("filename", "workflow_image.jpg")
+        min_confidence = self.parameters.get("min_confidence", 0.3)
+        det_db_thresh = self.parameters.get("det_db_thresh", 0.3)
+        det_db_box_thresh = self.parameters.get("det_db_box_thresh", 0.5)
+        use_angle_cls = self.parameters.get("use_angle_cls", True)
 
         # PaddleOCR API 호출
         result = await call_paddleocr(
-            image=image,
-            crop_regions=crop_regions
+            file_bytes=file_bytes,
+            filename=filename,
+            min_confidence=min_confidence,
+            det_db_thresh=det_db_thresh,
+            det_db_box_thresh=det_db_box_thresh,
+            use_angle_cls=use_angle_cls
         )
 
         return {

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useMemo } from 'react';
+import { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
@@ -26,7 +26,7 @@ import {
 } from '../../components/blueprintflow/nodes';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
-import { Play, Save, Trash2 } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X } from 'lucide-react';
 import { workflowApi, type WorkflowExecutionRequest } from '../../lib/api';
 
 // Base node type mapping
@@ -47,10 +47,13 @@ const getId = () => `node_${nodeId++}`;
 
 function WorkflowBuilderCanvas() {
   const { t } = useTranslation();
-  const { customAPIs } = useAPIConfigStore();
+  const customAPIs = useAPIConfigStore((state) => state.customAPIs);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   // 동적으로 nodeTypes 생성 (기본 노드 + 커스텀 노드)
   const nodeTypes = useMemo(() => {
@@ -76,9 +79,9 @@ function WorkflowBuilderCanvas() {
     addNode,
     clearWorkflow,
     isExecuting,
-    setExecuting,
-    setExecutionResult,
-    setExecutionError,
+    executionResult,
+    executionError,
+    executeWorkflow,
     updateNodeData,
   } = useWorkflowStore();
 
@@ -175,7 +178,34 @@ function WorkflowBuilderCanvas() {
     }
   };
 
-  // Execute workflow
+  // Image upload handler
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setUploadedImage(base64);
+      setUploadedFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleRemoveImage = useCallback(() => {
+    setUploadedImage(null);
+    setUploadedFileName(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
   // Delete selected nodes/edges with Delete key
   const onNodesDelete = useCallback(
     (deleted: any[]) => {
@@ -195,46 +225,17 @@ function WorkflowBuilderCanvas() {
 
   const handleExecute = async () => {
     if (nodes.length === 0) {
-      alert('Please add at least one node');
+      alert('Please add at least one node to the workflow');
       return;
     }
 
-    setExecuting(true);
-    setExecutionError(null);
-
-    try {
-      const request: WorkflowExecutionRequest = {
-        workflow: {
-          name: workflowName,
-          description: '',
-          nodes: nodes.map((n) => ({
-            id: n.id,
-            type: n.type || '',
-            label: n.data.label,
-            parameters: n.data.parameters || {},
-          })),
-          edges: edges.map((e) => ({
-            id: e.id,
-            source: e.source,
-            target: e.target,
-          })),
-        },
-        inputs: {
-          // TODO: Get image from file input
-          image: '',
-        },
-      };
-
-      const result = await workflowApi.execute(request);
-      setExecutionResult(result);
-      alert(`Execution completed! Status: ${result.status}`);
-    } catch (error: any) {
-      console.error('Failed to execute workflow:', error);
-      setExecutionError(error.message || 'Failed to execute workflow');
-      alert('Failed to execute workflow: ' + (error.message || 'Unknown error'));
-    } finally {
-      setExecuting(false);
+    if (!uploadedImage) {
+      alert('Please upload an image first');
+      return;
     }
+
+    // Use store's executeWorkflow method
+    await executeWorkflow(uploadedImage);
   };
 
   return (
@@ -245,42 +246,119 @@ function WorkflowBuilderCanvas() {
       {/* Main Canvas */}
       <div className="flex-1 flex flex-col">
         {/* Toolbar */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4">
-          <input
-            type="text"
-            value={workflowName}
-            onChange={(e) => useWorkflowStore.setState({ workflowName: e.target.value })}
-            className="px-3 py-2 border rounded-md text-lg font-semibold flex-1 max-w-md text-gray-900 dark:text-white bg-white dark:bg-gray-700"
-            placeholder={t('blueprintflow.workflowName')}
-          />
-          <div className="flex gap-2 ml-auto">
-            <Button
-              onClick={handleSave}
-              className="flex items-center gap-2"
-              title={t('blueprintflow.saveTooltip')}
-            >
-              <Save className="w-4 h-4" />
-              {t('blueprintflow.save')}
-            </Button>
-            <Button
-              onClick={handleExecute}
-              disabled={isExecuting}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              title={t('blueprintflow.executeTooltip')}
-            >
-              <Play className="w-4 h-4" />
-              {isExecuting ? t('blueprintflow.executing') : t('blueprintflow.execute')}
-            </Button>
-            <Button
-              onClick={clearWorkflow}
-              variant="outline"
-              className="flex items-center gap-2"
-              title={t('blueprintflow.clearTooltip')}
-            >
-              <Trash2 className="w-4 h-4" />
-              {t('blueprintflow.clear')}
-            </Button>
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center gap-4">
+            <input
+              type="text"
+              value={workflowName}
+              onChange={(e) => useWorkflowStore.setState({ workflowName: e.target.value })}
+              className="px-3 py-2 border rounded-md text-lg font-semibold flex-1 max-w-md text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+              placeholder={t('blueprintflow.workflowName')}
+            />
+
+            {/* Image Upload */}
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                className="flex items-center gap-2"
+                title="Upload input image"
+              >
+                <Upload className="w-4 h-4" />
+                {uploadedFileName || 'Upload Image'}
+              </Button>
+              {uploadedImage && (
+                <Button
+                  onClick={handleRemoveImage}
+                  variant="outline"
+                  size="sm"
+                  className="p-2"
+                  title="Remove image"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            <div className="flex gap-2 ml-auto">
+              <Button
+                onClick={handleSave}
+                variant="outline"
+                className="flex items-center gap-2"
+                title={t('blueprintflow.saveTooltip')}
+              >
+                <Save className="w-4 h-4" />
+                {t('blueprintflow.save')}
+              </Button>
+              <Button
+                onClick={handleExecute}
+                disabled={isExecuting || !uploadedImage}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                title={uploadedImage ? t('blueprintflow.executeTooltip') : 'Upload an image first'}
+              >
+                <Play className="w-4 h-4" />
+                {isExecuting ? t('blueprintflow.executing') : t('blueprintflow.execute')}
+              </Button>
+              <Button
+                onClick={clearWorkflow}
+                variant="outline"
+                className="flex items-center gap-2"
+                title={t('blueprintflow.clearTooltip')}
+              >
+                <Trash2 className="w-4 h-4" />
+                {t('blueprintflow.clear')}
+              </Button>
+            </div>
           </div>
+
+          {/* Execution Status */}
+          {(executionResult || executionError) && (
+            <div className="mt-3 p-3 rounded-md bg-gray-100 dark:bg-gray-700">
+              {executionError && (
+                <div className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <span className="font-semibold">Error:</span>
+                  <span>{executionError}</span>
+                </div>
+              )}
+              {executionResult && (
+                <div className="text-green-600 dark:text-green-400">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold">Status:</span>
+                    <span className="px-2 py-1 rounded bg-green-100 dark:bg-green-900 text-xs">
+                      {executionResult.status}
+                    </span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      ({executionResult.execution_time_ms?.toFixed(0) || 0}ms)
+                    </span>
+                  </div>
+                  {executionResult.node_statuses && (
+                    <div className="text-sm space-y-1">
+                      {executionResult.node_statuses.map((nodeStatus: any) => (
+                        <div key={nodeStatus.node_id} className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${
+                            nodeStatus.status === 'completed' ? 'bg-green-500' :
+                            nodeStatus.status === 'failed' ? 'bg-red-500' :
+                            nodeStatus.status === 'running' ? 'bg-yellow-500' :
+                            'bg-gray-500'
+                          }`} />
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {nodeStatus.node_id}: {nodeStatus.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ReactFlow Canvas */}

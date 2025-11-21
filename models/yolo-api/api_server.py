@@ -107,20 +107,24 @@ async def health_check():
 @app.post("/api/v1/detect", response_model=DetectionResponse)
 async def detect_objects(
     file: UploadFile = File(...),
-    conf_threshold: float = Form(default=0.35),
-    iou_threshold: float = Form(default=0.45),
-    imgsz: int = Form(default=1280),
-    visualize: bool = Form(default=True)
+    model_type: str = Form(default="yolo11n-general", description="Model type (symbol/dimension/gdt/text-region/general)"),
+    confidence: float = Form(default=0.5, description="Confidence threshold (0-1)", alias="conf_threshold"),
+    iou_threshold: float = Form(default=0.45, description="NMS IoU threshold (0-1)"),
+    imgsz: int = Form(default=640, description="Input image size (320/640/1280)"),
+    visualize: bool = Form(default=True, description="Generate visualization image"),
+    task: str = Form(default="detect", description="Task type (detect/segment)")
 ):
     """
     Object detection endpoint (all classes)
 
     Args:
         file: Image file
-        conf_threshold: Confidence threshold (0-1)
+        model_type: Specialized model type (symbol-detector-v1, dimension-detector-v1, gdt-detector-v1, text-region-detector-v1, yolo11n-general)
+        confidence: Confidence threshold (0-1)
         iou_threshold: NMS IoU threshold (0-1)
-        imgsz: Input image size
+        imgsz: Input image size (320, 640, 1280)
         visualize: Generate visualization image
+        task: Task type (detect or segment)
 
     Returns:
         DetectionResponse with detection results
@@ -131,6 +135,17 @@ async def detect_objects(
     start_time = time.time()
 
     try:
+        # Model type mapping (temporary - until specialized models are trained)
+        model_map = {
+            "symbol-detector-v1": YOLO_MODEL_PATH,  # TODO: Replace with trained model
+            "dimension-detector-v1": YOLO_MODEL_PATH,  # TODO: Replace with trained model
+            "gdt-detector-v1": YOLO_MODEL_PATH,  # TODO: Replace with trained model
+            "text-region-detector-v1": YOLO_MODEL_PATH,  # TODO: Replace with trained model
+            "yolo11n-general": YOLO_MODEL_PATH
+        }
+
+        selected_model = model_map.get(model_type, YOLO_MODEL_PATH)
+
         # Save uploaded file
         file_id = str(uuid.uuid4())
         file_ext = Path(file.filename).suffix
@@ -150,9 +165,10 @@ async def detect_objects(
         # Run YOLO inference
         detections = inference_service.predict(
             image_path=str(file_path),
-            conf_threshold=conf_threshold,
+            conf_threshold=confidence,
             iou_threshold=iou_threshold,
-            imgsz=imgsz
+            imgsz=imgsz,
+            task=task
         )
 
         # Post-processing: filter text blocks and remove duplicates
@@ -214,26 +230,31 @@ async def detect_objects(
 @app.post("/api/v1/extract_dimensions")
 async def extract_dimensions(
     file: UploadFile = File(...),
-    conf_threshold: float = Form(default=0.35),
-    imgsz: int = Form(default=1280)
+    confidence: float = Form(default=0.35, alias="conf_threshold"),
+    imgsz: int = Form(default=1280),
+    model_type: str = Form(default="dimension-detector-v1")
 ):
     """
     Extract dimensions (dimensions, GD&T, surface roughness separated)
 
     Args:
         file: Image file
-        conf_threshold: Confidence threshold
+        confidence: Confidence threshold
         imgsz: Input image size
+        model_type: Model type (defaults to dimension-detector-v1)
 
     Returns:
         Classified detection results
     """
-    # Call detect API
+    # Call detect API with dimension-optimized model
     detection_result = await detect_objects(
         file=file,
-        conf_threshold=conf_threshold,
+        model_type=model_type,
+        confidence=confidence,
         imgsz=imgsz,
-        visualize=True
+        visualize=True,
+        iou_threshold=0.45,
+        task="detect"
     )
 
     # Classify by class
