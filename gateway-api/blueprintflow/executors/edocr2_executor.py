@@ -58,13 +58,19 @@ class Edocr2Executor(BaseNodeExecutor):
             cluster_threshold=cluster_threshold
         )
 
-        return {
+        output = {
             "dimensions": result.get("dimensions", []),
             "total_dimensions": len(result.get("dimensions", [])),
             "text": result.get("text", {}),
             "model_used": result.get("model", "eDOCr2-v2"),
             "processing_time": result.get("processing_time", 0),
         }
+
+        # 시각화 이미지 추가 (있는 경우)
+        if result.get("visualized_image"):
+            output["visualized_image"] = result["visualized_image"]
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""

@@ -20,6 +20,7 @@ class OCRResponse(BaseModel):
     total_texts: int = Field(..., description="검출된 텍스트 총 개수")
     detections: List[TextDetection] = Field(..., description="텍스트 검출 목록")
     metadata: Dict[str, Any] = Field(..., description="메타데이터")
+    visualized_image: Optional[str] = Field(None, description="시각화 이미지 (base64)")
 
 
 class HealthResponse(BaseModel):

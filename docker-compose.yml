@@ -261,6 +261,16 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # 🔥 개발 환경: 소스 코드 실시간 반영을 위한 볼륨 마운트
+      - ./gateway-api/api_server.py:/app/api_server.py
+      - ./gateway-api/api_registry.py:/app/api_registry.py
+      - ./gateway-api/pdf_generator.py:/app/pdf_generator.py
+      - ./gateway-api/cost_estimator.py:/app/cost_estimator.py
+      - ./gateway-api/services:/app/services
+      - ./gateway-api/models:/app/models
+      - ./gateway-api/utils:/app/utils
+      - ./gateway-api/blueprintflow:/app/blueprintflow
+      # 데이터 디렉토리
       - ./gateway-api/uploads:/tmp/gateway/uploads
       - ./gateway-api/results:/tmp/gateway/results
     environment:

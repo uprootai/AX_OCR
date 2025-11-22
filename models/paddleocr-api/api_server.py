@@ -16,7 +16,7 @@ from models.schemas import (
     APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
 )
 from services.ocr import PaddleOCRService
-from utils.helpers import image_to_numpy
+from utils.helpers import image_to_numpy, draw_ocr_results
 
 # =====================
 # Configuration
@@ -196,7 +196,8 @@ async def perform_ocr(
     det_db_thresh: float = Form(default=0.3, description="텍스트 검출 임계값 (0-1)"),
     det_db_box_thresh: float = Form(default=0.5, description="박스 임계값 (0-1)"),
     use_angle_cls: bool = Form(default=True, description="텍스트 회전 감지 사용"),
-    min_confidence: float = Form(default=0.5, description="최소 신뢰도 필터 (0-1)")
+    min_confidence: float = Form(default=0.5, description="최소 신뢰도 필터 (0-1)"),
+    visualize: bool = Form(default=False, description="OCR 결과 시각화 이미지 생성")
 ):
     """
     PaddleOCR을 사용한 텍스트 인식
@@ -222,6 +223,8 @@ async def perform_ocr(
         det_db_thresh = float(det_db_thresh) if isinstance(det_db_thresh, str) else det_db_thresh
         det_db_box_thresh = float(det_db_box_thresh) if isinstance(det_db_box_thresh, str) else det_db_box_thresh
         use_angle_cls = use_angle_cls if isinstance(use_angle_cls, bool) else (use_angle_cls.lower() == 'true' if isinstance(use_angle_cls, str) else bool(use_angle_cls))
+        visualize = visualize if isinstance(visualize, bool) else (visualize.lower() == 'true' if isinstance(visualize, str) else bool(visualize))
+        logger.info(f"Parameters: visualize={visualize} (type: {type(visualize).__name__}), min_conf={min_confidence}")
     except (ValueError, AttributeError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid parameter type: {e}")
 
@@ -241,6 +244,15 @@ async def perform_ocr(
 
         logger.info(f"OCR completed: {len(detections)} texts detected in {processing_time:.2f}s")
 
+        # Generate visualization if requested
+        visualized_image = None
+        print(f"DEBUG: visualize={visualize}, detections count={len(detections)}, type={type(visualize)}")  # DEBUG
+        if visualize and detections:
+            print(f"DEBUG: Calling draw_ocr_results...")  # DEBUG
+            visualized_image = draw_ocr_results(img_array, detections)
+            print(f"DEBUG: Visualization generated, length={len(visualized_image) if visualized_image else 0}")  # DEBUG
+            logger.info("Visualization image generated")
+
         # Metadata
         metadata = {
             "filename": file.filename,
@@ -259,7 +271,8 @@ async def perform_ocr(
             processing_time=processing_time,
             total_texts=len(detections),
             detections=detections,
-            metadata=metadata
+            metadata=metadata,
+            visualized_image=visualized_image
         )
 
     except Exception as e:

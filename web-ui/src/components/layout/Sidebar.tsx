@@ -44,6 +44,7 @@ export default function Sidebar() {
             <Link
               key={item.key}
               to={item.href}
+              title={t(`sidebar.${item.key}Tooltip`)}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-primary text-primary-foreground'
@@ -58,7 +59,10 @@ export default function Sidebar() {
       </nav>
 
       {/* BlueprintFlow Section */}
-      <div className="mt-6 p-4 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
+      <div
+        className="mt-6 p-4 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-lg border-2 border-cyan-200 dark:border-cyan-800"
+        title={t('sidebar.blueprintflowTooltip')}
+      >
         <div className="flex items-center gap-2 mb-3">
           <Workflow className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
           <h3 className="font-semibold text-sm text-cyan-900 dark:text-cyan-100">
@@ -78,6 +82,7 @@ export default function Sidebar() {
               <Link
                 key={item.key}
                 to={item.href}
+                title={t(`sidebar.${item.key}Tooltip`)}
                 className={`flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors ${
                   isActive
                     ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-900 dark:text-cyan-100 font-medium'
@@ -92,11 +97,12 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="mt-4 p-4 bg-accent/50 rounded-lg">
+      <div className="mt-4 p-4 bg-accent/50 rounded-lg" title={t('sidebar.quickTestTooltip')}>
         <h3 className="font-semibold text-sm mb-2">{t('sidebar.quickTest')}</h3>
         <div className="space-y-1 text-xs">
           <Link
             to="/test/gateway"
+            title={t('sidebar.gatewayTooltip')}
             className="flex items-center gap-1 hover:underline text-muted-foreground"
           >
             <span>• Gateway</span>
@@ -106,6 +112,7 @@ export default function Sidebar() {
           </Link>
           <Link
             to="/test/yolo"
+            title={t('sidebar.yoloTooltip')}
             className="flex items-center gap-1 hover:underline text-muted-foreground"
           >
             <span>• YOLOv11</span>
@@ -115,6 +122,7 @@ export default function Sidebar() {
           </Link>
           <Link
             to="/test/edocr2"
+            title={t('sidebar.edocr2Tooltip')}
             className="flex items-center gap-1 hover:underline text-muted-foreground"
           >
             <span>• eDOCr v1/v2</span>
@@ -124,6 +132,7 @@ export default function Sidebar() {
           </Link>
           <Link
             to="/test/edgnet"
+            title={t('sidebar.edgnetTooltip')}
             className="flex items-center gap-1 hover:underline text-muted-foreground"
           >
             <span>• EDGNet</span>
@@ -133,12 +142,14 @@ export default function Sidebar() {
           </Link>
           <Link
             to="/test/skinmodel"
+            title={t('sidebar.skinmodelTooltip')}
             className="block hover:underline text-muted-foreground"
           >
             • Skin Model
           </Link>
           <Link
             to="/test/vl"
+            title={t('sidebar.vlTooltip')}
             className="flex items-center gap-1 hover:underline text-muted-foreground"
           >
             <span>• VL Model</span>

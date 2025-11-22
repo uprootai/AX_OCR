@@ -152,7 +152,8 @@ async def call_paddleocr(
     min_confidence: float = 0.3,
     det_db_thresh: float = 0.3,
     det_db_box_thresh: float = 0.5,
-    use_angle_cls: bool = True
+    use_angle_cls: bool = True,
+    visualize: bool = False
 ) -> Dict[str, Any]:
     """
     PaddleOCR API 호출
@@ -164,13 +165,14 @@ async def call_paddleocr(
         det_db_thresh: DB 검출 임계값 (기본 0.3)
         det_db_box_thresh: DB 박스 임계값 (기본 0.5)
         use_angle_cls: 각도 분류 사용 여부 (기본 True)
+        visualize: 시각화 이미지 생성 여부 (기본 False)
 
     Returns:
         PaddleOCR 결과 dict
     """
     try:
         content_type = mimetypes.guess_type(filename)[0] or "image/png"
-        logger.info(f"Calling PaddleOCR API for {filename} (min_conf={min_confidence})")
+        logger.info(f"Calling PaddleOCR API for {filename} (min_conf={min_confidence}, visualize={visualize})")
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             files = {"file": (filename, file_bytes, content_type)}
@@ -178,7 +180,8 @@ async def call_paddleocr(
                 "min_confidence": str(min_confidence),
                 "det_db_thresh": str(det_db_thresh),
                 "det_db_box_thresh": str(det_db_box_thresh),
-                "use_angle_cls": str(use_angle_cls).lower()
+                "use_angle_cls": str(use_angle_cls).lower(),
+                "visualize": str(visualize).lower()
             }
 
             response = await client.post(

@@ -9,6 +9,12 @@ export interface NodeParameter {
   description: string;
 }
 
+export interface RecommendedInput {
+  from: string;
+  field: string;
+  reason: string;
+}
+
 export interface NodeDefinition {
   type: string;
   label: string;
@@ -28,6 +34,8 @@ export interface NodeDefinition {
   }[];
   parameters: NodeParameter[];
   examples: string[];
+  usageTips?: string[];
+  recommendedInputs?: RecommendedInput[];
 }
 
 export const nodeDefinitions: Record<string, NodeDefinition> = {
@@ -51,6 +59,45 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       '모든 워크플로우의 시작점으로 사용',
       'YOLO, eDOCr2 등 API 노드의 입력 소스',
       '이미지 업로드 후 자동으로 데이터 제공',
+    ],
+  },
+  textinput: {
+    type: 'textinput',
+    label: 'Text Input',
+    category: 'input',
+    color: '#8b5cf6',
+    icon: 'Type',
+    description: '텍스트 입력 노드. 사용자가 직접 입력한 텍스트를 다른 노드로 전달합니다.',
+    inputs: [],
+    outputs: [
+      {
+        name: 'text',
+        type: 'string',
+        description: '📝 사용자가 입력한 텍스트',
+      },
+      {
+        name: 'length',
+        type: 'number',
+        description: '📏 텍스트 길이 (문자 수)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'text',
+        type: 'string',
+        default: '',
+        description: '입력할 텍스트 내용 (최대 10,000자)',
+      },
+    ],
+    examples: [
+      'Text-to-Image API의 프롬프트 입력',
+      'LLM API의 질문/명령어 입력',
+      '검색어, 키워드 등 텍스트 기반 API 입력',
+    ],
+    usageTips: [
+      '💡 이미지가 아닌 텍스트 기반 API와 연결 시 사용',
+      '💡 최대 10,000자까지 입력 가능',
+      '💡 여러 줄 입력 지원 (줄바꿈 포함)',
     ],
   },
   yolo: {
@@ -98,7 +145,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         description: '검출 신뢰도 임계값 (낮을수록 더 많이 검출)',
       },
       {
-        name: 'iou_threshold',
+        name: 'iou',
         type: 'number',
         default: 0.45,
         min: 0,
@@ -108,9 +155,11 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       },
       {
         name: 'imgsz',
-        type: 'select',
-        default: '640',
-        options: ['320', '640', '1280'],
+        type: 'number',
+        default: 640,
+        min: 320,
+        max: 1280,
+        step: 320,
         description: '입력 이미지 크기 (작음=빠름, 큼=정확)',
       },
       {
@@ -130,6 +179,18 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     examples: [
       '도면 이미지 → YOLO → 14가지 심볼 자동 검출',
       '용접 기호, 베어링, 기어 등 기계 요소 인식',
+    ],
+    usageTips: [
+      '워크플로우 시작 시 가장 먼저 실행하여 도면의 주요 영역을 파악하세요',
+      'visualize=true로 설정하면 검출된 영역을 시각적으로 확인할 수 있습니다',
+      '검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 해당 영역만 정밀 분석할 수 있습니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '전체 도면 이미지를 입력받아 심볼과 텍스트 영역을 검출합니다',
+      },
     ],
   },
   edocr2: {
@@ -157,9 +218,16 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'version',
         type: 'select',
-        default: 'ensemble',
+        default: 'v2',
         options: ['v1', 'v2', 'ensemble'],
         description: 'eDOCr 버전 (v1: 5001, v2: 5002, ensemble: 가중 평균 0.6/0.4)',
+      },
+      {
+        name: 'language',
+        type: 'select',
+        default: 'eng',
+        options: ['eng', 'kor', 'jpn', 'chi_sim'],
+        description: '인식 언어 (eng: 영어, kor: 한국어, jpn: 일본어, chi_sim: 중국어)',
       },
       {
         name: 'extract_dimensions',
@@ -180,27 +248,48 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         description: '텍스트 정보 추출 (도면 번호, 재질, 주석 등)',
       },
       {
-        name: 'use_vl_model',
+        name: 'extract_tables',
         type: 'boolean',
-        default: false,
-        description: 'Vision Language 모델 보조 (느리지만 정확, +2초)',
+        default: true,
+        description: '표 정보 추출 (BOM, 치수 표 등)',
+      },
+      {
+        name: 'cluster_threshold',
+        type: 'number',
+        default: 20,
+        min: 5,
+        max: 100,
+        step: 5,
+        description: '텍스트 클러스터링 임계값 (픽셀 단위)',
       },
       {
         name: 'visualize',
         type: 'boolean',
-        default: false,
+        default: true,  // BlueprintFlow에서는 기본적으로 시각화 활성화
         description: 'OCR 결과 시각화 이미지 생성',
-      },
-      {
-        name: 'use_gpu_preprocessing',
-        type: 'boolean',
-        default: false,
-        description: 'GPU 전처리 활성화 (CLAHE, denoising, +15% 정확도)',
       },
     ],
     examples: [
       'YOLO 검출 → eDOCr2 → 한글/숫자 치수 인식',
       '공차 표기 (±0.05), 주석 텍스트 추출',
+    ],
+    usageTips: [
+      '한국어가 포함된 도면은 language=kor로 설정하세요',
+      'YOLO의 검출 영역을 입력으로 받으면 특정 영역만 정밀 분석할 수 있습니다',
+      'visualize=true로 설정하면 인식된 텍스트의 위치를 시각적으로 확인할 수 있습니다',
+      '⭐ SkinModel 노드와 연결 시 텍스트 위치 정보가 자동으로 활용되어 치수 매칭 정확도가 향상됩니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolo',
+        field: 'detections',
+        reason: 'YOLO가 검출한 텍스트 영역만 정밀 분석하여 처리 속도와 정확도를 높입니다',
+      },
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '전체 도면 이미지에서 모든 텍스트를 추출합니다',
+      },
     ],
   },
   edgnet: {
@@ -228,15 +317,17 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'model',
         type: 'select',
-        default: 'graphsage',
-        options: ['graphsage', 'unet'],
-        description: '세그멘테이션 모델 (GraphSAGE: 빠름, UNet: 정확)',
+        default: 'unet',
+        options: ['unet', 'graphsage'],
+        description: '세그멘테이션 모델 (UNet: 정확/안정적, GraphSAGE: 빠름/실험적)',
       },
       {
         name: 'num_classes',
-        type: 'select',
-        default: '3',
-        options: ['2', '3'],
+        type: 'number',
+        default: 3,
+        min: 2,
+        max: 3,
+        step: 1,
         description: '분류 클래스 수 (2: Text/Non-text, 3: Contour/Text/Dimension)',
       },
       {
@@ -262,6 +353,18 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       '흐릿한 도면 → EDGNet → 선명한 윤곽선',
       'OCR 전처리로 인식률 향상',
     ],
+    usageTips: [
+      '스캔 품질이 낮거나 흐릿한 도면은 EDGNet으로 전처리 후 OCR을 수행하세요',
+      'visualize=true로 설정하면 세그멘테이션 결과를 시각적으로 확인할 수 있습니다',
+      '처리된 이미지를 eDOCr2나 PaddleOCR의 입력으로 사용하면 텍스트 인식률이 향상됩니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '흐릿하거나 복잡한 원본 도면 이미지를 선명하게 만듭니다',
+      },
+    ],
   },
   skinmodel: {
     type: 'skinmodel',
@@ -286,10 +389,10 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     ],
     parameters: [
       {
-        name: 'material',
+        name: 'material_type',
         type: 'select',
         default: 'steel',
-        options: ['aluminum', 'steel', 'stainless', 'titanium', 'plastic'],
+        options: ['aluminum', 'steel', 'plastic', 'composite'],
         description: '재질 선택 (공차 계산에 영향)',
       },
       {
@@ -319,6 +422,24 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     examples: [
       'OCR 결과 → SkinModel → 공차 계산',
       '제조 난이도 평가 및 비용 추정',
+    ],
+    usageTips: [
+      '⭐ eDOCr2의 출력을 입력으로 받으면 텍스트 위치 정보가 자동으로 활용됩니다',
+      '위치 정보 덕분에 치수와 공차가 정확히 매칭되어 분석 정확도가 크게 향상됩니다',
+      'SkinModel 자체는 이미지를 생성하지 않지만, eDOCr2의 시각화 이미지를 함께 확인하면 어떤 위치의 치수를 분석했는지 알 수 있습니다',
+      'material_type과 manufacturing_process를 정확히 설정하면 더 정확한 제조성 평가를 받을 수 있습니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'edocr2',
+        field: 'text_results',
+        reason: '⭐ 텍스트 위치 정보(bbox)를 활용해 치수와 공차를 정확히 매칭합니다. 이것이 핵심 패턴입니다!',
+      },
+      {
+        from: 'paddleocr',
+        field: 'text_results',
+        reason: 'PaddleOCR 결과도 위치 정보를 포함하므로 활용 가능합니다',
+      },
     ],
   },
   paddleocr: {
@@ -383,10 +504,39 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         step: 0.05,
         description: '최소 신뢰도 (이 값 이하는 필터링)',
       },
+      {
+        name: 'visualize',
+        type: 'boolean',
+        default: true,
+        description: 'OCR 결과 시각화 이미지 생성 (바운딩 박스 + 텍스트)',
+      },
     ],
     examples: [
       '영문 도면 → PaddleOCR → 영어 텍스트 추출',
       'IF 노드로 eDOCr2 실패 시 대안으로 사용',
+    ],
+    usageTips: [
+      '영문/숫자가 많은 도면은 eDOCr2 대신 PaddleOCR을 사용하면 더 정확합니다',
+      '✨ visualize=true로 설정하면 인식된 텍스트의 바운딩 박스와 위치를 시각적으로 확인할 수 있습니다',
+      'IF 노드와 함께 사용하여 eDOCr2 실패 시 자동 fallback으로 활용할 수 있습니다',
+      'SkinModel과 연결 시 텍스트 위치 정보가 자동으로 활용되어 치수 분석 정확도가 향상됩니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolo',
+        field: 'detections',
+        reason: 'YOLO가 검출한 텍스트 영역만 정밀 분석하여 처리 속도를 높입니다',
+      },
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '전체 도면에서 영문/숫자 텍스트를 추출합니다',
+      },
+      {
+        from: 'edgnet',
+        field: 'segmented_image',
+        reason: '전처리된 선명한 이미지에서 텍스트를 인식하면 정확도가 향상됩니다',
+      },
     ],
   },
   vl: {
@@ -444,6 +594,24 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     examples: [
       '도면 이미지 → VL → "이 도면은 베어링 하우징입니다"',
       '복잡한 도면의 전체적인 이해',
+    ],
+    usageTips: [
+      '복잡하거나 구조를 이해하기 어려운 도면은 VL로 먼저 분석하세요',
+      'task에 따라 다양한 정보를 추출할 수 있습니다 (Info Block, 치수, 제조공정, QC 체크리스트)',
+      'temperature=0으로 설정하면 일관성 있는 결과를, 높은 값은 다양한 관점을 제공합니다',
+      'Claude 모델은 정확도가 높고, GPT-4o는 처리 속도가 빠릅니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '원본 도면 이미지를 자연어로 이해하고 설명합니다',
+      },
+      {
+        from: 'edgnet',
+        field: 'segmented_image',
+        reason: '선명하게 처리된 이미지에서 더 정확한 분석 결과를 얻을 수 있습니다',
+      },
     ],
   },
   if: {

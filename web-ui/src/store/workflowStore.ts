@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
+import { getNodeDefinition } from '../config/nodeDefinitions';
 
 interface NodeStatus {
   nodeId: string;
@@ -186,16 +187,35 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     try {
       set({ isExecuting: true, executionError: null, executionResult: null });
 
-      // Build workflow definition
+      // Build workflow definition with default parameters merged
       const workflowDefinition = {
         id: `workflow-${Date.now()}`,
         name: workflowName,
-        nodes: nodes.map((node) => ({
-          id: node.id,
-          type: node.type || 'unknown',
-          position: node.position,
-          parameters: node.data?.parameters || {},
-        })),
+        nodes: nodes.map((node) => {
+          // Get node definition to merge default parameters
+          const nodeDefinition = getNodeDefinition(node.type || '');
+          const defaultParams: Record<string, any> = {};
+
+          // Extract default values from node definition
+          if (nodeDefinition?.parameters) {
+            nodeDefinition.parameters.forEach((param) => {
+              defaultParams[param.name] = param.default;
+            });
+          }
+
+          // Merge: default parameters <- user-set parameters
+          const mergedParameters = {
+            ...defaultParams,
+            ...(node.data?.parameters || {}),
+          };
+
+          return {
+            id: node.id,
+            type: node.type || 'unknown',
+            position: node.position,
+            parameters: mergedParameters,
+          };
+        }),
         edges: edges.map((edge) => ({
           id: edge.id,
           source: edge.source,
@@ -273,16 +293,35 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         executionId: null,
       });
 
-      // Build workflow definition
+      // Build workflow definition with default parameters merged
       const workflowDefinition = {
         id: `workflow-${Date.now()}`,
         name: workflowName,
-        nodes: nodes.map((node) => ({
-          id: node.id,
-          type: node.type || 'unknown',
-          position: node.position,
-          parameters: node.data?.parameters || {},
-        })),
+        nodes: nodes.map((node) => {
+          // Get node definition to merge default parameters
+          const nodeDefinition = getNodeDefinition(node.type || '');
+          const defaultParams: Record<string, any> = {};
+
+          // Extract default values from node definition
+          if (nodeDefinition?.parameters) {
+            nodeDefinition.parameters.forEach((param) => {
+              defaultParams[param.name] = param.default;
+            });
+          }
+
+          // Merge: default parameters <- user-set parameters
+          const mergedParameters = {
+            ...defaultParams,
+            ...(node.data?.parameters || {}),
+          };
+
+          return {
+            id: node.id,
+            type: node.type || 'unknown',
+            position: node.position,
+            parameters: mergedParameters,
+          };
+        }),
         edges: edges.map((edge) => ({
           id: edge.id,
           source: edge.source,
@@ -385,6 +424,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
                   status: event.status,
                   progress: event.progress,
                   error: event.error,
+                  output: event.output,  // ✅ output 추가!
                 });
                 break;
 
@@ -394,6 +434,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
                   status: event.status === 'failed' ? 'failed' : 'completed',
                   progress: event.progress || 1.0,
                   error: event.error,
+                  output: event.output,  // ✅ output 추가!
                 });
                 break;
 

@@ -18,6 +18,7 @@ from .schemas.workflow import (
 from .executors import (
     test_executor,
     imageinput_executor,
+    textinput_executor,
     yolo_executor,
     edocr2_executor,
     edgnet_executor,

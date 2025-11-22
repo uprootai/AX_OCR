@@ -295,7 +295,8 @@ class PipelineEngine:
                                 "node_id": node_id,
                                 "status": node_status.status,
                                 "progress": node_status.progress,
-                                "error": node_status.error
+                                "error": node_status.error,
+                                "output": node_status.output  # ✅ output 추가!
                             })
                 else:
                     # 단일 실행
@@ -317,7 +318,8 @@ class PipelineEngine:
                             "type": "node_complete",
                             "node_id": node_id,
                             "status": node_status.status if node_status else "completed",
-                            "progress": node_status.progress if node_status else 1.0
+                            "progress": node_status.progress if node_status else 1.0,
+                            "output": node_status.output if node_status else None  # ✅ output 추가!
                         })
                     except Exception as e:
                         # 노드 실패 이벤트

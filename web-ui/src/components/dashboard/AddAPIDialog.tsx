@@ -39,6 +39,21 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
     enabled: true,
   });
 
+  const [apiMetadata, setApiMetadata] = useState<{
+    inputs: any[];
+    outputs: any[];
+    parameters: any[];
+    outputMappings?: Record<string, string>;
+    inputMappings?: Record<string, string>;
+    endpoint?: string;
+    method?: string;
+    requiresImage?: boolean;
+  }>({
+    inputs: [],
+    outputs: [],
+    parameters: [],
+  });
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchUrl, setSearchUrl] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -91,6 +106,18 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
         category: apiInfo.blueprintflow?.category === 'control' ? 'control' : 'api',
         description: apiInfo.description || '',
         enabled: true,
+      });
+
+      // 3. API 메타데이터 저장 (inputs, outputs, parameters)
+      setApiMetadata({
+        inputs: apiInfo.inputs || [],
+        outputs: apiInfo.outputs || [],
+        parameters: apiInfo.parameters || [],
+        outputMappings: apiInfo.output_mappings || {},
+        inputMappings: apiInfo.input_mappings || {},
+        endpoint: apiInfo.endpoint || '/api/v1/process',
+        method: apiInfo.method || 'POST',
+        requiresImage: apiInfo.requires_image ?? true,
       });
 
       setSearchSuccess(true);
@@ -157,21 +184,28 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
 
     const newAPI: APIConfig = {
       ...formData,
-      inputs: [
+      // ✅ API /info에서 가져온 실제 메타데이터 사용
+      inputs: apiMetadata.inputs.length > 0 ? apiMetadata.inputs : [
         {
           name: 'input',
           type: 'any',
           description: '📥 입력 데이터',
         },
       ],
-      outputs: [
+      outputs: apiMetadata.outputs.length > 0 ? apiMetadata.outputs : [
         {
           name: 'output',
           type: 'any',
           description: '📤 출력 데이터',
         },
       ],
-      parameters: [],
+      parameters: apiMetadata.parameters || [],
+      // ✅ 추가 메타데이터
+      endpoint: apiMetadata.endpoint,
+      method: apiMetadata.method,
+      requiresImage: apiMetadata.requiresImage,
+      outputMappings: apiMetadata.outputMappings,
+      inputMappings: apiMetadata.inputMappings,
     };
 
     addAPI(newAPI);

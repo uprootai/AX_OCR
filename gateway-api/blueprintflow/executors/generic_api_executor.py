@@ -103,11 +103,62 @@ class GenericAPIExecutor(BaseNodeExecutor):
         return data
 
     def _prepare_json_data(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """JSON body 준비"""
-        return {
-            "inputs": inputs,
-            "parameters": self.parameters
-        }
+        """
+        JSON body 준비
+
+        inputMappings가 있으면 필드명을 매핑하고,
+        없으면 기존 방식대로 inputs/parameters로 래핑
+        """
+        input_mappings = self.api_config.get("inputMappings", {})
+
+        if input_mappings:
+            # ✅ 개선: inputMappings를 사용하여 필드명 매핑
+            # 예: {"prompt": "inputs.text", "negative_prompt": "inputs.negative"}
+            mapped_data = {}
+
+            for api_field, workflow_field in input_mappings.items():
+                # workflow_field 형식: "inputs.text" or "parameters.style"
+                value = self._resolve_field_path(workflow_field, inputs, self.parameters)
+                if value is not None:
+                    mapped_data[api_field] = value
+
+            # 매핑되지 않은 parameters도 추가
+            for param_name, param_value in self.parameters.items():
+                if param_name not in mapped_data:
+                    mapped_data[param_name] = param_value
+
+            return mapped_data
+        else:
+            # 기존 방식 (하위 호환성)
+            return {
+                "inputs": inputs,
+                "parameters": self.parameters
+            }
+
+    def _resolve_field_path(self, field_path: str, inputs: Dict[str, Any], parameters: Dict[str, Any]) -> Any:
+        """
+        필드 경로 해석
+
+        예시:
+        - "inputs.text" → inputs["text"]
+        - "parameters.style" → parameters["style"]
+        - "text" → inputs.get("text") or parameters.get("text")
+        """
+        if "." in field_path:
+            parts = field_path.split(".", 1)
+            source = parts[0]
+            key = parts[1]
+
+            if source == "inputs":
+                return inputs.get(key)
+            elif source == "parameters":
+                return parameters.get(key)
+            else:
+                # 다단계 경로 (예: "inputs.data.text")
+                return self._get_nested_value(inputs, field_path)
+        else:
+            # 단순 필드명 - inputs 우선, 없으면 parameters
+            return inputs.get(field_path) or parameters.get(field_path)
 
     def _prepare_query_params(self) -> Dict[str, Any]:
         """Query parameters 준비"""

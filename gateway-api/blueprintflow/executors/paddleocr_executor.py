@@ -34,6 +34,7 @@ class PaddleocrExecutor(BaseNodeExecutor):
         det_db_thresh = self.parameters.get("det_db_thresh", 0.3)
         det_db_box_thresh = self.parameters.get("det_db_box_thresh", 0.5)
         use_angle_cls = self.parameters.get("use_angle_cls", True)
+        visualize = self.parameters.get("visualize", False)
 
         # PaddleOCR API 호출
         result = await call_paddleocr(
@@ -42,15 +43,25 @@ class PaddleocrExecutor(BaseNodeExecutor):
             min_confidence=min_confidence,
             det_db_thresh=det_db_thresh,
             det_db_box_thresh=det_db_box_thresh,
-            use_angle_cls=use_angle_cls
+            use_angle_cls=use_angle_cls,
+            visualize=visualize
         )
 
-        return {
-            "text_results": result.get("data", {}).get("text_results", []),
-            "total_texts": len(result.get("data", {}).get("text_results", [])),
-            "model_used": result.get("model_used", "PaddleOCR"),
+        # PaddleOCR API는 detections를 반환 (data 래핑 없음)
+        detections = result.get("detections", [])
+
+        output = {
+            "text_results": detections,
+            "total_texts": result.get("total_texts", len(detections)),
+            "model_used": "PaddleOCR",
             "processing_time": result.get("processing_time", 0),
         }
+
+        # 시각화 이미지 추가 (있는 경우)
+        if result.get("visualized_image"):
+            output["visualized_image"] = result["visualized_image"]
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
