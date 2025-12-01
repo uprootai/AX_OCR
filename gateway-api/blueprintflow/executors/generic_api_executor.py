@@ -158,7 +158,8 @@ class GenericAPIExecutor(BaseNodeExecutor):
                 return self._get_nested_value(inputs, field_path)
         else:
             # 단순 필드명 - inputs 우선, 없으면 parameters
-            return inputs.get(field_path) or parameters.get(field_path)
+            value = inputs.get(field_path)
+            return value if value is not None else parameters.get(field_path)
 
     def _prepare_query_params(self) -> Dict[str, Any]:
         """Query parameters 준비"""

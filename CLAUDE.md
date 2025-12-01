@@ -29,7 +29,7 @@ Drawing Image → YOLO Detection → OCR Extraction → Tolerance Analysis → Q
 | **Workflows** | [WORKFLOWS.md](WORKFLOWS.md) | ~120 |
 | **Issues** | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | ~100 |
 | **Roadmap** | [ROADMAP.md](ROADMAP.md) | ~200 |
-| **API Docs** | [docs/api/](docs/api/) | 6 APIs |
+| **API Docs** | [docs/api/](docs/api/) | 12 APIs |
 | **BlueprintFlow** | [docs/blueprintflow/](docs/blueprintflow/) | 12 files |
 
 ---
@@ -45,6 +45,11 @@ Drawing Image → YOLO Detection → OCR Extraction → Tolerance Analysis → Q
 ├── skinmodel-api/    📐 Tolerance (Port 5003)
 ├── paddleocr-api/    📄 Aux OCR (Port 5006)
 ├── vl-api/           🤖 Vision LLMs (Port 5004)
+├── knowledge-api/    🧠 Knowledge Engine (Port 5007) - Neo4j + GraphRAG + VectorRAG
+├── tesseract-api/    📜 Tesseract OCR (Port 5008)
+├── trocr-api/        ✍️ TrOCR (Port 5009) - Handwritten OCR
+├── esrgan-api/       🔍 ESRGAN Upscaler (Port 5010)
+├── ocr-ensemble-api/ 🎭 OCR Ensemble (Port 5011) - Multi-engine voting
 └── web-ui/           🌐 React frontend (Port 5173)
 ```
 
@@ -114,18 +119,20 @@ export default function MyComponent() {
 
 ---
 
-## 🔮 BlueprintFlow ✅ Phase 1-3 Complete
+## 🔮 BlueprintFlow ✅ Phase 1-5 Complete
 
 **Visual workflow builder for mechanical drawing analysis**
 
 **Access**: http://localhost:5173/blueprintflow/builder
-**Status**: Frontend complete (1,800 LOC), Backend in progress (Phase 4)
+**Status**: Frontend & Backend complete, Full API integration
 
 ### Quick Facts
-- **9 node types**: YOLO, eDOCr2, EDGNet, SkinModel, PaddleOCR, VL, IF, Loop, Merge
+- **16 node types**: ImageInput, TextInput, YOLO, eDOCr2, EDGNet, SkinModel, PaddleOCR, VL, Knowledge, Tesseract, TrOCR, ESRGAN, OCR Ensemble, IF, Loop, Merge
+- **9 categories**: Input, Detection, OCR, Segmentation, Preprocessing, Analysis, Knowledge, AI, Control
 - **4 templates**: Basic, Advanced, Loop, Multi-model
 - **Full i18n**: Korean/English translations complete
 - **Drag-and-drop**: ReactFlow-based visual canvas
+- **Parallel execution**: Time-overlap detection, 60% faster
 
 ### Critical Issue: Over-Simplified Parameters ⚠️
 
@@ -154,19 +161,38 @@ export default function MyComponent() {
 | YOLO models | [04_optimization/yolo_models.md](docs/blueprintflow/04_optimization/yolo_models.md) | 97 |
 | Pipeline options | [04_optimization/pipeline_options.md](docs/blueprintflow/04_optimization/pipeline_options.md) | 99 |
 | Optimization guide | [04_optimization/optimization_guide.md](docs/blueprintflow/04_optimization/optimization_guide.md) | 98 |
+| **TextInput node** | [08_textinput_node_guide.md](docs/blueprintflow/08_textinput_node_guide.md) | 250 |
+| **VL + TextInput** | [09_vl_textinput_integration.md](docs/blueprintflow/09_vl_textinput_integration.md) | 400 |
 
 ### Implementation Phases
 
 - [x] **Phase 1**: ReactFlow integration, Canvas setup ✅
-- [x] **Phase 2**: 9 node types implementation ✅
+- [x] **Phase 2**: 11 node types implementation ✅
 - [x] **Phase 3**: Node metadata, Detail panel, i18n ✅
-- [ ] **Phase 4**: Backend engine, Parameter overhaul 🔄 IN PROGRESS
-- [ ] **Phase 5**: Testing & optimization ⏳
+- [x] **Phase 4**: Backend engine, Parallel execution, TextInput ✅ 2025-11-22
+- [x] **Phase 5**: PPT Gap Implementation - 5 new APIs & Executors ✅ 2025-12-01
+- [ ] **Phase 6**: Testing & optimization ⏳
 
-**Next steps**: Implement Phase 4A (add 22 missing parameters to nodeDefinitions.ts)
+**Recent updates** (2025-12-01):
+- ✅ Knowledge API (Neo4j + GraphRAG + VectorRAG) - Port 5007
+- ✅ Tesseract OCR API - Port 5008
+- ✅ TrOCR API (Handwritten OCR) - Port 5009
+- ✅ ESRGAN Upscaler API - Port 5010
+- ✅ OCR Ensemble API (4-engine weighted voting) - Port 5011
+- ✅ Node categories reorganized (9 categories)
+- ✅ All executors registered in Gateway API
+
+**Previous updates** (2025-11-22):
+- ✅ TextInput node (VL 프롬프트용, 향후 LLM 확장)
+- ✅ Parallel execution visualization (60% faster)
+- ✅ PaddleOCR visualization
+- ✅ EDGNet model change (graphsage → unet)
+- ✅ GenericAPIExecutor inputMappings (비-이미지 API 지원)
+
+**Next steps**: Phase 6 - Testing & optimization
 
 ---
 
-**Last Updated**: 2025-11-21
-**Version**: 3.0 (Documentation restructured, micro-docs implemented)
-**Managed By**: Claude Code (Sonnet 4.5)
+**Last Updated**: 2025-12-01
+**Version**: 5.0 (PPT Gap Implementation - Knowledge, Tesseract, TrOCR, ESRGAN, OCR Ensemble)
+**Managed By**: Claude Code (Opus 4.5)

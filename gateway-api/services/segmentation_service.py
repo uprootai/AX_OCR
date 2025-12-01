@@ -49,15 +49,27 @@ async def call_edgnet_segment(
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             files = {"file": (filename, file_bytes, content_type)}
-            data = {
-                "model": model,
-                "visualize": visualize,
-                "num_classes": num_classes,
-                "save_graph": save_graph
-            }
+
+            # 모델에 따라 엔드포인트 선택
+            if model == "unet":
+                # UNet 세그멘테이션
+                data = {
+                    "threshold": 0.5,
+                    "return_mask": True
+                }
+                endpoint = f"{EDGNET_URL}/api/v1/segment_unet"
+            else:
+                # GraphSAGE 세그멘테이션
+                data = {
+                    "model": model,
+                    "visualize": visualize,
+                    "num_classes": num_classes,
+                    "save_graph": save_graph
+                }
+                endpoint = f"{EDGNET_URL}/api/v1/segment"
 
             response = await client.post(
-                f"{EDGNET_URL}/api/v1/segment",
+                endpoint,
                 files=files,
                 data=data
             )

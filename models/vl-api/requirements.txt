@@ -5,3 +5,7 @@ pydantic==2.5.0
 httpx==0.25.1
 Pillow==10.1.0
 python-dotenv==1.0.0
+torch>=2.0.0
+transformers>=4.36.0
+einops
+timm

@@ -175,6 +175,13 @@ async def get_api_info():
                 min=0.0,
                 max=1.0,
                 step=0.05
+            ),
+            ParameterSchema(
+                name="visualize",
+                type="boolean",
+                default=False,
+                description="OCR 결과 시각화 이미지 생성 (검출된 텍스트 박스 표시)",
+                required=False
             )
         ],
         blueprintflow=BlueprintFlowMetadata(

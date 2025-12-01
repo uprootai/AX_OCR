@@ -46,13 +46,29 @@ class EdgnetExecutor(BaseNodeExecutor):
             model=model
         )
 
-        return {
-            "segments": result.get("data", {}).get("segments", []),
-            "total_segments": len(result.get("data", {}).get("segments", [])),
-            "visualized_image": result.get("data", {}).get("visualized_image", ""),
-            "model_used": result.get("model_used", "EDGNet"),
-            "processing_time": result.get("processing_time", 0),
-        }
+        # UNet과 GraphSAGE는 다른 응답 형식
+        if model == "unet":
+            # UNet 응답 형식
+            data = result.get("data", {})
+            return {
+                "segments": [],  # UNet은 세그먼트 목록 대신 마스크 제공
+                "total_segments": 1,  # 단일 마스크
+                "mask_shape": data.get("mask_shape", []),
+                "edge_pixel_count": data.get("edge_pixel_count", 0),
+                "edge_percentage": data.get("edge_percentage", 0),
+                "visualized_image": data.get("visualized_image", ""),
+                "model_used": "UNet",
+                "processing_time": result.get("processing_time", 0),
+            }
+        else:
+            # GraphSAGE 응답 형식
+            return {
+                "segments": result.get("data", {}).get("segments", []),
+                "total_segments": len(result.get("data", {}).get("segments", [])),
+                "visualized_image": result.get("data", {}).get("visualized_image", ""),
+                "model_used": result.get("model_used", "GraphSAGE"),
+                "processing_time": result.get("processing_time", 0),
+            }
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""

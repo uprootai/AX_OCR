@@ -3,6 +3,7 @@ VL (Vision Language) Node Executor
 Vision-Language 모델 API 호출 (Claude, GPT-4V)
 """
 from typing import Dict, Any, Optional
+import httpx
 
 from ..executors.base_executor import BaseNodeExecutor
 from ..executors.executor_registry import ExecutorRegistry
@@ -16,83 +17,86 @@ class VLExecutor(BaseNodeExecutor):
         """
         VL 모델 실행
 
+        Inputs:
+            - image: base64 인코딩된 이미지
+            - text (선택사항): 질문/프롬프트 (TextInput에서 연결)
+
         Parameters:
-            - image: base64 인코딩된 이미지 또는 PIL Image
-            - prompt: VL 모델에 전달할 프롬프트 (default: task에 따라 결정)
-            - task: VL 작업 타입 (extract_info, extract_dimensions, infer_manufacturing, generate_qc)
-            - model: 모델 선택 (claude, gpt4v)
+            - model: 모델 선택 (claude-3-5-sonnet-20241022, gpt-4o 등)
             - temperature: 생성 temperature (0-1, default: 0.0)
 
         Returns:
-            - result: VL 모델 응답
-            - task: 실행된 작업 타입
+            - mode: 'vqa' (질문-답변) 또는 'captioning' (이미지 설명)
+            - answer: 질문에 대한 답변 (VQA 모드)
+            - caption: 이미지 설명 (캡셔닝 모드)
+            - confidence: 신뢰도
         """
         # 이미지 준비
         file_bytes = prepare_image_for_api(inputs, context)
 
         # 파라미터 추출
-        task = self.parameters.get("task", "extract_info")
-        model = self.parameters.get("model", "claude")
+        model = self.parameters.get("model", "blip-base")
         temperature = self.parameters.get("temperature", 0.0)
-        prompt = self.parameters.get("prompt", None)
-        filename = self.parameters.get("filename", "workflow_image.jpg")
 
-        # task에 따른 기본 프롬프트 설정
-        if not prompt:
-            prompt_map = {
-                "extract_info": "도면에서 정보 블록(제목란, 부품 정보 등)을 추출하세요.",
-                "extract_dimensions": "도면에서 치수 정보를 추출하세요.",
-                "infer_manufacturing": "도면을 분석하여 적합한 제조 공정을 추론하세요.",
-                "generate_qc": "도면 기반으로 품질 검사 체크리스트를 생성하세요."
-            }
-            prompt = prompt_map.get(task, "도면을 분석하세요.")
+        # ✅ 핵심: inputs에서 text 가져오기 (TextInput 노드에서 연결됨)
+        prompt = inputs.get("text", None)
 
-        # VL API 호출 (서비스 함수 import 필요)
-        # 현재는 간단한 구조로 구현, 실제로는 services.vl_service를 사용해야 함
+        # VL API 호출 (/api/v1/analyze 엔드포인트 사용)
         try:
-            # services 모듈에서 VL API 호출 함수 동적 import
-            from services.vl_service import call_vl_api
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                files = {"file": ("image.jpg", file_bytes, "image/jpeg")}
+                data = {
+                    "model": model,
+                    "temperature": temperature,
+                }
 
-            result = await call_vl_api(
-                file_bytes=file_bytes,
-                filename=filename,
-                prompt=prompt,
-                model=model,
-                temperature=temperature,
-                task=task
-            )
+                # ✅ prompt가 있으면 추가 (VQA 모드)
+                if prompt:
+                    data["prompt"] = prompt
 
+                response = await client.post(
+                    "http://vl-api:5004/api/v1/analyze",
+                    files=files,
+                    data=data
+                )
+
+            if response.status_code == 200:
+                result = response.json()
+
+                # 출력 구조화
+                output = {
+                    "mode": result.get("mode", "captioning"),
+                    "model_used": result.get("model_used", model),
+                    "processing_time": result.get("processing_time", 0),
+                    "confidence": result.get("confidence", 1.0),
+                }
+
+                # VQA 모드
+                if result.get("mode") == "vqa":
+                    output["answer"] = result.get("answer", "")
+                    output["question"] = result.get("question", prompt)
+                # 캡셔닝 모드
+                else:
+                    output["caption"] = result.get("caption", "")
+
+                return output
+
+            else:
+                raise Exception(f"VL API 호출 실패: {response.status_code} - {response.text}")
+
+        except Exception as e:
+            self.logger.error(f"VL API 호출 실패: {e}")
+            # Fallback: mock 응답
             return {
-                "result": result.get("result", ""),
-                "task": task,
-                "model_used": result.get("model_used", model),
-                "processing_time": result.get("processing_time", 0),
-            }
-
-        except ImportError:
-            # VL API 서비스가 없는 경우 mock 응답 반환
-            return {
-                "result": f"[VL Mock] Task: {task}, Model: {model}, Temperature: {temperature}",
-                "task": task,
+                "mode": "error",
+                "caption": f"VL API 오류: {str(e)}",
+                "confidence": 0.0,
                 "model_used": model,
                 "processing_time": 0,
-                "warning": "VL API service not available - returning mock response"
             }
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
-        # task 검증
-        if "task" in self.parameters:
-            valid_tasks = ["extract_info", "extract_dimensions", "infer_manufacturing", "generate_qc"]
-            if self.parameters["task"] not in valid_tasks:
-                return False, f"task는 {valid_tasks} 중 하나여야 합니다"
-
-        # model 검증
-        if "model" in self.parameters:
-            valid_models = ["claude", "gpt4v"]
-            if self.parameters["model"] not in valid_models:
-                return False, f"model은 {valid_models} 중 하나여야 합니다"
-
         # temperature 검증
         if "temperature" in self.parameters:
             temp = self.parameters["temperature"]
@@ -109,6 +113,10 @@ class VLExecutor(BaseNodeExecutor):
                 "image": {
                     "type": "string",
                     "description": "Base64 인코딩된 이미지"
+                },
+                "text": {
+                    "type": "string",
+                    "description": "질문/프롬프트 (선택사항)"
                 }
             },
             "required": ["image"]
@@ -119,13 +127,21 @@ class VLExecutor(BaseNodeExecutor):
         return {
             "type": "object",
             "properties": {
-                "result": {
+                "mode": {
                     "type": "string",
-                    "description": "VL 모델 응답 결과"
+                    "description": "분석 모드 ('vqa' 또는 'captioning')"
                 },
-                "task": {
+                "answer": {
                     "type": "string",
-                    "description": "실행된 작업 타입"
+                    "description": "질문에 대한 답변 (VQA 모드)"
+                },
+                "caption": {
+                    "type": "string",
+                    "description": "이미지 설명 (캡셔닝 모드)"
+                },
+                "confidence": {
+                    "type": "number",
+                    "description": "답변 신뢰도"
                 }
             }
         }

@@ -98,6 +98,8 @@ const docStructure: DocFile[] = [
     type: 'folder',
     children: [
       { name: 'API 개요', path: '/docs/api/README.md', type: 'file' },
+      { name: '전체 API 파라미터 가이드 ⭐', path: '/docs/API_PARAMETERS_DETAILED_GUIDE.md', type: 'file' },
+      { name: 'API 파라미터 분석 (2025-11-23)', path: '/docs/API_PARAMETER_ANALYSIS_2025-11-23.md', type: 'file' },
       { name: 'YOLO API 파라미터', path: '/docs/api/yolo/parameters.md', type: 'file' },
       { name: 'eDOCr2 API 파라미터', path: '/docs/api/edocr2/parameters.md', type: 'file' },
       { name: 'EDGNet API 파라미터', path: '/docs/api/edgnet/parameters.md', type: 'file' },

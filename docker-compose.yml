@@ -284,6 +284,10 @@ services:
       - VL_API_URL=http://vl-api:5004
       - YOLO_API_URL=http://yolo-api:5005
       - PADDLEOCR_URL=http://paddleocr-api:5006
+      - KNOWLEDGE_API_URL=http://knowledge-api:5007
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=ax_poc_2024
       - GATEWAY_LOG_LEVEL=INFO
       - PYTHONUNBUFFERED=1
     networks:
@@ -338,12 +342,184 @@ services:
       retries: 5
       start_period: 30s
 
+  # =====================
+  # Neo4j Graph Database (포트 7474, 7687)
+  # =====================
+  neo4j:
+    image: neo4j:5.15.0-community
+    container_name: neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - ./data/neo4j/data:/data
+      - ./data/neo4j/logs:/logs
+      - ./data/neo4j/import:/var/lib/neo4j/import
+      - ./data/neo4j/plugins:/plugins
+    environment:
+      - NEO4J_AUTH=neo4j/ax_poc_2024
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=1G
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7474"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =====================
+  # Knowledge API - GraphRAG + VectorRAG (포트 5007)
+  # =====================
+  knowledge-api:
+    build:
+      context: ./models/knowledge-api
+      dockerfile: Dockerfile
+    container_name: knowledge-api
+    ports:
+      - "5007:5007"
+    volumes:
+      - ./models/knowledge-api/data:/app/data
+      - ./models/knowledge-api/indexes:/app/indexes
+    environment:
+      - KNOWLEDGE_API_PORT=5007
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=ax_poc_2024
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    depends_on:
+      - neo4j
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5007/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =====================
+  # Tesseract OCR API
+  # =====================
+  tesseract-api:
+    build:
+      context: ./models/tesseract-api
+      dockerfile: Dockerfile
+    container_name: tesseract-api
+    ports:
+      - "5008:5008"
+    environment:
+      - TESSERACT_API_PORT=5008
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =====================
+  # TrOCR API (Transformer OCR)
+  # =====================
+  trocr-api:
+    build:
+      context: ./models/trocr-api
+      dockerfile: Dockerfile
+    container_name: trocr-api
+    ports:
+      - "5009:5009"
+    volumes:
+      - trocr_models:/root/.cache/huggingface
+    environment:
+      - TROCR_API_PORT=5009
+      - TROCR_MODEL=microsoft/trocr-base-printed
+      - TROCR_DEVICE=cpu
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5009/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
+  # =====================
+  # ESRGAN Upscaler API
+  # =====================
+  esrgan-api:
+    build:
+      context: ./models/esrgan-api
+      dockerfile: Dockerfile
+    container_name: esrgan-api
+    ports:
+      - "5010:5010"
+    volumes:
+      - esrgan_weights:/app/weights
+    environment:
+      - ESRGAN_API_PORT=5010
+      - ESRGAN_DEVICE=cpu
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =====================
+  # OCR Ensemble API (가중 투표)
+  # =====================
+  ocr-ensemble-api:
+    build:
+      context: ./models/ocr-ensemble-api
+      dockerfile: Dockerfile
+    container_name: ocr-ensemble-api
+    ports:
+      - "5011:5011"
+    environment:
+      - ENSEMBLE_API_PORT=5011
+      - EDOCR2_URL=http://edocr2-v2-api:5002
+      - PADDLEOCR_URL=http://paddleocr-api:5006
+      - TESSERACT_URL=http://tesseract-api:5008
+      - TROCR_URL=http://trocr-api:5009
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    depends_on:
+      - edocr2-v2-api
+      - paddleocr-api
+      - tesseract-api
+      - trocr-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   ax_poc_network:
     name: ax_poc_network
     driver: bridge
 
 volumes:
+  neo4j_data:
+  neo4j_logs:
+  knowledge_data:
+  knowledge_indexes:
   edocr2_uploads:
   edocr2_results:
   edgnet_uploads:
@@ -354,3 +530,5 @@ volumes:
   yolo_results:
   gateway_uploads:
   gateway_results:
+  trocr_models:
+  esrgan_weights:

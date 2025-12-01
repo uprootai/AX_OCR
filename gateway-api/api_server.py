@@ -99,6 +99,7 @@ SKINMODEL_URL = os.getenv("SKINMODEL_URL", "http://skinmodel-api:5003")
 VL_API_URL = os.getenv("VL_API_URL", "http://vl-api:5004")
 YOLO_API_URL = os.getenv("YOLO_API_URL", "http://yolo-api:5005")
 PADDLEOCR_API_URL = os.getenv("PADDLEOCR_API_URL", "http://paddleocr-api:5006")
+KNOWLEDGE_API_URL = os.getenv("KNOWLEDGE_API_URL", "http://knowledge-api:5007")
 
 UPLOAD_DIR = Path("/tmp/gateway/uploads")
 RESULTS_DIR = Path("/tmp/gateway/results")
@@ -856,7 +857,8 @@ async def root():
     services = {
         "edocr2": await check_service_health(EDOCR2_URL, "eDOCr2"),
         "edgnet": await check_service_health(EDGNET_URL, "EDGNet"),
-        "skinmodel": await check_service_health(SKINMODEL_URL, "Skin Model")
+        "skinmodel": await check_service_health(SKINMODEL_URL, "Skin Model"),
+        "knowledge": await check_service_health(KNOWLEDGE_API_URL, "Knowledge API")
     }
 
     all_healthy = all(status == "healthy" for status in services.values())
@@ -931,7 +933,8 @@ async def health_check():
     services = {
         "edocr2": await check_service_health(EDOCR2_URL, "eDOCr2"),
         "edgnet": await check_service_health(EDGNET_URL, "EDGNet"),
-        "skinmodel": await check_service_health(SKINMODEL_URL, "Skin Model")
+        "skinmodel": await check_service_health(SKINMODEL_URL, "Skin Model"),
+        "knowledge": await check_service_health(KNOWLEDGE_API_URL, "Knowledge API")
     }
 
     all_healthy = all(status == "healthy" for status in services.values())
@@ -2345,7 +2348,7 @@ if __name__ == "__main__":
     workers = int(os.getenv("GATEWAY_WORKERS", 4))
 
     logger.info(f"Starting Gateway API on port {port} with {workers} workers")
-    logger.info(f"Services: eDOCr2={EDOCR2_URL}, EDGNet={EDGNET_URL}, SkinModel={SKINMODEL_URL}, VL={VL_API_URL}, YOLO={YOLO_API_URL}")
+    logger.info(f"Services: eDOCr2={EDOCR2_URL}, EDGNet={EDGNET_URL}, SkinModel={SKINMODEL_URL}, VL={VL_API_URL}, YOLO={YOLO_API_URL}, Knowledge={KNOWLEDGE_API_URL}")
 
     uvicorn.run(
         "api_server:app",

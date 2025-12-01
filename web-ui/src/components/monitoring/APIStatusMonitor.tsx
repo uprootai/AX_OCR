@@ -108,6 +108,63 @@ export default function APIStatusMonitor() {
         });
       }
 
+      // ==================== New Services (PPT Gap Implementation) ====================
+
+      // Knowledge API (Neo4j + GraphRAG + VectorRAG)
+      if (data.knowledge) {
+        updateServiceHealth('knowledge', {
+          name: 'Knowledge API',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5007/docs',
+        });
+      }
+
+      // Tesseract OCR API
+      if (data.tesseract) {
+        updateServiceHealth('tesseract', {
+          name: 'Tesseract OCR',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5008/docs',
+        });
+      }
+
+      // TrOCR API
+      if (data.trocr) {
+        updateServiceHealth('trocr', {
+          name: 'TrOCR API',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5009/docs',
+        });
+      }
+
+      // ESRGAN API
+      if (data.esrgan) {
+        updateServiceHealth('esrgan', {
+          name: 'ESRGAN Upscaler',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5010/docs',
+        });
+      }
+
+      // OCR Ensemble API
+      if (data.ocr_ensemble) {
+        updateServiceHealth('ocr_ensemble', {
+          name: 'OCR Ensemble',
+          status: 'healthy',
+          latency: Math.random() * 50,
+          lastCheck: new Date(),
+          swaggerUrl: 'http://localhost:5011/docs',
+        });
+      }
+
       // 커스텀 API 동적 처리
       customAPIs.forEach((api) => {
         if (data[api.id]) {
@@ -183,6 +240,23 @@ export default function APIStatusMonitor() {
           )}
           {services.vl && (
             <ServiceHealthCard service={services.vl} />
+          )}
+
+          {/* New Services (PPT Gap Implementation) */}
+          {services.knowledge && (
+            <ServiceHealthCard service={services.knowledge} />
+          )}
+          {services.tesseract && (
+            <ServiceHealthCard service={services.tesseract} />
+          )}
+          {services.trocr && (
+            <ServiceHealthCard service={services.trocr} />
+          )}
+          {services.esrgan && (
+            <ServiceHealthCard service={services.esrgan} />
+          )}
+          {services.ocr_ensemble && (
+            <ServiceHealthCard service={services.ocr_ensemble} />
           )}
 
           {/* 커스텀 API 동적 렌더링 */}

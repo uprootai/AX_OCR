@@ -18,7 +18,7 @@ export interface RecommendedInput {
 export interface NodeDefinition {
   type: string;
   label: string;
-  category: 'input' | 'api' | 'control';
+  category: 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
   color: string;
   icon: string;
   description: string;
@@ -103,7 +103,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   yolo: {
     type: 'yolo',
     label: 'YOLO Detection',
-    category: 'api',
+    category: 'detection',
     color: '#10b981',
     icon: 'Target',
     description: '기계 도면에서 용접 기호, 베어링, 기어 등 14가지 심볼을 자동으로 검출합니다. YOLO v11n 모델 기반.',
@@ -196,7 +196,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   edocr2: {
     type: 'edocr2',
     label: 'eDOCr2 Korean OCR',
-    category: 'api',
+    category: 'ocr',
     color: '#3b82f6',
     icon: 'FileText',
     description: '한국어 텍스트 인식 전문 OCR. 도면의 치수, 공차, 주석 등을 정확하게 읽습니다.',
@@ -295,7 +295,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   edgnet: {
     type: 'edgnet',
     label: 'EDGNet Segmentation',
-    category: 'api',
+    category: 'segmentation',
     color: '#8b5cf6',
     icon: 'Network',
     description: '도면의 엣지를 세그멘테이션하여 선명하게 만듭니다. U-Net 기반 전처리.',
@@ -369,7 +369,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   skinmodel: {
     type: 'skinmodel',
     label: 'Tolerance Analysis',
-    category: 'api',
+    category: 'analysis',
     color: '#f59e0b',
     icon: 'Ruler',
     description: '인식된 치수 데이터를 분석하여 공차를 계산하고 제조 가능성을 평가합니다.',
@@ -445,7 +445,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   paddleocr: {
     type: 'paddleocr',
     label: 'PaddleOCR',
-    category: 'api',
+    category: 'ocr',
     color: '#06b6d4',
     icon: 'FileSearch',
     description: '다국어 지원 OCR. 영어, 숫자 인식에 강점. eDOCr2의 대안으로 사용.',
@@ -542,22 +542,42 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   vl: {
     type: 'vl',
     label: 'Vision Language Model',
-    category: 'api',
+    category: 'ai',
     color: '#ec4899',
     icon: 'Sparkles',
-    description: 'GPT-4V 기반 비전 언어 모델. 도면을 이해하고 자연어로 설명합니다.',
+    description: '이미지와 텍스트를 함께 이해하는 Vision-Language 모델. 이미지에 대한 질문-답변(VQA) 또는 일반 분석 수행.',
     inputs: [
       {
         name: 'image',
         type: 'Image',
-        description: '📄 이해하고 싶은 도면 이미지',
+        description: '📄 분석할 도면 이미지',
+      },
+      {
+        name: 'text',
+        type: 'string',
+        description: '❓ 질문 또는 분석 요청 (선택사항)',
       },
     ],
     outputs: [
       {
-        name: 'description',
+        name: 'mode',
         type: 'string',
-        description: '💬 도면 내용을 자연어로 설명한 텍스트',
+        description: '🔍 분석 모드 (vqa: 질문-답변, captioning: 일반 설명)',
+      },
+      {
+        name: 'answer',
+        type: 'string',
+        description: '💬 질문에 대한 답변 (VQA 모드)',
+      },
+      {
+        name: 'caption',
+        type: 'string',
+        description: '📝 이미지 설명 (캡셔닝 모드)',
+      },
+      {
+        name: 'confidence',
+        type: 'number',
+        description: '📊 답변 신뢰도 (0-1)',
       },
     ],
     parameters: [
@@ -565,21 +585,8 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         name: 'model',
         type: 'select',
         default: 'claude-3-5-sonnet-20241022',
-        options: ['claude-3-5-sonnet-20241022', 'gpt-4o', 'gpt-4-turbo-2024-04-09', 'gemini-1.5-pro'],
-        description: 'Vision Language 모델 선택 (Claude: 정확, GPT-4o: 빠름)',
-      },
-      {
-        name: 'task',
-        type: 'select',
-        default: 'extract_info_block',
-        options: ['extract_info_block', 'extract_dimensions', 'infer_manufacturing_process', 'generate_qc_checklist'],
-        description: 'VL 작업 종류 (Info Block vs 치수 vs 제조공정 vs QC)',
-      },
-      {
-        name: 'query_fields',
-        type: 'string',
-        default: '["name", "part number", "material", "scale", "weight"]',
-        description: '추출할 정보 필드 (Info Block 작업 시, JSON 배열)',
+        options: ['claude-3-5-sonnet-20241022', 'gpt-4o', 'gpt-4-turbo'],
+        description: 'Vision Language 모델 선택 (Claude: 정확/도면 특화, GPT-4o: 빠름)',
       },
       {
         name: 'temperature',
@@ -592,20 +599,27 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       },
     ],
     examples: [
-      '도면 이미지 → VL → "이 도면은 베어링 하우징입니다"',
-      '복잡한 도면의 전체적인 이해',
+      'ImageInput + TextInput("치수 추출") → VL → 정확한 치수 정보',
+      'ImageInput만 → VL → 일반적인 도면 설명',
+      '용접 기호 찾기, 공차 정보 추출 등 특정 질문',
     ],
     usageTips: [
-      '복잡하거나 구조를 이해하기 어려운 도면은 VL로 먼저 분석하세요',
-      'task에 따라 다양한 정보를 추출할 수 있습니다 (Info Block, 치수, 제조공정, QC 체크리스트)',
-      'temperature=0으로 설정하면 일관성 있는 결과를, 높은 값은 다양한 관점을 제공합니다',
-      'Claude 모델은 정확도가 높고, GPT-4o는 처리 속도가 빠릅니다',
+      '💡 TextInput과 함께 사용하면 훨씬 정확한 정보를 얻을 수 있습니다 (정확도 30% → 90%)',
+      '💡 프롬프트 없이 사용 시: 일반 이미지 캡셔닝 모드',
+      '💡 프롬프트와 함께 사용 시: 질문-답변(VQA) 모드로 자동 전환',
+      '💡 "이 도면의 치수를 알려줘", "용접 기호를 모두 찾아줘" 같은 구체적 질문 가능',
+      'Claude 모델은 도면 분석에 특화되어 있고, GPT-4o는 처리 속도가 빠릅니다',
     ],
     recommendedInputs: [
       {
         from: 'imageinput',
         field: 'image',
-        reason: '원본 도면 이미지를 자연어로 이해하고 설명합니다',
+        reason: '분석할 도면 이미지를 제공합니다',
+      },
+      {
+        from: 'textinput',
+        field: 'text',
+        reason: '⭐ 특정 질문이나 분석 요청을 전달하여 정확도를 크게 향상시킵니다',
       },
       {
         from: 'edgnet',
@@ -722,6 +736,402 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     examples: [
       'eDOCr2 + PaddleOCR + VL → Merge → 통합 결과',
       '다양한 OCR 결과를 종합하여 정확도 향상',
+    ],
+  },
+  knowledge: {
+    type: 'knowledge',
+    label: 'Knowledge Engine',
+    category: 'knowledge',
+    color: '#9333ea',
+    icon: 'Database',
+    description: 'Neo4j 그래프DB + RAG 기반 도메인 지식 엔진. 유사 부품 검색, ISO/ASME 규격 검증, 비용 추정 지원.',
+    inputs: [
+      {
+        name: 'ocr_results',
+        type: 'OCRResult[]',
+        description: '📝 OCR 결과 (치수, 공차, 재질 정보 포함)',
+      },
+      {
+        name: 'query',
+        type: 'string',
+        description: '🔍 검색 쿼리 (예: "SUS304 Ø50 H7")',
+      },
+    ],
+    outputs: [
+      {
+        name: 'similar_parts',
+        type: 'SimilarPart[]',
+        description: '🔎 유사 부품 목록 (과거 제조 이력, 비용 정보 포함)',
+      },
+      {
+        name: 'validation_result',
+        type: 'ValidationResult',
+        description: '✅ ISO/ASME 규격 검증 결과',
+      },
+      {
+        name: 'cost_estimate',
+        type: 'CostEstimate',
+        description: '💰 비용 추정 결과 (유사 부품 기반)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'search_mode',
+        type: 'select',
+        default: 'hybrid',
+        options: ['graph', 'vector', 'hybrid'],
+        description: '검색 모드 (graph: Neo4j 그래프, vector: FAISS 벡터, hybrid: 가중 결합)',
+      },
+      {
+        name: 'graph_weight',
+        type: 'number',
+        default: 0.6,
+        min: 0,
+        max: 1,
+        step: 0.1,
+        description: 'Hybrid 모드에서 GraphRAG 가중치 (나머지는 VectorRAG)',
+      },
+      {
+        name: 'top_k',
+        type: 'number',
+        default: 5,
+        min: 1,
+        max: 20,
+        step: 1,
+        description: '반환할 유사 부품 수',
+      },
+      {
+        name: 'validate_standards',
+        type: 'boolean',
+        default: true,
+        description: 'ISO/ASME 규격 자동 검증 활성화',
+      },
+      {
+        name: 'include_cost',
+        type: 'boolean',
+        default: true,
+        description: '유사 부품 기반 비용 추정 포함',
+      },
+      {
+        name: 'material_filter',
+        type: 'select',
+        default: 'all',
+        options: ['all', 'steel', 'stainless', 'aluminum', 'plastic', 'composite'],
+        description: '재질 필터 (유사 부품 검색 시)',
+      },
+    ],
+    examples: [
+      'eDOCr2 OCR → Knowledge → 유사 부품 5개 검색',
+      'TextInput("M10 H7") → Knowledge → ISO 규격 검증',
+      '과거 제조 이력 기반 비용 추정',
+    ],
+    usageTips: [
+      '⭐ eDOCr2나 PaddleOCR의 결과를 입력하면 치수/공차/재질 정보를 자동으로 추출합니다',
+      '💡 Hybrid 모드가 가장 정확합니다 (GraphRAG 60% + VectorRAG 40%)',
+      '💡 ISO 1101, ISO 286-2, ASME Y14.5 등 주요 규격을 자동 검증합니다',
+      '💡 과거 유사 부품 제조 이력을 활용해 정확한 비용을 추정합니다',
+      '💡 TextInput과 연결하여 직접 쿼리 검색도 가능합니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'edocr2',
+        field: 'text_results',
+        reason: '⭐ OCR 결과에서 치수, 공차, 재질 정보를 추출하여 유사 부품을 검색합니다',
+      },
+      {
+        from: 'paddleocr',
+        field: 'text_results',
+        reason: 'PaddleOCR 결과도 동일하게 활용 가능합니다',
+      },
+      {
+        from: 'textinput',
+        field: 'text',
+        reason: '직접 검색 쿼리를 입력하여 유사 부품을 검색합니다',
+      },
+      {
+        from: 'skinmodel',
+        field: 'tolerance_report',
+        reason: '공차 분석 결과를 활용해 더 정밀한 유사 부품 검색이 가능합니다',
+      },
+    ],
+  },
+  tesseract: {
+    type: 'tesseract',
+    label: 'Tesseract OCR',
+    category: 'ocr',
+    color: '#059669',
+    icon: 'ScanText',
+    description: 'Google Tesseract 기반 OCR. 문서 텍스트 인식, 다국어 지원.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 도면 또는 문서 이미지',
+      },
+    ],
+    outputs: [
+      {
+        name: 'texts',
+        type: 'OCRResult[]',
+        description: '📝 인식된 텍스트 목록',
+      },
+      {
+        name: 'full_text',
+        type: 'string',
+        description: '📄 전체 텍스트',
+      },
+    ],
+    parameters: [
+      {
+        name: 'lang',
+        type: 'select',
+        default: 'eng',
+        options: ['eng', 'kor', 'jpn', 'chi_sim', 'eng+kor'],
+        description: '인식 언어',
+      },
+      {
+        name: 'psm',
+        type: 'select',
+        default: '3',
+        options: ['0', '1', '3', '4', '6', '7', '11', '12', '13'],
+        description: 'Page Segmentation Mode (3: 자동, 6: 단일 블록)',
+      },
+      {
+        name: 'output_type',
+        type: 'select',
+        default: 'data',
+        options: ['string', 'data'],
+        description: '출력 형식 (string: 텍스트만, data: 위치정보 포함)',
+      },
+    ],
+    examples: [
+      'ImageInput → Tesseract → 영문 도면 텍스트 추출',
+      'OCR Ensemble의 구성 엔진 (15% 가중치)',
+    ],
+    usageTips: [
+      '💡 다국어 도면은 lang=eng+kor로 설정하세요',
+      '💡 OCR Ensemble과 함께 사용하면 정확도가 향상됩니다',
+      '💡 psm=6은 단일 텍스트 블록에 적합합니다',
+    ],
+  },
+  trocr: {
+    type: 'trocr',
+    label: 'TrOCR',
+    category: 'ocr',
+    color: '#7c3aed',
+    icon: 'Wand2',
+    description: 'Microsoft TrOCR (Transformer OCR). Scene Text Recognition에 강점.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 텍스트 라인 이미지 (크롭 권장)',
+      },
+    ],
+    outputs: [
+      {
+        name: 'texts',
+        type: 'OCRResult[]',
+        description: '📝 인식된 텍스트',
+      },
+    ],
+    parameters: [
+      {
+        name: 'model_type',
+        type: 'select',
+        default: 'printed',
+        options: ['printed', 'handwritten'],
+        description: '모델 타입 (printed: 인쇄체, handwritten: 필기체)',
+      },
+      {
+        name: 'max_length',
+        type: 'number',
+        default: 64,
+        min: 16,
+        max: 256,
+        step: 16,
+        description: '최대 출력 길이',
+      },
+      {
+        name: 'num_beams',
+        type: 'number',
+        default: 4,
+        min: 1,
+        max: 10,
+        step: 1,
+        description: 'Beam Search 빔 수 (높을수록 정확, 느림)',
+      },
+    ],
+    examples: [
+      'YOLO 검출 영역 → TrOCR → 개별 텍스트 인식',
+      'OCR Ensemble의 구성 엔진 (10% 가중치)',
+    ],
+    usageTips: [
+      '💡 단일 텍스트 라인 이미지에 최적화되어 있습니다',
+      '💡 전체 문서는 YOLO로 텍스트 영역 검출 후 개별 처리 권장',
+      '💡 손글씨 스타일 텍스트에 handwritten 모델 사용',
+    ],
+  },
+  esrgan: {
+    type: 'esrgan',
+    label: 'ESRGAN Upscaler',
+    category: 'preprocessing',
+    color: '#dc2626',
+    icon: 'Maximize2',
+    description: 'Real-ESRGAN 기반 4x 이미지 업스케일링. 저품질 스캔 도면 전처리.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 저해상도 도면 이미지',
+      },
+    ],
+    outputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '✨ 4x 업스케일된 고해상도 이미지',
+      },
+    ],
+    parameters: [
+      {
+        name: 'scale',
+        type: 'select',
+        default: '4',
+        options: ['2', '4'],
+        description: '업스케일 배율',
+      },
+      {
+        name: 'denoise_strength',
+        type: 'number',
+        default: 0.5,
+        min: 0,
+        max: 1,
+        step: 0.1,
+        description: '노이즈 제거 강도 (0: 없음, 1: 최대)',
+      },
+    ],
+    examples: [
+      '저품질 스캔 → ESRGAN → 고해상도 → OCR',
+      '흐릿한 도면 → ESRGAN 2x → EDGNet → eDOCr2',
+    ],
+    usageTips: [
+      '💡 저품질 스캔 도면에 먼저 적용하면 OCR 정확도가 크게 향상됩니다',
+      '💡 scale=2로도 충분한 경우가 많습니다 (4x는 처리 시간 증가)',
+      '💡 denoise_strength를 높이면 노이즈가 줄어들지만 디테일도 손실될 수 있습니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '저해상도 원본 도면을 업스케일링합니다',
+      },
+    ],
+  },
+  ocr_ensemble: {
+    type: 'ocr_ensemble',
+    label: 'OCR Ensemble',
+    category: 'ocr',
+    color: '#0891b2',
+    icon: 'Layers',
+    description: '4개 OCR 엔진 가중 투표 앙상블 (eDOCr2 40% + PaddleOCR 35% + Tesseract 15% + TrOCR 10%)',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 도면 이미지',
+      },
+    ],
+    outputs: [
+      {
+        name: 'results',
+        type: 'EnsembleResult[]',
+        description: '📝 앙상블 결과 (가중 투표 기반)',
+      },
+      {
+        name: 'full_text',
+        type: 'string',
+        description: '📄 전체 텍스트',
+      },
+      {
+        name: 'engine_results',
+        type: 'object',
+        description: '🔍 각 엔진별 원본 결과',
+      },
+    ],
+    parameters: [
+      {
+        name: 'edocr2_weight',
+        type: 'number',
+        default: 0.40,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        description: 'eDOCr2 가중치 (기본 40%)',
+      },
+      {
+        name: 'paddleocr_weight',
+        type: 'number',
+        default: 0.35,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        description: 'PaddleOCR 가중치 (기본 35%)',
+      },
+      {
+        name: 'tesseract_weight',
+        type: 'number',
+        default: 0.15,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        description: 'Tesseract 가중치 (기본 15%)',
+      },
+      {
+        name: 'trocr_weight',
+        type: 'number',
+        default: 0.10,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        description: 'TrOCR 가중치 (기본 10%)',
+      },
+      {
+        name: 'similarity_threshold',
+        type: 'number',
+        default: 0.7,
+        min: 0.5,
+        max: 1,
+        step: 0.05,
+        description: '텍스트 유사도 임계값 (결과 그룹화 기준)',
+      },
+    ],
+    examples: [
+      'ImageInput → OCR Ensemble → 최고 정확도 OCR 결과',
+      'ESRGAN → OCR Ensemble → 저품질 도면도 정확히 인식',
+    ],
+    usageTips: [
+      '⭐ 단일 OCR 엔진보다 훨씬 높은 정확도를 제공합니다',
+      '💡 가중치를 조정하여 특정 엔진에 더 높은 신뢰도 부여 가능',
+      '💡 여러 엔진이 동의하는 결과는 신뢰도가 더 높습니다',
+      '💡 처리 시간이 단일 엔진보다 길지만 정확도가 훨씬 높습니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '전체 도면에서 4개 OCR 엔진으로 텍스트를 추출합니다',
+      },
+      {
+        from: 'esrgan',
+        field: 'image',
+        reason: '⭐ 업스케일된 이미지로 OCR 정확도를 극대화합니다',
+      },
+      {
+        from: 'edgnet',
+        field: 'segmented_image',
+        reason: '전처리된 이미지에서 더 정확한 결과를 얻습니다',
+      },
     ],
   },
 };

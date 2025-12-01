@@ -28,6 +28,11 @@ from .executors import (
     if_executor,
     merge_executor,
     loop_executor,
+    knowledge_executor,
+    tesseract_executor,
+    trocr_executor,
+    esrgan_executor,
+    ocr_ensemble_executor,
 )
 
 __all__ = [

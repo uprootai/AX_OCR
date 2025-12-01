@@ -12,6 +12,12 @@ import {
   Merge as MergeIcon,
   Lightbulb,
   ArrowRight,
+  Type,
+  Database,
+  ScanText,
+  Wand2,
+  Maximize2,
+  Layers,
 } from 'lucide-react';
 import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
@@ -22,11 +28,11 @@ interface NodeConfig {
   description: string;
   icon: React.ElementType | string; // 아이콘은 컴포넌트 또는 이모지
   color: string;
-  category: 'input' | 'api' | 'control';
+  category: 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
 }
 
 const baseNodeConfigs: NodeConfig[] = [
-  // Input Node
+  // Input Nodes
   {
     type: 'imageinput',
     label: 'Image Input',
@@ -35,38 +41,31 @@ const baseNodeConfigs: NodeConfig[] = [
     color: '#f97316',
     category: 'input',
   },
-  // API Nodes
+  {
+    type: 'textinput',
+    label: 'Text Input',
+    description: 'Text input for non-image APIs',
+    icon: Type,
+    color: '#8b5cf6',
+    category: 'input',
+  },
+  // Detection Nodes
   {
     type: 'yolo',
     label: 'YOLO',
     description: 'Object detection',
     icon: Target,
     color: '#10b981',
-    category: 'api',
+    category: 'detection',
   },
+  // OCR Nodes
   {
     type: 'edocr2',
     label: 'eDOCr2',
     description: 'Korean OCR',
     icon: FileText,
     color: '#3b82f6',
-    category: 'api',
-  },
-  {
-    type: 'edgnet',
-    label: 'EDGNet',
-    description: 'Segmentation',
-    icon: Network,
-    color: '#8b5cf6',
-    category: 'api',
-  },
-  {
-    type: 'skinmodel',
-    label: 'SkinModel',
-    description: 'Tolerance analysis',
-    icon: Ruler,
-    color: '#f59e0b',
-    category: 'api',
+    category: 'ocr',
   },
   {
     type: 'paddleocr',
@@ -74,15 +73,34 @@ const baseNodeConfigs: NodeConfig[] = [
     description: 'Multi-language OCR',
     icon: FileSearch,
     color: '#06b6d4',
-    category: 'api',
+    category: 'ocr',
   },
+  // Segmentation Nodes
+  {
+    type: 'edgnet',
+    label: 'EDGNet',
+    description: 'Edge segmentation',
+    icon: Network,
+    color: '#8b5cf6',
+    category: 'segmentation',
+  },
+  // Analysis Nodes
+  {
+    type: 'skinmodel',
+    label: 'SkinModel',
+    description: 'Tolerance analysis',
+    icon: Ruler,
+    color: '#f59e0b',
+    category: 'analysis',
+  },
+  // AI Nodes
   {
     type: 'vl',
     label: 'VL Model',
-    description: 'Vision-Language',
+    description: 'Vision-Language AI',
     icon: Eye,
     color: '#ec4899',
-    category: 'api',
+    category: 'ai',
   },
   // Control Nodes
   {
@@ -108,6 +126,49 @@ const baseNodeConfigs: NodeConfig[] = [
     icon: MergeIcon,
     color: '#14b8a6',
     category: 'control',
+  },
+  // Knowledge Nodes
+  {
+    type: 'knowledge',
+    label: 'Knowledge',
+    description: 'Domain knowledge engine',
+    icon: Database,
+    color: '#9333ea',
+    category: 'knowledge',
+  },
+  // Preprocessing Nodes
+  {
+    type: 'esrgan',
+    label: 'ESRGAN',
+    description: '4x image upscaling',
+    icon: Maximize2,
+    color: '#dc2626',
+    category: 'preprocessing',
+  },
+  // OCR Nodes
+  {
+    type: 'tesseract',
+    label: 'Tesseract',
+    description: 'Google Tesseract OCR',
+    icon: ScanText,
+    color: '#059669',
+    category: 'ocr',
+  },
+  {
+    type: 'trocr',
+    label: 'TrOCR',
+    description: 'Transformer OCR',
+    icon: Wand2,
+    color: '#7c3aed',
+    category: 'ocr',
+  },
+  {
+    type: 'ocr_ensemble',
+    label: 'OCR Ensemble',
+    description: '4-way OCR voting',
+    icon: Layers,
+    color: '#0891b2',
+    category: 'ocr',
   },
 ];
 
@@ -139,7 +200,13 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
   }, [customAPIs]);
 
   const inputNodes = allNodeConfigs.filter((n) => n.category === 'input');
-  const apiNodes = allNodeConfigs.filter((n) => n.category === 'api');
+  const detectionNodes = allNodeConfigs.filter((n) => n.category === 'detection');
+  const ocrNodes = allNodeConfigs.filter((n) => n.category === 'ocr');
+  const segmentationNodes = allNodeConfigs.filter((n) => n.category === 'segmentation');
+  const preprocessingNodes = allNodeConfigs.filter((n) => n.category === 'preprocessing');
+  const analysisNodes = allNodeConfigs.filter((n) => n.category === 'analysis');
+  const knowledgeNodes = allNodeConfigs.filter((n) => n.category === 'knowledge');
+  const aiNodes = allNodeConfigs.filter((n) => n.category === 'ai');
   const controlNodes = allNodeConfigs.filter((n) => n.category === 'control');
 
   return (
@@ -167,7 +234,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
       {inputNodes.length > 0 && (
         <div className="mb-6">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
-            Input Nodes
+            📥 Input
           </h3>
           <div className="space-y-2">
             {inputNodes.map((node) => {
@@ -247,107 +314,426 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
         </div>
       )}
 
-      {/* API Nodes */}
-      <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
-          API Nodes
-        </h3>
-        <div className="space-y-2">
-          {apiNodes.map((node) => {
-            const isEmojiIcon = typeof node.icon === 'string';
-            const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
-            const definition = getNodeDefinition(node.type);
-            const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+      {/* Detection Nodes */}
+      {detectionNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            🎯 Detection
+          </h3>
+          <div className="space-y-2">
+            {detectionNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
 
-            return (
-              <div key={node.type} className="relative group">
-                <div
-                  draggable
-                  onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
-                  className="
-                    flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
-                    bg-white dark:bg-gray-700
-                    hover:shadow-md transition-shadow
-                  "
-                  style={{ borderColor: `${node.color}40` }}
-                >
-                  {isEmojiIcon ? (
-                    <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
-                  ) : Icon ? (
-                    <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
-                  ) : null}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <div className="font-medium text-sm" style={{ color: node.color }}>
-                        {node.label}
+              return (
+                <div key={node.type} className="relative group">
+                  <div
+                    draggable
+                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
+                    className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow"
+                    style={{ borderColor: `${node.color}40` }}
+                  >
+                    {isEmojiIcon ? (
+                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                    ) : Icon ? (
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
+                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
                       </div>
-                      {hasRecommendedInputs && (
-                        <Lightbulb className="w-3 h-3 text-yellow-500" />
-                      )}
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {node.description}
+                  </div>
+                  {hasRecommendedInputs && (
+                    <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/90 dark:to-emerald-900/90 p-3 rounded-lg shadow-xl border-2 border-green-300 dark:border-green-700">
+                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-green-200 dark:border-green-700">
+                          <Lightbulb className="w-4 h-4 text-green-700 dark:text-green-300" />
+                          <span className="text-xs font-semibold text-green-900 dark:text-green-100">추천 연결 패턴</span>
+                        </div>
+                        <div className="space-y-2">
+                          {definition.recommendedInputs!.map((rec, idx) => (
+                            <div key={idx} className="text-xs">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="font-mono font-semibold text-green-800 dark:text-green-200">{rec.from}</span>
+                                <ArrowRight className="w-3 h-3 text-green-600" />
+                                <span className="font-mono text-green-700 dark:text-green-300">{rec.field}</span>
+                              </div>
+                              <p className="text-green-800 dark:text-green-100 leading-relaxed pl-2 border-l-2 border-green-400">{rec.reason}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Segmentation Nodes */}
+      {segmentationNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            🔲 Segmentation
+          </h3>
+          <div className="space-y-2">
+            {segmentationNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              return (
+                <div key={node.type} className="relative group">
+                  <div draggable onDragStart={(e) => onNodeDragStart(e, node.type, node.label)} className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow" style={{ borderColor: `${node.color}40` }}>
+                    {isEmojiIcon ? <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} /> : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
+                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-                {/* Hover Tooltip - Recommended Connections */}
-                {hasRecommendedInputs && (
-                  <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/90 dark:to-emerald-900/90 p-3 rounded-lg shadow-xl border-2 border-green-300 dark:border-green-700">
-                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-green-200 dark:border-green-700">
-                        <Lightbulb className="w-4 h-4 text-green-700 dark:text-green-300" />
-                        <span className="text-xs font-semibold text-green-900 dark:text-green-100">
-                          추천 연결 패턴
-                        </span>
+      {/* Analysis Nodes */}
+      {analysisNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            📐 Analysis
+          </h3>
+          <div className="space-y-2">
+            {analysisNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              return (
+                <div key={node.type} className="relative group">
+                  <div draggable onDragStart={(e) => onNodeDragStart(e, node.type, node.label)} className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow" style={{ borderColor: `${node.color}40` }}>
+                    {isEmojiIcon ? <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} /> : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
+                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
                       </div>
-                      <div className="space-y-2">
-                        {definition.recommendedInputs!.map((rec, idx) => (
-                          <div key={idx} className="text-xs">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <span className="font-mono font-semibold text-green-800 dark:text-green-200">
-                                {rec.from}
-                              </span>
-                              <ArrowRight className="w-3 h-3 text-green-600" />
-                              <span className="font-mono text-green-700 dark:text-green-300">
-                                {rec.field}
-                              </span>
-                            </div>
-                            <p className="text-green-800 dark:text-green-100 leading-relaxed pl-2 border-l-2 border-green-400">
-                              {rec.reason}
-                            </p>
-                          </div>
-                        ))}
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Knowledge Nodes */}
+      {knowledgeNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            🧠 Knowledge
+          </h3>
+          <div className="space-y-2">
+            {knowledgeNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+
+              return (
+                <div key={node.type} className="relative group">
+                  <div
+                    draggable
+                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
+                    className="
+                      flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
+                      bg-white dark:bg-gray-700
+                      hover:shadow-md transition-shadow
+                    "
+                    style={{ borderColor: `${node.color}40` }}
+                  >
+                    {isEmojiIcon ? (
+                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                    ) : Icon ? (
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-sm" style={{ color: node.color }}>
+                          {node.label}
+                        </div>
+                        {hasRecommendedInputs && (
+                          <Lightbulb className="w-3 h-3 text-yellow-500" />
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {node.description}
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Control Nodes */}
-      <div>
+                  {/* Hover Tooltip - Recommended Connections */}
+                  {hasRecommendedInputs && (
+                    <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
+                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/90 dark:to-violet-900/90 p-3 rounded-lg shadow-xl border-2 border-purple-300 dark:border-purple-700">
+                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-purple-200 dark:border-purple-700">
+                          <Lightbulb className="w-4 h-4 text-purple-700 dark:text-purple-300" />
+                          <span className="text-xs font-semibold text-purple-900 dark:text-purple-100">
+                            추천 연결 패턴
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {definition.recommendedInputs!.map((rec, idx) => (
+                            <div key={idx} className="text-xs">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="font-mono font-semibold text-purple-800 dark:text-purple-200">
+                                  {rec.from}
+                                </span>
+                                <ArrowRight className="w-3 h-3 text-purple-600" />
+                                <span className="font-mono text-purple-700 dark:text-purple-300">
+                                  {rec.field}
+                                </span>
+                              </div>
+                              <p className="text-purple-800 dark:text-purple-100 leading-relaxed pl-2 border-l-2 border-purple-400">
+                                {rec.reason}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* AI Nodes (VL) */}
+      {aiNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            🤖 AI / LLM
+          </h3>
+          <div className="space-y-2">
+            {aiNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              return (
+                <div key={node.type} className="relative group">
+                  <div draggable onDragStart={(e) => onNodeDragStart(e, node.type, node.label)} className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow" style={{ borderColor: `${node.color}40` }}>
+                    {isEmojiIcon ? <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} /> : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
+                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Preprocessing Nodes */}
+      {preprocessingNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            ⚡ Preprocessing
+          </h3>
+          <div className="space-y-2">
+            {preprocessingNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+
+              return (
+                <div key={node.type} className="relative group">
+                  <div
+                    draggable
+                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
+                    className="
+                      flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
+                      bg-white dark:bg-gray-700
+                      hover:shadow-md transition-shadow
+                    "
+                    style={{ borderColor: `${node.color}40` }}
+                  >
+                    {isEmojiIcon ? (
+                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                    ) : Icon ? (
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-sm" style={{ color: node.color }}>
+                          {node.label}
+                        </div>
+                        {hasRecommendedInputs && (
+                          <Lightbulb className="w-3 h-3 text-yellow-500" />
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {node.description}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hover Tooltip */}
+                  {hasRecommendedInputs && (
+                    <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
+                      <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/90 dark:to-orange-900/90 p-3 rounded-lg shadow-xl border-2 border-red-300 dark:border-red-700">
+                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-red-200 dark:border-red-700">
+                          <Lightbulb className="w-4 h-4 text-red-700 dark:text-red-300" />
+                          <span className="text-xs font-semibold text-red-900 dark:text-red-100">
+                            추천 연결 패턴
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {definition.recommendedInputs!.map((rec, idx) => (
+                            <div key={idx} className="text-xs">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="font-mono font-semibold text-red-800 dark:text-red-200">
+                                  {rec.from}
+                                </span>
+                                <ArrowRight className="w-3 h-3 text-red-600" />
+                                <span className="font-mono text-red-700 dark:text-red-300">
+                                  {rec.field}
+                                </span>
+                              </div>
+                              <p className="text-red-800 dark:text-red-100 leading-relaxed pl-2 border-l-2 border-red-400">
+                                {rec.reason}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* OCR Nodes */}
+      {ocrNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            📝 OCR
+          </h3>
+          <div className="space-y-2">
+            {ocrNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+
+              return (
+                <div key={node.type} className="relative group">
+                  <div
+                    draggable
+                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
+                    className="
+                      flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
+                      bg-white dark:bg-gray-700
+                      hover:shadow-md transition-shadow
+                    "
+                    style={{ borderColor: `${node.color}40` }}
+                  >
+                    {isEmojiIcon ? (
+                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                    ) : Icon ? (
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-medium text-sm" style={{ color: node.color }}>
+                          {node.label}
+                        </div>
+                        {hasRecommendedInputs && (
+                          <Lightbulb className="w-3 h-3 text-yellow-500" />
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {node.description}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hover Tooltip */}
+                  {hasRecommendedInputs && (
+                    <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
+                      <div className="bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/90 dark:to-teal-900/90 p-3 rounded-lg shadow-xl border-2 border-cyan-300 dark:border-cyan-700">
+                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-cyan-200 dark:border-cyan-700">
+                          <Lightbulb className="w-4 h-4 text-cyan-700 dark:text-cyan-300" />
+                          <span className="text-xs font-semibold text-cyan-900 dark:text-cyan-100">
+                            추천 연결 패턴
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {definition.recommendedInputs!.map((rec, idx) => (
+                            <div key={idx} className="text-xs">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="font-mono font-semibold text-cyan-800 dark:text-cyan-200">
+                                  {rec.from}
+                                </span>
+                                <ArrowRight className="w-3 h-3 text-cyan-600" />
+                                <span className="font-mono text-cyan-700 dark:text-cyan-300">
+                                  {rec.field}
+                                </span>
+                              </div>
+                              <p className="text-cyan-800 dark:text-cyan-100 leading-relaxed pl-2 border-l-2 border-cyan-400">
+                                {rec.reason}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Control Nodes - Always at the end */}
+      <div className="mb-6">
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
-          Control Nodes
+          🔀 Control Flow
         </h3>
         <div className="space-y-2">
           {controlNodes.map((node) => {
             const isEmojiIcon = typeof node.icon === 'string';
             const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
-
             return (
               <div
                 key={node.type}
                 draggable
                 onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
-                className="
-                  flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
-                  bg-white dark:bg-gray-700
-                  hover:shadow-md transition-shadow
-                "
+                className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow"
                 style={{ borderColor: `${node.color}40` }}
               >
                 {isEmojiIcon ? (
@@ -356,12 +742,8 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
                   <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
                 ) : null}
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm" style={{ color: node.color }}>
-                    {node.label}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {node.description}
-                  </div>
+                  <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
                 </div>
               </div>
             );
