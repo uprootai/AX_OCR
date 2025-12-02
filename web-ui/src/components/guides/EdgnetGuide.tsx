@@ -9,22 +9,24 @@ export default function EdgnetGuide() {
 
   const systemDiagram = `
 flowchart LR
-    A[도면 이미지] --> B[EDGNet API<br/>포트 5002]
-    B --> C[Graph Neural Network]
-    C --> D{세그멘테이션}
-    D --> E[윤곽선<br/>Contour]
-    D --> F[텍스트<br/>Text]
-    D --> G[치수<br/>Dimension]
-    E --> H[GraphSAGE<br/>관계 분석]
-    F --> H
-    G --> H
-    H --> I[벡터화<br/>Bezier Curves]
-    I --> J[결과 반환<br/>JSON + SVG]
+    A[도면 이미지] --> B[EDGNet API<br/>포트 5012]
+    B --> C{모델 선택}
+    C -->|UNet| D[U-Net 세그멘테이션<br/>엣지 검출]
+    C -->|GraphSAGE| E[GraphSAGE<br/>그래프 분류]
+    D --> F[엣지 마스크<br/>Edge Mask]
+    E --> G{분류 결과}
+    G --> H[윤곽선 Contour]
+    G --> I[텍스트 Text]
+    G --> J[치수 Dimension]
+    F --> K[결과 반환<br/>JSON + 시각화]
+    H --> K
+    I --> K
+    J --> K
 
     style B fill:#ea580c,stroke:#fb923c,stroke-width:3px,color:#fff
-    style C fill:#065f46,stroke:#34d399,stroke-width:3px,color:#fff
-    style H fill:#1e40af,stroke:#60a5fa,stroke-width:3px,color:#fff
-    style J fill:#7e22ce,stroke:#c084fc,stroke-width:3px,color:#fff
+    style D fill:#065f46,stroke:#34d399,stroke-width:3px,color:#fff
+    style E fill:#1e40af,stroke:#60a5fa,stroke-width:3px,color:#fff
+    style K fill:#7e22ce,stroke:#c084fc,stroke-width:3px,color:#fff
   `;
 
   const processDiagram = `
@@ -32,24 +34,25 @@ sequenceDiagram
     participant User as 사용자
     participant UI as Web UI
     participant API as EDGNet API
-    participant GNN as Graph Network
+    participant MODEL as UNet/GraphSAGE
 
     User->>UI: 1. 도면 이미지 업로드
-    UI->>API: 2. POST /api/v1/segment
+    User->>UI: 2. 모델 선택 (UNet/GraphSAGE)
 
-    API->>API: 3. 전처리<br/>(노이즈 제거, 이진화)
-    API->>GNN: 4. 그래프 구축
-    Note over GNN: 픽셀 → 노드<br/>인접성 → 엣지
+    alt UNet 모델 (기본)
+        UI->>API: 3. POST /api/v1/segment_unet
+        API->>MODEL: 4. UNet 엣지 세그멘테이션
+        MODEL-->>API: 5. 엣지 마스크 생성
+        Note over API: threshold, return_mask
+    else GraphSAGE 모델
+        UI->>API: 3. POST /api/v1/segment
+        API->>MODEL: 4. 그래프 구축 & 분류
+        MODEL-->>API: 5. 픽셀 분류 결과
+        Note over API: Contour/Text/Dimension
+    end
 
-    GNN->>GNN: 5. GraphSAGE 분석
-    Note over GNN: 90.82% 정확도
-
-    GNN-->>API: 6. 분류 결과
-    Note over API: Contour/Text/Dimension
-
-    API->>API: 7. 벡터화 (Bezier)
-    API-->>UI: 8. JSON + SVG 반환
-    UI-->>User: 9. 시각화 표시
+    API-->>UI: 6. JSON + 시각화 반환
+    UI-->>User: 7. 결과 표시
   `;
 
   return (

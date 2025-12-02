@@ -64,7 +64,7 @@ export default function Guide() {
                   <h3 className="font-semibold text-purple-900 dark:text-purple-100">{t('guide.microservices')}</h3>
                 </div>
                 <ul className="text-sm space-y-1 text-purple-800 dark:text-purple-200">
-                  <li>• {t('guide.microservices1')}</li>
+                  <li>• 12개 독립 API 서버</li>
                   <li>• {t('guide.microservices2')}</li>
                   <li>• {t('guide.microservices3')}</li>
                 </ul>
@@ -89,45 +89,66 @@ export default function Guide() {
                 {t('guide.systemStructure')}
               </h3>
               <ImageZoom>
-                <Mermaid chart={`graph TB
-    subgraph Frontend
-        UI["Web UI :5173\nReact + Vite"]
+                <Mermaid chart={`flowchart TB
+    subgraph Frontend["🌐 Frontend :5173"]
+        UI[Web UI + BlueprintFlow]
     end
 
-    subgraph BackendAPIs["Backend APIs"]
-        GW["Gateway API :8000\n통합 API 게이트웨이"]
-        YOLO["YOLOv11 API :5005\n⭐ 주력 엔진\nmAP50: 80.4%"]
-        ED1["eDOCr v1 API :5001\nGPU 가속 OCR"]
-        ED2["eDOCr v2 API :5002\n고급 OCR + 테이블"]
-        EG["EDGNet API :5012\n세그멘테이션"]
-        SK["Skin Model API :5003\n공차 예측"]
+    subgraph Gateway["⚙️ Gateway :8000"]
+        GW[통합 오케스트레이터]
     end
 
-    subgraph DataModels["Data & Models"]
-        SYN["합성 데이터 생성기\n1000+ 이미지"]
-        MODEL["YOLOv11n 모델\nbest.pt - 5.3MB"]
+    subgraph Detection["🎯 Detection"]
+        YOLO[YOLO :5005]
+    end
+
+    subgraph OCR["📝 OCR"]
+        direction LR
+        ED[eDOCr2 :5002]
+        PD[PaddleOCR :5006]
+        TE[Tesseract :5008]
+        TR[TrOCR :5009]
+        EN[Ensemble :5011]
+    end
+
+    subgraph Segmentation["🎨 Segmentation"]
+        EG[EDGNet :5012]
+    end
+
+    subgraph Preprocessing["🔧 Preprocessing"]
+        ES[ESRGAN :5010]
+    end
+
+    subgraph Analysis["📊 Analysis"]
+        SK[SkinModel :5003]
+    end
+
+    subgraph AI["🤖 AI"]
+        VL[VL :5004]
+    end
+
+    subgraph Knowledge["🧠 Knowledge"]
+        KN[Knowledge :5007]
     end
 
     UI --> GW
-    UI --> YOLO
-    UI --> ED1
-    UI --> ED2
-    UI --> EG
-    UI --> SK
+    GW --> Detection
+    GW --> OCR
+    GW --> Segmentation
+    GW --> Preprocessing
+    GW --> Analysis
+    GW --> AI
+    GW --> Knowledge
 
-    GW --> YOLO
-    GW --> ED1
-    GW --> ED2
-    GW --> EG
-    GW --> SK
-
-    SYN -.학습.-> MODEL
-    MODEL --> YOLO
-
-    style YOLO stroke:#1976d2,stroke-width:3px
-    style UI stroke:#7b1fa2
-    style GW stroke:#f57c00
-    style MODEL stroke:#388e3c`} />
+    style Frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Gateway fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style Detection fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style OCR fill:#dcfce7,stroke:#22c55e,stroke-width:2px
+    style Segmentation fill:#fae8ff,stroke:#d946ef,stroke-width:2px
+    style Preprocessing fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+    style Analysis fill:#ffe4e6,stroke:#f43f5e,stroke-width:2px
+    style AI fill:#e0e7ff,stroke:#6366f1,stroke-width:2px
+    style Knowledge fill:#f3e8ff,stroke:#a855f7,stroke-width:2px`} />
               </ImageZoom>
             </div>
           </div>
@@ -179,92 +200,157 @@ export default function Guide() {
         </CardContent>
       </Card>
 
-      {/* Service Details */}
+      {/* Service Details - 기능별 그룹화 */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>{t('guide.serviceRoles')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {/* YOLOv11 */}
-            <div className="p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-blue-900 dark:text-blue-100">
-                  ⭐ YOLOv11 API (포트 5005)
-                </h3>
-                <Badge className="bg-blue-600">권장</Badge>
+          <div className="space-y-6">
+            {/* Gateway - 오케스트레이터 */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded text-sm">⚙️ Gateway</span>
+              </h3>
+              <div className="p-4 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20">
+                <h4 className="font-bold text-orange-900 dark:text-orange-100 mb-2">Gateway API (포트 8000)</h4>
+                <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">모든 백엔드 API를 통합하는 오케스트레이터</p>
+                <ul className="text-xs space-y-1 text-orange-700 dark:text-orange-300">
+                  <li><strong>• 엔드포인트:</strong> GET /api/v1/health, POST /api/v1/process, POST /api/v1/quote</li>
+                  <li><strong>• 특징:</strong> 여러 API 결과 병합, 단일 엔드포인트 제공</li>
+                </ul>
               </div>
-              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                공학 도면에서 14개 클래스 객체 검출 (치수, GD&T, 공차 등)
-              </p>
-              <ul className="text-xs space-y-1 text-blue-700 dark:text-blue-300">
-                <li><strong>• 엔드포인트:</strong> GET /api/v1/health, POST /api/v1/detect</li>
-                <li><strong>• 성능:</strong> mAP50 80.4%, Precision 81%, Recall 68.6%</li>
-                <li><strong>• 특징:</strong> 합성 데이터로 학습, 완전 무료, CPU/GPU 지원</li>
-                <li><strong>• 테스트:</strong> <a href="/test/yolo" className="underline hover:text-blue-900 dark:hover:text-blue-100">/test/yolo</a></li>
-              </ul>
             </div>
 
-            {/* Gateway */}
-            <div className="p-4 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20">
-              <h3 className="font-bold text-orange-900 dark:text-orange-100 mb-2">
-                Gateway API (포트 8000)
+            {/* 🎯 Detection */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm">🎯 Detection</span>
               </h3>
-              <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
-                모든 백엔드 API를 통합하는 게이트웨이
-              </p>
-              <ul className="text-xs space-y-1 text-orange-700 dark:text-orange-300">
-                <li><strong>• 엔드포인트:</strong> GET /api/v1/health, POST /api/v1/process, POST /api/v1/quote</li>
-                <li><strong>• 특징:</strong> 여러 API 결과 병합, 단일 엔드포인트 제공</li>
-                <li><strong>• 테스트:</strong> <a href="/test/gateway" className="underline hover:text-orange-900 dark:hover:text-orange-100">/test/gateway</a></li>
-              </ul>
+              <div className="p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-blue-900 dark:text-blue-100">YOLOv11 API (포트 5005)</h4>
+                  <Badge className="bg-blue-600">권장</Badge>
+                </div>
+                <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">공학 도면에서 14개 클래스 객체 검출</p>
+                <ul className="text-xs space-y-1 text-blue-700 dark:text-blue-300">
+                  <li><strong>• 성능:</strong> mAP50 80.4%, Precision 81%, Recall 68.6%</li>
+                  <li><strong>• 특징:</strong> 합성 데이터로 학습, CPU/GPU 지원</li>
+                </ul>
+              </div>
             </div>
 
-            {/* eDOCr v1/v2 */}
-            <div className="p-4 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
-              <h3 className="font-bold text-green-900 dark:text-green-100 mb-2">
-                eDOCr v1/v2 API (포트 5001, 5002)
+            {/* 📝 OCR */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-sm">📝 OCR</span>
+                <span className="text-sm text-muted-foreground">(5개 엔진)</span>
               </h3>
-              <p className="text-sm text-green-800 dark:text-green-200 mb-2">
-                OCR 기반 치수 및 GD&T 추출 (v1: GPU 가속, v2: 고급 기능)
-              </p>
-              <ul className="text-xs space-y-1 text-green-700 dark:text-green-300">
-                <li><strong>• 엔드포인트:</strong> POST /api/v1/ocr, POST /api/v2/ocr</li>
-                <li><strong>• v1 특징:</strong> GPU 가속, 빠른 처리</li>
-                <li><strong>• v2 특징:</strong> 테이블 OCR (Tesseract), 고급 세그멘테이션</li>
-                <li><strong>• 주의:</strong> F1 Score 8.3% (YOLOv11 권장)</li>
-                <li><strong>• 테스트:</strong> <a href="/test/edocr2" className="underline hover:text-green-900 dark:hover:text-green-100">/test/edocr2</a></li>
-              </ul>
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                  <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">eDOCr2 (5002)</h4>
+                  <p className="text-xs text-green-700 dark:text-green-300">도면 전용 OCR, GD&T 추출</p>
+                </div>
+                <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                  <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">PaddleOCR (5006)</h4>
+                  <p className="text-xs text-green-700 dark:text-green-300">범용 다국어 OCR, GPU 가속</p>
+                </div>
+                <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                  <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">Tesseract (5008)</h4>
+                  <p className="text-xs text-green-700 dark:text-green-300">레거시 OCR, 테이블 추출</p>
+                </div>
+                <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                  <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">TrOCR (5009)</h4>
+                  <p className="text-xs text-green-700 dark:text-green-300">Transformer OCR, 필기체 인식</p>
+                </div>
+                <div className="p-3 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-amber-900 dark:text-amber-100 text-sm">OCR Ensemble (5011)</h4>
+                    <Badge className="bg-amber-600 text-xs">앙상블</Badge>
+                  </div>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">4개 OCR 엔진 가중치 투표 융합</p>
+                </div>
+              </div>
             </div>
 
-            {/* EDGNet */}
-            <div className="p-4 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20">
-              <h3 className="font-bold text-purple-900 dark:text-purple-100 mb-2">
-                EDGNet API (포트 5012)
+            {/* 🎨 Segmentation */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm">🎨 Segmentation</span>
               </h3>
-              <p className="text-sm text-purple-800 dark:text-purple-200 mb-2">
-                도면 세그멘테이션 (레이어 분리)
-              </p>
-              <ul className="text-xs space-y-1 text-purple-700 dark:text-purple-300">
-                <li><strong>• 엔드포인트:</strong> POST /api/v1/segment</li>
-                <li><strong>• 특징:</strong> 선, 치수, 텍스트 레이어 분리</li>
-                <li><strong>• 테스트:</strong> <a href="/test/edgnet" className="underline hover:text-purple-900 dark:hover:text-purple-100">/test/edgnet</a></li>
-              </ul>
+              <div className="p-4 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20">
+                <h4 className="font-bold text-purple-900 dark:text-purple-100 mb-2">EDGNet API (포트 5012)</h4>
+                <p className="text-sm text-purple-800 dark:text-purple-200 mb-2">도면 세그멘테이션 (레이어 분리)</p>
+                <ul className="text-xs space-y-1 text-purple-700 dark:text-purple-300">
+                  <li><strong>• 모델:</strong> UNet (엣지), GraphSAGE (분류)</li>
+                  <li><strong>• 특징:</strong> 윤곽선, 텍스트, 치수 레이어 분리</li>
+                </ul>
+              </div>
             </div>
 
-            {/* Skin Model */}
-            <div className="p-4 border-l-4 border-pink-500 bg-pink-50 dark:bg-pink-900/20">
-              <h3 className="font-bold text-pink-900 dark:text-pink-100 mb-2">
-                Skin Model API (포트 5003)
+            {/* 🔧 Preprocessing */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded text-sm">🔧 Preprocessing</span>
               </h3>
-              <p className="text-sm text-pink-800 dark:text-pink-200 mb-2">
-                공차 예측 및 검증
-              </p>
-              <ul className="text-xs space-y-1 text-pink-700 dark:text-pink-300">
-                <li><strong>• 엔드포인트:</strong> POST /api/v1/predict, POST /api/v1/validate</li>
-                <li><strong>• 특징:</strong> 기계 학습 기반 공차 예측</li>
-                <li><strong>• 테스트:</strong> <a href="/test/skinmodel" className="underline hover:text-pink-900 dark:hover:text-pink-100">/test/skinmodel</a></li>
-              </ul>
+              <div className="p-4 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+                <h4 className="font-bold text-yellow-900 dark:text-yellow-100 mb-2">ESRGAN API (포트 5010)</h4>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">Real-ESRGAN 이미지 업스케일링</p>
+                <ul className="text-xs space-y-1 text-yellow-700 dark:text-yellow-300">
+                  <li><strong>• 특징:</strong> 2x/4x 업스케일, 노이즈 제거</li>
+                  <li><strong>• 활용:</strong> 저해상도 도면 전처리</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 📊 Analysis */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded text-sm">📊 Analysis</span>
+              </h3>
+              <div className="p-4 border-l-4 border-pink-500 bg-pink-50 dark:bg-pink-900/20">
+                <h4 className="font-bold text-pink-900 dark:text-pink-100 mb-2">SkinModel API (포트 5003)</h4>
+                <p className="text-sm text-pink-800 dark:text-pink-200 mb-2">공차 예측 및 제조 가능성 분석</p>
+                <ul className="text-xs space-y-1 text-pink-700 dark:text-pink-300">
+                  <li><strong>• 특징:</strong> 치수→공차 예측, 제조 난이도 산정</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 🤖 AI */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-sm">🤖 AI</span>
+              </h3>
+              <div className="p-4 border-l-4 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-indigo-900 dark:text-indigo-100">VL API (포트 5004)</h4>
+                  <Badge className="bg-indigo-600">멀티모달</Badge>
+                </div>
+                <p className="text-sm text-indigo-800 dark:text-indigo-200 mb-2">Vision-Language 멀티모달 분석</p>
+                <ul className="text-xs space-y-1 text-indigo-700 dark:text-indigo-300">
+                  <li><strong>• 모델:</strong> BLIP-base (로컬), Claude/GPT-4V (선택)</li>
+                  <li><strong>• 특징:</strong> 이미지 캡셔닝, VQA, 프롬프트 기반 분석</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 🧠 Knowledge */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded text-sm">🧠 Knowledge</span>
+              </h3>
+              <div className="p-4 border-l-4 border-violet-500 bg-violet-50 dark:bg-violet-900/20">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-violet-900 dark:text-violet-100">Knowledge API (포트 5007)</h4>
+                  <Badge className="bg-violet-600">GraphRAG</Badge>
+                </div>
+                <p className="text-sm text-violet-800 dark:text-violet-200 mb-2">Neo4j + GraphRAG 도메인 지식 엔진</p>
+                <ul className="text-xs space-y-1 text-violet-700 dark:text-violet-300">
+                  <li><strong>• 특징:</strong> 유사 부품 검색, 규격 검증, 비용 추정</li>
+                  <li><strong>• 기술:</strong> GraphRAG + VectorRAG 하이브리드</li>
+                </ul>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -585,45 +671,89 @@ export default function Guide() {
         </CardContent>
       </Card>
 
-      {/* BlueprintFlow Architecture (Future Design) */}
-      <Card className="mb-6 border-4 border-cyan-500">
-        <CardHeader className="bg-cyan-50 dark:bg-cyan-900/20">
-          <CardTitle className="flex items-center text-cyan-900 dark:text-cyan-100">
-            <span className="text-2xl mr-2">🔮</span>
-            {t('guide.blueprintflowArchitecture')}
+      {/* BlueprintFlow Architecture (Implemented) */}
+      <Card className="mb-6 border-4 border-green-500">
+        <CardHeader className="bg-green-50 dark:bg-green-900/20">
+          <CardTitle className="flex items-center text-green-900 dark:text-green-100">
+            <span className="text-2xl mr-2">✅</span>
+            BlueprintFlow (Phase 1-4 완료)
+            <Badge className="ml-3 bg-green-600">구현 완료</Badge>
           </CardTitle>
-          <p className="text-sm text-cyan-800 dark:text-cyan-200 mt-2">
-            {t('guide.blueprintflowSubtitle')}
+          <p className="text-sm text-green-800 dark:text-green-200 mt-2">
+            비주얼 워크플로우 빌더 - 드래그 앤 드롭으로 API 파이프라인 조합
           </p>
+          <div className="mt-3 flex gap-2">
+            <a href="/blueprintflow/builder" className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">
+              빌더 열기
+            </a>
+            <a href="/blueprintflow/templates" className="px-3 py-1 bg-green-100 text-green-800 rounded-lg text-sm hover:bg-green-200 transition-colors dark:bg-green-800 dark:text-green-100">
+              템플릿 보기
+            </a>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* 현재 vs BlueprintFlow 비교 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 border-l-4 border-gray-500 rounded">
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {t('guide.currentArchitecture')}
-                </h3>
-                <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                  <li>✅ {t('guide.currentArch1')}</li>
-                  <li>✅ {t('guide.currentArch2')}</li>
-                  <li>✅ {t('guide.currentArch3')}</li>
-                  <li>❌ {t('guide.currentArch4')}</li>
-                  <li>❌ {t('guide.currentArch5')}</li>
-                </ul>
+            {/* 구현 현황 */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded text-center">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">13</div>
+                <div className="text-sm text-green-800 dark:text-green-200">노드 타입</div>
               </div>
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded text-center">
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">11</div>
+                <div className="text-sm text-blue-800 dark:text-blue-200">API Executor</div>
+              </div>
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 rounded text-center">
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">60%</div>
+                <div className="text-sm text-purple-800 dark:text-purple-200">병렬 실행 속도향상</div>
+              </div>
+              <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-500 rounded text-center">
+                <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">4</div>
+                <div className="text-sm text-cyan-800 dark:text-cyan-200">템플릿</div>
+              </div>
+            </div>
 
-              <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-500 rounded">
-                <h3 className="font-bold text-cyan-900 dark:text-cyan-100 mb-2">
-                  {t('guide.blueprintflowArch')}
-                </h3>
-                <ul className="text-sm space-y-1 text-cyan-700 dark:text-cyan-300">
-                  <li>✅ {t('guide.bfArch1')}</li>
-                  <li>✅ {t('guide.bfArch2')}</li>
-                  <li>✅ {t('guide.bfArch3')}</li>
-                  <li>✅ {t('guide.bfArch4')}</li>
-                  <li>✅ {t('guide.bfArch5')}</li>
-                </ul>
+            {/* 노드 타입 */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">
+                지원 노드 타입 (13종)
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                  <strong>입력 노드</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>• ImageInput</li>
+                    <li>• TextInput (VL용)</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded">
+                  <strong>핵심 API</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>• YOLO</li>
+                    <li>• eDOCr2</li>
+                    <li>• PaddleOCR</li>
+                    <li>• EDGNet</li>
+                    <li>• SkinModel</li>
+                    <li>• VL</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded">
+                  <strong>확장 API</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>• TrOCR</li>
+                    <li>• ESRGAN</li>
+                    <li>• OCR Ensemble</li>
+                    <li>• Knowledge</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded">
+                  <strong>제어 노드</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>• IF (조건 분기)</li>
+                    <li>• Loop</li>
+                    <li>• Merge</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -633,72 +763,40 @@ export default function Guide() {
                 {t('guide.bfSystemStructure')}
               </h3>
               <ImageZoom>
-                <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
-graph TD
-    subgraph F["🌐 Frontend Layer (Port 5173)"]
-        direction TB
-        UI["React App<br/>BlueprintFlowBuilder.tsx"]
-        WB["워크플로우 빌더<br/>ReactFlow Canvas"]
-        NP["노드 팔레트<br/>8 API + 3 Control"]
-        UI --> WB
-        WB --> NP
+                <Mermaid chart={`flowchart TB
+    subgraph Frontend["🌐 Frontend :5173"]
+        UI[React + ReactFlow]
+        NP[노드 팔레트]
     end
 
-    subgraph G["⚙️ Gateway API (Port 8000)"]
-        direction TB
-        GW["FastAPI Server"]
-        WE["POST /api/v1/workflow/execute"]
-        PE["PipelineEngine<br/>DAG 실행 엔진"]
-        DV["DAGValidator<br/>순환 참조 검증"]
-        GW --> WE
-        WE --> PE
-        PE --> DV
+    subgraph Gateway["⚙️ Gateway :8000"]
+        PE[Pipeline Engine]
+        EX[Executors x11]
     end
 
-    subgraph E["🔧 Node Executors (gateway-api/executors/)"]
-        direction LR
-        NE1["yolo_executor.py"]
-        NE2["edocr_executor.py"]
-        NE3["edgnet_executor.py"]
-        NE4["skinmodel_executor.py"]
-        NE5["if_executor.py"]
-        NE6["vl_executor.py"]
+    subgraph APIs["🤖 Model APIs (기능별)"]
+        DET["🎯 Detection<br/>YOLO"]
+        OCR_G["📝 OCR<br/>eDOCr2 PaddleOCR +3"]
+        SEG["🎨 Segmentation<br/>EDGNet"]
+        PRE["🔧 Preprocessing<br/>ESRGAN"]
+        ANA["📊 Analysis<br/>SkinModel"]
+        AI_G["🤖 AI<br/>VL"]
+        KNO["🧠 Knowledge"]
     end
 
-    subgraph M["🤖 Model APIs (독립 컨테이너)"]
-        direction LR
-        YOLO["YOLO :5005<br/>객체 검출"]
-        ED2["eDOCr2 :5002<br/>차원 OCR"]
-        EG["EDGNet :5012<br/>엣지 분할"]
-        SK["SkinModel :5003<br/>공차 분석"]
-        VL["VL :5004<br/>멀티모달"]
-        PD["PaddleOCR :5006<br/>범용 OCR"]
+    subgraph DB["💾 Storage"]
+        PG[(PostgreSQL)]
     end
 
-    subgraph D["💾 Data Layer"]
-        direction TB
-        WS["PostgreSQL<br/>workflow_definitions"]
-        WH["execution_logs"]
-    end
+    UI -->|workflow JSON| PE
+    PE --> EX
+    EX --> APIs
+    PE -.->|저장| PG
 
-    F -->|"workflow JSON"| G
-    G -->|"동적 디스패치"| E
-    E -->|"HTTP POST"| M
-    G -->|"저장/조회"| D
-
-    NE1 -.-> YOLO
-    NE2 -.-> ED2
-    NE3 -.-> EG
-    NE4 -.-> SK
-    NE6 -.-> VL
-
-    style F fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
-    style G fill:#fff3e0,stroke:#f57c00,stroke-width:3px
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style M fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    style D fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    style PE stroke:#f57c00,stroke-width:4px
-    style WB stroke:#1976d2,stroke-width:3px`} />
+    style Frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Gateway fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style APIs fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style DB fill:#fce4ec,stroke:#c2185b,stroke-width:2px`} />
               </ImageZoom>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 💡 Executor는 Gateway 내부 모듈로 각 API를 호출하는 어댑터 역할
@@ -711,89 +809,40 @@ graph TD
                 {t('guide.workflowBuilderUI')}
               </h3>
               <ImageZoom>
-                <Mermaid chart={`%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'transparent','primaryBorderColor':'#333','lineColor':'#666','secondaryColor':'transparent','tertiaryColor':'transparent'}}}%%
-graph TB
-    subgraph "BlueprintFlowBuilder.tsx (메인 페이지)"
-        WBP["워크플로우 상태 관리<br/>useWorkflowStore()"]
-
-        subgraph "좌측 사이드바 (w-64)"
-            NP["NodePalette.tsx"]
-            NPG1["API 노드 그룹"]
-            NPG2["제어 노드 그룹"]
-            NPY["YoloNode<br/>드래그 가능"]
-            NPE["EdocrNode<br/>드래그 가능"]
-            NPI["IfNode<br/>조건 분기"]
-            NPM["MergeNode<br/>병렬 합병"]
-        end
-
-        subgraph "중앙 캔버스 (flex-1)"
-            RF["ReactFlow 컴포넌트"]
-            CN["CustomNode.tsx<br/>노드 렌더러"]
-            CE["CustomEdge.tsx<br/>엣지 렌더러"]
-            MN["MiniMap<br/>미니맵"]
-            CT["Controls<br/>줌/핏"]
-            BG["Background<br/>격자무늬"]
-        end
-
-        subgraph "우측 패널 (w-80)"
-            PP["PropertyPanel.tsx"]
-            NI["NodeInspector<br/>선택된 노드 정보"]
-            PF["ParamEditor<br/>동적 파라미터 폼"]
-            VL["ValidationLog<br/>실시간 검증"]
-        end
-
-        subgraph "상단 툴바"
-            TB["Toolbar.tsx"]
-            SA["Save/Load 버튼"]
-            EX["Execute 버튼"]
-            VA["Validate 버튼"]
-            UN["Undo/Redo"]
-        end
-
-        subgraph "하단 모니터"
-            EM["ExecutionMonitor.tsx"]
-            PR["ProgressBar<br/>전체 진행률"]
-            NL["NodeLog<br/>노드별 상태"]
-            WS["WebSocket 연결<br/>실시간 업데이트"]
-        end
+                <Mermaid chart={`flowchart LR
+    subgraph Left["좌측 사이드바"]
+        NP[노드 팔레트]
+        API[API 노드 x10]
+        CTL[제어 노드 x3]
     end
 
-    WBP --> NP
-    WBP --> RF
-    WBP --> PP
-    WBP --> TB
-    WBP --> EM
+    subgraph Center["중앙 캔버스"]
+        RF[ReactFlow]
+        CN[커스텀 노드]
+        MM[미니맵]
+    end
 
-    NP --> NPG1
-    NP --> NPG2
-    NPG1 --> NPY
-    NPG1 --> NPE
-    NPG2 --> NPI
-    NPG2 --> NPM
+    subgraph Right["우측 패널"]
+        PP[속성 패널]
+        PE[파라미터 편집]
+    end
 
-    RF --> CN
-    RF --> CE
-    RF --> MN
-    RF --> CT
-    RF --> BG
+    subgraph Top["상단 툴바"]
+        TB[저장/실행/검증]
+    end
 
-    PP --> NI
-    PP --> PF
-    PP --> VL
+    subgraph Bottom["하단"]
+        EM[실행 모니터]
+    end
 
-    TB --> SA
-    TB --> EX
-    TB --> VA
-    TB --> UN
+    NP --> RF
+    RF --> PP
+    TB --> RF
+    RF --> EM
 
-    EM --> PR
-    EM --> NL
-    EM --> WS
-
-    style RF stroke:#1976d2,stroke-width:3px
-    style WBP stroke:#7b1fa2,stroke-width:2px
-    style CN stroke:#388e3c,stroke-width:2px
-    style EM stroke:#f57c00,stroke-width:2px`} />
+    style Center fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Left fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style Right fill:#e8f5e9,stroke:#388e3c,stroke-width:2px`} />
               </ImageZoom>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 💡 ReactFlow: 드래그 앤 드롭, 줌/팬, 연결 자동 생성 기능 제공
@@ -808,34 +857,24 @@ graph TB
               <ImageZoom>
                 <Mermaid chart={`sequenceDiagram
     participant U as 사용자
-    participant WB as Workflow Builder
-    participant GW as Gateway API
+    participant WB as Builder
     participant PE as Pipeline Engine
-    participant YE as YOLO Executor
-    participant OE as OCR Executor
+    participant API as APIs
 
-    U->>WB: 1. 노드 배치 (드래그 앤 드롭)
-    U->>WB: 2. 노드 연결 (화살표)
-    U->>WB: 3. 파라미터 설정
+    U->>WB: 노드 배치 & 연결
+    U->>WB: 실행 클릭
+    WB->>PE: workflow JSON
 
-    U->>WB: 4. "실행" 클릭
-    WB->>GW: 5. POST /api/v1/workflow/execute
-    Note over WB,GW: workflow_definition JSON
+    PE->>PE: DAG 검증
+    PE->>PE: 실행 순서 계산
 
-    GW->>PE: 6. 워크플로우 실행 시작
-    PE->>PE: 7. DAG 검증 (순환 참조, 고아 노드)
-    PE->>PE: 8. Topological Sort (실행 순서)
+    loop 각 노드
+        PE->>API: 노드 실행
+        API-->>PE: 결과 반환
+    end
 
-    PE->>YE: 9. YOLO 노드 실행
-    YE-->>PE: 10. {detections: [...]}
-
-    PE->>PE: 11. 조건 평가 (IF 노드)
-    PE->>OE: 12. OCR 노드 실행
-    OE-->>PE: 13. {dimensions: [...]}
-
-    PE-->>GW: 14. 실행 완료
-    GW-->>WB: 15. 결과 반환
-    WB-->>U: 16. 시각화 표시`} />
+    PE-->>WB: 완료
+    WB-->>U: 결과 시각화`} />
               </ImageZoom>
             </div>
 
@@ -848,126 +887,117 @@ graph TB
                 {t('guide.conditionalBranchDesc')}
               </p>
               <ImageZoom>
-                <Mermaid chart={`sequenceDiagram
-    participant PE as Pipeline Engine
-    participant Y as YOLO Executor
-    participant I as IF Executor
-    participant E as eDOCr2 Executor
-    participant P as PaddleOCR Executor
+                <Mermaid chart={`flowchart LR
+    A[YOLO] --> B{IF 노드}
+    B -->|detections > 0| C[eDOCr2]
+    B -->|else| D[PaddleOCR]
+    C --> E[결과]
+    D --> E
 
-    PE->>Y: YOLO 실행
-    Y-->>PE: {total_detections: 15}
-
-    PE->>I: IF 노드 실행
-    I->>I: 조건 평가<br/>detections > 0 ?
-    Note over I: TRUE
-    I-->>PE: next_branch: "edocr2"
-
-    PE->>E: eDOCr2 실행
-    Note over P: PaddleOCR 스킵됨
-    E-->>PE: {dimensions: [...]}
-
-    PE-->>PE: 실행 완료`} />
+    style B fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
+    style C fill:#d1fae5,stroke:#10b981,stroke-width:2px
+    style D fill:#e5e7eb,stroke:#6b7280,stroke-width:2px`} />
               </ImageZoom>
             </div>
 
-            {/* 구현 로드맵 */}
-            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
-              <h3 className="font-semibold mb-3 text-cyan-900 dark:text-cyan-100">
-                {t('guide.implementationRoadmap')}
+            {/* 구현 현황 (완료됨) */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h3 className="font-semibold mb-3 text-green-900 dark:text-green-100">
+                구현 현황 (Phase 1-4 완료)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-cyan-500">
-                  <div className="font-medium text-cyan-900 dark:text-cyan-100">
-                    Phase 1: 기반 구조 (1주)
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-green-500">
+                  <div className="font-medium text-green-900 dark:text-green-100 flex items-center">
+                    ✅ Phase 1: 기반 구조
                   </div>
                   <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
-                    <li>• Pipeline Engine 기본 구조</li>
-                    <li>• DAG 빌더 & 검증기</li>
-                    <li>• ReactFlow 통합</li>
-                    <li>• 기본 Canvas 컴포넌트</li>
-                  </ul>
-                </div>
-
-                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-blue-500">
-                  <div className="font-medium text-blue-900 dark:text-blue-100">
-                    Phase 2: 노드 구현 (1.5주)
-                  </div>
-                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
-                    <li>• 8개 API Executor 구현</li>
-                    <li>• IF/Merge/Loop 제어 노드</li>
-                    <li>• 노드 UI 컴포넌트 (8개)</li>
-                  </ul>
-                </div>
-
-                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-purple-500">
-                  <div className="font-medium text-purple-900 dark:text-purple-100">
-                    Phase 3: 데이터 흐름 (1주)
-                  </div>
-                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
-                    <li>• 데이터 매핑 엔진</li>
-                    <li>• Topological Sort & 병렬화</li>
-                    <li>• 실행 모니터링 (SSE)</li>
+                    <li>✓ ReactFlow 캔버스 구축</li>
+                    <li>✓ 노드 팔레트 (13종)</li>
+                    <li>✓ 드래그 앤 드롭</li>
                   </ul>
                 </div>
 
                 <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-green-500">
-                  <div className="font-medium text-green-900 dark:text-green-100">
-                    Phase 4: 워크플로우 관리 (0.5주)
+                  <div className="font-medium text-green-900 dark:text-green-100 flex items-center">
+                    ✅ Phase 2: 노드 구현
                   </div>
                   <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
-                    <li>• PostgreSQL 스키마</li>
-                    <li>• 저장/로드 API</li>
-                    <li>• 버전 관리 UI</li>
+                    <li>✓ 11개 API Executor</li>
+                    <li>✓ IF/Merge/Loop 제어 노드</li>
+                    <li>✓ TextInput (VL 연동)</li>
                   </ul>
                 </div>
 
-                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-orange-500 md:col-span-2">
-                  <div className="font-medium text-orange-900 dark:text-orange-100">
-                    Phase 5: 테스트 및 최적화 (1주)
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-green-500">
+                  <div className="font-medium text-green-900 dark:text-green-100 flex items-center">
+                    ✅ Phase 3: 노드 메타데이터
                   </div>
                   <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
-                    <li>• 단위/통합 테스트 (90% 커버리지)</li>
-                    <li>• 성능 최적화 (오버헤드 5% 이내)</li>
-                    <li>• 메모리 누수 제거</li>
+                    <li>✓ 상세 패널 (파라미터 편집)</li>
+                    <li>✓ 한국어/영어 번역</li>
+                    <li>✓ 노드별 아이콘/색상</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-green-500">
+                  <div className="font-medium text-green-900 dark:text-green-100 flex items-center">
+                    ✅ Phase 4: 백엔드 엔진
+                  </div>
+                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>✓ Pipeline Engine (DAG 실행)</li>
+                    <li>✓ 병렬 실행 (60% 속도 향상)</li>
+                    <li>✓ 실시간 진행 상황</li>
+                  </ul>
+                </div>
+
+                <div className="p-3 bg-white dark:bg-gray-900 rounded border-l-4 border-amber-500 md:col-span-2">
+                  <div className="font-medium text-amber-900 dark:text-amber-100 flex items-center">
+                    🔄 Phase 5: VL + TextInput 통합 (진행 중)
+                  </div>
+                  <ul className="text-xs mt-1 space-y-1 text-gray-700 dark:text-gray-300">
+                    <li>• VL API prompt 파라미터 연동</li>
+                    <li>• 멀티 입력 노드 지원</li>
                   </ul>
                 </div>
               </div>
             </div>
 
-            {/* 코드 변경 규모 */}
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2 flex items-center">
-                <span className="mr-2">{t('guide.implementationComplexity')}</span>
+            {/* 구현 규모 */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center">
+                구현 규모
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <div className="font-medium text-yellow-900 dark:text-yellow-100 mb-1">
-                    Frontend 변경
+                  <div className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                    Frontend
                   </div>
-                  <ul className="text-xs space-y-1 text-yellow-800 dark:text-yellow-200">
-                    <li>• 신규 파일: 10-15개</li>
-                    <li>• 추가 코드: ~4,000줄</li>
-                    <li>• 의존성: ReactFlow, Zustand</li>
+                  <ul className="text-xs space-y-1 text-blue-800 dark:text-blue-200">
+                    <li>• 컴포넌트: 20+ 파일</li>
+                    <li>• 코드: ~3,500줄</li>
+                    <li>• ReactFlow + Zustand</li>
                   </ul>
                 </div>
                 <div>
-                  <div className="font-medium text-yellow-900 dark:text-yellow-100 mb-1">
-                    Backend 변경
+                  <div className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                    Backend (Executors)
                   </div>
-                  <ul className="text-xs space-y-1 text-yellow-800 dark:text-yellow-200">
-                    <li>• 신규 파일: 8-10개</li>
-                    <li>• 추가 코드: ~3,500줄</li>
-                    <li>• 데이터베이스: PostgreSQL</li>
+                  <ul className="text-xs space-y-1 text-blue-800 dark:text-blue-200">
+                    <li>• Executor: 11개</li>
+                    <li>• 코드: ~2,500줄</li>
+                    <li>• Pipeline Engine</li>
                   </ul>
                 </div>
-              </div>
-              <div className="mt-3 p-2 bg-yellow-100 dark:bg-yellow-900 rounded">
-                <p className="text-xs text-yellow-900 dark:text-yellow-100">
-                  <strong>총 개발 공수:</strong> 약 34일 (5주) |
-                  <strong> 추가 코드:</strong> 7,500줄 |
-                  <strong> ROI:</strong> 하이브리드 대비 절반
-                </p>
+                <div>
+                  <div className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                    API 통합
+                  </div>
+                  <ul className="text-xs space-y-1 text-blue-800 dark:text-blue-200">
+                    <li>• 핵심: 6개 API</li>
+                    <li>• 확장: 5개 API</li>
+                    <li>• 지식 엔진: 1개</li>
+                  </ul>
+                </div>
               </div>
             </div>
 

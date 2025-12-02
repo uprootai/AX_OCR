@@ -33,12 +33,16 @@ class TrocrExecutor(BaseNodeExecutor):
             file_bytes = prepare_image_for_api(inputs, context)
 
             # 파라미터 준비
-            model_type = self.parameters.get("model_type", "printed")
+            max_length = self.parameters.get("max_length", 64)
+            num_beams = self.parameters.get("num_beams", 4)
 
             # API 호출
             async with httpx.AsyncClient(timeout=120.0) as client:
                 files = {"file": ("image.jpg", file_bytes, "image/jpeg")}
-                data = {"model_type": model_type}
+                data = {
+                    "max_length": str(max_length),
+                    "num_beams": str(num_beams),
+                }
                 response = await client.post(
                     f"{self.api_url}/api/v1/ocr",
                     files=files,
@@ -64,10 +68,14 @@ class TrocrExecutor(BaseNodeExecutor):
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
-        valid_types = ["printed", "handwritten"]
-        model_type = self.parameters.get("model_type", "printed")
-        if model_type not in valid_types:
-            return False, f"지원하지 않는 모델 타입: {model_type}. 지원: {valid_types}"
+        max_length = self.parameters.get("max_length", 64)
+        if not 16 <= max_length <= 256:
+            return False, f"max_length는 16~256 범위여야 함: {max_length}"
+
+        num_beams = self.parameters.get("num_beams", 4)
+        if not 1 <= num_beams <= 10:
+            return False, f"num_beams는 1~10 범위여야 함: {num_beams}"
+
         return True, None
 
     def get_input_schema(self) -> Dict[str, Any]:

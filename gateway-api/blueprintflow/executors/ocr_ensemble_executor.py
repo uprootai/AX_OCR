@@ -32,32 +32,28 @@ class OcrEnsembleExecutor(BaseNodeExecutor):
             # 이미지 준비
             file_bytes = prepare_image_for_api(inputs, context)
 
-            # 파라미터 준비
-            engines = self.parameters.get("engines", ["edocr2", "paddleocr", "tesseract", "trocr"])
-            weights = self.parameters.get("weights", {
-                "edocr2": 0.4,
-                "paddleocr": 0.35,
-                "tesseract": 0.15,
-                "trocr": 0.10
-            })
-            voting_method = self.parameters.get("voting_method", "weighted")
-            confidence_threshold = self.parameters.get("confidence_threshold", 0.5)
+            # 파라미터 준비 (개별 가중치 파라미터)
+            edocr2_weight = self.parameters.get("edocr2_weight", 0.40)
+            paddleocr_weight = self.parameters.get("paddleocr_weight", 0.35)
+            tesseract_weight = self.parameters.get("tesseract_weight", 0.15)
+            trocr_weight = self.parameters.get("trocr_weight", 0.10)
+            similarity_threshold = self.parameters.get("similarity_threshold", 0.7)
+            engines = self.parameters.get("engines", "all")
 
-            # API 호출
+            # API 호출 - 올바른 엔드포인트: /api/v1/ocr
             async with httpx.AsyncClient(timeout=180.0) as client:
                 files = {"file": ("image.jpg", file_bytes, "image/jpeg")}
                 data = {
-                    "engines": ",".join(engines) if isinstance(engines, list) else engines,
-                    "voting_method": voting_method,
-                    "confidence_threshold": str(confidence_threshold),
+                    "edocr2_weight": str(edocr2_weight),
+                    "paddleocr_weight": str(paddleocr_weight),
+                    "tesseract_weight": str(tesseract_weight),
+                    "trocr_weight": str(trocr_weight),
+                    "similarity_threshold": str(similarity_threshold),
+                    "engines": engines if isinstance(engines, str) else ",".join(engines),
                 }
-                # weights를 JSON으로 전달
-                if weights:
-                    import json
-                    data["weights"] = json.dumps(weights)
 
                 response = await client.post(
-                    f"{self.api_url}/api/v1/ocr/ensemble",
+                    f"{self.api_url}/api/v1/ocr",
                     files=files,
                     data=data
                 )
@@ -66,14 +62,15 @@ class OcrEnsembleExecutor(BaseNodeExecutor):
                 raise Exception(f"OCR Ensemble API 에러: {response.status_code} - {response.text}")
 
             result = response.json()
-            self.logger.info(f"OCR Ensemble 완료: {len(result.get('texts', []))}개 텍스트 검출")
+            self.logger.info(f"OCR Ensemble 완료: {len(result.get('results', []))}개 텍스트 검출")
 
             return {
-                "texts": result.get("texts", []),
+                "results": result.get("results", []),
+                "texts": result.get("results", []),  # 호환성
                 "full_text": result.get("full_text", ""),
-                "confidence_scores": result.get("confidence_scores", {}),
                 "engine_results": result.get("engine_results", {}),
-                "voting_method": voting_method,
+                "engine_status": result.get("engine_status", {}),
+                "weights_used": result.get("weights_used", {}),
                 "processing_time": result.get("processing_time_ms", 0),
                 "raw_response": result,
             }
@@ -84,18 +81,16 @@ class OcrEnsembleExecutor(BaseNodeExecutor):
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
-        valid_engines = ["edocr2", "paddleocr", "tesseract", "trocr"]
-        engines = self.parameters.get("engines", valid_engines)
+        # 가중치 범위 검증
+        for weight_name in ["edocr2_weight", "paddleocr_weight", "tesseract_weight", "trocr_weight"]:
+            weight = self.parameters.get(weight_name, 0.25)
+            if not 0 <= weight <= 1:
+                return False, f"{weight_name}는 0~1 범위여야 함: {weight}"
 
-        if isinstance(engines, list):
-            for engine in engines:
-                if engine not in valid_engines:
-                    return False, f"지원하지 않는 OCR 엔진: {engine}. 지원: {valid_engines}"
-
-        valid_voting = ["weighted", "majority", "confidence"]
-        voting_method = self.parameters.get("voting_method", "weighted")
-        if voting_method not in valid_voting:
-            return False, f"지원하지 않는 투표 방식: {voting_method}. 지원: {valid_voting}"
+        # 유사도 임계값 검증
+        similarity = self.parameters.get("similarity_threshold", 0.7)
+        if not 0.5 <= similarity <= 1:
+            return False, f"similarity_threshold는 0.5~1 범위여야 함: {similarity}"
 
         return True, None
 

@@ -177,19 +177,26 @@ class KnowledgeExecutor(BaseNodeExecutor):
         material_filter: str
     ) -> List[Dict[str, Any]]:
         """
-        유사 부품 검색 API 호출
+        유사 부품 검색 API 호출 - hybrid search 엔드포인트 사용
         """
-        endpoint = f"{self.api_url}/api/v1/similar-parts"
+        endpoint = f"{self.api_url}/api/v1/hybrid/search"
+
+        # search_mode에 따라 GraphRAG/VectorRAG 활성화 결정
+        use_graphrag = search_mode in ["graph", "hybrid"]
+        use_vectorrag = search_mode in ["vector", "hybrid"]
 
         payload = {
             "query": query,
-            "mode": search_mode,
             "top_k": top_k,
-            "graph_weight": graph_weight
+            "graph_weight": graph_weight,
+            "vector_weight": 1.0 - graph_weight,
+            "use_graphrag": use_graphrag,
+            "use_vectorrag": use_vectorrag,
+            "similarity_threshold": 0.7,
         }
 
         if material_filter != "all":
-            payload["material_filter"] = material_filter
+            payload["material"] = material_filter
 
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -197,9 +204,9 @@ class KnowledgeExecutor(BaseNodeExecutor):
 
                 if response.status_code == 200:
                     data = response.json()
-                    return data.get("similar_parts", [])
+                    return data.get("results", [])
                 else:
-                    self.logger.warning(f"유사 부품 검색 실패: {response.status_code}")
+                    self.logger.warning(f"유사 부품 검색 실패: {response.status_code} - {response.text}")
                     return self._get_mock_similar_parts()
         except Exception as e:
             self.logger.error(f"유사 부품 검색 오류: {e}")

@@ -34,18 +34,18 @@ class EsrganExecutor(BaseNodeExecutor):
 
             # 파라미터 준비
             scale = self.parameters.get("scale", 4)
-            model = self.parameters.get("model", "realesrgan-x4plus")
             denoise_strength = self.parameters.get("denoise_strength", 0.5)
-            face_enhance = self.parameters.get("face_enhance", False)
+            tile_size = self.parameters.get("tile_size", 0)
+            output_format = self.parameters.get("output_format", "png")
 
             # API 호출
             async with httpx.AsyncClient(timeout=180.0) as client:
                 files = {"file": ("image.jpg", file_bytes, "image/jpeg")}
                 data = {
                     "scale": str(scale),
-                    "model": model,
                     "denoise_strength": str(denoise_strength),
-                    "face_enhance": str(face_enhance).lower(),
+                    "tile_size": str(tile_size),
+                    "output_format": output_format,
                 }
                 response = await client.post(
                     f"{self.api_url}/api/v1/upscale",
@@ -62,20 +62,25 @@ class EsrganExecutor(BaseNodeExecutor):
             if "image" in content_type:
                 # 업스케일된 이미지 바이트 반환
                 self.logger.info(f"ESRGAN 완료: 이미지 업스케일 성공")
+                # 헤더에서 메타정보 추출
+                processing_time = response.headers.get("X-Processing-Time-Ms", "0")
+                method = response.headers.get("X-Method", "Real-ESRGAN")
                 return {
+                    "image": response.content,  # BlueprintFlow 출력 형식에 맞춤
                     "upscaled_image": response.content,
                     "scale": scale,
-                    "model": model,
+                    "method": method,
                     "content_type": content_type,
+                    "processing_time": float(processing_time),
                 }
             else:
                 # JSON 응답인 경우
                 result = response.json()
                 self.logger.info(f"ESRGAN 완료: {result.get('message', 'success')}")
                 return {
+                    "image": result.get("image_base64"),
                     "upscaled_image": result.get("image_base64"),
                     "scale": scale,
-                    "model": model,
                     "processing_time": result.get("processing_time_ms", 0),
                     "raw_response": result,
                 }
@@ -88,13 +93,14 @@ class EsrganExecutor(BaseNodeExecutor):
         """파라미터 유효성 검사"""
         valid_scales = [2, 4]
         scale = self.parameters.get("scale", 4)
+        if isinstance(scale, str):
+            scale = int(scale)
         if scale not in valid_scales:
             return False, f"지원하지 않는 스케일: {scale}. 지원: {valid_scales}"
 
-        valid_models = ["realesrgan-x4plus", "realesrgan-x4plus-anime", "realesrnet-x4plus"]
-        model = self.parameters.get("model", "realesrgan-x4plus")
-        if model not in valid_models:
-            return False, f"지원하지 않는 모델: {model}. 지원: {valid_models}"
+        denoise_strength = self.parameters.get("denoise_strength", 0.5)
+        if not 0 <= denoise_strength <= 1:
+            return False, f"denoise_strength는 0~1 범위여야 함: {denoise_strength}"
 
         return True, None
 

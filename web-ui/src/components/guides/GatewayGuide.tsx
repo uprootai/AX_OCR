@@ -10,27 +10,61 @@ export default function GatewayGuide() {
 
   const systemDiagram = `
 flowchart LR
-    A[Web UI / Client] --> B[Gateway API<br/>포트 8000]
+    A[Web UI] --> B[Gateway :8000]
     B --> C{오케스트레이터}
-    C --> D[eDOCr v1/v2<br/>5001/5002]
-    C --> E[EDGNet<br/>5002]
-    C --> F[Skin Model<br/>5003]
-    C --> G[YOLO<br/>5005]
-    C -.-> V[VLM<br/>GPT-4V/Claude Vision<br/>추후 확장]
-    D --> H[병렬 처리]
-    E --> H
-    F --> H
-    G --> H
-    V -.-> H
-    H --> I[결과 통합]
-    I --> J[견적서 생성]
-    J --> K[PDF 다운로드]
 
-    style B fill:#1e40af,stroke:#60a5fa,stroke-width:3px,color:#fff
-    style C fill:#ea580c,stroke:#fb923c,stroke-width:3px,color:#fff
-    style V fill:#be185d,stroke:#f9a8d4,stroke-width:3px,color:#fff,stroke-dasharray:5 5
-    style H fill:#065f46,stroke:#34d399,stroke-width:3px,color:#fff
-    style K fill:#7e22ce,stroke:#c084fc,stroke-width:3px,color:#fff
+    subgraph Detection["🎯 Detection"]
+        G[YOLO :5005]
+    end
+
+    subgraph OCR["📝 OCR"]
+        D[eDOCr2 :5002]
+        P[PaddleOCR :5006]
+        EN[Ensemble :5011]
+    end
+
+    subgraph Seg["🎨 Segmentation"]
+        E[EDGNet :5012]
+    end
+
+    subgraph Analysis["📊 Analysis"]
+        F[SkinModel :5003]
+    end
+
+    subgraph AI["🤖 AI"]
+        V[VL :5004]
+    end
+
+    subgraph Know["🧠 Knowledge"]
+        KN[Knowledge :5007]
+    end
+
+    C --> Detection
+    C --> OCR
+    C --> Seg
+    C --> Analysis
+    C --> AI
+    C --> Know
+
+    Detection --> H[병렬 처리]
+    OCR --> H
+    Seg --> H
+    Analysis --> H
+    AI --> H
+    Know --> H
+
+    H --> I[결과 통합]
+    I --> J[PDF 다운로드]
+
+    style B fill:#1e40af,stroke:#60a5fa,stroke-width:2px,color:#fff
+    style C fill:#ea580c,stroke:#fb923c,stroke-width:2px,color:#fff
+    style Detection fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style OCR fill:#dcfce7,stroke:#22c55e,stroke-width:2px
+    style Seg fill:#fae8ff,stroke:#d946ef,stroke-width:2px
+    style Analysis fill:#ffe4e6,stroke:#f43f5e,stroke-width:2px
+    style AI fill:#e0e7ff,stroke:#6366f1,stroke-width:2px
+    style Know fill:#f3e8ff,stroke:#a855f7,stroke-width:2px
+    style H fill:#065f46,stroke:#34d399,stroke-width:2px,color:#fff
   `;
 
   // 제안 1: 하이브리드 파이프라인 (정확도 + 속도 균형)
@@ -342,7 +376,7 @@ sequenceDiagram
               <div className="bg-card p-4 rounded-lg border">
                 <h4 className="font-semibold mb-2">🔗 API 오케스트레이션</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• 5개 API 통합 관리</li>
+                  <li>• 12개 API 통합 관리</li>
                   <li>• 병렬 처리로 속도 최적화</li>
                   <li>• 자동 에러 핸들링</li>
                   <li>• 결과 데이터 검증</li>
@@ -507,11 +541,11 @@ sequenceDiagram
 
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 p-4 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                  5개
+                  12개
                 </div>
                 <div className="text-sm text-muted-foreground">
                   통합 API 서비스<br/>
-                  (마이크로서비스)
+                  (핵심 6 + 확장 5 + 지식 1)
                 </div>
               </div>
             </div>
