@@ -1,0 +1,113 @@
+# PaddleOCR API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: paddleocr
+  name: PaddleOCR
+  version: 1.0.0
+  port: 5006
+  description: PaddlePaddle 기반 도면 텍스트 인식
+  author: AX Team
+  tags:
+    - ocr
+    - text-recognition
+    - paddle
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#10b981"
+  icon: Type
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 분석할 도면 이미지
+
+outputs:
+  - name: detections
+    type: TextBlock[]
+    description: 검출된 텍스트 목록
+  - name: total_texts
+    type: number
+    description: 총 검출된 텍스트 수
+  - name: visualized_image
+    type: Image
+    description: OCR 결과 시각화 이미지
+
+parameters:
+  - name: lang
+    type: select
+    default: en
+    options:
+      - en
+      - korean
+      - ch
+      - japan
+    description: 인식 언어
+
+  - name: det_db_thresh
+    type: number
+    default: 0.3
+    min: 0.0
+    max: 1.0
+    step: 0.05
+    description: 텍스트 검출 임계값
+
+  - name: det_db_box_thresh
+    type: number
+    default: 0.5
+    min: 0.0
+    max: 1.0
+    step: 0.05
+    description: 박스 임계값
+
+  - name: use_angle_cls
+    type: boolean
+    default: true
+    description: 회전된 텍스트 감지 사용
+
+  - name: min_confidence
+    type: number
+    default: 0.5
+    min: 0.0
+    max: 1.0
+    step: 0.05
+    description: 최소 신뢰도 필터
+
+  - name: visualize
+    type: boolean
+    default: false
+    description: 결과 시각화 이미지 생성
+
+mappings:
+  output:
+    detections: detections
+    total_texts: total_texts
+    visualized_image: visualized_image
+    processing_time: processing_time
+
+i18n:
+  ko:
+    label: PaddleOCR
+    description: PaddlePaddle 기반 범용 텍스트 인식
+  en:
+    label: PaddleOCR
+    description: PaddlePaddle-based general text recognition
+
+examples:
+  - 도면에서 텍스트 추출
+  - 라벨 및 주석 인식
+
+usageTips:
+  - 한글 인식에 최적화되어 있습니다
+  - det_db_thresh를 낮추면 더 많은 텍스트를 검출합니다

@@ -22,7 +22,9 @@ async def call_yolo_detect(
     conf_threshold: float = 0.25,
     iou_threshold: float = 0.7,
     imgsz: int = 1280,
-    visualize: bool = True
+    visualize: bool = True,
+    model_type: str = "symbol-detector-v1",
+    task: str = "detect"
 ) -> Dict[str, Any]:
     """
     YOLO API 호출
@@ -34,6 +36,8 @@ async def call_yolo_detect(
         iou_threshold: IoU 임계값 (기본 0.7)
         imgsz: 이미지 크기 (기본 1280)
         visualize: 시각화 생성 여부 (기본 True)
+        model_type: 모델 타입 (기본 symbol-detector-v1)
+        task: 작업 종류 (detect/segment, 기본 detect)
 
     Returns:
         YOLO 검출 결과 dict
@@ -44,7 +48,8 @@ async def call_yolo_detect(
         logger.info(
             f"Calling YOLO API for {filename} "
             f"(content-type: {content_type}, conf={conf_threshold}, "
-            f"iou={iou_threshold}, imgsz={imgsz}, visualize={visualize})"
+            f"iou={iou_threshold}, imgsz={imgsz}, visualize={visualize}, "
+            f"model_type={model_type}, task={task})"
         )
 
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -53,7 +58,9 @@ async def call_yolo_detect(
                 "conf_threshold": conf_threshold,
                 "iou_threshold": iou_threshold,
                 "imgsz": imgsz,
-                "visualize": visualize
+                "visualize": visualize,
+                "model_type": model_type,
+                "task": task
             }
 
             response = await client.post(

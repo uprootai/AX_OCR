@@ -1,6 +1,6 @@
 # 🐛 Known Issues & Problem Tracker
 
-**Last Updated**: 2025-11-20
+**Last Updated**: 2025-12-03
 **Purpose**: Track all reported issues, their status, and resolutions
 
 ---
@@ -13,7 +13,7 @@
 | 🟠 High | 0 |
 | 🟡 Medium | 3 |
 | 🟢 Low | 0 |
-| ✅ Resolved | 5 |
+| ✅ Resolved | 6 |
 
 ---
 
@@ -31,70 +31,30 @@ None currently! 🎉
 
 ## 🟡 Medium Priority Issues
 
-### Issue #M002: FileDropzone/FilePreview 불완전 구현 (기술 부채)
+None currently! 🎉
 
-**Status**: 🟡 **OPEN**
+---
+
+## ✅ Resolved Issues (Recent)
+
+### Issue #R006: FileDropzone/FilePreview 미사용 (오진)
+
+**Status**: ✅ **RESOLVED**
 **Severity**: Medium (기술 부채)
 **Component**: Web UI (components/upload/)
 **Discovered**: 2025-11-19
-**Reported By**: Code review
+**Resolved**: 2025-12-03
 
-**문제**:
-커밋 983ab00에서 생성된 FileDropzone, FilePreview 컴포넌트가 불완전하게 구현되어 사용되지 않고 있음
+**원래 문제**: FileDropzone, FilePreview가 미사용으로 보고됨
 
-**증상**:
+**실제 상태** (2025-12-03 재조사):
 ```typescript
-// 파일은 존재하지만 사용되지 않음
-web-ui/src/components/upload/FileDropzone.tsx  ✅ 존재 ❌ 미사용
-web-ui/src/components/upload/FilePreview.tsx   ✅ 존재 ❌ 미사용
+// 실제로 사용 중인 파일들
+web-ui/src/components/upload/FileUploadSection.tsx  → FileDropzone 사용
+web-ui/src/store/analysisStore.ts                   → FilePreview 참조
 ```
 
-**누락된 기능**:
-1. ❌ FileDropzone에 샘플 파일 선택 UI 없음
-2. ❌ Gateway API `/api/v1/sample-image/{filename}` 연동 안 됨
-3. ❌ 샘플 파일 목록 API 없음
-4. ❌ FileUploader와 기능 동등성 없음
-
-**기술 부채 영향**:
-- 사용되지 않는 코드가 코드베이스에 존재
-- 향후 혼란 가능성 (왜 있는데 안 쓰나?)
-- 유지보수 부담 (업데이트 시 같이 수정해야 하나?)
-
-**해결 방안**:
-
-**옵션 1: 삭제** (빠른 해결)
-```bash
-rm web-ui/src/components/upload/FileDropzone.tsx
-rm web-ui/src/components/upload/FilePreview.tsx
-rmdir web-ui/src/components/upload
-```
-**장점**: 깔끔, 기술 부채 제거
-**단점**: 나중에 필요하면 다시 만들어야 함
-
-**옵션 2: 완성** (장기적 해결)
-1. [ ] Gateway API 샘플 목록 엔드포인트 추가
-2. [ ] FileDropzone에 샘플 선택 UI 구현
-3. [ ] FilePreview 통합 테스트
-4. [ ] FileUploader와 기능 동등성 확보
-5. [ ] 모든 테스트 페이지 마이그레이션
-
-**장점**: 동적 샘플 관리, 확장성
-**단점**: 개발 시간 필요 (~4시간)
-
-**Related**:
-- FileDropzone: web-ui/src/components/upload/FileDropzone.tsx
-- FilePreview: web-ui/src/components/upload/FilePreview.tsx
-- Gateway API: gateway-api/api_server.py (샘플 엔드포인트 있음)
-- Issue #R003: 이 문제로 인해 발생한 회귀
-
-**Notes**:
-- 현재 FileUploader가 모든 기능을 제공하므로 긴급하지 않음
-- 하지만 기술 부채로 남아있어 해결 필요
-
-**Decision (2025-11-20)**:
-- ✅ User decided to keep and complete (not delete)
-- Will proceed with Option 2: 완성 (completion)
-- Tracked in ROADMAP.md Phase 3
+**Resolution**: 재조사 결과 두 컴포넌트 모두 실제로 사용 중. 삭제 불필요.
 
 ---
 

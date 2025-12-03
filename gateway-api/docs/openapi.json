@@ -1,0 +1,2237 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gateway API",
+    "description": "Integrated Orchestration Service for Engineering Drawing Processing",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "루트 엔드포인트",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "헬스체크",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sample-image": {
+      "get": {
+        "summary": "Get Sample Image",
+        "description": "샘플 이미지 파일 제공",
+        "operationId": "get_sample_image_api_v1_sample_image_get",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/progress/{job_id}": {
+      "get": {
+        "summary": "Get Progress Stream",
+        "description": "Server-Sent Events endpoint for real-time progress updates",
+        "operationId": "get_progress_stream_api_v1_progress__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/process": {
+      "post": {
+        "summary": "Process Drawing",
+        "description": "전체 파이프라인 처리\n\n- **file**: 도면 파일 (PDF 또는 이미지)\n- **pipeline_mode**: 파이프라인 모드\n  - **hybrid**: 하이브리드 (정확도 ~95%, 10-15초) - YOLO → Upscale → eDOCr + EDGNet 병렬\n  - **speed**: 속도 우선 (정확도 ~93%, 8-10초) - YOLO + eDOCr + EDGNet 3-way 병렬\n- **use_segmentation**: EDGNet 세그멘테이션 사용\n- **use_ocr**: eDOCr2 OCR 사용\n- **use_tolerance**: Skin Model 공차 예측 사용\n- **visualize**: 시각화 생성",
+        "operationId": "process_drawing_api_v1_process_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_process_drawing_api_v1_process_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quote": {
+      "post": {
+        "summary": "Generate Quote",
+        "description": "견적서 생성 (전체 파이프라인 + 견적 계산)\n\n- **file**: 도면 파일\n- **material_cost_per_kg**: 재료 단가 (USD/kg)\n- **machining_rate_per_hour**: 가공 시간당 비용 (USD/hour)\n- **tolerance_premium_factor**: 공차 정밀도 비용 계수",
+        "operationId": "generate_quote_api_v1_quote_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_generate_quote_api_v1_quote_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/process_with_vl": {
+      "post": {
+        "summary": "Process With Vl",
+        "description": "VL 모델 기반 통합 처리 (eDOCr 대체)\n\n- Information Block 추출\n- 치수 추출 (VL 모델)\n- 제조 공정 추론\n- 비용 산정\n- QC Checklist 생성\n- 견적서 PDF 생성",
+        "operationId": "process_with_vl_api_v1_process_with_vl_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_process_with_vl_api_v1_process_with_vl_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/download/{file_id}/{file_type}": {
+      "get": {
+        "summary": "Download Result File",
+        "description": "결과 파일 다운로드\n\nArgs:\n    file_id: 파일 ID\n    file_type: 파일 타입 (original, yolo_visualization, result_json)",
+        "operationId": "download_result_file_api_v1_download__file_id___file_type__get",
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Id"
+            }
+          },
+          {
+            "name": "file_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/download_quote/{quote_number}": {
+      "get": {
+        "summary": "Download Quote",
+        "description": "견적서 PDF 다운로드",
+        "operationId": "download_quote_api_v1_download_quote__quote_number__get",
+        "parameters": [
+          {
+            "name": "quote_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Quote Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/execute": {
+      "post": {
+        "summary": "Execute Workflow",
+        "description": "BlueprintFlow 워크플로우 실행 엔드포인트\n\n사용자가 정의한 워크플로우를 동적으로 실행합니다.",
+        "operationId": "execute_workflow_api_v1_workflow_execute_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowExecutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowExecutionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/execute-stream": {
+      "post": {
+        "summary": "Execute Workflow Stream",
+        "description": "BlueprintFlow 워크플로우 실행 엔드포인트 (SSE 스트리밍)\n\n실시간으로 워크플로우 실행 진행상황을 Server-Sent Events로 전송합니다.",
+        "operationId": "execute_workflow_stream_api_v1_workflow_execute_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowExecutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/node-types": {
+      "get": {
+        "summary": "Get Available Node Types",
+        "description": "사용 가능한 노드 타입 목록 조회",
+        "operationId": "get_available_node_types_api_v1_workflow_node_types_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/health": {
+      "get": {
+        "summary": "Workflow Health",
+        "description": "BlueprintFlow 시스템 상태 체크",
+        "operationId": "workflow_health_api_v1_workflow_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-configs": {
+      "get": {
+        "summary": "Get Api Configs",
+        "description": "모든 Custom API 설정 조회",
+        "operationId": "get_api_configs_api_v1_api_configs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Api Config",
+        "description": "새 Custom API 설정 추가",
+        "operationId": "create_api_config_api_v1_api_configs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Config"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-configs/{api_id}": {
+      "get": {
+        "summary": "Get Api Config",
+        "description": "특정 Custom API 설정 조회",
+        "operationId": "get_api_config_api_v1_api_configs__api_id__get",
+        "parameters": [
+          {
+            "name": "api_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Api Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Api Config",
+        "description": "Custom API 설정 업데이트",
+        "operationId": "update_api_config_api_v1_api_configs__api_id__put",
+        "parameters": [
+          {
+            "name": "api_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Api Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Updates"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Api Config",
+        "description": "Custom API 설정 삭제",
+        "operationId": "delete_api_config_api_v1_api_configs__api_id__delete",
+        "parameters": [
+          {
+            "name": "api_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Api Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-configs/{api_id}/toggle": {
+      "post": {
+        "summary": "Toggle Api Config",
+        "description": "Custom API 활성화/비활성화 토글",
+        "operationId": "toggle_api_config_api_v1_api_configs__api_id__toggle_post",
+        "parameters": [
+          {
+            "name": "api_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Api Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/discover": {
+      "get": {
+        "summary": "Discover Apis",
+        "description": "API 자동 검색\n\n네트워크에서 /api/v1/info 엔드포인트를 제공하는 API를 자동으로 검색합니다.\n\nArgs:\n    host: 검색할 호스트 (기본: localhost)\n\nReturns:\n    발견된 API 목록",
+        "operationId": "discover_apis_api_v1_registry_discover_get",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "localhost",
+              "title": "Host"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/list": {
+      "get": {
+        "summary": "List Registered Apis",
+        "description": "등록된 모든 API 목록 조회\n\nReturns:\n    등록된 API 목록 (상태 정보 포함)",
+        "operationId": "list_registered_apis_api_v1_registry_list_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/healthy": {
+      "get": {
+        "summary": "Get Healthy Apis",
+        "description": "Healthy 상태인 API만 조회\n\nReturns:\n    Healthy 상태의 API 목록",
+        "operationId": "get_healthy_apis_api_v1_registry_healthy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/category/{category}": {
+      "get": {
+        "summary": "Get Apis By Category",
+        "description": "카테고리별 API 목록 조회\n\nArgs:\n    category: API 카테고리 (detection, ocr, segmentation, prediction 등)\n\nReturns:\n    해당 카테고리의 API 목록",
+        "operationId": "get_apis_by_category_api_v1_registry_category__category__get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/health-check": {
+      "post": {
+        "summary": "Trigger Health Check",
+        "description": "모든 등록된 API의 헬스체크 즉시 실행\n\nReturns:\n    헬스체크 결과",
+        "operationId": "trigger_health_check_api_v1_registry_health_check_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/{api_id}": {
+      "get": {
+        "summary": "Get Api Info",
+        "description": "특정 API 정보 조회\n\nArgs:\n    api_id: API ID\n\nReturns:\n    API 메타데이터",
+        "operationId": "get_api_info_api_v1_registry__api_id__get",
+        "parameters": [
+          {
+            "name": "api_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Api Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_generate_quote_api_v1_quote_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "도면 파일"
+          },
+          "material_cost_per_kg": {
+            "type": "number",
+            "title": "Material Cost Per Kg",
+            "default": 5.0
+          },
+          "machining_rate_per_hour": {
+            "type": "number",
+            "title": "Machining Rate Per Hour",
+            "default": 50.0
+          },
+          "tolerance_premium_factor": {
+            "type": "number",
+            "title": "Tolerance Premium Factor",
+            "default": 1.2
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_generate_quote_api_v1_quote_post"
+      },
+      "Body_process_drawing_api_v1_process_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "도면 파일"
+          },
+          "pipeline_mode": {
+            "type": "string",
+            "title": "Pipeline Mode",
+            "description": "파이프라인 모드: hybrid (정확도 우선) 또는 speed (속도 우선)",
+            "default": "speed"
+          },
+          "use_segmentation": {
+            "type": "boolean",
+            "title": "Use Segmentation",
+            "default": true
+          },
+          "use_ocr": {
+            "type": "boolean",
+            "title": "Use Ocr",
+            "default": true
+          },
+          "use_tolerance": {
+            "type": "boolean",
+            "title": "Use Tolerance",
+            "default": true
+          },
+          "use_yolo_crop_ocr": {
+            "type": "boolean",
+            "title": "Use Yolo Crop Ocr",
+            "description": "YOLO crop 기반 개별 OCR 사용 (재현율 향상)",
+            "default": false
+          },
+          "use_ensemble": {
+            "type": "boolean",
+            "title": "Use Ensemble",
+            "description": "앙상블 전략 사용 (YOLO Crop OCR + eDOCr v2 융합)",
+            "default": false
+          },
+          "visualize": {
+            "type": "boolean",
+            "title": "Visualize",
+            "default": true
+          },
+          "yolo_conf_threshold": {
+            "type": "number",
+            "title": "Yolo Conf Threshold",
+            "description": "YOLO confidence threshold (0-1)",
+            "default": 0.25
+          },
+          "yolo_iou_threshold": {
+            "type": "number",
+            "title": "Yolo Iou Threshold",
+            "description": "YOLO IoU threshold (0-1)",
+            "default": 0.7
+          },
+          "yolo_imgsz": {
+            "type": "integer",
+            "title": "Yolo Imgsz",
+            "description": "YOLO input image size",
+            "default": 1280
+          },
+          "yolo_visualize": {
+            "type": "boolean",
+            "title": "Yolo Visualize",
+            "description": "YOLO visualization",
+            "default": true
+          },
+          "edocr_extract_dimensions": {
+            "type": "boolean",
+            "title": "Edocr Extract Dimensions",
+            "description": "eDOCr2 extract dimensions",
+            "default": true
+          },
+          "edocr_extract_gdt": {
+            "type": "boolean",
+            "title": "Edocr Extract Gdt",
+            "description": "eDOCr2 extract GD&T",
+            "default": true
+          },
+          "edocr_extract_text": {
+            "type": "boolean",
+            "title": "Edocr Extract Text",
+            "description": "eDOCr2 extract text",
+            "default": true
+          },
+          "edocr_extract_tables": {
+            "type": "boolean",
+            "title": "Edocr Extract Tables",
+            "description": "eDOCr2 extract tables",
+            "default": true
+          },
+          "edocr_visualize": {
+            "type": "boolean",
+            "title": "Edocr Visualize",
+            "description": "eDOCr2 visualization",
+            "default": false
+          },
+          "edocr_language": {
+            "type": "string",
+            "title": "Edocr Language",
+            "description": "eDOCr2 Tesseract language code",
+            "default": "eng"
+          },
+          "edocr_cluster_threshold": {
+            "type": "integer",
+            "title": "Edocr Cluster Threshold",
+            "description": "eDOCr2 clustering threshold",
+            "default": 20
+          },
+          "edgnet_num_classes": {
+            "type": "integer",
+            "title": "Edgnet Num Classes",
+            "description": "EDGNet number of classes",
+            "default": 3
+          },
+          "edgnet_visualize": {
+            "type": "boolean",
+            "title": "Edgnet Visualize",
+            "description": "EDGNet visualization",
+            "default": true
+          },
+          "edgnet_save_graph": {
+            "type": "boolean",
+            "title": "Edgnet Save Graph",
+            "description": "EDGNet save graph",
+            "default": false
+          },
+          "paddle_det_db_thresh": {
+            "type": "number",
+            "title": "Paddle Det Db Thresh",
+            "description": "PaddleOCR detection threshold",
+            "default": 0.3
+          },
+          "paddle_det_db_box_thresh": {
+            "type": "number",
+            "title": "Paddle Det Db Box Thresh",
+            "description": "PaddleOCR box threshold",
+            "default": 0.5
+          },
+          "paddle_min_confidence": {
+            "type": "number",
+            "title": "Paddle Min Confidence",
+            "description": "PaddleOCR min confidence",
+            "default": 0.5
+          },
+          "paddle_use_angle_cls": {
+            "type": "boolean",
+            "title": "Paddle Use Angle Cls",
+            "description": "PaddleOCR use angle classification",
+            "default": true
+          },
+          "skin_material": {
+            "type": "string",
+            "title": "Skin Material",
+            "description": "Skin Model material",
+            "default": "steel"
+          },
+          "skin_manufacturing_process": {
+            "type": "string",
+            "title": "Skin Manufacturing Process",
+            "description": "Skin Model manufacturing process",
+            "default": "machining"
+          },
+          "skin_correlation_length": {
+            "type": "number",
+            "title": "Skin Correlation Length",
+            "description": "Skin Model correlation length",
+            "default": 10.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_process_drawing_api_v1_process_post"
+      },
+      "Body_process_with_vl_api_v1_process_with_vl_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "default": "claude-3-5-sonnet-20241022"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity",
+            "default": 1
+          },
+          "customer_name": {
+            "type": "string",
+            "title": "Customer Name",
+            "default": "N/A"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_process_with_vl_api_v1_process_with_vl_post"
+      },
+      "CostBreakdown": {
+        "properties": {
+          "material_cost": {
+            "type": "number",
+            "title": "Material Cost",
+            "description": "재료비 (USD)"
+          },
+          "machining_cost": {
+            "type": "number",
+            "title": "Machining Cost",
+            "description": "가공비 (USD)"
+          },
+          "tolerance_premium": {
+            "type": "number",
+            "title": "Tolerance Premium",
+            "description": "공차 정밀도 추가 비용 (USD)"
+          },
+          "total_cost": {
+            "type": "number",
+            "title": "Total Cost",
+            "description": "총 비용 (USD)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "material_cost",
+          "machining_cost",
+          "tolerance_premium",
+          "total_cost"
+        ],
+        "title": "CostBreakdown",
+        "description": "비용 세부 내역"
+      },
+      "DetectionResult": {
+        "properties": {
+          "class_id": {
+            "type": "integer",
+            "title": "Class Id",
+            "description": "클래스 ID"
+          },
+          "class_name": {
+            "type": "string",
+            "title": "Class Name",
+            "description": "클래스 이름"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "description": "신뢰도 (0-1)"
+          },
+          "bbox": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Bbox",
+            "description": "바운딩 박스 {x, y, width, height}"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_id",
+          "class_name",
+          "confidence",
+          "bbox"
+        ],
+        "title": "DetectionResult",
+        "description": "YOLO 검출 결과"
+      },
+      "DimensionData": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "치수 값"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit",
+            "description": "단위"
+          },
+          "tolerance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tolerance",
+            "description": "공차 정보"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox",
+            "description": "위치"
+          }
+        },
+        "type": "object",
+        "title": "DimensionData",
+        "description": "치수 정보"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "services": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Services"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "version",
+          "timestamp",
+          "services"
+        ],
+        "title": "HealthResponse",
+        "description": "Health check 응답"
+      },
+      "NodeExecutionStatus": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "progress": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress",
+            "default": 0.0
+          },
+          "start_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Time"
+          },
+          "end_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Time"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          }
+        },
+        "type": "object",
+        "required": [
+          "node_id",
+          "status"
+        ],
+        "title": "NodeExecutionStatus",
+        "description": "노드 실행 상태"
+      },
+      "OCRResults": {
+        "properties": {
+          "dimensions": {
+            "items": {
+              "$ref": "#/components/schemas/DimensionData"
+            },
+            "type": "array",
+            "title": "Dimensions",
+            "description": "추출된 치수",
+            "default": []
+          },
+          "gdt_symbols": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Gdt Symbols",
+            "description": "GD&T 기호",
+            "default": []
+          },
+          "text_blocks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Text Blocks",
+            "description": "텍스트 블록",
+            "default": []
+          },
+          "tables": {
+            "items": {},
+            "type": "array",
+            "title": "Tables",
+            "description": "테이블 데이터 (nested structure)",
+            "default": []
+          },
+          "processing_time": {
+            "type": "number",
+            "title": "Processing Time",
+            "description": "OCR 처리 시간 (초)",
+            "default": 0
+          },
+          "visualized_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visualized Image",
+            "description": "Base64 인코딩된 시각화 이미지"
+          }
+        },
+        "type": "object",
+        "title": "OCRResults",
+        "description": "OCR 결과"
+      },
+      "ProcessData": {
+        "properties": {
+          "yolo_results": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/YOLOResults"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "YOLO 검출 결과"
+          },
+          "ocr_results": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OCRResults"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "OCR 추출 결과"
+          },
+          "segmentation_results": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SegmentationResults"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "세그멘테이션 결과"
+          },
+          "tolerance_results": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToleranceResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "공차 예측 결과"
+          },
+          "ensemble": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ensemble",
+            "description": "앙상블 병합 결과"
+          },
+          "pipeline_mode": {
+            "type": "string",
+            "title": "Pipeline Mode",
+            "description": "사용된 파이프라인 모드",
+            "default": "hybrid"
+          }
+        },
+        "type": "object",
+        "title": "ProcessData",
+        "description": "전체 처리 결과 데이터",
+        "example": {
+          "ocr_results": {
+            "dimensions": [
+              {
+                "tolerance": {
+                  "lower": "-0.1",
+                  "upper": "+0.1"
+                },
+                "unit": "mm",
+                "value": "50.5"
+              }
+            ],
+            "processing_time": 2.34
+          },
+          "pipeline_mode": "hybrid",
+          "segmentation_results": {
+            "components": [
+              {
+                "area": 5000,
+                "bbox": {
+                  "height": 50,
+                  "width": 100,
+                  "x": 10,
+                  "y": 20
+                },
+                "class_id": 1,
+                "component_id": 1
+              }
+            ],
+            "processing_time": 1.23,
+            "total_components": 15
+          },
+          "tolerance_results": {
+            "feasibility_score": 0.85,
+            "manufacturing_process": "machining",
+            "material": "aluminum",
+            "predicted_tolerance": 0.05,
+            "processing_time": 0.45
+          },
+          "yolo_results": {
+            "detections": [
+              {
+                "bbox": {
+                  "height": 30,
+                  "width": 50,
+                  "x": 100,
+                  "y": 200
+                },
+                "class_id": 1,
+                "class_name": "linear_dim",
+                "confidence": 0.92
+              }
+            ],
+            "processing_time": 0.15,
+            "total_detections": 28
+          }
+        }
+      },
+      "ProcessResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "처리 상태 (success/error)"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProcessData"
+          },
+          "processing_time": {
+            "type": "number",
+            "title": "Processing Time",
+            "description": "총 처리 시간 (초)"
+          },
+          "file_id": {
+            "type": "string",
+            "title": "File Id",
+            "description": "파일 식별자"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "processing_time",
+          "file_id"
+        ],
+        "title": "ProcessResponse",
+        "description": "전체 파이프라인 처리 응답",
+        "example": {
+          "data": {
+            "ocr_results": {
+              "dimensions": [],
+              "processing_time": 2.34
+            },
+            "pipeline_mode": "hybrid",
+            "yolo_results": {
+              "processing_time": 0.15,
+              "total_detections": 28
+            }
+          },
+          "file_id": "abc123-def456",
+          "processing_time": 5.67,
+          "status": "success"
+        }
+      },
+      "QuoteData": {
+        "properties": {
+          "quote_number": {
+            "type": "string",
+            "title": "Quote Number",
+            "description": "견적서 번호"
+          },
+          "part_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Name",
+            "description": "부품 이름"
+          },
+          "material": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Material",
+            "description": "재질"
+          },
+          "estimated_weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Weight",
+            "description": "예상 중량 (kg)"
+          },
+          "estimated_machining_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Machining Time",
+            "description": "예상 가공 시간 (시간)"
+          },
+          "cost_breakdown": {
+            "$ref": "#/components/schemas/CostBreakdown"
+          },
+          "dimensions_analyzed": {
+            "type": "integer",
+            "title": "Dimensions Analyzed",
+            "description": "분석된 치수 개수",
+            "default": 0
+          },
+          "gdt_analyzed": {
+            "type": "integer",
+            "title": "Gdt Analyzed",
+            "description": "분석된 GD&T 개수",
+            "default": 0
+          },
+          "confidence_score": {
+            "type": "number",
+            "title": "Confidence Score",
+            "description": "견적 신뢰도 (0-1)",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "quote_number",
+          "cost_breakdown"
+        ],
+        "title": "QuoteData",
+        "description": "견적서 데이터",
+        "example": {
+          "confidence_score": 0.88,
+          "cost_breakdown": {
+            "machining_cost": 225.0,
+            "material_cost": 12.5,
+            "tolerance_premium": 27.0,
+            "total_cost": 264.5
+          },
+          "dimensions_analyzed": 15,
+          "estimated_machining_time": 4.5,
+          "estimated_weight": 2.5,
+          "gdt_analyzed": 5,
+          "material": "Steel",
+          "part_name": "Intermediate Shaft",
+          "quote_number": "Q2025-001"
+        }
+      },
+      "QuoteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "처리 상태 (success/error)"
+          },
+          "data": {
+            "$ref": "#/components/schemas/QuoteData"
+          },
+          "processing_time": {
+            "type": "number",
+            "title": "Processing Time",
+            "description": "처리 시간 (초)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "data",
+          "processing_time"
+        ],
+        "title": "QuoteResponse",
+        "description": "견적서 생성 응답"
+      },
+      "SegmentationResults": {
+        "properties": {
+          "components": {
+            "items": {},
+            "type": "array",
+            "title": "Components",
+            "description": "감지된 컴포넌트",
+            "default": []
+          },
+          "total_components": {
+            "type": "integer",
+            "title": "Total Components",
+            "description": "총 컴포넌트 수",
+            "default": 0
+          },
+          "processing_time": {
+            "type": "number",
+            "title": "Processing Time",
+            "description": "세그멘테이션 처리 시간 (초)",
+            "default": 0
+          },
+          "visualized_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visualized Image",
+            "description": "Base64 인코딩된 시각화 이미지"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "SegmentationResults",
+        "description": "세그멘테이션 결과"
+      },
+      "ToleranceResult": {
+        "properties": {
+          "feasibility_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feasibility Score",
+            "description": "제조 가능성 점수 (0-1)"
+          },
+          "predicted_tolerance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Tolerance",
+            "description": "예측된 공차 (mm)"
+          },
+          "material": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Material",
+            "description": "재질"
+          },
+          "manufacturing_process": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manufacturing Process",
+            "description": "제조 공정"
+          },
+          "processing_time": {
+            "type": "number",
+            "title": "Processing Time",
+            "description": "공차 예측 처리 시간 (초)",
+            "default": 0
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "ToleranceResult",
+        "description": "공차 예측 결과"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WorkflowDefinition": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "워크플로우 이름"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "워크플로우 설명"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "워크플로우 버전",
+            "default": "1.0.0"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowNode"
+            },
+            "type": "array",
+            "title": "Nodes",
+            "description": "노드 목록"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowEdge"
+            },
+            "type": "array",
+            "title": "Edges",
+            "description": "엣지 목록"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "추가 메타데이터"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "nodes",
+          "edges"
+        ],
+        "title": "WorkflowDefinition",
+        "description": "전체 워크플로우 정의"
+      },
+      "WorkflowEdge": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "엣지 고유 ID"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "시작 노드 ID"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target",
+            "description": "종료 노드 ID"
+          },
+          "sourceHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcehandle",
+            "description": "시작 핸들 ID"
+          },
+          "targetHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targethandle",
+            "description": "종료 핸들 ID"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition",
+            "description": "조건부 실행 조건"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "target"
+        ],
+        "title": "WorkflowEdge",
+        "description": "워크플로우 엣지 (연결) 정의"
+      },
+      "WorkflowExecutionRequest": {
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/WorkflowDefinition"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs",
+            "description": "초기 입력 데이터"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config",
+            "description": "실행 설정"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workflow"
+        ],
+        "title": "WorkflowExecutionRequest",
+        "description": "워크플로우 실행 요청"
+      },
+      "WorkflowExecutionResponse": {
+        "properties": {
+          "execution_id": {
+            "type": "string",
+            "title": "Execution Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "completed",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "workflow_name": {
+            "type": "string",
+            "title": "Workflow Name"
+          },
+          "node_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/NodeExecutionStatus"
+            },
+            "type": "array",
+            "title": "Node Statuses"
+          },
+          "final_output": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Output"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "execution_time_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Time Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_id",
+          "status",
+          "workflow_name",
+          "node_statuses"
+        ],
+        "title": "WorkflowExecutionResponse",
+        "description": "워크플로우 실행 응답"
+      },
+      "WorkflowNode": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "노드 고유 ID"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "노드 타입 (yolo, edocr2, if, merge, loop 등)"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label",
+            "description": "노드 표시 이름"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters",
+            "description": "노드 파라미터"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position",
+            "description": "캔버스 상의 위치 (x, y)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "WorkflowNode",
+        "description": "워크플로우 노드 정의"
+      },
+      "YOLOResults": {
+        "properties": {
+          "detections": {
+            "items": {
+              "$ref": "#/components/schemas/DetectionResult"
+            },
+            "type": "array",
+            "title": "Detections",
+            "description": "검출된 객체 목록",
+            "default": []
+          },
+          "total_detections": {
+            "type": "integer",
+            "title": "Total Detections",
+            "description": "총 검출 개수",
+            "default": 0
+          },
+          "processing_time": {
+            "type": "number",
+            "title": "Processing Time",
+            "description": "YOLO 처리 시간 (초)",
+            "default": 0
+          },
+          "model_used": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Used",
+            "description": "사용된 모델"
+          },
+          "visualized_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visualized Image",
+            "description": "Base64 인코딩된 시각화 이미지"
+          }
+        },
+        "type": "object",
+        "title": "YOLOResults",
+        "description": "YOLO 검출 결과"
+      },
+      "ComponentData": {
+        "additionalProperties": true,
+        "description": "세그멘테이션 컴포넌트",
+        "properties": {
+          "component_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "컴포넌트 ID",
+            "title": "Component Id"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "컴포넌트 ID (alternative)",
+            "title": "Id"
+          },
+          "class_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "클래스 ID",
+            "title": "Class Id"
+          },
+          "classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "분류 이름",
+            "title": "Classification"
+          },
+          "bbox": {
+            "additionalProperties": true,
+            "default": {},
+            "description": "바운딩 박스",
+            "title": "Bbox",
+            "type": "object"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "면적 (픽셀)",
+            "title": "Area"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "신뢰도",
+            "title": "Confidence"
+          }
+        },
+        "title": "ComponentData",
+        "type": "object"
+      }
+    }
+  }
+}

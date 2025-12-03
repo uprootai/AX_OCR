@@ -14,7 +14,7 @@ interface ProgressUpdate {
 interface PipelineProgressProps {
   jobId: string;
   pipelineMode?: 'hybrid' | 'speed';
-  onComplete?: (data: any) => void;
+  onComplete?: (data) => void;
   onError?: (error: string) => void;
 }
 
@@ -40,7 +40,6 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
     if (!jobId) return;
 
     let eventSource: EventSource | null = null;
-    let intervalId: number;
 
     const connectSSE = () => {
       const url = `http://localhost:8000/api/v1/progress/${jobId}`;
@@ -97,7 +96,7 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
     connectSSE();
 
     // Update elapsed time continuously
-    intervalId = setInterval(() => {
+    const intervalId = setInterval(() => {
       setElapsed(Date.now() - startTime);
     }, 100);
 

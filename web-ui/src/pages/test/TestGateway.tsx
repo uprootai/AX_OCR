@@ -87,7 +87,7 @@ export default function TestGateway() {
             file: file.name,
             options,
           },
-          response,
+          response: response as unknown as Record<string, unknown>,
           timeline,
         };
 

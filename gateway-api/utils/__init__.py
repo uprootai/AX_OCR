@@ -20,6 +20,13 @@ from .visualization import (
     create_edgnet_visualization,
     create_ensemble_visualization
 )
+from .spec_loader import (
+    SpecLoader,
+    add_meta_endpoint,
+    get_api_registry,
+    load_spec,
+    get_spec_parameter
+)
 
 __all__ = [
     # Progress tracking
@@ -40,5 +47,11 @@ __all__ = [
     # Visualization
     "create_ocr_visualization",
     "create_edgnet_visualization",
-    "create_ensemble_visualization"
+    "create_ensemble_visualization",
+    # Spec loader
+    "SpecLoader",
+    "add_meta_endpoint",
+    "get_api_registry",
+    "load_spec",
+    "get_spec_parameter"
 ]

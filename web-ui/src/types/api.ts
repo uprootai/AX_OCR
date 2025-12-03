@@ -207,7 +207,7 @@ export interface APIError {
   status: number;
   code?: string;
   detail?: string;
-  details?: any;
+  details?: Record<string, unknown>;
   url?: string;
 }
 
@@ -218,8 +218,8 @@ export interface RequestTrace {
   method: string;
   status: number;
   duration: number;
-  request: any;
-  response: any;
+  request: Record<string, unknown>;
+  response: Record<string, unknown>;
   error?: APIError;
   timeline?: {
     upload?: number;
@@ -238,4 +238,100 @@ export interface ServiceHealth {
   errorCount?: number;
   errorMessage?: string;
   swaggerUrl?: string;
+}
+
+// ==================== 추가 API 응답 타입 ====================
+
+/** 일반 API 응답 */
+export interface GenericAPIResponse<T = Record<string, unknown>> {
+  status: string;
+  data: T;
+  processing_time?: number;
+  error?: string;
+}
+
+/** YOLO Detection 응답 */
+export interface YOLODetectionResponse {
+  status: string;
+  detections: Array<{
+    class_name: string;
+    confidence: number;
+    bbox: { x: number; y: number; width: number; height: number };
+    class_id?: number;
+  }>;
+  total_detections: number;
+  processing_time: number;
+  model_used: string;
+  visualized_image?: string;
+}
+
+/** EDGNet 응답 */
+export interface EDGNetResponse {
+  status: string;
+  data: {
+    num_components: number;
+    bezier_curves?: number;
+    graph?: Record<string, unknown>;
+  };
+  processing_time: number;
+}
+
+/** VL 응답 */
+export interface VLResponse {
+  status: string;
+  result: string;
+  model: string;
+  processing_time: number;
+}
+
+/** PaddleOCR 응답 */
+export interface PaddleOCRResponse {
+  status: string;
+  data: {
+    texts: Array<{
+      text: string;
+      confidence: number;
+      bbox: number[][];
+    }>;
+    total_texts: number;
+  };
+  processing_time: number;
+}
+
+/** Knowledge API 응답 */
+export interface KnowledgeResponse {
+  status: string;
+  results: Array<{
+    content: string;
+    score: number;
+    source?: string;
+  }>;
+  processing_time: number;
+}
+
+/** ESRGAN 응답 */
+export interface ESRGANResponse {
+  status: string;
+  upscaled_image: string;
+  scale: number;
+  processing_time: number;
+}
+
+/** Workflow 실행 이벤트 */
+export interface WorkflowEvent {
+  type: 'node_start' | 'node_complete' | 'node_error' | 'workflow_complete' | 'execution_plan';
+  node_id?: string;
+  status?: string;
+  output?: Record<string, unknown>;
+  error?: string;
+  timestamp?: string;
+}
+
+/** 노드 상태 */
+export interface NodeStatus {
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  output?: Record<string, unknown>;
+  error?: string;
+  startTime?: number;
+  endTime?: number;
 }

@@ -65,12 +65,14 @@ export default function Mermaid({ chart, className = '' }: MermaidProps) {
           elementRef.current.innerHTML = svg;
           setError(null);
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error('Mermaid rendering error:', err);
-        console.error('Error message:', err?.message);
-        console.error('Error stack:', err?.stack);
+        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류';
+        const errorStack = err instanceof Error ? err.stack : undefined;
+        console.error('Error message:', errorMessage);
+        console.error('Error stack:', errorStack);
         console.error('Chart content:', chart);
-        setError(err?.message || '알 수 없는 오류');
+        setError(errorMessage);
       }
     };
 

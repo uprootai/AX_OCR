@@ -41,7 +41,7 @@ export default function Admin() {
   const fetchModels = async (modelType: string) => {
     try {
       const response = await axios.get(ADMIN_ENDPOINTS.models(modelType));
-      setModels((prev: any) => ({ ...prev, [modelType]: response.data.files || [] }));
+      setModels((prev) => ({ ...prev, [modelType]: response.data.files || [] }));
     } catch (error) {
       console.error('Failed to fetch models:', error);
     }
@@ -73,8 +73,9 @@ export default function Admin() {
       });
       alert(`학습이 백그라운드에서 시작되었습니다!\nJob ID: ${response.data.job_id}`);
       await fetchTrainingJobs();
-    } catch (error: any) {
-      alert(`학습 시작 실패: ${error.response?.data?.message || error.message}`);
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      alert(`학습 시작 실패: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -84,8 +85,9 @@ export default function Admin() {
       const response = await axios.post(ADMIN_ENDPOINTS.docker(action, service));
       alert(`Docker ${action} ${service}: ${response.data.message}`);
       await fetchStatus();
-    } catch (error: any) {
-      alert(`Docker ${action} failed: ${error.response?.data?.message || error.message}`);
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      alert(`Docker ${action} failed: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -158,7 +160,7 @@ export default function Admin() {
             <h2 className="text-xl font-semibold mb-4">API 상태</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {getAllAPIs().map(api => {
-                const apiStatus = status.apis.find((a: any) => a.name === api.name);
+                const apiStatus = status.apis.find((a) => a.name === api.name);
                 const isHealthy = apiStatus?.status === 'healthy';
                 return (
                   <div
@@ -279,7 +281,7 @@ export default function Admin() {
               </div>
               <div className="space-y-2">
                 {models[modelType]?.length > 0 ? (
-                  models[modelType].map((file: any) => (
+                  models[modelType].map((file) => (
                     <div
                       key={file.name}
                       className="flex justify-between items-center p-3 bg-accent rounded"

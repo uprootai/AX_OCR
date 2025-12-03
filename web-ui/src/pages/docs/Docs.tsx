@@ -43,6 +43,7 @@ const docStructure: DocFile[] = [
     path: 'developer',
     type: 'folder',
     children: [
+      { name: 'API 스펙 시스템 가이드 ⭐', path: '/docs/developer/API_SPEC_SYSTEM_GUIDE.md', type: 'file' },
       { name: 'Claude 가이드 (EN)', path: '/docs/developer/CLAUDE.md', type: 'file' },
       { name: 'Claude 가이드 (KR)', path: '/docs/developer/CLAUDE_KR.md', type: 'file' },
       { name: 'VL API 설정 가이드', path: '/docs/developer/VL_API_SETUP_GUIDE.md', type: 'file' },
@@ -57,6 +58,8 @@ const docStructure: DocFile[] = [
       { name: 'BlueprintFlow 개요 ⭐', path: '/docs/blueprintflow/README.md', type: 'file' },
       { name: 'API 통합 가이드', path: '/docs/BLUEPRINTFLOW_API_INTEGRATION_GUIDE.md', type: 'file' },
       { name: '아키텍처 설계', path: '/docs/BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md', type: 'file' },
+      { name: 'TextInput 노드 가이드', path: '/docs/blueprintflow/08_textinput_node_guide.md', type: 'file' },
+      { name: 'VL + TextInput 통합', path: '/docs/blueprintflow/09_vl_textinput_integration.md', type: 'file' },
       { name: 'YOLO 모델 비교', path: '/docs/blueprintflow/04_optimization/yolo_models.md', type: 'file' },
       { name: '파이프라인 옵션', path: '/docs/blueprintflow/04_optimization/pipeline_options.md', type: 'file' },
       { name: '최적화 가이드', path: '/docs/blueprintflow/04_optimization/optimization_guide.md', type: 'file' },
@@ -106,6 +109,11 @@ const docStructure: DocFile[] = [
       { name: 'SkinModel API 파라미터', path: '/docs/api/skinmodel/parameters.md', type: 'file' },
       { name: 'VL API 파라미터', path: '/docs/api/vl/parameters.md', type: 'file' },
       { name: 'PaddleOCR API 파라미터', path: '/docs/api/paddleocr/parameters.md', type: 'file' },
+      { name: 'Knowledge API 파라미터', path: '/docs/api/knowledge/parameters.md', type: 'file' },
+      { name: 'Tesseract API 파라미터', path: '/docs/api/tesseract/parameters.md', type: 'file' },
+      { name: 'TrOCR API 파라미터', path: '/docs/api/trocr/parameters.md', type: 'file' },
+      { name: 'ESRGAN API 파라미터', path: '/docs/api/esrgan/parameters.md', type: 'file' },
+      { name: 'OCR Ensemble API 파라미터', path: '/docs/api/ocr-ensemble/parameters.md', type: 'file' },
     ],
   },
   {

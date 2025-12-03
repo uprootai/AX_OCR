@@ -1,0 +1,109 @@
+# OCR Ensemble API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: ocr-ensemble
+  name: OCR Ensemble
+  version: 1.0.0
+  port: 5011
+  description: 4개 OCR 엔진 가중 투표 앙상블
+  author: AX Team
+  tags:
+    - ocr
+    - ensemble
+    - voting
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 180
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#14b8a6"
+  icon: Layers
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 분석할 이미지
+
+outputs:
+  - name: results
+    type: EnsembleResult[]
+    description: 앙상블 OCR 결과
+  - name: full_text
+    type: string
+    description: 전체 텍스트
+  - name: engine_status
+    type: object
+    description: 각 엔진 상태
+
+parameters:
+  - name: edocr2_weight
+    type: number
+    default: 0.40
+    min: 0
+    max: 1
+    step: 0.05
+    description: eDOCr2 가중치
+
+  - name: paddleocr_weight
+    type: number
+    default: 0.35
+    min: 0
+    max: 1
+    step: 0.05
+    description: PaddleOCR 가중치
+
+  - name: tesseract_weight
+    type: number
+    default: 0.15
+    min: 0
+    max: 1
+    step: 0.05
+    description: Tesseract 가중치
+
+  - name: trocr_weight
+    type: number
+    default: 0.10
+    min: 0
+    max: 1
+    step: 0.05
+    description: TrOCR 가중치
+
+  - name: similarity_threshold
+    type: number
+    default: 0.7
+    min: 0.5
+    max: 1.0
+    step: 0.05
+    description: 텍스트 유사도 임계값
+
+mappings:
+  output:
+    results: results
+    full_text: full_text
+    engine_status: engine_status
+
+i18n:
+  ko:
+    label: OCR 앙상블
+    description: 4개 OCR 엔진(eDOCr2+PaddleOCR+Tesseract+TrOCR)을 가중 투표로 결합
+  en:
+    label: OCR Ensemble
+    description: Combines 4 OCR engines with weighted voting
+
+examples:
+  - 고정밀 텍스트 추출
+  - 복잡한 도면 OCR
+
+usageTips:
+  - 단일 엔진보다 정확도가 높지만 느립니다
+  - 가중치를 조절하여 도면 타입에 최적화하세요
+  - 여러 엔진이 동의하면 신뢰도가 올라갑니다

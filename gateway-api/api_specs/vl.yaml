@@ -1,0 +1,83 @@
+# Vision-Language API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: vl
+  name: Vision-Language Model
+  version: 1.0.0
+  port: 5004
+  description: 멀티모달 AI - 이미지 이해 및 질의응답
+  author: AX Team
+  tags:
+    - ai
+    - llm
+    - vision
+    - multimodal
+
+server:
+  endpoint: /api/v1/analyze
+  method: POST
+  contentType: application/json
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ai
+  color: "#ec4899"
+  icon: Eye
+  requiresImage: true
+  recommendedInputs:
+    - from: textinput
+      field: text
+      reason: 이미지에 대한 질문이나 프롬프트를 입력합니다
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 분석할 이미지
+  - name: prompt
+    type: string
+    required: false
+    description: 질문 또는 지시사항
+
+outputs:
+  - name: response
+    type: string
+    description: AI 응답
+  - name: analysis
+    type: object
+    description: 상세 분석 결과
+
+parameters:
+  - name: model
+    type: select
+    default: qwen-vl
+    options:
+      - qwen-vl
+      - llava
+      - cogvlm
+      - local
+    description: Vision-Language 모델 선택
+
+  - name: temperature
+    type: number
+    default: 0.7
+    min: 0
+    max: 2
+    step: 0.1
+    description: 응답 창의성 (높을수록 다양)
+
+mappings:
+  input:
+    prompt: inputs.text
+    image: inputs.image
+
+i18n:
+  ko:
+    label: VL 모델
+    description: 이미지를 이해하고 질문에 답변하는 멀티모달 AI
+  en:
+    label: VL Model
+    description: Multimodal AI for image understanding and Q&A

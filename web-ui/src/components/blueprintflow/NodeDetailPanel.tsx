@@ -1,5 +1,5 @@
 import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, Lightbulb, Link } from 'lucide-react';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
@@ -8,10 +8,10 @@ import type { Node } from 'reactflow';
 interface NodeDetailPanelProps {
   selectedNode: Node | null;
   onClose: () => void;
-  onUpdateNode: (nodeId: string, data: any) => void;
+  onUpdateNode: (nodeId: string, data: Record<string, unknown>) => void;
 }
 
-export default function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }: NodeDetailPanelProps) {
+const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }: NodeDetailPanelProps) {
   const [showParameters, setShowParameters] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
 
@@ -44,7 +44,7 @@ export default function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }:
     );
   }
 
-  const handleParameterChange = (paramName: string, value: any) => {
+  const handleParameterChange = (paramName: string, value: string | number | boolean) => {
     const currentData = selectedNode.data || {};
     const currentParams = currentData.parameters || {};
     onUpdateNode(selectedNode.id, {
@@ -75,7 +75,7 @@ export default function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }:
           </Button>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {definition.category === 'api' ? 'API 노드' : '제어 노드'}
+          {definition.category === 'control' ? '제어 노드' : 'API 노드'}
         </p>
       </div>
 
@@ -326,4 +326,6 @@ export default function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }:
       </div>
     </div>
   );
-}
+});
+
+export default NodeDetailPanel;

@@ -1,0 +1,74 @@
+# ESRGAN API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: esrgan
+  name: ESRGAN Upscaler
+  version: 1.0.0
+  port: 5010
+  description: Real-ESRGAN 기반 이미지 업스케일링
+  author: AX Team
+  tags:
+    - preprocessing
+    - upscaling
+    - enhancement
+    - esrgan
+
+server:
+  endpoint: /api/v1/upscale
+  method: POST
+  contentType: multipart/form-data
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: preprocessing
+  color: "#f59e0b"
+  icon: ZoomIn
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 저해상도 입력 이미지
+
+outputs:
+  - name: image
+    type: Image
+    description: 업스케일된 이미지
+
+parameters:
+  - name: scale
+    type: select
+    default: "4"
+    options:
+      - "2"
+      - "4"
+    description: 업스케일 배율
+
+  - name: denoise_strength
+    type: number
+    default: 0.5
+    min: 0
+    max: 1
+    step: 0.1
+    description: 노이즈 제거 강도
+
+i18n:
+  ko:
+    label: ESRGAN 업스케일러
+    description: 저품질 스캔 도면을 4배 업스케일하여 OCR 정확도 향상
+  en:
+    label: ESRGAN Upscaler
+    description: 4x upscale low-quality scanned drawings to improve OCR accuracy
+
+examples:
+  - 저해상도 스캔 도면 업스케일
+  - OCR 전처리로 정확도 향상
+
+usageTips:
+  - OCR 전에 사용하면 정확도가 크게 향상됩니다
+  - 이미 고해상도인 경우 불필요합니다
+  - GPU 사용시 훨씬 빠릅니다

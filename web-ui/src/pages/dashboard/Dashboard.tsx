@@ -12,7 +12,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const [isAddAPIDialogOpen, setIsAddAPIDialogOpen] = useState(false);
   const [isAutoDiscovering, setIsAutoDiscovering] = useState(false);
-  const { addAPI, customAPIs } = useAPIConfigStore();
+  const { addAPI } = useAPIConfigStore();
 
   /**
    * Gateway API Registry에서 자동으로 API 검색
@@ -44,7 +44,7 @@ export default function Dashboard() {
             port: apiInfo.port,
             icon: apiInfo.icon,
             color: apiInfo.color,
-            category: apiInfo.category === 'control' ? 'control' : 'api',
+            category: apiInfo.category || 'ocr',
             description: apiInfo.description,
             enabled: apiInfo.status === 'healthy',
             inputs: apiInfo.inputs || [],

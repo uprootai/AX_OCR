@@ -1,0 +1,125 @@
+# eDOCr2 OCR API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: edocr2
+  name: eDOCr2 OCR
+  version: 2.0.0
+  port: 5002
+  description: 기계 도면 특화 OCR - 치수, GD&T, 텍스트 추출
+  author: AX Team
+  tags:
+    - ocr
+    - dimension
+    - gdt
+    - text-extraction
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#3b82f6"
+  icon: FileText
+  requiresImage: true
+  recommendedInputs:
+    - from: yolo
+      field: detections
+      reason: YOLO 검출 영역에서 치수/텍스트를 추출합니다
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 분석할 도면 이미지
+
+outputs:
+  - name: dimensions
+    type: DimensionData[]
+    description: 추출된 치수 목록
+  - name: gdt_symbols
+    type: GDTSymbol[]
+    description: GD&T 기호 목록
+  - name: text_blocks
+    type: TextBlock[]
+    description: 텍스트 블록 목록
+  - name: tables
+    type: Table[]
+    description: 테이블 데이터
+  - name: visualized_image
+    type: Image
+    description: OCR 결과 시각화 이미지
+
+parameters:
+  - name: version
+    type: select
+    default: v2
+    options:
+      - v1
+      - v2
+    description: eDOCr 버전 선택
+
+  - name: language
+    type: select
+    default: ko+en
+    options:
+      - ko
+      - en
+      - ko+en
+      - ja
+      - zh
+    description: OCR 언어
+
+  - name: extract_dimensions
+    type: boolean
+    default: true
+    description: 치수 추출 활성화
+
+  - name: extract_gdt
+    type: boolean
+    default: true
+    description: GD&T 추출 활성화
+
+  - name: extract_text
+    type: boolean
+    default: true
+    description: 일반 텍스트 추출
+
+  - name: extract_tables
+    type: boolean
+    default: false
+    description: 테이블 추출
+
+  - name: cluster_threshold
+    type: number
+    default: 50
+    min: 10
+    max: 200
+    description: 텍스트 클러스터링 임계값
+
+  - name: visualize
+    type: boolean
+    default: true
+    description: 결과 시각화 생성
+
+i18n:
+  ko:
+    label: eDOCr2 OCR
+    description: 기계 도면에서 치수, GD&T 기호, 텍스트를 자동 추출합니다
+  en:
+    label: eDOCr2 OCR
+    description: Extracts dimensions, GD&T symbols, and text from engineering drawings
+
+examples:
+  - 도면에서 모든 치수값 추출
+  - 공차 정보 파싱
+  - 부품표 데이터 추출
+
+usageTips:
+  - YOLO와 함께 사용하면 정확도가 높아집니다
+  - 한글+영어 혼합 도면은 ko+en 언어 사용

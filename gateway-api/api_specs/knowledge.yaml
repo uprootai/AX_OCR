@@ -1,0 +1,130 @@
+# Knowledge API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: knowledge
+  name: Knowledge Engine
+  version: 1.0.0
+  port: 5007
+  description: GraphRAG + VectorRAG 기반 도메인 지식 엔진
+  author: AX Team
+  tags:
+    - knowledge
+    - graphrag
+    - vectorrag
+    - neo4j
+
+server:
+  endpoint: /api/v1/hybrid/search
+  method: POST
+  contentType: application/json
+  timeout: 30
+  healthEndpoint: /health
+
+blueprintflow:
+  category: knowledge
+  color: "#9333ea"
+  icon: Database
+  requiresImage: false
+  recommendedInputs:
+    - from: edocr2
+      field: dimensions
+      reason: 추출된 치수로 유사 부품을 검색합니다
+    - from: skinmodel
+      field: tolerance_prediction
+      reason: 공차 정보로 과거 프로젝트를 검색합니다
+
+inputs:
+  - name: query
+    type: string
+    required: false
+    description: 검색 쿼리 텍스트
+  - name: dimensions
+    type: string[]
+    required: false
+    description: 치수 정보
+  - name: tolerance
+    type: string
+    required: false
+    description: "공차 등급 (예: H7)"
+  - name: material
+    type: string
+    required: false
+    description: 재질 정보
+
+outputs:
+  - name: results
+    type: SearchResult[]
+    description: 검색 결과 목록
+  - name: similar_parts
+    type: Part[]
+    description: 유사 부품 목록
+  - name: total_found
+    type: number
+    description: 검색된 총 결과 수
+
+parameters:
+  - name: search_mode
+    type: select
+    default: hybrid
+    options:
+      - graphrag
+      - vectorrag
+      - hybrid
+    description: 검색 모드 선택
+
+  - name: graph_weight
+    type: number
+    default: 0.6
+    min: 0
+    max: 1
+    step: 0.1
+    description: GraphRAG 가중치
+
+  - name: top_k
+    type: number
+    default: 5
+    min: 1
+    max: 20
+    step: 1
+    description: 검색 결과 개수
+
+  - name: validate_standards
+    type: boolean
+    default: false
+    description: ISO/ASME 규격 검증
+
+  - name: include_cost
+    type: boolean
+    default: true
+    description: 과거 비용 정보 포함
+
+  - name: material_filter
+    type: string
+    default: ""
+    description: 재질 필터 (빈 값은 필터 없음)
+
+mappings:
+  output:
+    results: results
+    similar_parts: similar_parts
+    total_found: total_found
+
+i18n:
+  ko:
+    label: Knowledge 엔진
+    description: Neo4j 그래프 DB와 벡터 검색을 활용한 도메인 지식 검색
+  en:
+    label: Knowledge Engine
+    description: Domain knowledge search using Neo4j graph DB and vector search
+
+examples:
+  - 유사 부품 검색
+  - 과거 프로젝트 비용 조회
+  - ISO 규격 검증
+
+usageTips:
+  - GraphRAG는 관계 기반 검색에 강합니다
+  - VectorRAG는 의미 기반 유사도 검색에 강합니다
+  - Hybrid 모드가 가장 정확합니다

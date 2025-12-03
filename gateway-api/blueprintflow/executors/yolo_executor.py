@@ -37,6 +37,8 @@ class YoloExecutor(BaseNodeExecutor):
         visualize = self.parameters.get("visualize", True)
         filename = self.parameters.get("filename", "workflow_image.jpg")
         imgsz = self.parameters.get("imgsz", 1280)
+        model_type = self.parameters.get("model_type", "symbol-detector-v1")
+        task = self.parameters.get("task", "detect")
 
         # YOLO API 호출
         result = await call_yolo_detect(
@@ -45,7 +47,9 @@ class YoloExecutor(BaseNodeExecutor):
             conf_threshold=confidence,
             iou_threshold=iou,
             imgsz=imgsz,
-            visualize=visualize
+            visualize=visualize,
+            model_type=model_type,
+            task=task
         )
 
         return {

@@ -1,0 +1,122 @@
+# SkinModel Tolerance API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: skinmodel
+  name: SkinModel Tolerance
+  version: 1.0.0
+  port: 5003
+  description: FEM 기반 기하공차 예측 및 제조 가능성 분석
+  author: AX Team
+  tags:
+    - tolerance
+    - prediction
+    - fem
+    - manufacturing
+
+server:
+  endpoint: /api/v1/tolerance
+  method: POST
+  contentType: application/json
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#ef4444"
+  icon: Calculator
+  requiresImage: false
+  recommendedInputs:
+    - from: edocr2
+      field: dimensions
+      reason: OCR로 추출한 치수 정보를 공차 분석에 사용합니다
+
+inputs:
+  - name: dimensions
+    type: DimensionData[]
+    required: true
+    description: 치수 정보 리스트 (type, value, tolerance, unit)
+  - name: material
+    type: object|string
+    required: true
+    description: 재질 정보 (객체 또는 문자열)
+
+outputs:
+  - name: tolerance_prediction
+    type: object
+    description: 예측된 공차 값
+  - name: manufacturability
+    type: object
+    description: 제조 가능성 평가
+  - name: assemblability
+    type: object
+    description: 조립 가능성 평가
+  - name: visualized_image
+    type: Image
+    description: 공차 시각화 이미지
+
+parameters:
+  - name: material_type
+    type: select
+    default: steel
+    options:
+      - aluminum
+      - steel
+      - stainless
+      - titanium
+      - plastic
+    description: 재질 타입
+
+  - name: manufacturing_process
+    type: select
+    default: machining
+    options:
+      - machining
+      - casting
+      - 3d_printing
+      - welding
+      - sheet_metal
+    description: 제조 공정
+
+  - name: correlation_length
+    type: number
+    default: 1.0
+    min: 0.1
+    max: 10.0
+    step: 0.1
+    description: Random Field 상관 길이
+
+  - name: task
+    type: select
+    default: tolerance
+    options:
+      - tolerance
+      - validate
+      - manufacturability
+    description: 분석 작업 선택
+
+mappings:
+  output:
+    tolerance_prediction: data.tolerance_prediction
+    manufacturability: data.manufacturability
+    assemblability: data.assemblability
+    visualized_image: data.visualized_image
+    processing_time: processing_time
+
+i18n:
+  ko:
+    label: SkinModel 공차 예측
+    description: FEM 기반으로 기하공차를 예측하고 제조 가능성을 분석합니다
+  en:
+    label: SkinModel Tolerance
+    description: Predicts geometric tolerances using FEM and analyzes manufacturability
+
+examples:
+  - 치수 정보로 공차 예측
+  - 제조 가능성 평가
+  - GD&T 규격 검증
+
+usageTips:
+  - eDOCr2에서 추출한 치수를 입력으로 사용하세요
+  - 재질에 따라 예측 결과가 달라집니다

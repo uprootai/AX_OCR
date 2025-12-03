@@ -34,7 +34,7 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
     port: 5007,
     icon: '🏷️',
     color: '#a855f7',
-    category: 'api' as 'api' | 'control',
+    category: 'ocr' as 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control',
     description: '',
     enabled: true,
   });
@@ -103,7 +103,7 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
         port: port,
         icon: apiInfo.blueprintflow?.icon || '🏷️',
         color: apiInfo.blueprintflow?.color || '#a855f7',
-        category: apiInfo.blueprintflow?.category === 'control' ? 'control' : 'api',
+        category: apiInfo.blueprintflow?.category || 'ocr',
         description: apiInfo.description || '',
         enabled: true,
       });
@@ -219,7 +219,7 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
       port: 5007,
       icon: '🏷️',
       color: '#a855f7',
-      category: 'api',
+      category: 'ocr',
       description: '',
       enabled: true,
     });
@@ -237,7 +237,7 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
       port: 5007,
       icon: '🏷️',
       color: '#a855f7',
-      category: 'api',
+      category: 'ocr',
       description: '',
       enabled: true,
     });
@@ -464,11 +464,17 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
               <label className="block text-sm font-medium mb-1">카테고리</label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as 'api' | 'control' })}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value as 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control' })}
                 className="w-full px-3 py-2 border rounded-lg bg-background"
               >
-                <option value="api">API (데이터 처리)</option>
-                <option value="control">Control (제어 플로우)</option>
+                <option value="detection">🎯 Detection (객체 검출)</option>
+                <option value="ocr">📝 OCR (텍스트 인식)</option>
+                <option value="segmentation">🎨 Segmentation (영역 분할)</option>
+                <option value="preprocessing">🔧 Preprocessing (전처리)</option>
+                <option value="analysis">📊 Analysis (분석)</option>
+                <option value="ai">🤖 AI (인공지능)</option>
+                <option value="knowledge">🧠 Knowledge (지식 엔진)</option>
+                <option value="control">⚙️ Control (제어 플로우)</option>
               </select>
             </div>
 

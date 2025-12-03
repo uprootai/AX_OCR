@@ -1,15 +1,25 @@
 """
 API Registry Service
 자동 검색, 등록, 헬스체크를 관리하는 중앙 레지스트리
+
+YAML 스펙 기반 + 네트워크 자동 검색 하이브리드 시스템
 """
 import asyncio
 import logging
+import os
+from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pydantic import BaseModel
 import httpx
+import yaml
 
 logger = logging.getLogger(__name__)
+
+# 스펙 파일 디렉토리
+SPEC_DIR = Path(__file__).parent / "api_specs"
+if os.getenv("API_SPECS_DIR"):
+    SPEC_DIR = Path(os.getenv("API_SPECS_DIR"))
 
 
 class APIMetadata(BaseModel):
@@ -58,6 +68,110 @@ class APIRegistry:
 
         # 추가 검색 포트 범위 (사용자 정의 API용)
         self.custom_port_range = range(5007, 5020)
+
+    def load_from_specs(self, host: str = "localhost") -> List[APIMetadata]:
+        """
+        YAML 스펙 파일에서 API 메타데이터 로드
+
+        Args:
+            host: API 서버 호스트 (기본: localhost)
+
+        Returns:
+            로드된 API 목록
+        """
+        loaded = []
+
+        if not SPEC_DIR.exists():
+            logger.warning(f"Spec directory not found: {SPEC_DIR}")
+            return loaded
+
+        for spec_file in SPEC_DIR.glob("*.yaml"):
+            try:
+                with open(spec_file, 'r', encoding='utf-8') as f:
+                    spec = yaml.safe_load(f)
+
+                if not spec or spec.get("kind") != "APISpec":
+                    continue
+
+                metadata = spec.get("metadata", {})
+                server = spec.get("server", {})
+                blueprintflow = spec.get("blueprintflow", {})
+
+                api_id = metadata.get("id", spec_file.stem)
+                port = metadata.get("port", 5000)
+
+                api_metadata = APIMetadata(
+                    id=api_id,
+                    name=metadata.get("name", api_id),
+                    display_name=spec.get("i18n", {}).get("ko", {}).get("label", metadata.get("name", api_id)),
+                    version=metadata.get("version", "1.0.0"),
+                    description=metadata.get("description", ""),
+                    base_url=f"http://{host}:{port}",
+                    endpoint=server.get("endpoint", "/api/v1/process"),
+                    port=port,
+                    method=server.get("method", "POST"),
+                    requires_image=blueprintflow.get("requiresImage", True),
+                    icon=blueprintflow.get("icon", "Box"),
+                    color=blueprintflow.get("color", "#6366f1"),
+                    category=blueprintflow.get("category", "detection"),
+                    status="unknown",
+                    last_check=None,
+                    inputs=spec.get("inputs", []),
+                    outputs=spec.get("outputs", []),
+                    parameters=spec.get("parameters", []),
+                    output_mappings=spec.get("mappings", {}).get("output", {})
+                )
+
+                loaded.append(api_metadata)
+                self.apis[api_id] = api_metadata
+                logger.info(f"✅ 스펙에서 로드: {api_metadata.display_name}")
+
+            except Exception as e:
+                logger.error(f"스펙 로드 실패 {spec_file}: {e}")
+
+        logger.info(f"📂 스펙 파일에서 {len(loaded)}개 API 로드됨")
+        return loaded
+
+    def get_spec(self, api_id: str) -> Optional[Dict[str, Any]]:
+        """
+        API 스펙 YAML 파일 원본 반환
+
+        Args:
+            api_id: API ID
+
+        Returns:
+            스펙 딕셔너리 또는 None
+        """
+        spec_file = SPEC_DIR / f"{api_id}.yaml"
+
+        if not spec_file.exists():
+            return None
+
+        try:
+            with open(spec_file, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            logger.error(f"스펙 로드 실패 {api_id}: {e}")
+            return None
+
+    def get_all_specs(self) -> Dict[str, Dict[str, Any]]:
+        """모든 스펙 파일 로드"""
+        specs = {}
+
+        if not SPEC_DIR.exists():
+            return specs
+
+        for spec_file in SPEC_DIR.glob("*.yaml"):
+            try:
+                with open(spec_file, 'r', encoding='utf-8') as f:
+                    spec = yaml.safe_load(f)
+                    if spec and spec.get("kind") == "APISpec":
+                        api_id = spec.get("metadata", {}).get("id", spec_file.stem)
+                        specs[api_id] = spec
+            except Exception as e:
+                logger.error(f"스펙 로드 실패 {spec_file}: {e}")
+
+        return specs
 
     async def discover_apis(self, host: str = "localhost") -> List[APIMetadata]:
         """

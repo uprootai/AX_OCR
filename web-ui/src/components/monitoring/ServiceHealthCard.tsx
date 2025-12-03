@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Activity, AlertCircle, CheckCircle, Clock, ExternalLink } from 'lucide-react';
@@ -9,7 +10,7 @@ interface ServiceHealthCardProps {
   onTest?: () => void;
 }
 
-export default function ServiceHealthCard({ service, onTest }: ServiceHealthCardProps) {
+const ServiceHealthCard = memo(function ServiceHealthCard({ service, onTest }: ServiceHealthCardProps) {
   const getStatusColor = (status: ServiceHealth['status']) => {
     switch (status) {
       case 'healthy':
@@ -110,4 +111,6 @@ export default function ServiceHealthCard({ service, onTest }: ServiceHealthCard
       </CardContent>
     </Card>
   );
-}
+});
+
+export default ServiceHealthCard;

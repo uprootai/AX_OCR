@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -12,7 +13,7 @@ interface SampleFileCardProps {
   disabled?: boolean;
 }
 
-export function SampleFileCard({
+export const SampleFileCard = memo(function SampleFileCard({
   name,
   description,
   type,
@@ -79,4 +80,4 @@ export function SampleFileCard({
       </CardContent>
     </Card>
   );
-}
+});

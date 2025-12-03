@@ -1,0 +1,84 @@
+# EDGNet Segmentation API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: edgnet
+  name: EDGNet Segmentation
+  version: 1.0.0
+  port: 5012
+  description: 도면 구조 분석 및 레이어 분류
+  author: AX Team
+  tags:
+    - segmentation
+    - structure
+    - layer
+
+server:
+  endpoint: /api/v1/segment
+  method: POST
+  contentType: multipart/form-data
+  timeout: 90
+  healthEndpoint: /health
+
+blueprintflow:
+  category: segmentation
+  color: "#8b5cf6"
+  icon: Network
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 분석할 도면 이미지
+
+outputs:
+  - name: components
+    type: Component[]
+    description: 분류된 컴포넌트 목록
+  - name: total_components
+    type: number
+    description: 총 컴포넌트 수
+  - name: visualized_image
+    type: Image
+    description: 세그멘테이션 시각화
+
+parameters:
+  - name: model
+    type: select
+    default: unet
+    options:
+      - unet
+      - graphsage
+    description: 세그멘테이션 모델
+
+  - name: num_classes
+    type: number
+    default: 8
+    min: 2
+    max: 20
+    description: 분류 클래스 수
+
+  - name: visualize
+    type: boolean
+    default: true
+    description: 시각화 생성
+
+  - name: save_graph
+    type: boolean
+    default: false
+    description: 그래프 구조 저장
+
+  - name: vectorize
+    type: boolean
+    default: false
+    description: 벡터화 출력
+
+i18n:
+  ko:
+    label: EDGNet 세그멘테이션
+    description: 도면의 구조를 분석하고 레이어별로 분류합니다
+  en:
+    label: EDGNet Segmentation
+    description: Analyzes drawing structure and classifies by layers

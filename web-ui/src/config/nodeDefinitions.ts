@@ -1156,7 +1156,7 @@ export function getAllNodeDefinitions(): Record<string, NodeDefinition> {
       const customAPIs = storage.state?.customAPIs || [];
 
       // 각 커스텀 API를 노드 정의로 변환
-      customAPIs.forEach((api: any) => {
+      customAPIs.forEach((api) => {
         if (api.enabled) {
           allDefinitions[api.id] = {
             type: api.id,

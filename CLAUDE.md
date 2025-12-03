@@ -1,198 +1,299 @@
-# 📘 Claude Code Project Guide
+# AX POC - Claude Code Project Guide
 
-> **LLM-optimized navigation index**
-> All documentation: <100 lines per file, modular structure, hierarchical organization
-
----
-
-## 🎯 What Is This Project?
-
-**Automated mechanical drawing analysis and manufacturing quote generation**
-
-```
-Drawing Image → YOLO Detection → OCR Extraction → Tolerance Analysis → Quote PDF
-```
-
-**Tech Stack**: FastAPI + React + YOLO v11 + eDOCr2 + Docker Compose
-**Access**: http://localhost:5173
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-03
+> 모든 문서: <100줄, 모듈식 구조, 계층적 구성
 
 ---
 
-## 📚 Documentation Map
+## 프로젝트 개요
 
-**Complete index**: [docs/00_INDEX.md](docs/00_INDEX.md)
+**기계 도면 자동 분석 및 제조 견적 생성 시스템**
 
-| Category | Key Files | Lines |
-|----------|-----------|-------|
-| **Quick Start** | [QUICK_START.md](QUICK_START.md) | ~80 |
-| **Architecture** | [ARCHITECTURE.md](ARCHITECTURE.md) | ~150 |
-| **Workflows** | [WORKFLOWS.md](WORKFLOWS.md) | ~120 |
-| **Issues** | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | ~100 |
-| **Roadmap** | [ROADMAP.md](ROADMAP.md) | ~200 |
-| **API Docs** | [docs/api/](docs/api/) | 12 APIs |
-| **BlueprintFlow** | [docs/blueprintflow/](docs/blueprintflow/) | 12 files |
+```
+도면 이미지 → YOLO 검출 → OCR 추출 → 공차 분석 → 견적 PDF
+```
+
+| 항목 | 값 |
+|------|-----|
+| **기술 스택** | FastAPI + React 19 + YOLO v11 + eDOCr2 + Docker |
+| **프론트엔드** | http://localhost:5173 |
+| **백엔드** | http://localhost:8000 |
+| **상태** | Phase 6 진행 중 (테스트 & 최적화) |
 
 ---
 
-## 📁 Project Structure
+## 핵심 파일 위치
 
-```
-/home/uproot/ax/poc/
-├── gateway-api/      ⭐ Main orchestrator (Port 8000)
-├── yolo-api/         🎯 Object detection (Port 5005)
-├── edocr2-v2-api/    📝 OCR service (Port 5002)
-├── edgnet-api/       🎨 Segmentation (Port 5012)
-├── skinmodel-api/    📐 Tolerance (Port 5003)
-├── paddleocr-api/    📄 Aux OCR (Port 5006)
-├── vl-api/           🤖 Vision LLMs (Port 5004)
-├── knowledge-api/    🧠 Knowledge Engine (Port 5007) - Neo4j + GraphRAG + VectorRAG
-├── tesseract-api/    📜 Tesseract OCR (Port 5008)
-├── trocr-api/        ✍️ TrOCR (Port 5009) - Handwritten OCR
-├── esrgan-api/       🔍 ESRGAN Upscaler (Port 5010)
-├── ocr-ensemble-api/ 🎭 OCR Ensemble (Port 5011) - Multi-engine voting
-└── web-ui/           🌐 React frontend (Port 5173)
-```
+### 프론트엔드 (web-ui/)
 
-**Modular API pattern**: api_server.py (endpoints) + services/ (logic) + models/ (schemas)
+| 목적 | 파일 경로 |
+|------|----------|
+| **노드 정의** | `src/config/nodeDefinitions.ts` |
+| **스펙 서비스** | `src/services/specService.ts` |
+| **노드 훅** | `src/hooks/useNodeDefinitions.ts` |
+| **API 클라이언트** | `src/lib/api.ts` |
+| **스토어** | `src/store/workflowStore.ts`, `apiConfigStore.ts` |
+| **BlueprintFlow** | `src/pages/blueprintflow/BlueprintFlowBuilder.tsx` |
+| **테스트** | `src/config/nodeDefinitions.test.ts`, `src/store/apiConfigStore.test.ts` |
+| **번역** | `src/locales/ko.json`, `src/locales/en.json` |
+| **ESLint** | `eslint.config.js` |
+| **Vite 설정** | `vite.config.ts` |
+
+### 백엔드 (gateway-api/)
+
+| 목적 | 파일 경로 |
+|------|----------|
+| **API 서버** | `api_server.py` |
+| **API 스펙** | `api_specs/*.yaml` |
+| **Executor 레지스트리** | `blueprintflow/executors/executor_registry.py` |
+| **YOLO Executor** | `blueprintflow/executors/yolo_executor.py` |
+| **서비스 레이어** | `services/yolo_service.py`, `services/edocr2_service.py` |
+| **테스트** | `tests/test_executor_registry.py` |
+
+### API 소스코드 (models/)
+
+| 목적 | 파일 경로 |
+|------|----------|
+| **YOLO API** | `models/yolo-api/api_server.py` |
+| **eDOCr2 API** | `models/edocr2-v2-api/api_server.py` |
+| **기타 API** | `models/{api-id}-api/api_server.py` |
+
+### 스크립트 (scripts/)
+
+| 목적 | 파일 경로 |
+|------|----------|
+| **API 스캐폴딩** | `scripts/create_api.py` |
 
 ---
 
-## ⚡ Quick Commands
+## API 서비스 (12개)
+
+| 카테고리 | 서비스 | 포트 | 용도 |
+|----------|--------|------|------|
+| **Detection** | YOLO | 5005 | 객체 검출 (14가지 심볼) |
+| **OCR** | eDOCr2 | 5002 | 한국어 치수 인식 |
+| **OCR** | PaddleOCR | 5006 | 다국어 OCR |
+| **OCR** | Tesseract | 5008 | 문서 OCR |
+| **OCR** | TrOCR | 5009 | 필기체 OCR |
+| **OCR** | OCR Ensemble | 5011 | 4엔진 가중 투표 |
+| **Segmentation** | EDGNet | 5012 | 엣지 세그멘테이션 |
+| **Preprocessing** | ESRGAN | 5010 | 4x 업스케일링 |
+| **Analysis** | SkinModel | 5003 | 공차 분석 |
+| **Knowledge** | Knowledge | 5007 | Neo4j + GraphRAG |
+| **AI** | VL | 5004 | Vision-Language 모델 |
+| **Orchestrator** | Gateway | 8000 | 파이프라인 조정 |
+
+---
+
+## 개발 명령어
 
 ```bash
-# Start all services
-docker-compose up -d
+# 프론트엔드
+cd web-ui
+npm run dev          # 개발 서버
+npm run build        # 프로덕션 빌드
+npm run lint         # ESLint 검사
+npm run test:run     # 테스트 실행
 
-# Check health
-curl http://localhost:8000/api/v1/health
+# 백엔드
+cd gateway-api
+pytest tests/ -v     # 테스트 실행
 
-# View logs
-docker logs gateway-api -f
-
-# Test pipeline
-curl -X POST -F "file=@test.jpg" \
-  -F "pipeline_mode=speed" \
-  http://localhost:8000/api/v1/process
+# Docker
+docker-compose up -d          # 전체 서비스 시작
+docker logs gateway-api -f    # 로그 확인
 ```
 
 ---
 
-## 🎯 For LLMs: Navigation Guide
+## 코드 품질 기준
 
-### By Task Type
+### TypeScript
 
-| Task | Read First | Then Read |
-|------|-----------|-----------|
-| Quick overview | QUICK_START.md | ARCHITECTURE.md |
-| Add/modify feature | WORKFLOWS.md | Relevant API docs |
-| Debug issue | KNOWN_ISSUES.md | API error logs |
-| BlueprintFlow dev | docs/blueprintflow/01_overview.md | 04_optimization/ |
-| API parameter info | docs/api/{api}/parameters.md | - |
+| 항목 | 상태 | 기준 |
+|------|------|------|
+| 빌드 | ✅ | 에러 0개 |
+| ESLint | ⚠️ | 에러 0개 (경고 허용) |
+| 테스트 | ✅ | 31개 통과 |
 
-### LLM Best Practices
-
-1. **Modular reading**: Each doc <100 lines for efficient context usage
-2. **Single responsibility**: One topic per file
-3. **Track feedback**: "안된다" → KNOWN_ISSUES.md, "잘된다" → RESOLVED
-4. **Update roadmap**: Use checkboxes [ ] → [-] → [x] with timestamps
-5. **BlueprintFlow isolation**: New routes only, never modify production code
-
----
-
-## 🌐 Translation (i18n)
-
-**Pattern**: Use `useTranslation()` hook, never hardcode text
+### 카테고리 타입
 
 ```typescript
-import { useTranslation } from 'react-i18next';
-
-export default function MyComponent() {
-  const { t } = useTranslation();
-  return <h1>{t('page.title')}</h1>;
-}
+type NodeCategory =
+  | 'input' | 'detection' | 'ocr' | 'segmentation'
+  | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
 ```
 
-**Files**: `web-ui/src/locales/{ko,en}.json`
-**Rule**: Every new UI component MUST have translations in both languages
-
-**Translated pages**: Dashboard, Guide, Settings, Analyze, Monitor, BlueprintFlow (100%)
+**주의**: `'api'` 타입은 더 이상 사용하지 않음. 반드시 위 카테고리 중 하나 사용.
 
 ---
 
-## 🔮 BlueprintFlow ✅ Phase 1-5 Complete
+## 자주 하는 작업
 
-**Visual workflow builder for mechanical drawing analysis**
+### 1. 새 API 추가 (스캐폴딩 스크립트 사용)
 
-**Access**: http://localhost:5173/blueprintflow/builder
-**Status**: Frontend & Backend complete, Full API integration
+```bash
+# 스크립트 실행 - 자동으로 모든 파일 생성
+python scripts/create_api.py my-detector --port 5015 --category detection
 
-### Quick Facts
-- **16 node types**: ImageInput, TextInput, YOLO, eDOCr2, EDGNet, SkinModel, PaddleOCR, VL, Knowledge, Tesseract, TrOCR, ESRGAN, OCR Ensemble, IF, Loop, Merge
-- **9 categories**: Input, Detection, OCR, Segmentation, Preprocessing, Analysis, Knowledge, AI, Control
-- **4 templates**: Basic, Advanced, Loop, Multi-model
-- **Full i18n**: Korean/English translations complete
-- **Drag-and-drop**: ReactFlow-based visual canvas
-- **Parallel execution**: Time-overlap detection, 60% faster
+# 생성되는 파일:
+# - models/my-detector-api/api_server.py    ← 실제 로직 구현
+# - models/my-detector-api/Dockerfile
+# - models/my-detector-api/requirements.txt
+# - gateway-api/api_specs/my-detector.yaml  ← BlueprintFlow 메타데이터
 
-### Critical Issue: Over-Simplified Parameters ⚠️
+# 다음 단계:
+# 1. api_server.py의 process() 함수에 실제 로직 구현
+# 2. docker-compose.yml에 서비스 추가
+# 3. docker-compose up --build my-detector-api
+```
 
-**Problem**: Only 15.4% of actual API functionality exposed in BlueprintFlow (4/26 parameters)
+**카테고리 옵션**: detection, ocr, segmentation, preprocessing, analysis, knowledge, ai, control
 
-| API | Actual Params | Exposed Params | Coverage |
-|-----|--------------|----------------|----------|
-| eDOCr2 | 6 | **0** ❌ | 0% |
-| SkinModel | 4 | **0** ❌ | 0% |
-| VL | 4 | **0** ❌ | 0% |
-| YOLO | 6 | 2 | 33% |
-| PaddleOCR | 4 | 1 | 25% |
-| EDGNet | 4 | 1 | 25% |
+### 2. 기존 방식 (수동)
 
-**Solution**: Phase 4A - nodeDefinitions.ts complete overhaul (add 22 missing parameters)
+1. `models/{api-id}-api/api_server.py` 생성
+2. `gateway-api/api_specs/{api-id}.yaml` 생성
+3. docker-compose.yml에 서비스 추가
 
-### Documentation
+### 3. 파라미터 수정
 
-**Complete guide**: [docs/blueprintflow/README.md](docs/blueprintflow/README.md)
+1. `gateway-api/api_specs/{api-id}.yaml` - 스펙 파일 수정
+2. 또는 `nodeDefinitions.ts` - 프론트엔드 직접 수정 (정적 정의가 우선)
+3. `*_executor.py` - 백엔드 처리 로직
 
-| Topic | File | Lines |
-|-------|------|-------|
-| Overview | [01_overview.md](docs/blueprintflow/01_overview.md) | 60 |
-| Node types | [02_node_types.md](docs/blueprintflow/02_node_types.md) | 90 |
-| Templates | [03_templates.md](docs/blueprintflow/03_templates.md) | 80 |
-| YOLO models | [04_optimization/yolo_models.md](docs/blueprintflow/04_optimization/yolo_models.md) | 97 |
-| Pipeline options | [04_optimization/pipeline_options.md](docs/blueprintflow/04_optimization/pipeline_options.md) | 99 |
-| Optimization guide | [04_optimization/optimization_guide.md](docs/blueprintflow/04_optimization/optimization_guide.md) | 98 |
-| **TextInput node** | [08_textinput_node_guide.md](docs/blueprintflow/08_textinput_node_guide.md) | 250 |
-| **VL + TextInput** | [09_vl_textinput_integration.md](docs/blueprintflow/09_vl_textinput_integration.md) | 400 |
+### 4. 테스트 추가
 
-### Implementation Phases
+```typescript
+// 프론트엔드: src/**/*.test.ts
+import { describe, it, expect } from 'vitest';
 
-- [x] **Phase 1**: ReactFlow integration, Canvas setup ✅
-- [x] **Phase 2**: 11 node types implementation ✅
-- [x] **Phase 3**: Node metadata, Detail panel, i18n ✅
-- [x] **Phase 4**: Backend engine, Parallel execution, TextInput ✅ 2025-11-22
-- [x] **Phase 5**: PPT Gap Implementation - 5 new APIs & Executors ✅ 2025-12-01
-- [ ] **Phase 6**: Testing & optimization ⏳
+describe('TestName', () => {
+  it('should do something', () => {
+    expect(true).toBe(true);
+  });
+});
+```
 
-**Recent updates** (2025-12-01):
-- ✅ Knowledge API (Neo4j + GraphRAG + VectorRAG) - Port 5007
-- ✅ Tesseract OCR API - Port 5008
-- ✅ TrOCR API (Handwritten OCR) - Port 5009
-- ✅ ESRGAN Upscaler API - Port 5010
-- ✅ OCR Ensemble API (4-engine weighted voting) - Port 5011
-- ✅ Node categories reorganized (9 categories)
-- ✅ All executors registered in Gateway API
+```python
+# 백엔드: tests/test_*.py
+import pytest
 
-**Previous updates** (2025-11-22):
-- ✅ TextInput node (VL 프롬프트용, 향후 LLM 확장)
-- ✅ Parallel execution visualization (60% faster)
-- ✅ PaddleOCR visualization
-- ✅ EDGNet model change (graphsage → unet)
-- ✅ GenericAPIExecutor inputMappings (비-이미지 API 지원)
-
-**Next steps**: Phase 6 - Testing & optimization
+class TestName:
+    def test_something(self):
+        assert True
+```
 
 ---
 
-**Last Updated**: 2025-12-01
-**Version**: 5.0 (PPT Gap Implementation - Knowledge, Tesseract, TrOCR, ESRGAN, OCR Ensemble)
+## BlueprintFlow
+
+### 노드 타입 (16개)
+
+| 카테고리 | 노드 |
+|----------|------|
+| Input | ImageInput, TextInput |
+| Detection | YOLO |
+| OCR | eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble |
+| Segmentation | EDGNet |
+| Preprocessing | ESRGAN |
+| Analysis | SkinModel |
+| Knowledge | Knowledge |
+| AI | VL |
+| Control | IF, Loop, Merge |
+
+### 파라미터 커버리지 (100%)
+
+총 50개 파라미터가 nodeDefinitions.ts에 정의됨.
+
+---
+
+## CI/CD
+
+`.github/workflows/ci.yml`:
+- Node.js 20 + npm ci
+- ESLint, TypeScript build, Vitest
+- Python 3.11 + ruff + pytest
+
+---
+
+## 번들 최적화
+
+`vite.config.ts`에서 코드 분할 적용:
+
+| 청크 | 포함 라이브러리 |
+|------|----------------|
+| vendor-react | react, react-dom, react-router-dom |
+| vendor-charts | recharts, mermaid |
+| vendor-flow | reactflow |
+| vendor-utils | axios, zustand, date-fns, i18next |
+
+**결과**: 2.2MB → 1.18MB (46% 감소)
+
+---
+
+## 알려진 이슈
+
+| 이슈 | 상태 | 해결책 |
+|------|------|--------|
+| ESLint any 경고 158개 | ⚠️ | error → warn 변경됨 |
+| 번들 크기 경고 | ⚠️ | chunkSizeWarningLimit: 600 |
+
+---
+
+## 문서 구조
+
+```
+docs/
+├── 00_INDEX.md           # 전체 인덱스
+├── api/                  # API별 문서
+│   ├── yolo/
+│   ├── edocr2/
+│   └── ...
+└── blueprintflow/        # BlueprintFlow 문서
+    ├── 01_overview.md
+    ├── 02_node_types.md
+    └── ...
+```
+
+---
+
+## API 스펙 시스템
+
+새 API 추가 시 자동 통합을 위한 YAML 기반 스펙 시스템:
+
+```
+gateway-api/api_specs/
+├── api_spec_schema.json    # JSON Schema (검증용)
+├── yolo.yaml               # YOLO Detection
+├── edocr2.yaml             # eDOCr2 OCR
+├── edgnet.yaml             # EDGNet Segmentation
+├── vl.yaml                 # Vision-Language
+├── skinmodel.yaml          # SkinModel Tolerance
+├── paddleocr.yaml          # PaddleOCR
+├── knowledge.yaml          # Knowledge Engine
+├── tesseract.yaml          # Tesseract OCR
+├── trocr.yaml              # TrOCR
+├── esrgan.yaml             # ESRGAN Upscaler
+└── ocr-ensemble.yaml       # OCR Ensemble
+```
+
+**API 엔드포인트**:
+- `GET /api/v1/specs` - 모든 스펙 조회
+- `GET /api/v1/specs/{api_id}` - 특정 스펙 조회
+- `GET /api/v1/specs/{api_id}/blueprintflow` - 노드 메타데이터
+
+---
+
+## 버전 히스토리
+
+| 버전 | 날짜 | 주요 변경 |
+|------|------|----------|
+| 7.0 | 2025-12-03 | API 스펙 표준화 시스템, 스캐폴딩 스크립트 |
+| 6.0 | 2025-12-03 | 테스트 체계 구축, ESLint 정리, 번들 최적화 |
+| 5.0 | 2025-12-01 | 5개 신규 API 추가 (Knowledge, Tesseract, TrOCR, ESRGAN, OCR Ensemble) |
+| 4.0 | 2025-11-22 | TextInput 노드, 병렬 실행 |
+
+---
+
 **Managed By**: Claude Code (Opus 4.5)

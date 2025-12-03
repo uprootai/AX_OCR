@@ -36,29 +36,31 @@ class GenericAPIExecutor(BaseNodeExecutor):
         method = self.api_config.get("method", "POST").upper()
 
         full_url = f"{base_url}{endpoint}"
+        timeout = float(self.api_config.get("timeout", 60))
+        content_type = self.api_config.get("contentType", "multipart/form-data")
 
-        self.logger.info(f"Generic API 호출: {method} {full_url}")
+        self.logger.info(f"Generic API 호출: {method} {full_url} (timeout: {timeout}s)")
 
         # 이미지 처리 (필요한 경우)
         requires_image = self.api_config.get("requiresImage", True)
 
         try:
             if method == "POST":
-                if requires_image:
+                if requires_image and "multipart" in content_type:
                     # 이미지를 multipart/form-data로 전송
                     file_bytes = prepare_image_for_api(inputs, context)
 
                     # 추가 파라미터
                     data = self._prepare_form_data()
 
-                    async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with httpx.AsyncClient(timeout=timeout) as client:
                         files = {"file": ("image.jpg", file_bytes, "image/jpeg")}
                         response = await client.post(full_url, files=files, data=data)
-                else:
+                elif not requires_image or "json" in content_type:
                     # JSON body로 전송
                     json_data = self._prepare_json_data(inputs)
 
-                    async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with httpx.AsyncClient(timeout=timeout) as client:
                         response = await client.post(full_url, json=json_data)
 
                 if response.status_code == 200:
@@ -70,7 +72,7 @@ class GenericAPIExecutor(BaseNodeExecutor):
 
             elif method == "GET":
                 params = self._prepare_query_params()
-                async with httpx.AsyncClient(timeout=60.0) as client:
+                async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.get(full_url, params=params)
 
                 if response.status_code == 200:

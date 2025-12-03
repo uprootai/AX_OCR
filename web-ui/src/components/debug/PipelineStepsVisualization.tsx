@@ -44,11 +44,11 @@ export default function PipelineStepsVisualization({ imageFile, result }: Pipeli
         : undefined,
       data: {
         total_detections: result.data?.yolo_results?.total_detections || 0,
-        classes: result.data?.yolo_results?.detections?.reduce((acc: any, det: any) => {
+        classes: result.data?.yolo_results?.detections?.reduce((acc: Record<string, number>, det: { class_name?: string; class?: string }) => {
           const className = det.class_name || det.class || 'unknown';
           acc[className] = (acc[className] || 0) + 1;
           return acc;
-        }, {}) || {}
+        }, {} as Record<string, number>) || {}
       },
       processingTime: result.data?.yolo_results?.processing_time,
       status: result.data?.yolo_results ? 'completed' : 'skipped'
@@ -242,7 +242,7 @@ export default function PipelineStepsVisualization({ imageFile, result }: Pipeli
                     <div>
                       <p className="text-sm font-medium mb-2">검출된 치수 (상위 10개)</p>
                       <div className="max-h-48 overflow-y-auto space-y-1">
-                        {step.data.dimensions.slice(0, 10).map((dim: any, idx: number) => (
+                        {step.data.dimensions.slice(0, 10).map((dim: { value?: string | number; text?: string; confidence: number }, idx: number) => (
                           <div key={idx} className="flex items-center justify-between p-2 bg-background rounded text-xs">
                             <span className="font-mono font-semibold">{dim.value || dim.text}</span>
                             <Badge variant="outline" className="text-xs">

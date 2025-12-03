@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Image,
   Target,
@@ -199,15 +199,15 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
     setAllNodeConfigs([...baseNodeConfigs, ...customNodeConfigs]);
   }, [customAPIs]);
 
-  const inputNodes = allNodeConfigs.filter((n) => n.category === 'input');
-  const detectionNodes = allNodeConfigs.filter((n) => n.category === 'detection');
-  const ocrNodes = allNodeConfigs.filter((n) => n.category === 'ocr');
-  const segmentationNodes = allNodeConfigs.filter((n) => n.category === 'segmentation');
-  const preprocessingNodes = allNodeConfigs.filter((n) => n.category === 'preprocessing');
-  const analysisNodes = allNodeConfigs.filter((n) => n.category === 'analysis');
-  const knowledgeNodes = allNodeConfigs.filter((n) => n.category === 'knowledge');
-  const aiNodes = allNodeConfigs.filter((n) => n.category === 'ai');
-  const controlNodes = allNodeConfigs.filter((n) => n.category === 'control');
+  const inputNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'input'), [allNodeConfigs]);
+  const detectionNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'detection'), [allNodeConfigs]);
+  const ocrNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'ocr'), [allNodeConfigs]);
+  const segmentationNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'segmentation'), [allNodeConfigs]);
+  const preprocessingNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'preprocessing'), [allNodeConfigs]);
+  const analysisNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'analysis'), [allNodeConfigs]);
+  const knowledgeNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'knowledge'), [allNodeConfigs]);
+  const aiNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'ai'), [allNodeConfigs]);
+  const controlNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'control'), [allNodeConfigs]);
 
   return (
     <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">

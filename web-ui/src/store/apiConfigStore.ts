@@ -9,7 +9,7 @@ export interface APIConfig {
   port: number;
   icon: string;
   color: string;
-  category: 'api' | 'control';
+  category: 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
   description: string;
   enabled: boolean;
   // BlueprintFlow 노드 정보

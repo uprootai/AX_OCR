@@ -3,7 +3,7 @@ BlueprintFlow Workflow Schema Definitions
 워크플로우 정의를 위한 Pydantic 모델
 """
 from typing import Dict, List, Optional, Any, Literal
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class NodeParameter(BaseModel):
@@ -41,14 +41,16 @@ class WorkflowDefinition(BaseModel):
     edges: List[WorkflowEdge] = Field(..., description="엣지 목록")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="추가 메타데이터")
 
-    @validator('nodes')
-    def validate_nodes_not_empty(cls, v):
+    @field_validator('nodes')
+    @classmethod
+    def validate_nodes_not_empty(cls, v: List[WorkflowNode]) -> List[WorkflowNode]:
         if not v:
             raise ValueError("워크플로우는 최소 1개 이상의 노드가 필요합니다")
         return v
 
-    @validator('nodes')
-    def validate_unique_node_ids(cls, v):
+    @field_validator('nodes')
+    @classmethod
+    def validate_unique_node_ids(cls, v: List[WorkflowNode]) -> List[WorkflowNode]:
         ids = [node.id for node in v]
         if len(ids) != len(set(ids)):
             raise ValueError("노드 ID는 중복될 수 없습니다")

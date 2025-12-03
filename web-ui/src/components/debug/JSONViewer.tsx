@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -70,7 +70,7 @@ interface JSONNodeProps {
   depth: number;
 }
 
-function JSONNode({
+const JSONNode = memo(function JSONNode({
   name,
   value,
   collapsible,
@@ -229,4 +229,4 @@ function JSONNode({
       <span>{String(value)}</span>
     </div>
   );
-}
+});

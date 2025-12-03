@@ -1,0 +1,96 @@
+# TrOCR API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: trocr
+  name: TrOCR
+  version: 1.0.0
+  port: 5009
+  description: Microsoft TrOCR Transformer 기반 OCR
+  author: AX Team
+  tags:
+    - ocr
+    - transformer
+    - handwriting
+    - scene-text
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#0ea5e9"
+  icon: PenTool
+  requiresImage: true
+  recommendedInputs:
+    - from: yolo
+      field: detections
+      reason: YOLO로 검출한 텍스트 영역을 개별 처리합니다
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 텍스트 라인 이미지 (크롭 권장)
+
+outputs:
+  - name: texts
+    type: OCRResult[]
+    description: 인식된 텍스트 목록
+  - name: full_text
+    type: string
+    description: 전체 텍스트
+
+parameters:
+  - name: model_type
+    type: select
+    default: printed
+    options:
+      - printed
+      - handwritten
+      - large-printed
+      - large-handwritten
+    description: 모델 타입
+
+  - name: max_length
+    type: number
+    default: 64
+    min: 16
+    max: 256
+    step: 8
+    description: 최대 출력 길이
+
+  - name: num_beams
+    type: number
+    default: 4
+    min: 1
+    max: 10
+    step: 1
+    description: Beam Search 빔 수
+
+mappings:
+  output:
+    texts: texts
+    full_text: full_text
+
+i18n:
+  ko:
+    label: TrOCR
+    description: Transformer 기반 OCR - 손글씨/장면 텍스트에 강함
+  en:
+    label: TrOCR
+    description: Transformer-based OCR - strong on handwriting/scene text
+
+examples:
+  - 손글씨 텍스트 인식
+  - 개별 텍스트 라인 처리
+
+usageTips:
+  - 단일 텍스트 라인에 최적화됨
+  - YOLO로 텍스트 영역 검출 후 사용 권장
+  - OCR Ensemble과 함께 사용시 10% 가중치
