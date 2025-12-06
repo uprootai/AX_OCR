@@ -3,6 +3,48 @@ import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
 import { getNodeDefinition } from '../config/nodeDefinitions';
 
+// Helper: Get saved hyperparameters from localStorage for a specific node type
+const getSavedHyperparameters = (nodeType: string): Record<string, any> => {
+  try {
+    const savedHyperParams = localStorage.getItem('hyperParameters');
+    if (!savedHyperParams) return {};
+
+    const allParams = JSON.parse(savedHyperParams);
+    const result: Record<string, any> = {};
+
+    // Map node types to their localStorage prefixes
+    const prefixMap: Record<string, string> = {
+      yolo: 'yolo',
+      edocr2: 'edocr2_v2',
+      edocr2_v1: 'edocr2_v1',
+      edocr2_v2: 'edocr2_v2',
+      edgnet: 'edgnet',
+      paddleocr: 'paddleocr',
+      surya_ocr: 'surya_ocr',
+      doctr: 'doctr',
+      easyocr: 'easyocr',
+      skinmodel: 'skinmodel',
+      vl: 'vl',
+    };
+
+    const prefix = prefixMap[nodeType.toLowerCase()] || nodeType.toLowerCase();
+
+    // Extract parameters for this node type
+    Object.keys(allParams).forEach((key) => {
+      if (key.startsWith(`${prefix}_`)) {
+        // Remove prefix to get the parameter name
+        const paramName = key.substring(prefix.length + 1);
+        result[paramName] = allParams[key];
+      }
+    });
+
+    return result;
+  } catch (e) {
+    console.error('Failed to load saved hyperparameters:', e);
+    return {};
+  }
+};
+
 interface NodeStatus {
   nodeId: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
@@ -203,9 +245,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
             });
           }
 
-          // Merge: default parameters <- user-set parameters
+          // Get saved hyperparameters from localStorage (API Settings page)
+          const savedParams = getSavedHyperparameters(node.type || '');
+
+          // Merge order: defaults <- saved hyperparameters <- user-set parameters
           const mergedParameters = {
             ...defaultParams,
+            ...savedParams,
             ...(node.data?.parameters || {}),
           };
 
@@ -309,9 +355,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
             });
           }
 
-          // Merge: default parameters <- user-set parameters
+          // Get saved hyperparameters from localStorage (API Settings page)
+          const savedParams = getSavedHyperparameters(node.type || '');
+
+          // Merge order: defaults <- saved hyperparameters <- user-set parameters
           const mergedParameters = {
             ...defaultParams,
+            ...savedParams,
             ...(node.data?.parameters || {}),
           };
 

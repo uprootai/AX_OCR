@@ -1,0 +1,97 @@
+# DocTR API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: doctr
+  name: DocTR
+  version: 1.0.0
+  host: doctr-api
+  port: 5014
+  description: "DocTR - 2단계 파이프라인 (Detection + Recognition), Apache 2.0"
+  author: AX Team
+  tags:
+    - ocr
+    - document
+    - detection
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#10b981"
+  icon: FileSearch
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 입력 이미지 (PNG, JPEG, PDF)
+
+outputs:
+  - name: texts
+    type: TextResult[]
+    description: 인식된 텍스트 배열
+  - name: full_text
+    type: string
+    description: 전체 텍스트
+  - name: pages
+    type: object[]
+    description: 페이지별 상세 결과
+
+parameters:
+  - name: det_arch
+    type: string
+    default: "db_resnet50"
+    description: Detection 모델
+    uiType: select
+    options:
+      - db_resnet50
+      - db_mobilenet_v3_large
+      - linknet_resnet18
+  - name: reco_arch
+    type: string
+    default: "crnn_vgg16_bn"
+    description: Recognition 모델
+    uiType: select
+    options:
+      - crnn_vgg16_bn
+      - crnn_mobilenet_v3_small
+      - master
+  - name: straighten_pages
+    type: boolean
+    default: false
+    description: 페이지 정렬
+    uiType: checkbox
+  - name: export_as_xml
+    type: boolean
+    default: false
+    description: XML로 내보내기
+    uiType: checkbox
+  - name: visualize
+    type: boolean
+    default: true
+    description: 오버레이 이미지 생성
+    uiType: checkbox
+
+mappings:
+  input:
+    file: image
+  output:
+    texts: data.texts
+    full_text: data.full_text
+    pages: data.pages
+
+i18n:
+  ko:
+    label: DocTR
+    description: "2단계 파이프라인 OCR (Detection + Recognition)"
+  en:
+    label: DocTR
+    description: "2-stage pipeline OCR (Detection + Recognition)"

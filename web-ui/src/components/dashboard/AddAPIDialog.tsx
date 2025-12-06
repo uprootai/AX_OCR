@@ -101,9 +101,10 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
         displayName: apiInfo.display_name || apiInfo.displayName || '',
         baseUrl: searchUrl,
         port: port,
-        icon: apiInfo.blueprintflow?.icon || '🏷️',
-        color: apiInfo.blueprintflow?.color || '#a855f7',
-        category: apiInfo.blueprintflow?.category || 'ocr',
+        // icon/color/category: root 레벨 또는 blueprintflow 하위 모두 지원
+        icon: apiInfo.icon || apiInfo.blueprintflow?.icon || '🏷️',
+        color: apiInfo.color || apiInfo.blueprintflow?.color || '#a855f7',
+        category: apiInfo.category || apiInfo.blueprintflow?.category || 'ocr',
         description: apiInfo.description || '',
         enabled: true,
       });

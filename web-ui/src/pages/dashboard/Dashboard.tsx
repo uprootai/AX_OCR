@@ -2,17 +2,42 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import APIStatusMonitor from '../../components/monitoring/APIStatusMonitor';
 import AddAPIDialog from '../../components/dashboard/AddAPIDialog';
+import ExportToBuiltinDialog from '../../components/dashboard/ExportToBuiltinDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { TestTube, Activity, FileText, TrendingUp, Plus, RefreshCw } from 'lucide-react';
-import { useAPIConfigStore } from '../../store/apiConfigStore';
+import { TestTube, Activity, FileText, TrendingUp, Plus, RefreshCw, Download, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useAPIConfigStore, type APIConfig } from '../../store/apiConfigStore';
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const [isAddAPIDialogOpen, setIsAddAPIDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [selectedAPIForExport, setSelectedAPIForExport] = useState<APIConfig | null>(null);
   const [isAutoDiscovering, setIsAutoDiscovering] = useState(false);
-  const { addAPI } = useAPIConfigStore();
+  const { addAPI, customAPIs, removeAPI, toggleAPI } = useAPIConfigStore();
+
+  const handleExportAPI = (api: APIConfig) => {
+    setSelectedAPIForExport(api);
+    setIsExportDialogOpen(true);
+  };
+
+  /**
+   * Docker 내부 호스트명을 localhost로 변환
+   * 예: http://yolo-api:5005 -> http://localhost:5005
+   */
+  const convertToLocalhost = (url: string): string => {
+    try {
+      const parsed = new URL(url);
+      // Docker 서비스명 패턴: xxx-api 형태
+      if (parsed.hostname.includes('-api') || parsed.hostname.includes('_api')) {
+        parsed.hostname = 'localhost';
+      }
+      return parsed.toString().replace(/\/$/, ''); // 끝의 슬래시 제거
+    } catch {
+      return url;
+    }
+  };
 
   /**
    * Gateway API Registry에서 자동으로 API 검색
@@ -35,12 +60,15 @@ export default function Dashboard() {
             return;
           }
 
+          // Docker 내부 URL을 localhost로 변환
+          const browserAccessibleUrl = convertToLocalhost(apiInfo.base_url);
+
           // APIConfig 형식으로 변환하여 추가
           addAPI({
             id: apiInfo.id,
             name: apiInfo.name,
             displayName: apiInfo.display_name,
-            baseUrl: apiInfo.base_url,
+            baseUrl: browserAccessibleUrl,
             port: apiInfo.port,
             icon: apiInfo.icon,
             color: apiInfo.color,
@@ -112,26 +140,128 @@ export default function Dashboard() {
         onClose={() => setIsAddAPIDialogOpen(false)}
       />
 
+      {/* Export to Built-in Dialog */}
+      <ExportToBuiltinDialog
+        isOpen={isExportDialogOpen}
+        onClose={() => {
+          setIsExportDialogOpen(false);
+          setSelectedAPIForExport(null);
+        }}
+        apiConfig={selectedAPIForExport}
+      />
+
+      {/* Custom APIs Management */}
+      {customAPIs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Custom APIs ({customAPIs.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {customAPIs.map((api) => (
+                <div
+                  key={api.id}
+                  className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
+                    api.enabled ? 'bg-background' : 'bg-muted/50 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                      style={{ backgroundColor: api.color + '20', color: api.color }}
+                    >
+                      {api.icon}
+                    </div>
+                    <div>
+                      <div className="font-semibold flex items-center gap-2">
+                        {api.displayName}
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{api.id}</code>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{api.description}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {api.baseUrl} • {api.category}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Toggle */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleAPI(api.id)}
+                      title={api.enabled ? '비활성화' : '활성화'}
+                    >
+                      {api.enabled ? (
+                        <ToggleRight className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <ToggleLeft className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </Button>
+
+                    {/* Export to Built-in */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExportAPI(api)}
+                      title="Built-in API로 내보내기"
+                      className="gap-1"
+                    >
+                      <Download className="w-4 h-4" />
+                      내보내기
+                    </Button>
+
+                    {/* Delete */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm(`"${api.displayName}" API를 삭제하시겠습니까?`)) {
+                          removeAPI(api.id);
+                        }
+                      }}
+                      title="삭제"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 가이드 메시지 */}
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>💡 워크플로우:</strong> Custom API로 테스트 → <strong>내보내기</strong> 버튼으로 Built-in API 코드 생성 → 파일 저장 → Custom API 비활성화
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Quick Actions */}
       <div className="grid md:grid-cols-3 gap-6">
         <Card className="hover:border-primary transition-colors cursor-pointer">
-          <Link to="/test">
+          <Link to="/blueprintflow/builder">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TestTube className="h-5 w-5 text-primary" />
-                {t('dashboard.apiTests')}
+                BlueprintFlow
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                {t('dashboard.apiTestsDesc')}
+                비주얼 워크플로우로 API를 테스트하고 파이프라인을 구성하세요.
               </p>
             </CardContent>
           </Link>
         </Card>
 
         <Card className="hover:border-primary transition-colors cursor-pointer">
-          <Link to="/analyze">
+          <Link to="/blueprintflow/templates">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
@@ -238,13 +368,13 @@ export default function Dashboard() {
                 2
               </div>
               <div>
-                <h4 className="font-semibold">개별 API 테스트</h4>
+                <h4 className="font-semibold">BlueprintFlow 워크플로우</h4>
                 <p className="text-sm text-muted-foreground">
-                  Test 메뉴에서 각 API의 기능을 개별적으로 테스트할 수 있습니다.
+                  비주얼 워크플로우에서 각 API를 노드로 추가하고 테스트하세요.
                 </p>
-                <Link to="/test">
+                <Link to="/blueprintflow/builder">
                   <Button variant="outline" size="sm" className="mt-2">
-                    테스트 시작하기
+                    워크플로우 시작하기
                   </Button>
                 </Link>
               </div>
@@ -257,11 +387,11 @@ export default function Dashboard() {
               <div>
                 <h4 className="font-semibold">통합 분석 실행</h4>
                 <p className="text-sm text-muted-foreground">
-                  도면 파일을 업로드하여 OCR, 세그멘테이션, 공차 예측을 한 번에 실행하세요.
+                  템플릿을 선택하여 OCR, 세그멘테이션, 공차 예측을 한 번에 실행하세요.
                 </p>
-                <Link to="/analyze">
+                <Link to="/blueprintflow/templates">
                   <Button variant="outline" size="sm" className="mt-2">
-                    분석 시작하기
+                    템플릿 선택하기
                   </Button>
                 </Link>
               </div>

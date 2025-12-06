@@ -107,22 +107,19 @@ export const API_ENDPOINTS: Record<string, APIEndpoint> = {
 };
 
 /**
- * 관리 API 설정
+ * 관리 API 설정 (Gateway API 사용)
  */
-export const ADMIN_API_URL = getApiUrl('VITE_ADMIN_API_URL', 'http://localhost:9000');
+export const ADMIN_API_URL = getApiUrl('VITE_GATEWAY_URL', 'http://localhost:8000');
 
 export const ADMIN_ENDPOINTS = {
-  status: `${ADMIN_API_URL}/api/status`,
-  gpuStats: `${ADMIN_API_URL}/api/gpu/stats`,
-  models: (modelType: string) => `${ADMIN_API_URL}/api/models/${modelType}`,
-  train: (modelType: string) => `${ADMIN_API_URL}/api/train/${modelType}`,
-  logs: (service: string) => `${ADMIN_API_URL}/api/logs/${service}`,
+  status: `${ADMIN_API_URL}/admin/status`,
+  gpuStats: `${ADMIN_API_URL}/admin/status`,  // GPU 정보는 status에 포함
+  allModels: `${ADMIN_API_URL}/admin/models`,  // 모든 모델 경로
+  models: (modelType: string) => `${ADMIN_API_URL}/admin/models/${modelType}`,
+  logs: (service: string) => `${ADMIN_API_URL}/admin/logs/${service}`,
   docker: (action: string, service: string) =>
-    `${ADMIN_API_URL}/api/docker/${action}/${service}`,
-  inference: (apiName: string) => `${ADMIN_API_URL}/api/inference/${apiName}`,
-  trainingList: `${ADMIN_API_URL}/api/training/list`,
-  trainingStart: `${ADMIN_API_URL}/api/training/start`,
-  trainingStatus: (jobId: string) => `${ADMIN_API_URL}/api/training/${jobId}`,
+    `${ADMIN_API_URL}/admin/docker/${action}/${service}`,
+  dockerPs: `${ADMIN_API_URL}/admin/docker/ps`,
 };
 
 /**
@@ -244,13 +241,17 @@ export const TRAINABLE_MODELS = [
  * Docker 서비스 목록
  */
 export const DOCKER_SERVICES = [
-  { name: 'edocr2', displayName: 'eDOCr2', gpuEnabled: true },
+  { name: 'gateway', displayName: 'Gateway', gpuEnabled: false },
+  { name: 'yolo', displayName: 'YOLO', gpuEnabled: true },
+  { name: 'edocr2-v1', displayName: 'eDOCr v1', gpuEnabled: true },
+  { name: 'edocr2-v2', displayName: 'eDOCr v2', gpuEnabled: true },
+  { name: 'paddleocr', displayName: 'PaddleOCR', gpuEnabled: true },
+  { name: 'surya-ocr', displayName: 'Surya OCR', gpuEnabled: true },
+  { name: 'doctr', displayName: 'DocTR', gpuEnabled: true },
+  { name: 'easyocr', displayName: 'EasyOCR', gpuEnabled: false },
   { name: 'edgnet', displayName: 'EDGNet', gpuEnabled: true },
   { name: 'skinmodel', displayName: 'Skin Model', gpuEnabled: false },
-  { name: 'vl', displayName: 'VL API', gpuEnabled: false },
-  { name: 'yolo', displayName: 'YOLO', gpuEnabled: true },
-  { name: 'paddleocr', displayName: 'PaddleOCR', gpuEnabled: true },
-  { name: 'gateway', displayName: 'Gateway', gpuEnabled: false },
+  { name: 'vl', displayName: 'VL API', gpuEnabled: true },
 ];
 
 /**

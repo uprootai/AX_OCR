@@ -2,10 +2,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Home,
-  TestTube,
-  Activity,
-  Settings,
-  FileText,
   BookOpen,
   Book,
   Shield,
@@ -16,11 +12,7 @@ const navigationItems = [
   { key: 'dashboard', href: '/dashboard', icon: Home },
   { key: 'guide', href: '/guide', icon: BookOpen },
   { key: 'docs', href: '/docs', icon: Book },
-  { key: 'test', href: '/test', icon: TestTube },
-  { key: 'analyze', href: '/analyze', icon: FileText },
-  { key: 'monitor', href: '/monitor', icon: Activity },
   { key: 'admin', href: '/admin', icon: Shield },
-  { key: 'settings', href: '/settings', icon: Settings },
 ];
 
 const blueprintFlowItems = [
@@ -94,69 +86,6 @@ export default function Sidebar() {
               </Link>
             );
           })}
-        </div>
-      </div>
-
-      <div className="mt-4 p-4 bg-accent/50 rounded-lg" title={t('sidebar.quickTestTooltip')}>
-        <h3 className="font-semibold text-sm mb-2">{t('sidebar.quickTest')}</h3>
-        <div className="space-y-1 text-xs">
-          <Link
-            to="/test/gateway"
-            title={t('sidebar.gatewayTooltip')}
-            className="flex items-center gap-1 hover:underline text-muted-foreground"
-          >
-            <span>• Gateway</span>
-            <span className="px-1 py-0.5 text-[10px] font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-              {t('sidebar.recommended')}
-            </span>
-          </Link>
-          <Link
-            to="/test/yolo"
-            title={t('sidebar.yoloTooltip')}
-            className="flex items-center gap-1 hover:underline text-muted-foreground"
-          >
-            <span>• YOLOv11</span>
-            <span className="px-1 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">
-              GPU
-            </span>
-          </Link>
-          <Link
-            to="/test/edocr2"
-            title={t('sidebar.edocr2Tooltip')}
-            className="flex items-center gap-1 hover:underline text-muted-foreground"
-          >
-            <span>• eDOCr v1/v2</span>
-            <span className="px-1 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">
-              GPU
-            </span>
-          </Link>
-          <Link
-            to="/test/edgnet"
-            title={t('sidebar.edgnetTooltip')}
-            className="flex items-center gap-1 hover:underline text-muted-foreground"
-          >
-            <span>• EDGNet</span>
-            <span className="px-1 py-0.5 text-[10px] font-semibold bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">
-              GPU
-            </span>
-          </Link>
-          <Link
-            to="/test/skinmodel"
-            title={t('sidebar.skinmodelTooltip')}
-            className="block hover:underline text-muted-foreground"
-          >
-            • Skin Model
-          </Link>
-          <Link
-            to="/test/vl"
-            title={t('sidebar.vlTooltip')}
-            className="flex items-center gap-1 hover:underline text-muted-foreground"
-          >
-            <span>• VL Model</span>
-            <span className="px-1 py-0.5 text-[10px] font-semibold bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
-              LLM
-            </span>
-          </Link>
         </div>
       </div>
     </aside>

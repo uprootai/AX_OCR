@@ -91,7 +91,7 @@ class ExecutorRegistry:
 
         Args:
             spec: YAML 스펙 딕셔너리
-            host: API 서버 호스트
+            host: API 서버 호스트 (스펙의 metadata.host가 우선)
 
         Returns:
             api_config 딕셔너리
@@ -103,12 +103,14 @@ class ExecutorRegistry:
         i18n = spec.get("i18n", {})
 
         port = metadata.get("port", 5000)
+        # 스펙에 host가 정의되어 있으면 사용 (Docker 서비스 이름)
+        api_host = metadata.get("host", host)
 
         return {
             "id": metadata.get("id"),
             "name": metadata.get("name"),
             "displayName": i18n.get("ko", {}).get("label", metadata.get("name")),
-            "baseUrl": f"http://{host}:{port}",
+            "baseUrl": f"http://{api_host}:{port}",
             "endpoint": server.get("endpoint", "/api/v1/process"),
             "method": server.get("method", "POST"),
             "contentType": server.get("contentType", "multipart/form-data"),

@@ -4,7 +4,7 @@
  * BlueprintFlow NodeDefinition으로 변환
  */
 
-import { NodeDefinition, NodeParameter, RecommendedInput } from '../config/nodeDefinitions';
+import type { NodeDefinition, NodeParameter, RecommendedInput } from '../config/nodeDefinitions';
 
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8000';
 

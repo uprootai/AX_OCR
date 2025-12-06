@@ -27,9 +27,14 @@ import {
 } from '../../components/blueprintflow/nodes';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
-import { Play, Save, Trash2, Upload, X } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X, Bug, Download } from 'lucide-react';
 import { workflowApi } from '../../lib/api';
 import type { SampleFile } from '../../components/upload/SampleFileGrid';
+import DebugPanel from '../../components/blueprintflow/DebugPanel';
+import OCRVisualization from '../../components/debug/OCRVisualization';
+import ToleranceVisualization from '../../components/debug/ToleranceVisualization';
+import SegmentationVisualization from '../../components/debug/SegmentationVisualization';
+import ResultSummaryCard from '../../components/blueprintflow/ResultSummaryCard';
 
 // Base node type mapping
 const baseNodeTypes = {
@@ -76,6 +81,7 @@ function WorkflowBuilderCanvas() {
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
 
   // 동적으로 nodeTypes 생성 (기본 노드 + 커스텀 노드)
   const nodeTypes = useMemo(() => {
@@ -120,6 +126,23 @@ function WorkflowBuilderCanvas() {
     },
     []
   );
+
+  // Download execution result as JSON
+  const handleDownloadJSON = useCallback(() => {
+    if (!executionResult) return;
+
+    const dataStr = JSON.stringify(executionResult, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blueprintflow-result-${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [executionResult]);
 
   // Handle drag and drop
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -411,6 +434,15 @@ function WorkflowBuilderCanvas() {
                 <Trash2 className="w-4 h-4" />
                 {t('blueprintflow.clear')}
               </Button>
+              <Button
+                onClick={() => setIsDebugPanelOpen(!isDebugPanelOpen)}
+                variant={isDebugPanelOpen ? 'default' : 'outline'}
+                className="flex items-center gap-2"
+                title="Toggle Debug Panel"
+              >
+                <Bug className="w-4 h-4" />
+                Debug
+              </Button>
             </div>
           </div>
 
@@ -472,14 +504,25 @@ function WorkflowBuilderCanvas() {
               {executionResult && !isExecuting && (
                 <div className="space-y-3">
                   <div className="text-green-600 dark:text-green-400">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold">Status:</span>
-                      <span className="px-2 py-1 rounded bg-green-100 dark:bg-green-900 text-xs">
-                        {executionResult.status}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        ({executionResult.execution_time_ms?.toFixed(0) || 0}ms)
-                      </span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">Status:</span>
+                        <span className="px-2 py-1 rounded bg-green-100 dark:bg-green-900 text-xs">
+                          {executionResult.status}
+                        </span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          ({executionResult.execution_time_ms?.toFixed(0) || 0}ms)
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadJSON}
+                        className="text-xs"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        JSON
+                      </Button>
                     </div>
                     {executionResult.node_statuses && (
                       <div className="text-sm space-y-1">
@@ -499,6 +542,25 @@ function WorkflowBuilderCanvas() {
                       </div>
                     )}
                   </div>
+
+                  {/* Result Summary Card */}
+                  {executionResult.node_statuses && executionResult.node_statuses.length > 0 && (
+                    <ResultSummaryCard
+                      results={executionResult.node_statuses.map((nodeStatus: any) => {
+                        const workflowNode = nodes.find((n) => n.id === nodeStatus.node_id);
+                        return {
+                          nodeId: nodeStatus.node_id,
+                          nodeType: workflowNode?.type || 'unknown',
+                          status: nodeStatus.status === 'completed' ? 'success' :
+                                  nodeStatus.status === 'failed' ? 'error' :
+                                  nodeStatus.status === 'running' ? 'running' : 'pending',
+                          executionTime: nodeStatus.execution_time,
+                          output: nodeStatus.output || executionResult.final_output?.[nodeStatus.node_id],
+                        };
+                      })}
+                      totalExecutionTime={executionResult.execution_time_ms}
+                    />
+                  )}
 
                   {/* Progressive Pipeline Results */}
                   {executionResult.node_statuses && executionResult.node_statuses.length > 0 && (
@@ -766,11 +828,12 @@ function WorkflowBuilderCanvas() {
                                             <div className="mt-2 p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-800">
                                               <div className="text-xs font-semibold text-indigo-900 dark:text-indigo-100">
                                                 📏 Dimensions: {output.dimensions.length}
+                                                {output.gdt?.length > 0 && ` | GD&T: ${output.gdt.length}`}
                                               </div>
                                               <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
                                                 {output.dimensions.slice(0, 5).map((dim: any, i: number) => (
                                                   <div key={i}>
-                                                    • {dim.value || dim.text || JSON.stringify(dim).slice(0, 50)}
+                                                    • {dim.type && `[${dim.type}] `}{dim.value || dim.text || JSON.stringify(dim).slice(0, 50)}{dim.unit || ''}{dim.tolerance ? ` ±${dim.tolerance}` : ''}
                                                   </div>
                                                 ))}
                                                 {output.dimensions.length > 5 && (
@@ -779,6 +842,23 @@ function WorkflowBuilderCanvas() {
                                                   </div>
                                                 )}
                                               </div>
+                                            </div>
+                                          )}
+
+                                          {/* OCR Visualization (eDOCr2) */}
+                                          {(nodeType === 'edocr2' || nodeType.includes('ocr')) &&
+                                           (output?.dimensions || output?.gdt) &&
+                                           uploadedImage && (
+                                            <div className="mt-3">
+                                              <OCRVisualization
+                                                imageBase64={uploadedImage}
+                                                ocrResult={{
+                                                  dimensions: output.dimensions || [],
+                                                  gdt: output.gdt || [],
+                                                  text: output.text || { total_blocks: 0 },
+                                                }}
+                                                compact={true}
+                                              />
                                             </div>
                                           )}
 
@@ -864,6 +944,23 @@ function WorkflowBuilderCanvas() {
                                             </div>
                                           )}
 
+                                          {/* Segmentation Visualization (EDGNet) */}
+                                          {nodeType === 'edgnet' &&
+                                           (output?.num_components !== undefined || output?.classifications) && (
+                                            <div className="mt-3">
+                                              <SegmentationVisualization
+                                                imageBase64={uploadedImage || undefined}
+                                                segmentationResult={{
+                                                  num_components: output.num_components || 0,
+                                                  classifications: output.classifications || {},
+                                                  graph: output.graph,
+                                                  vectorization: output.vectorization,
+                                                }}
+                                                compact={true}
+                                              />
+                                            </div>
+                                          )}
+
                                           {/* Tolerance Analysis (SkinModel) */}
                                           {output?.tolerances && Array.isArray(output.tolerances) && (
                                             <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
@@ -895,6 +992,21 @@ function WorkflowBuilderCanvas() {
                                                   <div key={key}>• {key}: {String(value).slice(0, 50)}</div>
                                                 ))}
                                               </div>
+                                            </div>
+                                          )}
+
+                                          {/* Tolerance Visualization (SkinModel) */}
+                                          {nodeType === 'skinmodel' &&
+                                           (output?.manufacturability || output?.predicted_tolerances) && (
+                                            <div className="mt-3">
+                                              <ToleranceVisualization
+                                                toleranceData={{
+                                                  manufacturability: output.manufacturability,
+                                                  predicted_tolerances: output.predicted_tolerances,
+                                                  analysis: output.analysis,
+                                                }}
+                                                compact={true}
+                                              />
                                             </div>
                                           )}
 
@@ -1004,6 +1116,14 @@ function WorkflowBuilderCanvas() {
         selectedNode={selectedNode}
         onClose={() => setSelectedNode(null)}
         onUpdateNode={updateNodeData}
+      />
+
+      {/* Debug Panel */}
+      <DebugPanel
+        isOpen={isDebugPanelOpen}
+        onToggle={() => setIsDebugPanelOpen(!isDebugPanelOpen)}
+        executionResult={executionResult}
+        executionError={executionError}
       />
     </div>
   );

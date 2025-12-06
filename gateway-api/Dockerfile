@@ -6,9 +6,10 @@ LABEL description="Gateway API - Orchestration Service"
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Docker CLI
 RUN apt-get update && apt-get install -y \
     curl \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -25,6 +26,8 @@ COPY models/ ./models/
 COPY utils/ ./utils/
 COPY services/ ./services/
 COPY blueprintflow/ ./blueprintflow/
+COPY api_specs/ ./api_specs/
+COPY routers/ ./routers/
 
 # Create directories
 RUN mkdir -p /tmp/gateway/uploads /tmp/gateway/results

@@ -6,9 +6,11 @@ import { ZoomIn } from 'lucide-react';
 import type { OCRResult } from '../../types/api';
 
 interface OCRVisualizationProps {
-  imageFile: File;
+  imageFile?: File;
+  imageBase64?: string;  // Support base64 image string
   ocrResult: OCRResult;
   onZoomClick?: (imageDataUrl: string) => void;
+  compact?: boolean;  // Compact mode for BlueprintFlow
 }
 
 interface BoundingBox {
@@ -20,7 +22,7 @@ interface BoundingBox {
   type: 'dimension' | 'gdt' | 'text';
 }
 
-export default function OCRVisualization({ imageFile, ocrResult, onZoomClick }: OCRVisualizationProps) {
+export default function OCRVisualization({ imageFile, imageBase64, ocrResult, onZoomClick, compact: _compact = false }: OCRVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
@@ -75,14 +77,25 @@ export default function OCRVisualization({ imageFile, ocrResult, onZoomClick }: 
   }, [ocrResult]);
 
   useEffect(() => {
-    if (!imageFile || !canvasRef.current) return;
+    // Support both File and base64
+    if ((!imageFile && !imageBase64) || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const img = new Image();
-    const url = URL.createObjectURL(imageFile);
+    let url: string | null = null;
+
+    if (imageFile) {
+      url = URL.createObjectURL(imageFile);
+      img.src = url;
+    } else if (imageBase64) {
+      // Handle base64: add data URL prefix if needed
+      img.src = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:image/jpeg;base64,${imageBase64}`;
+    }
 
     img.onload = () => {
       // Set canvas size to image size
@@ -140,16 +153,14 @@ export default function OCRVisualization({ imageFile, ocrResult, onZoomClick }: 
       });
 
       setImageLoaded(true);
-      URL.revokeObjectURL(url);
+      if (url) URL.revokeObjectURL(url);
     };
 
     img.onerror = () => {
       console.error('Failed to load image');
-      URL.revokeObjectURL(url);
+      if (url) URL.revokeObjectURL(url);
     };
-
-    img.src = url;
-  }, [imageFile, boundingBoxes]);
+  }, [imageFile, imageBase64, boundingBoxes]);
 
   const dimensionCount = ocrResult.dimensions?.length || 0;
   const gdtCount = ocrResult.gdt?.length || 0;

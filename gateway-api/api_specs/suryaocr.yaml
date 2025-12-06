@@ -1,0 +1,79 @@
+# Surya OCR API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: suryaocr
+  name: Surya OCR
+  version: 1.0.0
+  host: surya-ocr-api
+  port: 5013
+  description: "Surya OCR - 90+ 언어 지원, 레이아웃 분석, GPL-3.0"
+  author: AX Team
+  tags:
+    - ocr
+    - multilingual
+    - layout
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#f59e0b"
+  icon: Languages
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 입력 이미지
+
+outputs:
+  - name: texts
+    type: TextResult[]
+    description: 인식된 텍스트 배열
+  - name: full_text
+    type: string
+    description: 전체 텍스트
+  - name: layout
+    type: object
+    description: 레이아웃 분석 결과
+
+parameters:
+  - name: languages
+    type: string
+    default: "ko,en"
+    description: 인식 언어 (쉼표 구분)
+    uiType: text
+  - name: detect_layout
+    type: boolean
+    default: false
+    description: 레이아웃 분석 포함
+    uiType: checkbox
+  - name: visualize
+    type: boolean
+    default: true
+    description: 오버레이 이미지 생성
+    uiType: checkbox
+
+mappings:
+  input:
+    file: image
+  output:
+    texts: data.texts
+    full_text: data.full_text
+    layout: data.layout
+
+i18n:
+  ko:
+    label: Surya OCR
+    description: "90+ 언어 지원, 레이아웃 분석"
+  en:
+    label: Surya OCR
+    description: "90+ language support, layout analysis"

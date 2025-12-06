@@ -1,0 +1,88 @@
+# EasyOCR API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: easyocr
+  name: EasyOCR
+  version: 1.0.0
+  host: easyocr-api
+  port: 5015
+  description: "EasyOCR - 80+ 언어 지원, CPU 친화적, 한국어 지원, Apache 2.0"
+  author: AX Team
+  tags:
+    - ocr
+    - multilingual
+    - korean
+    - cpu-friendly
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#8b5cf6"
+  icon: FileText
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 입력 이미지
+
+outputs:
+  - name: texts
+    type: TextResult[]
+    description: 인식된 텍스트 배열 (bbox 포함)
+  - name: full_text
+    type: string
+    description: 전체 텍스트
+
+parameters:
+  - name: languages
+    type: string
+    default: "ko,en"
+    description: 인식 언어 (쉼표 구분, ko/en/ja/ch_sim 등)
+    uiType: text
+  - name: detail
+    type: boolean
+    default: true
+    description: 상세 결과 (bbox 포함)
+    uiType: checkbox
+  - name: paragraph
+    type: boolean
+    default: false
+    description: 문단 단위로 결합
+    uiType: checkbox
+  - name: batch_size
+    type: integer
+    default: 1
+    description: 배치 크기
+    uiType: number
+    min: 1
+    max: 32
+  - name: visualize
+    type: boolean
+    default: true
+    description: 오버레이 이미지 생성
+    uiType: checkbox
+
+mappings:
+  input:
+    file: image
+  output:
+    texts: data.texts
+    full_text: data.full_text
+
+i18n:
+  ko:
+    label: EasyOCR
+    description: "80+ 언어 지원, CPU 친화적, 한국어 지원"
+  en:
+    label: EasyOCR
+    description: "80+ languages, CPU-friendly, Korean support"

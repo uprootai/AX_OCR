@@ -4,8 +4,9 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { nodeDefinitions, NodeDefinition } from '../config/nodeDefinitions';
-import { fetchAllNodeDefinitions, mergeWithDynamicSpecs } from '../services/specService';
+import { nodeDefinitions } from '../config/nodeDefinitions';
+import type { NodeDefinition } from '../config/nodeDefinitions';
+import { fetchAllNodeDefinitions } from '../services/specService';
 import { useTranslation } from 'react-i18next';
 
 interface UseNodeDefinitionsOptions {

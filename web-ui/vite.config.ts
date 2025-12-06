@@ -8,6 +8,10 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    fs: {
+      // Allow serving files from the parent docs folder via symlinks
+      allow: ['..'],
+    },
   },
   build: {
     rollupOptions: {

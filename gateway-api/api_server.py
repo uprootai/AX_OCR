@@ -60,6 +60,8 @@ from services import (
     process_yolo_crop_ocr, ensemble_ocr_results, calculate_quote
 )
 from api_registry import get_api_registry, APIMetadata
+from routers import admin_router
+from routers.admin_router import set_api_registry
 
 # Logging setup
 logging.basicConfig(
@@ -90,6 +92,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allow_headers=["Content-Type", "Authorization", "Accept"],
 )
+
+# Include Admin Router
+app.include_router(admin_router)
 
 # Configuration
 EDOCR_V1_URL = os.getenv("EDOCR_V1_URL", "http://edocr2-api:5001")
@@ -885,6 +890,9 @@ async def startup_event():
     logger.info("=" * 70)
 
     registry = get_api_registry()
+
+    # Admin Router에 Registry 연결
+    set_api_registry(registry)
 
     # API 자동 검색 (Docker 네트워크 내부 + localhost)
     logger.info("🔍 API 자동 검색 시작...")

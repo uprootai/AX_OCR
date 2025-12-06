@@ -16,17 +16,9 @@ import Landing from './pages/Landing';
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
 const Guide = lazy(() => import('./pages/dashboard/Guide'));
 const Docs = lazy(() => import('./pages/docs/Docs'));
-const TestHub = lazy(() => import('./pages/test/TestHub'));
-const TestEdocr2 = lazy(() => import('./pages/test/TestEdocr2'));
-const TestEdgnet = lazy(() => import('./pages/test/TestEdgnet'));
-const TestSkinmodel = lazy(() => import('./pages/test/TestSkinmodel'));
-const TestGateway = lazy(() => import('./pages/test/TestGateway'));
-const TestYolo = lazy(() => import('./pages/test/TestYolo'));
-const TestVL = lazy(() => import('./pages/test/TestVL'));
-const Analyze = lazy(() => import('./pages/analyze/Analyze'));
-const Monitor = lazy(() => import('./pages/monitor/Monitor'));
+// Monitor 페이지 제거됨 - Dashboard의 APIStatusMonitor로 통합
 const Admin = lazy(() => import('./pages/admin/Admin'));
-const Settings = lazy(() => import('./pages/settings/Settings'));
+const APIDetail = lazy(() => import('./pages/admin/APIDetail'));
 
 // BlueprintFlow Pages (lazy - heavy components)
 const BlueprintFlowBuilder = lazy(() => import('./pages/blueprintflow/BlueprintFlowBuilder'));
@@ -78,31 +70,16 @@ function App() {
                 <Route path="/guide" element={<Guide />} />
                 <Route path="/docs" element={<Docs />} />
 
-                {/* 테스트 페이지 */}
-                <Route path="/test" element={<TestHub />} />
-                <Route path="/test/yolo" element={<TestYolo />} />
-                <Route path="/test/edocr2" element={<TestEdocr2 />} />
-                <Route path="/test/edgnet" element={<TestEdgnet />} />
-                <Route path="/test/skinmodel" element={<TestSkinmodel />} />
-                <Route path="/test/gateway" element={<TestGateway />} />
-                <Route path="/test/vl" element={<TestVL />} />
-
-                {/* 분석 페이지 */}
-                <Route path="/analyze" element={<Analyze />} />
-
                 {/* BlueprintFlow 페이지 */}
                 <Route path="/blueprintflow/builder" element={<BlueprintFlowBuilder />} />
                 <Route path="/blueprintflow/list" element={<BlueprintFlowList />} />
                 <Route path="/blueprintflow/templates" element={<BlueprintFlowTemplates />} />
 
-                {/* 모니터링 페이지 */}
-                <Route path="/monitor" element={<Monitor />} />
+                {/* 모니터링 페이지 - Dashboard로 통합됨 */}
 
                 {/* 관리 페이지 */}
                 <Route path="/admin" element={<Admin />} />
-
-                {/* 설정 페이지 */}
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/admin/api/:apiId" element={<APIDetail />} />
               </Route>
             </Routes>
           </Suspense>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown, Book } from 'lucide-react';
+import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown, Book, Search, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -16,121 +16,133 @@ interface DocFile {
 
 const docStructure: DocFile[] = [
   {
-    name: '📘 필수 문서',
-    path: 'root',
+    name: 'Quick Start',
+    path: 'quickstart',
     type: 'folder',
     children: [
-      { name: 'README.md', path: '/README.md', type: 'file' },
-      { name: 'INSTALLATION_GUIDE.md ⭐', path: '/docs/INSTALLATION_GUIDE.md', type: 'file' },
-      { name: 'TROUBLESHOOTING.md ⭐', path: '/docs/TROUBLESHOOTING.md', type: 'file' },
-      { name: 'API 교체 가이드 🔄', path: '/docs/API_REPLACEMENT_GUIDE.md', type: 'file' },
-      { name: '동적 API 시스템 가이드', path: '/DYNAMIC_API_SYSTEM_GUIDE.md', type: 'file' },
+      { name: 'README', path: '/README.md', type: 'file' },
+      { name: 'Installation Guide', path: '/docs/INSTALLATION_GUIDE.md', type: 'file' },
+      { name: 'Troubleshooting', path: '/docs/TROUBLESHOOTING.md', type: 'file' },
     ],
   },
   {
-    name: '👤 사용자 가이드',
+    name: 'User Guide',
     path: 'user',
     type: 'folder',
     children: [
-      { name: '사용자 가이드 ⭐', path: '/docs/user/USER_GUIDE.md', type: 'file' },
-      { name: 'API 사용 매뉴얼', path: '/docs/user/API_USAGE_MANUAL.md', type: 'file' },
-      { name: '한글 실행 가이드', path: '/docs/user/KOREAN_EXECUTION_GUIDE.md', type: 'file' },
-      { name: 'Admin 매뉴얼', path: '/docs/ADMIN_MANUAL.md', type: 'file' },
+      { name: 'User Guide', path: '/docs/user/USER_GUIDE.md', type: 'file' },
+      { name: 'API Usage Manual', path: '/docs/user/API_USAGE_MANUAL.md', type: 'file' },
+      { name: 'Korean Guide', path: '/docs/user/KOREAN_EXECUTION_GUIDE.md', type: 'file' },
+      { name: 'Admin Manual', path: '/docs/ADMIN_MANUAL.md', type: 'file' },
     ],
   },
   {
-    name: '👨‍💻 개발자 가이드',
+    name: 'Developer Guide',
     path: 'developer',
     type: 'folder',
     children: [
-      { name: 'API 스펙 시스템 가이드 ⭐', path: '/docs/developer/API_SPEC_SYSTEM_GUIDE.md', type: 'file' },
-      { name: 'Claude 가이드 (EN)', path: '/docs/developer/CLAUDE.md', type: 'file' },
-      { name: 'Claude 가이드 (KR)', path: '/docs/developer/CLAUDE_KR.md', type: 'file' },
-      { name: 'VL API 설정 가이드', path: '/docs/developer/VL_API_SETUP_GUIDE.md', type: 'file' },
-      { name: 'LLM 사용성 가이드', path: '/docs/LLM_USABILITY_GUIDE.md', type: 'file' },
+      { name: 'API Spec System', path: '/docs/developer/API_SPEC_SYSTEM_GUIDE.md', type: 'file' },
+      { name: 'Claude Guide (EN)', path: '/docs/developer/CLAUDE.md', type: 'file' },
+      { name: 'Claude Guide (KR)', path: '/docs/developer/CLAUDE_KR.md', type: 'file' },
+      { name: 'VL API Setup', path: '/docs/developer/VL_API_SETUP_GUIDE.md', type: 'file' },
+      { name: 'Dynamic API System', path: '/docs/DYNAMIC_API_SYSTEM_GUIDE.md', type: 'file' },
     ],
   },
   {
-    name: '🔮 BlueprintFlow',
+    name: 'BlueprintFlow',
     path: 'blueprintflow',
     type: 'folder',
     children: [
-      { name: 'BlueprintFlow 개요 ⭐', path: '/docs/blueprintflow/README.md', type: 'file' },
-      { name: 'API 통합 가이드', path: '/docs/BLUEPRINTFLOW_API_INTEGRATION_GUIDE.md', type: 'file' },
-      { name: '아키텍처 설계', path: '/docs/BLUEPRINTFLOW_ARCHITECTURE_COMPLETE_DESIGN.md', type: 'file' },
-      { name: 'TextInput 노드 가이드', path: '/docs/blueprintflow/08_textinput_node_guide.md', type: 'file' },
-      { name: 'VL + TextInput 통합', path: '/docs/blueprintflow/09_vl_textinput_integration.md', type: 'file' },
-      { name: 'YOLO 모델 비교', path: '/docs/blueprintflow/04_optimization/yolo_models.md', type: 'file' },
-      { name: '파이프라인 옵션', path: '/docs/blueprintflow/04_optimization/pipeline_options.md', type: 'file' },
-      { name: '최적화 가이드', path: '/docs/blueprintflow/04_optimization/optimization_guide.md', type: 'file' },
+      { name: 'Overview', path: '/docs/blueprintflow/README.md', type: 'file' },
+      { name: 'TextInput Node', path: '/docs/blueprintflow/08_textinput_node_guide.md', type: 'file' },
+      { name: 'VL + TextInput Integration', path: '/docs/blueprintflow/09_vl_textinput_integration.md', type: 'file' },
+      { name: 'YOLO Models', path: '/docs/blueprintflow/04_optimization/yolo_models.md', type: 'file' },
+      { name: 'Pipeline Options', path: '/docs/blueprintflow/04_optimization/pipeline_options.md', type: 'file' },
+      { name: 'Optimization Guide', path: '/docs/blueprintflow/04_optimization/optimization_guide.md', type: 'file' },
     ],
   },
   {
-    name: '⚙️ 기술 구현',
-    path: 'technical',
-    type: 'folder',
-    children: [
-      { name: 'YOLO 빠른 시작 ⭐', path: '/docs/technical/yolo/QUICKSTART.md', type: 'file' },
-      { name: 'eDOCr v1/v2 배포', path: '/docs/technical/ocr/EDOCR_V1_V2_DEPLOYMENT.md', type: 'file' },
-      { name: 'OCR 개선 전략', path: '/docs/technical/ocr/OCR_IMPROVEMENT_STRATEGY.md', type: 'file' },
-      { name: '합성 데이터 전략', path: '/docs/technical/SYNTHETIC_DATA_STRATEGY.md', type: 'file' },
-      { name: 'VL API 구현 가이드', path: '/docs/technical/VL_API_IMPLEMENTATION_GUIDE.md', type: 'file' },
-    ],
-  },
-  {
-    name: '🏗️ 아키텍처 & 분석',
-    path: 'architecture',
-    type: 'folder',
-    children: [
-      { name: '모델 선정 기준 ⭐', path: '/docs/architecture/MODEL_SELECTION_CRITERIA.md', type: 'file' },
-      { name: '프로덕션 준비도 분석', path: '/docs/architecture/PRODUCTION_READINESS_ANALYSIS.md', type: 'file' },
-    ],
-  },
-  {
-    name: '📊 최종 보고서',
-    path: 'reports',
-    type: 'folder',
-    children: [
-      { name: '최종 프로젝트 보고서', path: '/docs/reports/FINAL_COMPREHENSIVE_REPORT.md', type: 'file' },
-      { name: '종합 평가 보고서', path: '/docs/reports/COMPREHENSIVE_EVALUATION_REPORT.md', type: 'file' },
-    ],
-  },
-  {
-    name: '📡 API 문서',
+    name: 'API Reference',
     path: 'api',
     type: 'folder',
     children: [
-      { name: 'API 개요', path: '/docs/api/README.md', type: 'file' },
-      { name: '전체 API 파라미터 가이드 ⭐', path: '/docs/API_PARAMETERS_DETAILED_GUIDE.md', type: 'file' },
-      { name: 'API 파라미터 분석 (2025-11-23)', path: '/docs/API_PARAMETER_ANALYSIS_2025-11-23.md', type: 'file' },
-      { name: 'YOLO API 파라미터', path: '/docs/api/yolo/parameters.md', type: 'file' },
-      { name: 'eDOCr2 API 파라미터', path: '/docs/api/edocr2/parameters.md', type: 'file' },
-      { name: 'EDGNet API 파라미터', path: '/docs/api/edgnet/parameters.md', type: 'file' },
-      { name: 'SkinModel API 파라미터', path: '/docs/api/skinmodel/parameters.md', type: 'file' },
-      { name: 'VL API 파라미터', path: '/docs/api/vl/parameters.md', type: 'file' },
-      { name: 'PaddleOCR API 파라미터', path: '/docs/api/paddleocr/parameters.md', type: 'file' },
-      { name: 'Knowledge API 파라미터', path: '/docs/api/knowledge/parameters.md', type: 'file' },
-      { name: 'Tesseract API 파라미터', path: '/docs/api/tesseract/parameters.md', type: 'file' },
-      { name: 'TrOCR API 파라미터', path: '/docs/api/trocr/parameters.md', type: 'file' },
-      { name: 'ESRGAN API 파라미터', path: '/docs/api/esrgan/parameters.md', type: 'file' },
-      { name: 'OCR Ensemble API 파라미터', path: '/docs/api/ocr-ensemble/parameters.md', type: 'file' },
+      { name: 'API Overview', path: '/docs/api/README.md', type: 'file' },
+      { name: 'YOLO', path: '/docs/api/yolo/parameters.md', type: 'file' },
+      { name: 'eDOCr2', path: '/docs/api/edocr2/parameters.md', type: 'file' },
+      { name: 'EDGNet', path: '/docs/api/edgnet/parameters.md', type: 'file' },
+      { name: 'SkinModel', path: '/docs/api/skinmodel/parameters.md', type: 'file' },
+      { name: 'VL', path: '/docs/api/vl/parameters.md', type: 'file' },
+      { name: 'PaddleOCR', path: '/docs/api/paddleocr/parameters.md', type: 'file' },
+      { name: 'Knowledge', path: '/docs/api/knowledge/parameters.md', type: 'file' },
+      { name: 'Tesseract', path: '/docs/api/tesseract/parameters.md', type: 'file' },
+      { name: 'TrOCR', path: '/docs/api/trocr/parameters.md', type: 'file' },
+      { name: 'ESRGAN', path: '/docs/api/esrgan/parameters.md', type: 'file' },
+      { name: 'OCR Ensemble', path: '/docs/api/ocr-ensemble/parameters.md', type: 'file' },
     ],
   },
   {
-    name: '⚙️ 시스템 설정',
-    path: 'system',
+    name: 'Technical',
+    path: 'technical',
     type: 'folder',
     children: [
-      { name: 'GPU 설정 가이드', path: '/docs/GPU_CONFIGURATION_EXPLAINED.md', type: 'file' },
-      { name: 'Docker 재빌드 상태', path: '/docs/DOCKER_REBUILD_STATUS.md', type: 'file' },
-      { name: '배포 가이드', path: '/docs/DEPLOYMENT_GUIDE.md', type: 'file' },
-      { name: '온프레미스 배포', path: '/docs/ONPREMISE_DEPLOYMENT_GUIDE.md', type: 'file' },
+      { name: 'YOLO Quickstart', path: '/docs/technical/yolo/QUICKSTART.md', type: 'file' },
+      { name: 'eDOCr Deployment', path: '/docs/technical/ocr/EDOCR_V1_V2_DEPLOYMENT.md', type: 'file' },
+    ],
+  },
+  {
+    name: 'Deployment',
+    path: 'deployment',
+    type: 'folder',
+    children: [
+      { name: 'Deployment Guide', path: '/docs/DEPLOYMENT_GUIDE.md', type: 'file' },
+      { name: 'GPU Configuration', path: '/docs/GPU_CONFIGURATION_EXPLAINED.md', type: 'file' },
+      { name: 'YOLO Dockerization', path: '/docs/dockerization/2025-11-23_yolo_dockerization_guide.md', type: 'file' },
+      { name: 'PaddleOCR Dockerization', path: '/docs/dockerization/2025-11-23_paddleocr_dockerization_guide.md', type: 'file' },
+      { name: 'Model Downloads', path: '/docs/opensource/MODEL_DOWNLOAD_INFO.md', type: 'file' },
+    ],
+  },
+  {
+    name: 'Research Papers',
+    path: 'papers',
+    type: 'folder',
+    children: [
+      { name: 'Papers Index', path: '/docs/papers/README.md', type: 'file' },
+      { name: 'eDOCr - OCR on Drawings', path: '/docs/papers/01_OCR_Engineering_Drawings.md', type: 'file' },
+      { name: 'eDOCr2 - VL Integration', path: '/docs/papers/02_eDOCr2_Vision_Language_Integration.md', type: 'file' },
+      { name: 'Skin Model - Tolerance', path: '/docs/papers/03_Geometric_Tolerance_Additive_Manufacturing.md', type: 'file' },
+      { name: 'EDGNet - Graph Segmentation', path: '/docs/papers/04_Graph_Neural_Network_Engineering_Drawings.md', type: 'file' },
+      { name: 'YOLOv11 - Object Detection', path: '/docs/papers/05_YOLOv11_Object_Detection.md', type: 'file' },
+      { name: 'PaddleOCR - PP-OCR', path: '/docs/papers/06_PaddleOCR_PP-OCR.md', type: 'file' },
+      { name: 'TrOCR - Transformer OCR', path: '/docs/papers/07_TrOCR_Transformer_OCR.md', type: 'file' },
+      { name: 'ESRGAN - Super Resolution', path: '/docs/papers/08_ESRGAN_Super_Resolution.md', type: 'file' },
+      { name: 'Qwen2-VL - Vision Language', path: '/docs/papers/09_Qwen2-VL_Vision_Language.md', type: 'file' },
+      { name: 'GraphRAG - Knowledge Graph', path: '/docs/papers/10_GraphRAG_Knowledge_Graph.md', type: 'file' },
+      { name: 'Tesseract - LSTM OCR', path: '/docs/papers/11_Tesseract_LSTM_OCR.md', type: 'file' },
+      { name: 'Surya - Multilingual OCR', path: '/docs/papers/12_Surya_OCR_Multilingual.md', type: 'file' },
+      { name: 'DocTR - Document OCR', path: '/docs/papers/13_DocTR_Document_OCR.md', type: 'file' },
+      { name: 'EasyOCR - Ready-to-use', path: '/docs/papers/14_EasyOCR_Ready_to_Use.md', type: 'file' },
+      { name: 'OCR Ensemble - Voting', path: '/docs/papers/15_OCR_Ensemble_Voting.md', type: 'file' },
     ],
   },
 ];
 
-function FolderTree({ items, onSelectFile }: { items: DocFile[]; onSelectFile: (path: string) => void }) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['root', 'user']));
+interface FolderTreeProps {
+  items: DocFile[];
+  onSelectFile: (path: string) => void;
+  selectedFile: string | null;
+  searchQuery: string;
+}
+
+function FolderTree({ items, onSelectFile, selectedFile, searchQuery }: FolderTreeProps) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(['quickstart', 'user', 'api']));
+
+  // Expand all folders when searching
+  useEffect(() => {
+    if (searchQuery) {
+      const allFolders = items.map(item => item.path);
+      setExpanded(new Set(allFolders));
+    }
+  }, [searchQuery, items]);
 
   const toggleFolder = (path: string) => {
     const newExpanded = new Set(expanded);
@@ -142,12 +154,41 @@ function FolderTree({ items, onSelectFile }: { items: DocFile[]; onSelectFile: (
     setExpanded(newExpanded);
   };
 
+  const matchesSearch = (name: string): boolean => {
+    if (!searchQuery) return true;
+    return name.toLowerCase().includes(searchQuery.toLowerCase());
+  };
+
+  const hasMatchingChildren = (item: DocFile): boolean => {
+    if (matchesSearch(item.name)) return true;
+    if (item.children) {
+      return item.children.some(child => hasMatchingChildren(child));
+    }
+    return false;
+  };
+
   const renderItem = (item: DocFile, level: number = 0) => {
+    if (!hasMatchingChildren(item)) return null;
+
     const isExpanded = expanded.has(item.path);
+    const isSelected = selectedFile === item.path;
     const Icon = item.type === 'folder'
       ? (isExpanded ? FolderOpen : Folder)
       : FileText;
     const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
+
+    const folderColors: Record<string, string> = {
+      'quickstart': 'text-green-500',
+      'user': 'text-blue-500',
+      'developer': 'text-purple-500',
+      'blueprintflow': 'text-indigo-500',
+      'api': 'text-orange-500',
+      'technical': 'text-cyan-500',
+      'deployment': 'text-red-500',
+      'papers': 'text-amber-500',
+    };
+
+    const folderColor = item.type === 'folder' ? (folderColors[item.path] || 'text-blue-500') : 'text-gray-500';
 
     return (
       <div key={item.path}>
@@ -159,21 +200,23 @@ function FolderTree({ items, onSelectFile }: { items: DocFile[]; onSelectFile: (
               onSelectFile(item.path);
             }
           }}
-          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+          className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all ${
             item.type === 'file'
-              ? 'hover:bg-accent text-muted-foreground hover:text-foreground'
-              : 'font-semibold hover:bg-accent/50'
+              ? isSelected
+                ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary'
+                : 'hover:bg-accent text-muted-foreground hover:text-foreground'
+              : 'font-semibold hover:bg-accent/50 mt-1'
           }`}
-          style={{ paddingLeft: `${level * 12 + 12}px` }}
+          style={{ paddingLeft: `${level * 16 + 8}px` }}
         >
           {item.type === 'folder' && (
-            <ChevronIcon className="w-4 h-4 flex-shrink-0" />
+            <ChevronIcon className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
           )}
-          <Icon className={`w-4 h-4 flex-shrink-0 ${item.type === 'folder' ? 'text-blue-500' : 'text-gray-500'}`} />
-          <span className="text-left flex-1">{item.name}</span>
+          <Icon className={`w-4 h-4 flex-shrink-0 ${folderColor}`} />
+          <span className="text-left flex-1 truncate">{item.name}</span>
         </button>
         {item.type === 'folder' && isExpanded && item.children && (
-          <div>
+          <div className="border-l border-border/50 ml-4">
             {item.children.map((child) => renderItem(child, level + 1))}
           </div>
         )}
@@ -182,7 +225,7 @@ function FolderTree({ items, onSelectFile }: { items: DocFile[]; onSelectFile: (
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       {items.map((item) => renderItem(item))}
     </div>
   );
@@ -194,6 +237,14 @@ export default function Docs() {
   const [markdown, setMarkdown] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Get current file name for breadcrumb
+  const currentFileName = useMemo(() => {
+    if (!selectedFile) return '';
+    const parts = selectedFile.split('/');
+    return parts[parts.length - 1];
+  }, [selectedFile]);
 
   useEffect(() => {
     if (!selectedFile) return;
@@ -218,49 +269,96 @@ export default function Docs() {
     };
 
     fetchMarkdown();
-  }, [selectedFile]);
+  }, [selectedFile, t]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* Sidebar */}
-      <div className="w-80 border-r bg-card overflow-y-auto">
-        <div className="p-4 border-b bg-accent/30">
-          <div className="flex items-center gap-2">
-            <Book className="w-5 h-5 text-blue-500" />
+      <div className="w-72 border-r bg-card/50 flex flex-col">
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-2 mb-3">
+            <Book className="w-5 h-5 text-primary" />
             <h2 className="font-bold text-lg">{t('docs.title')}</h2>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t('docs.subtitle')}
-          </p>
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search docs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded"
+              >
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="p-2">
-          <FolderTree items={docStructure} onSelectFile={setSelectedFile} />
+        <div className="flex-1 overflow-y-auto p-2">
+          <FolderTree
+            items={docStructure}
+            onSelectFile={setSelectedFile}
+            selectedFile={selectedFile}
+            searchQuery={searchQuery}
+          />
+        </div>
+        {/* Stats */}
+        <div className="p-3 border-t text-xs text-muted-foreground">
+          8 categories, 53 documents
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-8">
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-muted-foreground">{t('docs.loading')}</div>
-            </div>
-          )}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Breadcrumb Header */}
+        {selectedFile && (
+          <div className="px-8 py-3 border-b bg-muted/30 flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">docs</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium text-foreground">{currentFileName}</span>
+          </div>
+        )}
 
-          {error && (
-            <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-6">
-              <h3 className="font-semibold text-red-700 dark:text-red-300 mb-2">{t('common.error')}</h3>
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto p-8">
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-pulse text-muted-foreground">{t('docs.loading')}</div>
+              </div>
+            )}
 
-          {!loading && !error && markdown && (
-            <article className="prose prose-slate dark:prose-invert max-w-none">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-6">
+                <h3 className="font-semibold text-red-700 dark:text-red-300 mb-2">{t('common.error')}</h3>
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && markdown && (
+              <article className="prose prose-slate dark:prose-invert max-w-none
+                prose-headings:scroll-mt-20
+                prose-headings:font-bold
+                prose-h1:text-3xl prose-h1:border-b prose-h1:pb-2 prose-h1:mb-6
+                prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4
+                prose-h3:text-xl prose-h3:mt-6
+                prose-p:leading-7
+                prose-li:my-1
+                prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-muted/50 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:italic
+                prose-hr:my-8
+                prose-img:rounded-lg prose-img:shadow-md
+                prose-pre:bg-slate-900 prose-pre:text-slate-50
+              ">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
-                  // Pre 태그 - Mermaid 다이어그램 처리
+                  // Pre 태그 - Mermaid 다이어그램 및 코드 블록 처리
                   pre: ({ node, children, ...props }) => {
                     // Check if this pre contains a mermaid code block
                     const codeElement = node?.children?.[0];
@@ -285,9 +383,21 @@ export default function Docs() {
                           );
                         }
                       }
+
+                      // 언어 라벨 표시
+                      if (language) {
+                        return (
+                          <div className="relative group">
+                            <span className="absolute right-3 top-2 text-xs text-slate-400 font-mono opacity-70">
+                              {language}
+                            </span>
+                            <pre className="rounded-lg overflow-x-auto" {...props}>{children}</pre>
+                          </div>
+                        );
+                      }
                     }
 
-                    return <pre {...props}>{children}</pre>;
+                    return <pre className="rounded-lg overflow-x-auto" {...props}>{children}</pre>;
                   },
                   // 코드 블록 스타일링
                   code: ({ node, className, children, ...props }) => {
@@ -296,14 +406,14 @@ export default function Docs() {
 
                     if (isInline) {
                       return (
-                        <code className="bg-accent px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                        <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono text-pink-600 dark:text-pink-400" {...props}>
                           {children}
                         </code>
                       );
                     }
 
                     return (
-                      <code className={className} {...props}>
+                      <code className={`${className} text-sm`} {...props}>
                         {children}
                       </code>
                     );
@@ -344,12 +454,13 @@ export default function Docs() {
             </article>
           )}
 
-          {!loading && !error && !markdown && (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>왼쪽 사이드바에서 문서를 선택하세요</p>
-            </div>
-          )}
+            {!loading && !error && !markdown && (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>왼쪽 사이드바에서 문서를 선택하세요</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

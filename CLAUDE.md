@@ -66,7 +66,7 @@
 
 ---
 
-## API 서비스 (12개)
+## API 서비스 (15개)
 
 | 카테고리 | 서비스 | 포트 | 용도 |
 |----------|--------|------|------|
@@ -76,6 +76,9 @@
 | **OCR** | Tesseract | 5008 | 문서 OCR |
 | **OCR** | TrOCR | 5009 | 필기체 OCR |
 | **OCR** | OCR Ensemble | 5011 | 4엔진 가중 투표 |
+| **OCR** | Surya OCR | 5013 | 90+ 언어, 레이아웃 분석 |
+| **OCR** | DocTR | 5014 | 2단계 파이프라인 |
+| **OCR** | EasyOCR | 5015 | 80+ 언어, CPU 친화적 |
 | **Segmentation** | EDGNet | 5012 | 엣지 세그멘테이션 |
 | **Preprocessing** | ESRGAN | 5010 | 4x 업스케일링 |
 | **Analysis** | SkinModel | 5003 | 공차 분석 |
@@ -149,6 +152,31 @@ python scripts/create_api.py my-detector --port 5015 --category detection
 ```
 
 **카테고리 옵션**: detection, ocr, segmentation, preprocessing, analysis, knowledge, ai, control
+
+### 1-1. 참조 논문 추가 (새 API 추가 시 필수)
+
+새 API를 추가할 때는 해당 기술의 참조 논문도 함께 정리해야 합니다.
+
+```bash
+# 1. 논문 검색 (WebSearch 사용)
+# 검색 쿼리: "[기술명] paper arxiv [년도]"
+
+# 2. 논문 파일 생성
+cp docs/papers/TEMPLATE.md docs/papers/XX_[기술명]_[카테고리].md
+
+# 3. 논문 내용 작성 (템플릿 섹션 채우기)
+# - 논문 정보 (arXiv, 저자, 게재지)
+# - 연구 배경
+# - 핵심 방법론
+# - AX 시스템 적용
+
+# 4. Docs 페이지 업데이트
+# web-ui/src/pages/docs/Docs.tsx의 docStructure에 추가
+
+# 5. papers/README.md 논문 목록 업데이트
+```
+
+**참조**: `docs/papers/README.md` - 전체 논문 목록 및 가이드
 
 ### 2. 기존 방식 (수동)
 

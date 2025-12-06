@@ -270,9 +270,19 @@ services:
       - ./gateway-api/models:/app/models
       - ./gateway-api/utils:/app/utils
       - ./gateway-api/blueprintflow:/app/blueprintflow
+      - ./gateway-api/routers:/app/routers
+      - ./gateway-api/api_specs:/app/api_specs
       # 데이터 디렉토리
       - ./gateway-api/uploads:/tmp/gateway/uploads
       - ./gateway-api/results:/tmp/gateway/results
+      # Docker 제어를 위한 소켓 마운트
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 모델 디렉토리 (Admin 모델 관리용)
+      - ./models/yolo-api/models:/app/admin_models/yolo:ro
+      - ./models/skinmodel-api/models:/app/admin_models/skinmodel:ro
+      - ./models/edgnet-api/models:/app/admin_models/edgnet:ro
+      - ./models/edocr2-api/models:/app/admin_models/edocr2:ro
+      - ./models/edocr2-v2-api/models:/app/admin_models/edocr2-v2:ro
     environment:
       - GATEWAY_PORT=8000
       - GATEWAY_WORKERS=4
@@ -285,6 +295,9 @@ services:
       - YOLO_API_URL=http://yolo-api:5005
       - PADDLEOCR_URL=http://paddleocr-api:5006
       - KNOWLEDGE_API_URL=http://knowledge-api:5007
+      - SURYA_OCR_URL=http://surya-ocr-api:5013
+      - DOCTR_URL=http://doctr-api:5014
+      - EASYOCR_URL=http://easyocr-api:5015
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=ax_poc_2024
@@ -510,6 +523,92 @@ services:
       timeout: 10s
       retries: 3
 
+  # =====================
+  # Surya OCR API (포트 5013)
+  # 90+ 언어, 레이아웃 분석, GPU 권장
+  # =====================
+  surya-ocr-api:
+    build:
+      context: ./models/surya-ocr-api
+      dockerfile: Dockerfile
+    container_name: surya-ocr-api
+    ports:
+      - "5013:5013"
+    volumes:
+      - surya_models:/root/.cache
+      - ./models/surya-ocr-api/uploads:/tmp/surya-ocr/uploads
+      - ./models/surya-ocr-api/results:/tmp/surya-ocr/results
+    environment:
+      - SURYA_OCR_PORT=5013
+      - SURYA_DEVICE=cpu
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5013/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
+  # =====================
+  # DocTR API (포트 5014)
+  # 2-stage OCR (Detection + Recognition), Apache 2.0
+  # =====================
+  doctr-api:
+    build:
+      context: ./models/doctr-api
+      dockerfile: Dockerfile
+    container_name: doctr-api
+    ports:
+      - "5014:5014"
+    volumes:
+      - doctr_models:/root/.cache
+      - ./models/doctr-api/uploads:/tmp/doctr/uploads
+      - ./models/doctr-api/results:/tmp/doctr/results
+    environment:
+      - DOCTR_PORT=5014
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5014/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  # =====================
+  # EasyOCR API (포트 5015)
+  # 80+ 언어, CPU 친화적, 한국어 지원
+  # =====================
+  easyocr-api:
+    build:
+      context: ./models/easyocr-api
+      dockerfile: Dockerfile
+    container_name: easyocr-api
+    ports:
+      - "5015:5015"
+    volumes:
+      - easyocr_models:/root/.EasyOCR
+      - ./models/easyocr-api/uploads:/tmp/easyocr/uploads
+      - ./models/easyocr-api/results:/tmp/easyocr/results
+    environment:
+      - EASYOCR_PORT=5015
+      - EASYOCR_GPU=false
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5015/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
 networks:
   ax_poc_network:
     name: ax_poc_network
@@ -532,3 +631,6 @@ volumes:
   gateway_results:
   trocr_models:
   esrgan_weights:
+  surya_models:
+  doctr_models:
+  easyocr_models:
