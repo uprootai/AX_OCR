@@ -2,12 +2,23 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 
+// Flexible output type for pipeline results
+interface NodeOutput {
+  [key: string]: unknown;
+  dimensions?: unknown[];
+  gdt?: unknown[];
+  text?: { total_blocks?: number } | string;
+  num_components?: number | null;
+  graph?: { nodes?: number; edges?: number };
+  manufacturability?: { score: number; difficulty: string };
+}
+
 interface NodeResult {
   nodeId: string;
   nodeType: string;
   status: 'success' | 'error' | 'pending' | 'running';
   executionTime?: number;
-  output?: any;
+  output?: NodeOutput;
 }
 
 interface ResultSummaryCardProps {
@@ -53,12 +64,12 @@ export default function ResultSummaryCard({
     if (output.gdt) {
       ocrStats.gdt += Array.isArray(output.gdt) ? output.gdt.length : 0;
     }
-    if (output.text?.total_blocks !== undefined) {
+    if (typeof output.text === 'object' && output.text !== null && 'total_blocks' in output.text && output.text.total_blocks !== undefined) {
       ocrStats.textBlocks += output.text.total_blocks;
     }
 
     // Segmentation stats
-    if (output.num_components !== undefined) {
+    if (output.num_components !== undefined && output.num_components !== null) {
       segmentationStats.components += output.num_components;
     }
     if (output.graph?.nodes !== undefined) {

@@ -8,6 +8,7 @@ import {
   Eye,
   FileSearch,
   Image,
+  Type,
 } from 'lucide-react';
 import { BaseNode } from './BaseNode';
 
@@ -94,3 +95,15 @@ export const ImageInputNode = memo((props: NodeProps) => (
   />
 ));
 ImageInputNode.displayName = 'ImageInputNode';
+
+// TextInput Node
+export const TextInputNode = memo((props: NodeProps) => (
+  <BaseNode
+    {...props}
+    icon={Type}
+    title="Text Input"
+    color="#8b5cf6"
+    category="input"
+  />
+));
+TextInputNode.displayName = 'TextInputNode';

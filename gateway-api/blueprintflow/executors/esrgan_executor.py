@@ -5,6 +5,7 @@ Real-ESRGAN 이미지 업스케일링 실행기
 import os
 import httpx
 import logging
+import base64
 from typing import Dict, Any, Optional
 
 from .base_executor import BaseNodeExecutor
@@ -60,14 +61,16 @@ class EsrganExecutor(BaseNodeExecutor):
             content_type = response.headers.get("content-type", "")
 
             if "image" in content_type:
-                # 업스케일된 이미지 바이트 반환
+                # 업스케일된 이미지 바이트를 base64로 인코딩
                 self.logger.info(f"ESRGAN 완료: 이미지 업스케일 성공")
                 # 헤더에서 메타정보 추출
                 processing_time = response.headers.get("X-Processing-Time-Ms", "0")
                 method = response.headers.get("X-Method", "Real-ESRGAN")
+                # 이미지 바이트를 base64 문자열로 변환 (JSON 직렬화를 위해)
+                image_base64 = base64.b64encode(response.content).decode('utf-8')
                 return {
-                    "image": response.content,  # BlueprintFlow 출력 형식에 맞춤
-                    "upscaled_image": response.content,
+                    "image": image_base64,  # BlueprintFlow 출력 형식에 맞춤
+                    "upscaled_image": image_base64,
                     "scale": scale,
                     "method": method,
                     "content_type": content_type,

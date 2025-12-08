@@ -1,0 +1,89 @@
+# P&ID Analyzer API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: pidanalyzer
+  name: P&ID Analyzer
+  version: 1.0.0
+  port: 5018
+  host: pid-analyzer-api
+  description: P&ID 연결성 분석 및 BOM 추출 API
+  author: AX Team
+  tags:
+    - analysis
+    - pid
+
+server:
+  endpoint: /api/v1/analyze
+  method: POST
+  contentType: application/json
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#7c3aed"
+  icon: Network
+  requiresImage: false
+
+inputs:
+  - name: symbols
+    type: array
+    required: true
+    description: YOLO-PID 검출 결과 (detections)
+  - name: lines
+    type: array
+    required: true
+    description: Line Detector 결과
+  - name: intersections
+    type: array
+    required: false
+    description: 교차점 정보
+  - name: image
+    type: string
+    required: false
+    description: 원본 이미지 (base64, 시각화용)
+
+outputs:
+  - name: connections
+    type: array
+    description: 심볼 간 연결 관계
+  - name: graph
+    type: object
+    description: 연결성 그래프
+  - name: bom
+    type: array
+    description: 부품 리스트 (BOM)
+  - name: valve_list
+    type: array
+    description: 밸브 시그널 리스트
+  - name: equipment_list
+    type: array
+    description: 장비 리스트
+
+parameters:
+  - name: generate_bom
+    type: boolean
+    default: true
+    description: BOM 생성
+  - name: generate_valve_list
+    type: boolean
+    default: true
+    description: 밸브 시그널 리스트 생성
+  - name: generate_equipment_list
+    type: boolean
+    default: true
+    description: 장비 리스트 생성
+  - name: visualize
+    type: boolean
+    default: true
+    description: 결과 시각화
+
+i18n:
+  ko:
+    label: P&ID Analyzer
+    description: P&ID 연결성 분석 및 BOM 추출
+  en:
+    label: P&ID Analyzer
+    description: P&ID connectivity analysis and BOM extraction

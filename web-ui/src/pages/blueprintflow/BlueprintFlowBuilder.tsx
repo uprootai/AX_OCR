@@ -6,15 +6,101 @@ import ReactFlow, {
   MiniMap,
   ReactFlowProvider,
 } from 'reactflow';
-import type { ReactFlowInstance } from 'reactflow';
+import type { ReactFlowInstance, OnSelectionChangeParams, NodeTypes } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { useWorkflowStore } from '../../store/workflowStore';
+import { nodeDefinitions } from '../../config/nodeDefinitions';
+import { useWorkflowStore, type NodeStatus } from '../../store/workflowStore';
+
+// API response node status type (snake_case from backend)
+interface APINodeStatus {
+  node_id: string;
+  status: string;
+  execution_time?: number;
+  start_time?: string;
+  end_time?: string;
+  output?: Record<string, unknown>;
+  error?: string;
+}
+
+// API result types for type-safe rendering
+interface Detection {
+  class_name?: string;
+  class?: string;
+  confidence: number;
+  bbox?: { x: number; y: number; width: number; height: number };
+  class_id?: number;
+}
+
+interface DimensionResult {
+  type?: string;
+  value?: number | string;
+  text?: string;
+  unit?: string;
+  tolerance?: string | number;
+}
+
+interface TextResult {
+  text?: string;
+  content?: string;
+  confidence?: number;
+}
+
+interface OCRBlock {
+  text?: string;
+  confidence?: number;
+}
+
+interface SegmentResult {
+  class?: string;
+  type?: string;
+  confidence?: number;
+}
+
+interface ToleranceItem {
+  dimension?: string;
+  name?: string;
+  value?: string | number;
+}
+
+// GDT type for OCR results
+interface GDTItem {
+  type: string;
+  value: number;
+  datum: string | null;
+  bbox?: { x: number; y: number; width: number; height: number };
+}
+
+// Flexible output type for pipeline results
+interface PipelineOutput {
+  [key: string]: unknown;
+  detections?: Detection[];
+  dimensions?: DimensionResult[];
+  text_results?: TextResult[];
+  blocks?: OCRBlock[];
+  segments?: SegmentResult[];
+  tolerances?: ToleranceItem[];
+  analysis?: Record<string, unknown>;
+  result?: string;
+  description?: string;
+  image?: string;
+  visualized_image?: string;
+  gdt?: GDTItem[];
+  text?: string | { total_blocks?: number };
+  manufacturability?: { score: number; difficulty: string };
+  predicted_tolerances?: Record<string, number>;
+  // Segmentation specific
+  num_components?: number;
+  classifications?: { contour: number; text: number; dimension: number };
+  graph?: { nodes: number; edges: number; avg_degree: number };
+  vectorization?: { num_bezier_curves: number; total_length: number };
+}
 import { useAPIConfigStore } from '../../store/apiConfigStore';
 import NodePalette from '../../components/blueprintflow/NodePalette';
 import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import {
   ImageInputNode,
+  TextInputNode,
   YoloNode,
   Edocr2Node,
   EdgnetNode,
@@ -27,7 +113,7 @@ import {
 } from '../../components/blueprintflow/nodes';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
-import { Play, Save, Trash2, Upload, X, Bug, Download } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X, Bug, Download, RotateCcw } from 'lucide-react';
 import { workflowApi } from '../../lib/api';
 import type { SampleFile } from '../../components/upload/SampleFileGrid';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
@@ -35,10 +121,12 @@ import OCRVisualization from '../../components/debug/OCRVisualization';
 import ToleranceVisualization from '../../components/debug/ToleranceVisualization';
 import SegmentationVisualization from '../../components/debug/SegmentationVisualization';
 import ResultSummaryCard from '../../components/blueprintflow/ResultSummaryCard';
+import PipelineConclusionCard from '../../components/blueprintflow/PipelineConclusionCard';
 
 // Base node type mapping
 const baseNodeTypes = {
   imageinput: ImageInputNode,
+  textinput: TextInputNode,
   yolo: YoloNode,
   edocr2: Edocr2Node,
   edgnet: EdgnetNode,
@@ -78,14 +166,27 @@ function WorkflowBuilderCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-  const [selectedNode, setSelectedNode] = useState<any>(null);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
+  const [isStatusCollapsed, setIsStatusCollapsed] = useState(false);
+
+  // Uploaded image from store (persists across navigation)
+  const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
+  const uploadedFileName = useWorkflowStore((state) => state.uploadedFileName);
+  const setUploadedImage = useWorkflowStore((state) => state.setUploadedImage);
+
+  // nodes 배열 가져오기 (먼저 선언)
+  const nodes = useWorkflowStore((state) => state.nodes);
+
+  // nodes 배열에서 선택된 노드 찾기 (항상 최신 데이터 반영)
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId) return null;
+    return nodes.find((n) => n.id === selectedNodeId) || null;
+  }, [selectedNodeId, nodes]);
 
   // 동적으로 nodeTypes 생성 (기본 노드 + 커스텀 노드)
   const nodeTypes = useMemo(() => {
-    const types: Record<string, any> = { ...baseNodeTypes };
+    const types: NodeTypes = { ...baseNodeTypes };
 
     // 커스텀 API를 모두 DynamicNode로 등록
     customAPIs.forEach((api) => {
@@ -98,7 +199,6 @@ function WorkflowBuilderCanvas() {
   }, [customAPIs]);
 
   const {
-    nodes,
     edges,
     workflowName,
     onNodesChange,
@@ -113,15 +213,17 @@ function WorkflowBuilderCanvas() {
     updateNodeData,
     nodeStatuses,
     executionId,
+    executionMode,
+    setExecutionMode,
   } = useWorkflowStore();
 
   // Track selected node
   const onSelectionChange = useCallback(
-    ({ nodes: selectedNodes }: any) => {
+    ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
       if (selectedNodes && Array.isArray(selectedNodes) && selectedNodes.length === 1) {
-        setSelectedNode(selectedNodes[0]);
+        setSelectedNodeId(selectedNodes[0]?.id || null);
       } else {
-        setSelectedNode(null);
+        setSelectedNodeId(null);
       }
     },
     []
@@ -239,17 +341,15 @@ function WorkflowBuilderCanvas() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
-      setUploadedImage(base64);
-      setUploadedFileName(file.name);
+      setUploadedImage(base64, file.name);
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [setUploadedImage]);
 
   // Handle file selection from FileUploadSection (supports both upload and sample selection)
   const handleFileSelect = useCallback((file: File | null) => {
     if (!file) {
-      setUploadedImage(null);
-      setUploadedFileName(null);
+      setUploadedImage(null, null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -265,23 +365,21 @@ function WorkflowBuilderCanvas() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
-      setUploadedImage(base64);
-      setUploadedFileName(file.name);
+      setUploadedImage(base64, file.name);
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [setUploadedImage]);
 
   const handleRemoveImage = useCallback(() => {
-    setUploadedImage(null);
-    setUploadedFileName(null);
+    setUploadedImage(null, null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+  }, [setUploadedImage]);
 
   // Delete selected nodes/edges with Delete key
   const onNodesDelete = useCallback(
-    (deleted: any[]) => {
+    (deleted: { id: string }[]) => {
       const deletedIds = deleted.map((n) => n.id);
       console.log('Deleting nodes:', deletedIds);
     },
@@ -289,7 +387,7 @@ function WorkflowBuilderCanvas() {
   );
 
   const onEdgesDelete = useCallback(
-    (deleted: any[]) => {
+    (deleted: { id: string }[]) => {
       const deletedIds = deleted.map((e) => e.id);
       console.log('Deleting edges:', deletedIds);
     },
@@ -416,6 +514,45 @@ function WorkflowBuilderCanvas() {
                 <Save className="w-4 h-4" />
                 {t('blueprintflow.save')}
               </Button>
+              {/* Execution Mode Toggle */}
+              <div className="flex items-center gap-1 border rounded-md overflow-hidden">
+                <button
+                  onClick={() => setExecutionMode('sequential')}
+                  className={`px-2 py-1.5 text-xs flex items-center gap-1 transition-colors ${
+                    executionMode === 'sequential'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="Sequential execution (one node at a time)"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <circle cx="6" cy="12" r="2" fill="currentColor" />
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    <circle cx="18" cy="12" r="2" fill="currentColor" />
+                  </svg>
+                  Sequential
+                </button>
+                <button
+                  onClick={() => setExecutionMode('parallel')}
+                  className={`px-2 py-1.5 text-xs flex items-center gap-1 transition-colors ${
+                    executionMode === 'parallel'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  title="Parallel execution (concurrent nodes)"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <line x1="4" y1="18" x2="20" y2="18" />
+                    <circle cx="12" cy="6" r="2" fill="currentColor" />
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    <circle cx="12" cy="18" r="2" fill="currentColor" />
+                  </svg>
+                  Parallel
+                </button>
+              </div>
               <Button
                 onClick={handleExecute}
                 disabled={isExecuting || !uploadedImage}
@@ -448,7 +585,55 @@ function WorkflowBuilderCanvas() {
 
           {/* Execution Status */}
           {(isExecuting || executionResult || executionError || Object.keys(nodeStatuses).length > 0) && (
-            <div className="mt-3 p-3 rounded-md bg-gray-100 dark:bg-gray-700">
+            <div className="mt-3 rounded-md bg-gray-100 dark:bg-gray-700">
+              {/* Collapse/Expand Header */}
+              <div className="flex items-center justify-between p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-t-md">
+                <div
+                  className="flex items-center gap-2 cursor-pointer flex-1"
+                  onClick={() => setIsStatusCollapsed(!isStatusCollapsed)}
+                >
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    {isStatusCollapsed ? '▶' : '▼'} Execution Status
+                    {executionResult?.status && (
+                      <span className={`px-2 py-0.5 rounded text-xs ${
+                        executionResult.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                        executionResult.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                      }`}>
+                        {executionResult.status}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Re-run Button */}
+                  {!isExecuting && executionResult && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExecute();
+                      }}
+                      className="text-xs px-2 py-1 h-6"
+                      title="Re-run workflow"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Re-run
+                    </Button>
+                  )}
+                  <span
+                    className="text-xs text-gray-500 cursor-pointer"
+                    onClick={() => setIsStatusCollapsed(!isStatusCollapsed)}
+                  >
+                    {isStatusCollapsed ? 'Expand' : 'Collapse'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Collapsible Content */}
+              {!isStatusCollapsed && (
+              <div className="p-3 pt-0">
               {executionError && (
                 <div className="text-red-600 dark:text-red-400 flex items-center gap-2">
                   <span className="font-semibold">Error:</span>
@@ -470,7 +655,7 @@ function WorkflowBuilderCanvas() {
                     )}
                   </div>
                   <div className="text-sm space-y-1">
-                    {Object.values(nodeStatuses).map((nodeStatus: any) => (
+                    {Object.values(nodeStatuses).map((nodeStatus: NodeStatus) => (
                       <div key={nodeStatus.nodeId} className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${
                           nodeStatus.status === 'completed' ? 'bg-green-500' :
@@ -526,7 +711,7 @@ function WorkflowBuilderCanvas() {
                     </div>
                     {executionResult.node_statuses && (
                       <div className="text-sm space-y-1">
-                        {executionResult.node_statuses.map((nodeStatus: any) => (
+                        {executionResult.node_statuses.map((nodeStatus: APINodeStatus) => (
                           <div key={nodeStatus.node_id} className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${
                               nodeStatus.status === 'completed' ? 'bg-green-500' :
@@ -546,7 +731,7 @@ function WorkflowBuilderCanvas() {
                   {/* Result Summary Card */}
                   {executionResult.node_statuses && executionResult.node_statuses.length > 0 && (
                     <ResultSummaryCard
-                      results={executionResult.node_statuses.map((nodeStatus: any) => {
+                      results={executionResult.node_statuses.map((nodeStatus: APINodeStatus) => {
                         const workflowNode = nodes.find((n) => n.id === nodeStatus.node_id);
                         return {
                           nodeId: nodeStatus.node_id,
@@ -555,10 +740,32 @@ function WorkflowBuilderCanvas() {
                                   nodeStatus.status === 'failed' ? 'error' :
                                   nodeStatus.status === 'running' ? 'running' : 'pending',
                           executionTime: nodeStatus.execution_time,
-                          output: nodeStatus.output || executionResult.final_output?.[nodeStatus.node_id],
+                          output: (nodeStatus.output || executionResult.final_output?.[nodeStatus.node_id]) as Record<string, unknown> | undefined,
                         };
                       })}
                       totalExecutionTime={executionResult.execution_time_ms}
+                    />
+                  )}
+
+                  {/* Pipeline Conclusion Card - 분석 결론 */}
+                  {executionResult.node_statuses && executionResult.node_statuses.length > 0 && (
+                    <PipelineConclusionCard
+                      executionResult={{
+                        status: executionResult.status as string,
+                        execution_time_ms: executionResult.execution_time_ms as number | undefined,
+                        node_statuses: executionResult.node_statuses?.map((ns: APINodeStatus) => ({
+                          node_id: ns.node_id,
+                          node_type: nodes.find(n => n.id === ns.node_id)?.type,
+                          status: ns.status,
+                          output: (ns.output || executionResult.final_output?.[ns.node_id]) as Record<string, unknown> | undefined,
+                        })),
+                        final_output: executionResult.final_output as Record<string, Record<string, unknown>> | undefined,
+                      }}
+                      nodes={nodes.map(n => ({
+                        id: n.id,
+                        type: n.type,
+                        data: { label: n.data?.label as string | undefined },
+                      }))}
                     />
                   )}
 
@@ -583,7 +790,7 @@ function WorkflowBuilderCanvas() {
                         // Group nodes by execution time overlap
                         interface ExecutionGroup {
                           type: 'parallel' | 'sequential';
-                          nodes: any[];
+                          nodes: APINodeStatus[];
                           startTime?: string;
                           endTime?: string;
                         }
@@ -591,7 +798,7 @@ function WorkflowBuilderCanvas() {
                         const groups: ExecutionGroup[] = [];
                         const processed = new Set<string>();
 
-                        nodeStatuses.forEach((node: any) => {
+                        nodeStatuses.forEach((node: APINodeStatus) => {
                           if (processed.has(node.node_id)) return;
 
                           // Find all nodes that overlapped with this node's execution
@@ -602,7 +809,7 @@ function WorkflowBuilderCanvas() {
                             const nodeStart = new Date(node.start_time).getTime();
                             const nodeEnd = new Date(node.end_time).getTime();
 
-                            nodeStatuses.forEach((other: any) => {
+                            nodeStatuses.forEach((other: APINodeStatus) => {
                               if (processed.has(other.node_id)) return;
                               if (!other.start_time || !other.end_time) return;
 
@@ -660,13 +867,13 @@ function WorkflowBuilderCanvas() {
 
                           interface ExecutionGroup {
                             type: 'parallel' | 'sequential';
-                            nodes: any[];
+                            nodes: APINodeStatus[];
                           }
 
                           const groups: ExecutionGroup[] = [];
                           const processed = new Set<string>();
 
-                          nodeStatuses.forEach((node: any) => {
+                          nodeStatuses.forEach((node: APINodeStatus) => {
                             if (processed.has(node.node_id)) return;
 
                             const parallelNodes = [node];
@@ -676,7 +883,7 @@ function WorkflowBuilderCanvas() {
                               const nodeStart = new Date(node.start_time).getTime();
                               const nodeEnd = new Date(node.end_time).getTime();
 
-                              nodeStatuses.forEach((other: any) => {
+                              nodeStatuses.forEach((other: APINodeStatus) => {
                                 if (processed.has(other.node_id)) return;
                                 if (!other.start_time || !other.end_time) return;
 
@@ -713,12 +920,12 @@ function WorkflowBuilderCanvas() {
 
                               {/* Nodes in this group */}
                               <div className={group.type === 'parallel' ? 'ml-4 space-y-3' : 'space-y-3'}>
-                                {group.nodes.map((nodeStatus: any) => {
+                                {group.nodes.map((nodeStatus: APINodeStatus) => {
                                   const currentIndex = globalIndex++;
                                   const workflowNode = nodes.find((n) => n.id === nodeStatus.node_id);
                                   const nodeLabel = workflowNode?.data?.label || nodeStatus.node_id;
                                   const nodeType = workflowNode?.type || 'unknown';
-                                  const output = nodeStatus.output || executionResult.final_output?.[nodeStatus.node_id];
+                                  const output = (nodeStatus.output || executionResult.final_output?.[nodeStatus.node_id]) as PipelineOutput | undefined;
 
                                   // Debug logging
                                   console.log(`\n🔍 [Node ${currentIndex}] ${nodeLabel} (${nodeStatus.node_id})`);
@@ -748,6 +955,12 @@ function WorkflowBuilderCanvas() {
                                               <div className="text-xs text-gray-500 dark:text-gray-400">
                                                 {nodeType} • {nodeStatus.node_id}
                                               </div>
+                                              {/* Node Description */}
+                                              {nodeDefinitions[nodeType as keyof typeof nodeDefinitions]?.description && (
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
+                                                  💡 {nodeDefinitions[nodeType as keyof typeof nodeDefinitions].description}
+                                                </div>
+                                              )}
                                             </div>
                                             <div className={`px-2 py-1 rounded text-xs font-semibold ${
                                               nodeStatus.status === 'completed'
@@ -784,9 +997,10 @@ function WorkflowBuilderCanvas() {
                                                 📸 Output Image:
                                               </div>
                                               <img
-                                                src={(output.image || output.visualized_image).startsWith('data:')
-                                                  ? (output.image || output.visualized_image)
-                                                  : `data:image/jpeg;base64,${output.image || output.visualized_image}`}
+                                                src={(() => {
+                                                  const imgData = output.image || output.visualized_image || '';
+                                                  return imgData.startsWith('data:') ? imgData : `data:image/jpeg;base64,${imgData}`;
+                                                })()}
                                                 alt={`${nodeLabel} result`}
                                                 className="w-full h-auto rounded border border-gray-300 dark:border-gray-600 shadow-sm cursor-pointer hover:shadow-lg transition-shadow"
                                                 onClick={(e) => {
@@ -809,9 +1023,9 @@ function WorkflowBuilderCanvas() {
                                                 🎯 Detections: {output.detections.length} objects
                                               </div>
                                               <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                                                {output.detections.slice(0, 3).map((det: any, i: number) => (
+                                                {output.detections.slice(0, 3).map((det: Detection, i: number) => (
                                                   <div key={i}>
-                                                    • {det.class || 'Unknown'} ({(det.confidence * 100).toFixed(1)}%)
+                                                    • {det.class_name || det.class || 'Unknown'} ({(det.confidence * 100).toFixed(1)}%)
                                                   </div>
                                                 ))}
                                                 {output.detections.length > 3 && (
@@ -828,10 +1042,10 @@ function WorkflowBuilderCanvas() {
                                             <div className="mt-2 p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-800">
                                               <div className="text-xs font-semibold text-indigo-900 dark:text-indigo-100">
                                                 📏 Dimensions: {output.dimensions.length}
-                                                {output.gdt?.length > 0 && ` | GD&T: ${output.gdt.length}`}
+                                                {(output.gdt?.length ?? 0) > 0 && ` | GD&T: ${output.gdt?.length}`}
                                               </div>
                                               <div className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
-                                                {output.dimensions.slice(0, 5).map((dim: any, i: number) => (
+                                                {output.dimensions.slice(0, 5).map((dim: DimensionResult, i: number) => (
                                                   <div key={i}>
                                                     • {dim.type && `[${dim.type}] `}{dim.value || dim.text || JSON.stringify(dim).slice(0, 50)}{dim.unit || ''}{dim.tolerance ? ` ±${dim.tolerance}` : ''}
                                                   </div>
@@ -853,9 +1067,9 @@ function WorkflowBuilderCanvas() {
                                               <OCRVisualization
                                                 imageBase64={uploadedImage}
                                                 ocrResult={{
-                                                  dimensions: output.dimensions || [],
-                                                  gdt: output.gdt || [],
-                                                  text: output.text || { total_blocks: 0 },
+                                                  dimensions: (output.dimensions || []) as { type: string; value: number; unit: string; tolerance: string | number | null }[],
+                                                  gdt: (output.gdt || []) as { type: string; value: number; datum: string | null }[],
+                                                  text: (typeof output.text === 'object' ? output.text : { total_blocks: 0 }) as { total_blocks?: number },
                                                 }}
                                                 compact={true}
                                               />
@@ -882,7 +1096,7 @@ function WorkflowBuilderCanvas() {
                                                 📝 OCR Text Results: {output.text_results.length}
                                               </div>
                                               <div className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-                                                {output.text_results.slice(0, 5).map((textResult: any, i: number) => (
+                                                {output.text_results.slice(0, 5).map((textResult: TextResult, i: number) => (
                                                   <div key={i}>
                                                     • {textResult.text || textResult.content || JSON.stringify(textResult).slice(0, 50)}
                                                   </div>
@@ -903,7 +1117,7 @@ function WorkflowBuilderCanvas() {
                                                 📝 OCR Blocks: {output.blocks.length}
                                               </div>
                                               <div className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-                                                {output.blocks.slice(0, 3).map((block: any, i: number) => (
+                                                {output.blocks.slice(0, 3).map((block: OCRBlock, i: number) => (
                                                   <div key={i}>• {block.text || JSON.stringify(block).slice(0, 50)}</div>
                                                 ))}
                                                 {output.blocks.length > 3 && (
@@ -922,7 +1136,7 @@ function WorkflowBuilderCanvas() {
                                                 🎨 Segmentation: {output.segments.length} segments
                                               </div>
                                               <div className="text-xs text-green-700 dark:text-green-300 mt-1">
-                                                {output.segments.slice(0, 3).map((seg: any, i: number) => (
+                                                {output.segments.slice(0, 3).map((seg: SegmentResult, i: number) => (
                                                   <div key={i}>
                                                     • {seg.class || seg.type || `Segment ${i + 1}`}
                                                     {seg.confidence && ` (${(seg.confidence * 100).toFixed(1)}%)`}
@@ -952,9 +1166,9 @@ function WorkflowBuilderCanvas() {
                                                 imageBase64={uploadedImage || undefined}
                                                 segmentationResult={{
                                                   num_components: output.num_components || 0,
-                                                  classifications: output.classifications || {},
-                                                  graph: output.graph,
-                                                  vectorization: output.vectorization,
+                                                  classifications: output.classifications || { contour: 0, text: 0, dimension: 0 },
+                                                  graph: output.graph || { nodes: 0, edges: 0, avg_degree: 0 },
+                                                  vectorization: output.vectorization || { num_bezier_curves: 0, total_length: 0 },
                                                 }}
                                                 compact={true}
                                               />
@@ -968,7 +1182,7 @@ function WorkflowBuilderCanvas() {
                                                 📐 Tolerance Analysis: {output.tolerances.length} items
                                               </div>
                                               <div className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-                                                {output.tolerances.slice(0, 5).map((tol: any, i: number) => (
+                                                {output.tolerances.slice(0, 5).map((tol: ToleranceItem, i: number) => (
                                                   <div key={i}>
                                                     • {tol.dimension || tol.name || `Tolerance ${i + 1}`}
                                                     {tol.value && `: ${tol.value}`}
@@ -988,7 +1202,7 @@ function WorkflowBuilderCanvas() {
                                                 📐 Analysis Details:
                                               </div>
                                               <div className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-                                                {Object.entries(output.analysis).slice(0, 5).map(([key, value]: [string, any]) => (
+                                                {Object.entries(output.analysis).slice(0, 5).map(([key, value]: [string, unknown]) => (
                                                   <div key={key}>• {key}: {String(value).slice(0, 50)}</div>
                                                 ))}
                                               </div>
@@ -996,8 +1210,8 @@ function WorkflowBuilderCanvas() {
                                           )}
 
                                           {/* Tolerance Visualization (SkinModel) */}
-                                          {nodeType === 'skinmodel' &&
-                                           (output?.manufacturability || output?.predicted_tolerances) && (
+                                          {nodeType === 'skinmodel' && output &&
+                                           (output.manufacturability || output.predicted_tolerances) && (
                                             <div className="mt-3">
                                               <ToleranceVisualization
                                                 toleranceData={{
@@ -1081,6 +1295,8 @@ function WorkflowBuilderCanvas() {
                   )}
                 </div>
               )}
+              </div>
+              )}
             </div>
           )}
         </div>
@@ -1105,8 +1321,27 @@ function WorkflowBuilderCanvas() {
             className="bg-gray-50 dark:bg-gray-900"
           >
             <Background />
-            <Controls />
-            <MiniMap />
+            <Controls position="bottom-left" />
+            <MiniMap
+              position="top-right"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+              }}
+              maskColor="rgba(0, 0, 0, 0.1)"
+              nodeColor={(node) => {
+                switch (node.type) {
+                  case 'imageinput': return '#22c55e';
+                  case 'yolo': return '#3b82f6';
+                  case 'edocr2': return '#8b5cf6';
+                  case 'skinmodel': return '#f59e0b';
+                  default: return '#6b7280';
+                }
+              }}
+              pannable
+              zoomable
+            />
           </ReactFlow>
         </div>
       </div>
@@ -1114,7 +1349,7 @@ function WorkflowBuilderCanvas() {
       {/* Node Detail Panel */}
       <NodeDetailPanel
         selectedNode={selectedNode}
-        onClose={() => setSelectedNode(null)}
+        onClose={() => setSelectedNodeId(null)}
         onUpdateNode={updateNodeData}
       />
 
@@ -1122,7 +1357,7 @@ function WorkflowBuilderCanvas() {
       <DebugPanel
         isOpen={isDebugPanelOpen}
         onToggle={() => setIsDebugPanelOpen(!isDebugPanelOpen)}
-        executionResult={executionResult}
+        executionResult={executionResult as Record<string, unknown> | null}
         executionError={executionError}
       />
     </div>

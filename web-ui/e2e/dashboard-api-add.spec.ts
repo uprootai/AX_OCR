@@ -36,24 +36,30 @@ test.describe('Dashboard API Add Dialog', () => {
     await expect(page.locator('h2:has-text("새 API 추가")')).toBeVisible({ timeout: 5000 });
 
     // Enter YOLO API URL
-    await page.fill('input[placeholder="http://localhost:5009"]', 'http://localhost:5005');
+    const urlInput = page.locator('input[placeholder="http://localhost:5009"]');
+    await urlInput.fill('http://localhost:5005');
 
-    // Click search button
-    await page.click('button:has-text("검색")');
+    // Click search button (use exact match to avoid "API 자동 검색" button)
+    const searchButton = page.getByRole('button', { name: '검색', exact: true });
+    await searchButton.click();
 
-    // Wait for search to complete (success message)
-    await expect(page.locator('text=API 정보를 성공적으로 가져왔습니다')).toBeVisible({ timeout: 10000 });
+    // Wait for form to be populated (API ID field) - this indicates successful auto-discover
+    const idInput = page.locator('input[placeholder="예: text-classifier"]');
+    await expect(idInput).toHaveValue('yolo-detector', { timeout: 15000 });
 
     // Take screenshot after auto-discover
     await page.screenshot({ path: 'test-results/dashboard-auto-discover.png' });
 
-    // Check that form fields are populated
-    const idInput = page.locator('input[placeholder="예: text-classifier"]');
-    await expect(idInput).toHaveValue('yolo-detector');
-
     // Check display name is populated
     const displayNameInput = page.locator('input[placeholder="예: Text Classifier"]');
-    await expect(displayNameInput).toHaveValue('YOLO 객체 검출');
+    await expect(displayNameInput).toHaveValue('YOLO 객체 검출', { timeout: 5000 });
+
+    // Check description is populated (optional - if the API provides it)
+    const descriptionInput = page.locator('textarea[placeholder*="설명"]').first();
+    if (await descriptionInput.isVisible()) {
+      const description = await descriptionInput.inputValue();
+      expect(description.length).toBeGreaterThan(0);
+    }
   });
 
   test('should show Custom APIs section after adding API', async ({ page }) => {

@@ -8,13 +8,13 @@ interface ProgressUpdate {
   step: string;
   status: 'started' | 'running' | 'completed' | 'error';
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 interface PipelineProgressProps {
   jobId: string;
   pipelineMode?: 'hybrid' | 'speed';
-  onComplete?: (data) => void;
+  onComplete?: (data: Record<string, unknown>) => void;
   onError?: (error: string) => void;
 }
 
@@ -334,9 +334,11 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
                     <p className="font-medium text-sm">
                       {step.label}
                     </p>
-                    {details?.data?.processing_time && (
+                    {details?.data?.processing_time !== undefined && (
                       <span className="text-xs text-muted-foreground">
-                        {details.data.processing_time.toFixed(2)}s
+                        {typeof details.data.processing_time === 'number'
+                          ? details.data.processing_time.toFixed(2)
+                          : String(details.data.processing_time)}s
                       </span>
                     )}
                   </div>
@@ -353,22 +355,22 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
                     <div className="flex flex-wrap gap-2 mt-2">
                       {details.data.detection_count !== undefined && (
                         <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                          검출: {details.data.detection_count}
+                          검출: {String(details.data.detection_count)}
                         </span>
                       )}
                       {details.data.dimensions_count !== undefined && (
                         <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                          치수: {details.data.dimensions_count}
+                          치수: {String(details.data.dimensions_count)}
                         </span>
                       )}
                       {details.data.components_count !== undefined && (
                         <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                          컴포넌트: {details.data.components_count}
+                          컴포넌트: {String(details.data.components_count)}
                         </span>
                       )}
                       {details.data.dimension_count !== undefined && (
                         <span className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded">
-                          업스케일: {details.data.dimension_count}
+                          업스케일: {String(details.data.dimension_count)}
                         </span>
                       )}
                     </div>

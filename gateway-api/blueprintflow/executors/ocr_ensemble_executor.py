@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 
 from .base_executor import BaseNodeExecutor
 from .executor_registry import ExecutorRegistry
-from .image_utils import prepare_image_for_api
+from .image_utils import prepare_image_for_api, draw_ocr_visualization, normalize_ocr_results
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ class OcrEnsembleExecutor(BaseNodeExecutor):
             trocr_weight = self.parameters.get("trocr_weight", 0.10)
             similarity_threshold = self.parameters.get("similarity_threshold", 0.7)
             engines = self.parameters.get("engines", "all")
+            visualize = self.parameters.get("visualize", True)  # 시각화 기본 활성화
 
             # API 호출 - 올바른 엔드포인트: /api/v1/ocr
             async with httpx.AsyncClient(timeout=180.0) as client:
@@ -50,6 +51,7 @@ class OcrEnsembleExecutor(BaseNodeExecutor):
                     "trocr_weight": str(trocr_weight),
                     "similarity_threshold": str(similarity_threshold),
                     "engines": engines if isinstance(engines, str) else ",".join(engines),
+                    "visualize": str(visualize).lower(),
                 }
 
                 response = await client.post(
@@ -62,12 +64,34 @@ class OcrEnsembleExecutor(BaseNodeExecutor):
                 raise Exception(f"OCR Ensemble API 에러: {response.status_code} - {response.text}")
 
             result = response.json()
-            self.logger.info(f"OCR Ensemble 완료: {len(result.get('results', []))}개 텍스트 검출")
+            texts = result.get("results", [])
+            self.logger.info(f"OCR Ensemble 완료: {len(texts)}개 텍스트 검출")
+
+            # API에서 시각화 이미지가 없으면 로컬에서 생성
+            visualized_image = result.get("visualized_image", "")
+            if not visualized_image and visualize:
+                try:
+                    # OCR 결과 정규화
+                    normalized_results = normalize_ocr_results(texts, source="ensemble")
+
+                    # 시각화 이미지 생성
+                    if normalized_results:
+                        visualized_image = draw_ocr_visualization(
+                            file_bytes,
+                            normalized_results,
+                            box_color=(255, 165, 0),  # 주황색 (앙상블 특성)
+                            text_color=(0, 0, 200),
+                        )
+                        self.logger.info(f"OCR Ensemble 시각화 이미지 로컬 생성 완료")
+                except Exception as viz_err:
+                    self.logger.warning(f"시각화 생성 실패 (무시됨): {viz_err}")
 
             return {
-                "results": result.get("results", []),
-                "texts": result.get("results", []),  # 호환성
+                "results": texts,
+                "texts": texts,  # 호환성
                 "full_text": result.get("full_text", ""),
+                "visualized_image": visualized_image,
+                "image": visualized_image,  # 대체 필드명
                 "engine_results": result.get("engine_results", {}),
                 "engine_status": result.get("engine_status", {}),
                 "weights_used": result.get("weights_used", {}),

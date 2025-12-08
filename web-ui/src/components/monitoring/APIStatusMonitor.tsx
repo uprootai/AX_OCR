@@ -10,7 +10,10 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Settings
+  Settings,
+  Trash2,
+  Square,
+  Play
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -31,26 +34,39 @@ interface APIInfo {
   last_check: string | null;
 }
 
-// 기본 API 정의 (실제 Docker 컨테이너 기준)
+// 기본 API 정의 (실제 Docker 컨테이너 기준 - 22개 서비스)
 const DEFAULT_APIS: APIInfo[] = [
   // Orchestrator
   { id: 'gateway', name: 'gateway', display_name: 'Gateway API', base_url: 'http://localhost:8000', port: 8000, status: 'unknown', category: 'orchestrator', description: 'API Gateway & Orchestrator', icon: '🚀', color: '#6366f1', last_check: null },
   // Detection
   { id: 'yolo', name: 'yolo', display_name: 'YOLOv11', base_url: 'http://localhost:5005', port: 5005, status: 'unknown', category: 'detection', description: '14가지 도면 심볼 검출', icon: '🎯', color: '#ef4444', last_check: null },
+  { id: 'yolo_pid', name: 'yolo_pid', display_name: 'YOLO-PID', base_url: 'http://localhost:5017', port: 5017, status: 'unknown', category: 'detection', description: 'P&ID 심볼 검출 (60종)', icon: '🔧', color: '#ef4444', last_check: null },
   // OCR
-  { id: 'edocr2_v1', name: 'edocr2_v1', display_name: 'eDOCr v1 (Fast)', base_url: 'http://localhost:5001', port: 5001, status: 'unknown', category: 'ocr', description: '빠른 OCR 처리', icon: '📝', color: '#3b82f6', last_check: null },
-  { id: 'edocr2_v2', name: 'edocr2_v2', display_name: 'eDOCr v2 (Advanced)', base_url: 'http://localhost:5002', port: 5002, status: 'unknown', category: 'ocr', description: '고급 한국어 치수 인식', icon: '📐', color: '#3b82f6', last_check: null },
+  { id: 'edocr2', name: 'edocr2', display_name: 'eDOCr2', base_url: 'http://localhost:5002', port: 5002, status: 'unknown', category: 'ocr', description: '한국어 치수 인식', icon: '📐', color: '#3b82f6', last_check: null },
   { id: 'paddleocr', name: 'paddleocr', display_name: 'PaddleOCR', base_url: 'http://localhost:5006', port: 5006, status: 'unknown', category: 'ocr', description: '다국어 OCR', icon: '🔤', color: '#3b82f6', last_check: null },
+  { id: 'tesseract', name: 'tesseract', display_name: 'Tesseract', base_url: 'http://localhost:5008', port: 5008, status: 'unknown', category: 'ocr', description: '문서 OCR', icon: '📄', color: '#3b82f6', last_check: null },
+  { id: 'trocr', name: 'trocr', display_name: 'TrOCR', base_url: 'http://localhost:5009', port: 5009, status: 'unknown', category: 'ocr', description: '필기체 OCR', icon: '✍️', color: '#3b82f6', last_check: null },
+  { id: 'ocr_ensemble', name: 'ocr_ensemble', display_name: 'OCR Ensemble', base_url: 'http://localhost:5011', port: 5011, status: 'unknown', category: 'ocr', description: '4엔진 가중 투표', icon: '🗳️', color: '#3b82f6', last_check: null },
   { id: 'surya_ocr', name: 'surya_ocr', display_name: 'Surya OCR', base_url: 'http://localhost:5013', port: 5013, status: 'unknown', category: 'ocr', description: '90+ 언어, 레이아웃 분석', icon: '🌞', color: '#3b82f6', last_check: null },
   { id: 'doctr', name: 'doctr', display_name: 'DocTR', base_url: 'http://localhost:5014', port: 5014, status: 'unknown', category: 'ocr', description: '2단계 파이프라인 OCR', icon: '📑', color: '#3b82f6', last_check: null },
   { id: 'easyocr', name: 'easyocr', display_name: 'EasyOCR', base_url: 'http://localhost:5015', port: 5015, status: 'unknown', category: 'ocr', description: '80+ 언어, CPU 친화적', icon: '👁️', color: '#3b82f6', last_check: null },
   // Segmentation
   { id: 'edgnet', name: 'edgnet', display_name: 'EDGNet', base_url: 'http://localhost:5012', port: 5012, status: 'unknown', category: 'segmentation', description: '엣지 기반 세그멘테이션', icon: '🔲', color: '#22c55e', last_check: null },
+  { id: 'line_detector', name: 'line_detector', display_name: 'Line Detector', base_url: 'http://localhost:5016', port: 5016, status: 'unknown', category: 'segmentation', description: 'P&ID 라인 검출', icon: '📏', color: '#22c55e', last_check: null },
+  // Preprocessing
+  { id: 'esrgan', name: 'esrgan', display_name: 'ESRGAN', base_url: 'http://localhost:5010', port: 5010, status: 'unknown', category: 'preprocessing', description: '4x 이미지 업스케일링', icon: '🔍', color: '#f59e0b', last_check: null },
   // Analysis
   { id: 'skinmodel', name: 'skinmodel', display_name: 'SkinModel', base_url: 'http://localhost:5003', port: 5003, status: 'unknown', category: 'analysis', description: '공차 분석 & 제조성 예측', icon: '📊', color: '#8b5cf6', last_check: null },
+  { id: 'pid_analyzer', name: 'pid_analyzer', display_name: 'PID Analyzer', base_url: 'http://localhost:5018', port: 5018, status: 'unknown', category: 'analysis', description: 'P&ID 연결 분석, BOM 생성', icon: '🔗', color: '#8b5cf6', last_check: null },
+  { id: 'design_checker', name: 'design_checker', display_name: 'Design Checker', base_url: 'http://localhost:5019', port: 5019, status: 'unknown', category: 'analysis', description: 'P&ID 설계 규칙 검증', icon: '✅', color: '#8b5cf6', last_check: null },
+  // Knowledge
+  { id: 'knowledge', name: 'knowledge', display_name: 'Knowledge', base_url: 'http://localhost:5007', port: 5007, status: 'unknown', category: 'knowledge', description: 'Neo4j + GraphRAG', icon: '🧠', color: '#10b981', last_check: null },
   // AI
   { id: 'vl', name: 'vl', display_name: 'VL (Vision-Language)', base_url: 'http://localhost:5004', port: 5004, status: 'unknown', category: 'ai', description: 'Vision-Language 멀티모달', icon: '🤖', color: '#06b6d4', last_check: null },
 ];
+
+// localStorage key for deleted APIs
+const DELETED_APIS_KEY = 'deleted-api-ids';
 
 export default function APIStatusMonitor() {
   const [apis, setApis] = useState<APIInfo[]>(DEFAULT_APIS);
@@ -58,7 +74,119 @@ export default function APIStatusMonitor() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [deletedApis, setDeletedApis] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem(DELETED_APIS_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  });
   const { customAPIs } = useAPIConfigStore();
+
+  // Delete API from list (can be restored via "API 자동 검색")
+  const deleteApi = (apiId: string) => {
+    if (!confirm('이 API를 목록에서 삭제하시겠습니까?\n(API 자동 검색으로 다시 추가할 수 있습니다)')) {
+      return;
+    }
+    setDeletedApis(prev => {
+      const newSet = new Set(prev);
+      newSet.add(apiId);
+      localStorage.setItem(DELETED_APIS_KEY, JSON.stringify([...newSet]));
+      return newSet;
+    });
+  };
+
+  // API ID → Container name mapping
+  const apiToContainerMap: Record<string, string> = {
+    gateway: 'gateway-api',
+    yolo: 'yolo-api',
+    yolo_pid: 'yolo-pid-api',
+    edocr2: 'edocr2-v2-api',
+    paddleocr: 'paddleocr-api',
+    tesseract: 'tesseract-api',
+    trocr: 'trocr-api',
+    ocr_ensemble: 'ocr-ensemble-api',
+    surya_ocr: 'surya-ocr-api',
+    doctr: 'doctr-api',
+    easyocr: 'easyocr-api',
+    edgnet: 'edgnet-api',
+    line_detector: 'line-detector-api',
+    esrgan: 'esrgan-api',
+    skinmodel: 'skinmodel-api',
+    pid_analyzer: 'pid-analyzer-api',
+    design_checker: 'design-checker-api',
+    knowledge: 'knowledge-api',
+    vl: 'vl-api',
+  };
+
+  // Category action loading state
+  const [categoryActionLoading, setCategoryActionLoading] = useState<string | null>(null);
+
+  // Stop/Start all containers in a category
+  const handleCategoryAction = async (category: string, action: 'stop' | 'start') => {
+    const categoryAPIs = apis.filter(api => api.category === category && !deletedApis.has(api.id));
+    const targetAPIs = action === 'stop'
+      ? categoryAPIs.filter(api => api.status === 'healthy')
+      : categoryAPIs.filter(api => api.status !== 'healthy');
+
+    if (targetAPIs.length === 0) {
+      alert(action === 'stop' ? '중지할 API가 없습니다.' : '시작할 API가 없습니다.');
+      return;
+    }
+
+    const actionText = action === 'stop' ? '중지' : '시작';
+    if (!confirm(`${category.toUpperCase()} 카테고리의 ${targetAPIs.length}개 API를 ${actionText}하시겠습니까?\n\n${targetAPIs.map(a => a.display_name).join(', ')}`)) {
+      return;
+    }
+
+    setCategoryActionLoading(category);
+    let successCount = 0;
+    let failCount = 0;
+    const failedAPIs: string[] = [];
+
+    for (const api of targetAPIs) {
+      const containerName = apiToContainerMap[api.id];
+
+      // 매핑이 없는 경우
+      if (!containerName) {
+        console.warn(`No container mapping for API: ${api.id}`);
+        failCount++;
+        failedAPIs.push(`${api.display_name} (매핑 없음)`);
+        continue;
+      }
+
+      try {
+        const response = await axios.post(
+          `http://localhost:8000/api/v1/containers/${containerName}/${action}`,
+          {},
+          { timeout: 30000 }
+        );
+
+        // API 응답의 success 필드 확인
+        if (response.data?.success === true) {
+          successCount++;
+        } else {
+          failCount++;
+          failedAPIs.push(`${api.display_name} (${response.data?.message || '알 수 없는 오류'})`);
+        }
+      } catch (error) {
+        failCount++;
+        const errorMsg = error instanceof Error ? error.message : '연결 실패';
+        failedAPIs.push(`${api.display_name} (${errorMsg})`);
+      }
+    }
+
+    setCategoryActionLoading(null);
+    await fetchStatus(true);
+
+    // 결과 알림
+    if (successCount > 0 && failCount === 0) {
+      // 모두 성공 - 알림 없음 (UI에서 바로 확인 가능)
+    } else if (successCount > 0 && failCount > 0) {
+      // 일부 성공
+      alert(`${actionText} 일부 완료\n\n✓ 성공: ${successCount}개\n✗ 실패: ${failCount}개\n\n실패 목록:\n${failedAPIs.join('\n')}`);
+    } else if (successCount === 0 && failCount > 0) {
+      // 모두 실패
+      alert(`${actionText} 실패\n\n실패 목록:\n${failedAPIs.join('\n')}`);
+    }
+  };
 
   const fetchStatus = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setIsRefreshing(true);
@@ -187,9 +315,11 @@ export default function APIStatusMonitor() {
     );
   }
 
-  const healthyAPIs = apis.filter(api => api.status === 'healthy');
-  const unhealthyAPIs = apis.filter(api => api.status !== 'healthy');
-  const categories = [...new Set(apis.map(api => api.category))];
+  // Filter visible APIs (exclude deleted)
+  const visibleApis = apis.filter(api => !deletedApis.has(api.id));
+  const healthyAPIs = visibleApis.filter(api => api.status === 'healthy');
+  const unhealthyAPIs = visibleApis.filter(api => api.status !== 'healthy');
+  const categories = [...new Set(visibleApis.map(api => api.category))];
 
   // 카테고리별 정렬 순서
   const categoryOrder = ['orchestrator', 'detection', 'ocr', 'segmentation', 'preprocessing', 'analysis', 'knowledge', 'ai'];
@@ -298,7 +428,7 @@ export default function APIStatusMonitor() {
         {/* APIs by Category */}
         <div className="space-y-3">
           {categories.map(category => {
-            const categoryAPIs = apis.filter(api => api.category === category);
+            const categoryAPIs = visibleApis.filter(api => api.category === category);
             const categoryHealthy = categoryAPIs.filter(api => api.status === 'healthy').length;
             const isExpanded = expandedCategories.has(category);
 
@@ -317,11 +447,11 @@ export default function APIStatusMonitor() {
             return (
               <div key={category} className="border rounded-lg overflow-hidden">
                 {/* Category Header */}
-                <button
-                  onClick={() => toggleCategory(category)}
-                  className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between p-3 bg-muted/30">
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+                  >
                     <span className="font-semibold">{categoryLabels[category] || category}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       categoryHealthy === categoryAPIs.length
@@ -332,13 +462,57 @@ export default function APIStatusMonitor() {
                     }`}>
                       {categoryHealthy}/{categoryAPIs.length}
                     </span>
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+
+                  {/* Category Actions */}
+                  <div className="flex items-center gap-1">
+                      {categoryHealthy > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCategoryAction(category, 'stop');
+                          }}
+                          disabled={categoryActionLoading === category}
+                          className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          title={`${categoryLabels[category] || category} 전체 중지`}
+                        >
+                          {categoryActionLoading === category ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Square className="h-3.5 w-3.5" />
+                          )}
+                          <span className="ml-1 text-xs">Stop All</span>
+                        </Button>
+                      )}
+                      {categoryHealthy < categoryAPIs.length && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCategoryAction(category, 'start');
+                          }}
+                          disabled={categoryActionLoading === category}
+                          className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title={`${categoryLabels[category] || category} 전체 시작`}
+                        >
+                          {categoryActionLoading === category ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5" />
+                          )}
+                          <span className="ml-1 text-xs">Start All</span>
+                        </Button>
+                      )}
                   </div>
-                  {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
+                </div>
 
                 {/* Category Content */}
                 {isExpanded && (
@@ -401,6 +575,17 @@ export default function APIStatusMonitor() {
                               <Settings className="h-2.5 w-2.5" />
                               설정
                             </Link>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteApi(api.id);
+                              }}
+                              className="flex items-center gap-0.5 text-muted-foreground hover:text-destructive"
+                              title="목록에서 삭제"
+                            >
+                              <Trash2 className="h-2.5 w-2.5" />
+                              삭제
+                            </button>
                           </div>
                         </div>
                       </div>

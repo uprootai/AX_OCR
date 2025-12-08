@@ -224,6 +224,7 @@ export default function Guide() {
 
     subgraph Detection["🎯 Detection"]
         YOLO[YOLO :5005]
+        YOLOPID[YOLO-PID :5017]
     end
 
     subgraph OCR["📝 OCR"]
@@ -237,6 +238,7 @@ export default function Guide() {
 
     subgraph Segmentation["🎨 Segmentation"]
         EG[EDGNet :5012]
+        LD[LineDetector :5016]
     end
 
     subgraph Preprocessing["🔧 Preprocessing"]
@@ -245,6 +247,8 @@ export default function Guide() {
 
     subgraph Analysis["📊 Analysis"]
         SK[SkinModel :5003]
+        PA[PID-Analyzer :5018]
+        DC[DesignChecker :5019]
     end
 
     subgraph AI["🤖 AI"]
@@ -359,14 +363,28 @@ export default function Guide() {
                   <div>
                     <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                       <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm">🎯 Detection</span>
+                      <span className="text-sm text-muted-foreground">(2개 엔진)</span>
                     </h3>
-                    <div className="p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
-                      <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-2">YOLOv11 API (포트 5005)</h4>
-                      <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">공학 도면에서 14개 클래스 객체 검출</p>
-                      <ul className="text-xs space-y-1 text-blue-700 dark:text-blue-300">
-                        <li><strong>• 검출 대상:</strong> 치수선, 화살표, 텍스트, GD&T 심볼 등</li>
-                        <li><strong>• 특징:</strong> 합성 데이터로 학습, CPU/GPU 지원</li>
-                      </ul>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div className="p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
+                        <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-2">YOLOv11 API (포트 5005)</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">공학 도면에서 14개 클래스 객체 검출</p>
+                        <ul className="text-xs space-y-1 text-blue-700 dark:text-blue-300">
+                          <li><strong>• 검출 대상:</strong> 치수선, 화살표, 텍스트, GD&T 심볼 등</li>
+                          <li><strong>• 특징:</strong> 합성 데이터로 학습, CPU/GPU 지원</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-bold text-emerald-900 dark:text-emerald-100">YOLO-PID (포트 5017)</h4>
+                          <Badge className="bg-emerald-600 text-xs">P&ID</Badge>
+                        </div>
+                        <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-2">P&ID 도면 60종 심볼 검출</p>
+                        <ul className="text-xs space-y-1 text-emerald-700 dark:text-emerald-300">
+                          <li><strong>• 검출 대상:</strong> 밸브 15종, 펌프 5종, 계기 20종 등</li>
+                          <li><strong>• 특징:</strong> ISO 10628, ISA 5.1 표준 심볼</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
 
@@ -407,14 +425,54 @@ export default function Guide() {
                   <div>
                     <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                       <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm">🎨 Segmentation</span>
+                      <span className="text-sm text-muted-foreground">(2개 엔진)</span>
                     </h3>
-                    <div className="p-4 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20">
-                      <h4 className="font-bold text-purple-900 dark:text-purple-100 mb-2">EDGNet API (포트 5012)</h4>
-                      <p className="text-sm text-purple-800 dark:text-purple-200 mb-2">도면 세그멘테이션 (레이어 분리)</p>
-                      <ul className="text-xs space-y-1 text-purple-700 dark:text-purple-300">
-                        <li><strong>• 모델:</strong> UNet (엣지), GraphSAGE (분류)</li>
-                        <li><strong>• 특징:</strong> 윤곽선, 텍스트, 치수 레이어 분리</li>
-                      </ul>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div className="p-4 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/20">
+                        <h4 className="font-bold text-purple-900 dark:text-purple-100 mb-2">EDGNet API (포트 5012)</h4>
+                        <p className="text-sm text-purple-800 dark:text-purple-200 mb-2">도면 세그멘테이션 (레이어 분리)</p>
+                        <ul className="text-xs space-y-1 text-purple-700 dark:text-purple-300">
+                          <li><strong>• 모델:</strong> UNet (엣지), GraphSAGE (분류)</li>
+                          <li><strong>• 특징:</strong> 윤곽선, 텍스트, 치수 레이어 분리</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border-l-4 border-teal-500 bg-teal-50 dark:bg-teal-900/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-bold text-teal-900 dark:text-teal-100">Line Detector (포트 5016)</h4>
+                          <Badge className="bg-teal-600 text-xs">P&ID</Badge>
+                        </div>
+                        <p className="text-sm text-teal-800 dark:text-teal-200 mb-2">P&ID 배관 라인 및 신호선 검출</p>
+                        <ul className="text-xs space-y-1 text-teal-700 dark:text-teal-300">
+                          <li><strong>• 알고리즘:</strong> LSD + Hough Transform</li>
+                          <li><strong>• 특징:</strong> 라인 분류, 교차점 검출, 병합</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* P&ID Analysis Pipeline */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <span className="px-2 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded text-sm">📊 P&ID Analysis</span>
+                      <Badge className="bg-rose-600 text-xs">NEW</Badge>
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div className="p-4 border-l-4 border-violet-500 bg-violet-50 dark:bg-violet-900/20">
+                        <h4 className="font-bold text-violet-900 dark:text-violet-100 mb-2">P&ID Analyzer (포트 5018)</h4>
+                        <p className="text-sm text-violet-800 dark:text-violet-200 mb-2">심볼 연결 분석 및 BOM 생성</p>
+                        <ul className="text-xs space-y-1 text-violet-700 dark:text-violet-300">
+                          <li><strong>• 출력:</strong> BOM, 밸브 시그널 리스트, 장비 목록</li>
+                          <li><strong>• 특징:</strong> 그래프 기반 연결성 분석</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20">
+                        <h4 className="font-bold text-red-900 dark:text-red-100 mb-2">Design Checker (포트 5019)</h4>
+                        <p className="text-sm text-red-800 dark:text-red-200 mb-2">설계 규칙 검증 및 오류 검출</p>
+                        <ul className="text-xs space-y-1 text-red-700 dark:text-red-300">
+                          <li><strong>• 규칙:</strong> 20+ 설계 규칙 (6개 카테고리)</li>
+                          <li><strong>• 표준:</strong> ISO 10628, ISA 5.1, ASME</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
 
@@ -1039,11 +1097,11 @@ def test_process():
                   {/* 구현 현황 */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded text-center">
-                      <div className="text-3xl font-bold text-green-600 dark:text-green-400">13</div>
+                      <div className="text-3xl font-bold text-green-600 dark:text-green-400">17</div>
                       <div className="text-sm text-green-800 dark:text-green-200">노드 타입</div>
                     </div>
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded text-center">
-                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">11</div>
+                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">15</div>
                       <div className="text-sm text-blue-800 dark:text-blue-200">API Executor</div>
                     </div>
                     <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 rounded text-center">
@@ -1058,8 +1116,8 @@ def test_process():
 
                   {/* 노드 타입 */}
                   <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">지원 노드 타입 (13종)</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                    <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">지원 노드 타입 (17종)</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
                       <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
                         <strong>입력 노드</strong>
                         <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
@@ -1081,6 +1139,14 @@ def test_process():
                           <li>• TrOCR, ESRGAN</li>
                           <li>• OCR Ensemble</li>
                           <li>• Knowledge</li>
+                        </ul>
+                      </div>
+                      <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded">
+                        <strong>P&ID 분석</strong>
+                        <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                          <li>• YOLO-PID, LineDetector</li>
+                          <li>• PID Analyzer</li>
+                          <li>• Design Checker</li>
                         </ul>
                       </div>
                       <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded">

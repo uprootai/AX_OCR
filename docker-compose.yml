@@ -59,7 +59,7 @@ services:
       - ./models/edocr2-v2-api/results:/tmp/edocr2/results
     environment:
       - EDOCR2_PORT=5002
-      - EDOCR2_WORKERS=4
+      - EDOCR2_WORKERS=1
       - EDOCR2_MODEL_PATH=/models
       - EDOCR2_VERSION=v2
       - EDOCR2_LOG_LEVEL=INFO
@@ -306,14 +306,6 @@ services:
     networks:
       - ax_poc_network
     restart: unless-stopped
-    depends_on:
-      - edocr2-api
-      - edocr2-v2-api
-      - edgnet-api
-      - skinmodel-api
-      - vl-api
-      - yolo-api
-      - paddleocr-api
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
@@ -455,11 +447,19 @@ services:
     environment:
       - TROCR_API_PORT=5009
       - TROCR_MODEL=microsoft/trocr-base-printed
-      - TROCR_DEVICE=cpu
+      - TROCR_DEVICE=cuda
       - PYTHONUNBUFFERED=1
     networks:
       - ax_poc_network
     restart: unless-stopped
+    # GPU 지원 활성화 ✅
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5009/health"]
       interval: 30s
@@ -481,11 +481,19 @@ services:
       - esrgan_weights:/app/weights
     environment:
       - ESRGAN_API_PORT=5010
-      - ESRGAN_DEVICE=cpu
+      - ESRGAN_DEVICE=cuda
       - PYTHONUNBUFFERED=1
     networks:
       - ax_poc_network
     restart: unless-stopped
+    # GPU 지원 활성화 ✅
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5010/health"]
       interval: 30s
@@ -541,6 +549,7 @@ services:
     environment:
       - SURYA_OCR_PORT=5013
       - SURYA_DEVICE=cpu
+      - CUDA_VISIBLE_DEVICES=
       - PYTHONUNBUFFERED=1
     networks:
       - ax_poc_network
@@ -608,6 +617,119 @@ services:
       timeout: 30s
       retries: 3
       start_period: 120s
+
+  # =====================
+  # P&ID Analysis APIs
+  # =====================
+
+  # Line Detector API (포트 5016)
+  # LSD + Hough Transform 기반 라인 검출
+  line-detector-api:
+    build:
+      context: ./models/line-detector-api
+      dockerfile: Dockerfile
+    container_name: line-detector-api
+    ports:
+      - "5016:5016"
+    volumes:
+      - ./models/line-detector-api/uploads:/tmp/line-detector/uploads
+      - ./models/line-detector-api/results:/tmp/line-detector/results
+    environment:
+      - LINE_DETECTOR_PORT=5016
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5016/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # YOLO-PID API (포트 5017)
+  # P&ID 심볼 60종 검출
+  yolo-pid-api:
+    build:
+      context: ./models/yolo-pid-api
+      dockerfile: Dockerfile
+    container_name: yolo-pid-api
+    ports:
+      - "5017:5017"
+    volumes:
+      - ./models/yolo-pid-api/models:/app/models:ro
+      - ./models/yolo-pid-api/uploads:/tmp/yolo-pid/uploads
+      - ./models/yolo-pid-api/results:/tmp/yolo-pid/results
+    environment:
+      - YOLO_PID_PORT=5017
+      - YOLO_PID_MODEL_PATH=/app/models/yolo-pid-best.pt
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5017/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PID Analyzer API (포트 5018)
+  # 심볼 연결 분석, BOM 생성
+  pid-analyzer-api:
+    build:
+      context: ./models/pid-analyzer-api
+      dockerfile: Dockerfile
+    container_name: pid-analyzer-api
+    ports:
+      - "5018:5018"
+    volumes:
+      - ./models/pid-analyzer-api/uploads:/tmp/pid-analyzer/uploads
+      - ./models/pid-analyzer-api/results:/tmp/pid-analyzer/results
+    environment:
+      - PID_ANALYZER_PORT=5018
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5018/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Design Checker API (포트 5019)
+  # P&ID 설계 규칙 검증
+  design-checker-api:
+    build:
+      context: ./models/design-checker-api
+      dockerfile: Dockerfile
+    container_name: design-checker-api
+    ports:
+      - "5019:5019"
+    volumes:
+      - ./models/design-checker-api/uploads:/tmp/design-checker/uploads
+      - ./models/design-checker-api/results:/tmp/design-checker/results
+    environment:
+      - DESIGN_CHECKER_PORT=5019
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5019/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   ax_poc_network:

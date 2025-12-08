@@ -194,7 +194,7 @@ export default function APIDetail() {
         if (savedConfigs) {
           try {
             const configs = JSON.parse(savedConfigs);
-            const saved = configs.find((c: any) => c.name === `${apiId}-api` || c.name === apiId);
+            const saved = configs.find((c: { name: string; enabled?: boolean; device?: string; memory_limit?: string; gpu_memory?: string }) => c.name === `${apiId}-api` || c.name === apiId);
             if (saved) {
               loadedConfig = {
                 ...loadedConfig,
@@ -236,7 +236,7 @@ export default function APIDetail() {
   }, [apiId]);
 
   // 로그 로드
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (!apiId) return;
 
     try {
@@ -246,7 +246,7 @@ export default function APIDetail() {
       console.error('Failed to fetch logs:', error);
       setLogs('로그를 불러올 수 없습니다.');
     }
-  };
+  }, [apiId]);
 
   // Docker 제어
   const handleDockerAction = async (action: 'start' | 'stop' | 'restart') => {
@@ -268,8 +268,9 @@ export default function APIDetail() {
       alert(`Docker ${action} 성공!`);
       // 상태 새로고침
       setTimeout(fetchAPIInfo, 2000);
-    } catch (error: any) {
-      alert(`Docker ${action} 실패: ${error.response?.data?.detail || error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Docker ${action} 실패: ${errorMessage}`);
     } finally {
       setDockerAction(null);
     }
@@ -284,7 +285,7 @@ export default function APIDetail() {
       const savedConfigs = localStorage.getItem('serviceConfigs');
       const configs = savedConfigs ? JSON.parse(savedConfigs) : [];
 
-      const configIndex = configs.findIndex((c: any) => c.name === `${apiId}-api` || c.name === apiId);
+      const configIndex = configs.findIndex((c: { name: string }) => c.name === `${apiId}-api` || c.name === apiId);
       const newConfig = {
         name: `${apiId}-api`,
         displayName: apiInfo?.display_name || apiId,
@@ -330,7 +331,7 @@ export default function APIDetail() {
     if (activeTab === 'logs') {
       fetchLogs();
     }
-  }, [activeTab, apiId]);
+  }, [activeTab, fetchLogs]);
 
   if (loading) {
     return (

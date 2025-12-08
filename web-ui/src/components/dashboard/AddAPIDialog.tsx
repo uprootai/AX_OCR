@@ -40,9 +40,9 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
   });
 
   const [apiMetadata, setApiMetadata] = useState<{
-    inputs: any[];
-    outputs: any[];
-    parameters: any[];
+    inputs: Array<{ name: string; type: string; required?: boolean; description?: string }>;
+    outputs: Array<{ name: string; type: string; description?: string }>;
+    parameters: Array<{ name: string; type: string; default?: string | number | boolean }>;
     outputMappings?: Record<string, string>;
     inputMappings?: Record<string, string>;
     endpoint?: string;
@@ -186,21 +186,18 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
     const newAPI: APIConfig = {
       ...formData,
       // ✅ API /info에서 가져온 실제 메타데이터 사용
-      inputs: apiMetadata.inputs.length > 0 ? apiMetadata.inputs : [
-        {
-          name: 'input',
-          type: 'any',
-          description: '📥 입력 데이터',
-        },
-      ],
-      outputs: apiMetadata.outputs.length > 0 ? apiMetadata.outputs : [
-        {
-          name: 'output',
-          type: 'any',
-          description: '📤 출력 데이터',
-        },
-      ],
-      parameters: apiMetadata.parameters || [],
+      inputs: apiMetadata.inputs.length > 0
+        ? apiMetadata.inputs.map(i => ({ ...i, description: i.description || '' }))
+        : [{ name: 'input', type: 'any', description: '📥 입력 데이터' }],
+      outputs: apiMetadata.outputs.length > 0
+        ? apiMetadata.outputs.map(o => ({ ...o, description: o.description || '' }))
+        : [{ name: 'output', type: 'any', description: '📤 출력 데이터' }],
+      parameters: (apiMetadata.parameters || []).map(p => ({
+        name: p.name,
+        type: (p.type || 'string') as 'string' | 'number' | 'boolean' | 'select',
+        default: p.default ?? '',
+        description: '',
+      })),
       // ✅ 추가 메타데이터
       endpoint: apiMetadata.endpoint,
       method: apiMetadata.method,

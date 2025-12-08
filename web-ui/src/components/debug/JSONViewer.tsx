@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface JSONViewerProps {
-  data: any;
+  data: unknown;
   title?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
@@ -64,7 +64,7 @@ export default function JSONViewer({
 
 interface JSONNodeProps {
   name: string | null;
-  value: any;
+  value: unknown;
   collapsible: boolean;
   defaultExpanded: boolean;
   depth: number;

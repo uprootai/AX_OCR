@@ -8,10 +8,10 @@ test.describe('BlueprintFlow Builder', () => {
   });
 
   test('should display node palette with categories', async ({ page }) => {
-    // Check for different node categories
-    await expect(page.locator('text=/Input|입력/i').first()).toBeVisible();
-    await expect(page.locator('text=/Detection|검출/i').first()).toBeVisible();
-    await expect(page.locator('text=/OCR/i').first()).toBeVisible();
+    // Check for different node categories (h3 headings with emoji)
+    await expect(page.locator('h3:has-text("Input")').first()).toBeVisible();
+    await expect(page.locator('h3:has-text("Detection")').first()).toBeVisible();
+    await expect(page.locator('h3:has-text("OCR")').first()).toBeVisible();
   });
 
   test('should display canvas area', async ({ page }) => {

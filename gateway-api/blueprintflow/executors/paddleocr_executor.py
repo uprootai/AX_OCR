@@ -34,7 +34,7 @@ class PaddleocrExecutor(BaseNodeExecutor):
         det_db_thresh = self.parameters.get("det_db_thresh", 0.3)
         det_db_box_thresh = self.parameters.get("det_db_box_thresh", 0.5)
         use_angle_cls = self.parameters.get("use_angle_cls", True)
-        visualize = self.parameters.get("visualize", False)
+        visualize = self.parameters.get("visualize", True)  # 기본값을 True로 변경하여 시각화 활성화
 
         # PaddleOCR API 호출
         result = await call_paddleocr(

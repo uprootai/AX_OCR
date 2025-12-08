@@ -1,0 +1,82 @@
+# Line Detector API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: linedetector
+  name: Line Detector
+  version: 1.0.0
+  port: 5016
+  host: line-detector-api
+  description: P&ID 라인(배관/신호선) 검출 및 연결성 분석 API
+  author: AX Team
+  tags:
+    - segmentation
+    - pid
+
+server:
+  endpoint: /api/v1/process
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: segmentation
+  color: "#0d9488"
+  icon: Minus
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: P&ID 도면 이미지
+
+outputs:
+  - name: lines
+    type: array
+    description: 검출된 라인 목록
+  - name: intersections
+    type: array
+    description: 교차점 목록
+  - name: statistics
+    type: object
+    description: 라인 통계
+  - name: visualization
+    type: string
+    description: 시각화 이미지 (base64)
+
+parameters:
+  - name: method
+    type: select
+    options:
+      - lsd
+      - hough
+      - combined
+    default: lsd
+    description: 검출 방식
+  - name: merge_lines
+    type: boolean
+    default: true
+    description: 공선 라인 병합
+  - name: classify_types
+    type: boolean
+    default: true
+    description: 라인 유형 분류 (배관/신호선)
+  - name: find_intersections
+    type: boolean
+    default: true
+    description: 교차점 검출
+  - name: visualize
+    type: boolean
+    default: true
+    description: 결과 시각화
+
+i18n:
+  ko:
+    label: Line Detector
+    description: P&ID 라인(배관/신호선) 검출 및 연결성 분석
+  en:
+    label: Line Detector
+    description: P&ID line detection and connectivity analysis

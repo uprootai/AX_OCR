@@ -27,7 +27,7 @@ export interface APIConfig {
   parameters: {
     name: string;
     type: 'number' | 'string' | 'boolean' | 'select';
-    default: any;
+    default: string | number | boolean;
     min?: number;
     max?: number;
     step?: number;

@@ -9,7 +9,7 @@ import { useMonitoringStore } from '../../store/monitoringStore';
 interface DebugPanelProps {
   isOpen: boolean;
   onToggle: () => void;
-  executionResult?: any;
+  executionResult?: Record<string, unknown> | null;
   executionError?: string | null;
 }
 
@@ -186,7 +186,9 @@ export default function DebugPanel({ isOpen, onToggle, executionResult, executio
                   status: 500,
                   code: 'EXECUTION_ERROR',
                   message: executionError,
-                  details: executionResult?.error || null,
+                  details: typeof executionResult?.error === 'object' && executionResult.error !== null
+                    ? (executionResult.error as Record<string, unknown>)
+                    : undefined,
                 }}
               />
             ) : selectedTrace?.error ? (

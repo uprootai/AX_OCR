@@ -400,7 +400,7 @@ export default function Docs() {
                     return <pre className="rounded-lg overflow-x-auto" {...props}>{children}</pre>;
                   },
                   // 코드 블록 스타일링
-                  code: ({ node, className, children, ...props }) => {
+                  code: ({ node: _node, className, children, ...props }) => {
                     const match = /language-(\w+)/.exec(className || '');
                     const isInline = !match;
 
@@ -419,7 +419,7 @@ export default function Docs() {
                     );
                   },
                   // 링크 스타일링
-                  a: ({ node, children, ...props }) => (
+                  a: ({ node: _node, children, ...props }) => (
                     <a
                       className="text-blue-600 dark:text-blue-400 hover:underline"
                       target="_blank"
@@ -430,19 +430,19 @@ export default function Docs() {
                     </a>
                   ),
                   // 테이블 스타일링
-                  table: ({ node, children, ...props }) => (
+                  table: ({ node: _node, children, ...props }) => (
                     <div className="overflow-x-auto my-6">
                       <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-700" {...props}>
                         {children}
                       </table>
                     </div>
                   ),
-                  th: ({ node, children, ...props }) => (
+                  th: ({ node: _node, children, ...props }) => (
                     <th className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-2 text-left font-semibold" {...props}>
                       {children}
                     </th>
                   ),
-                  td: ({ node, children, ...props }) => (
+                  td: ({ node: _node, children, ...props }) => (
                     <td className="border border-gray-300 dark:border-gray-700 px-4 py-2" {...props}>
                       {children}
                     </td>

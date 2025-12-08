@@ -1,0 +1,76 @@
+# Design Checker API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: designchecker
+  name: Design Checker
+  version: 1.0.0
+  port: 5019
+  host: design-checker-api
+  description: P&ID 도면 설계 오류 검출 및 규정 검증 API
+  author: AX Team
+  tags:
+    - analysis
+    - pid
+    - validation
+
+server:
+  endpoint: /api/v1/check
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#ef4444"
+  icon: ShieldCheck
+  requiresImage: false
+
+inputs:
+  - name: symbols
+    type: array
+    required: true
+    description: YOLO-PID 검출 결과
+  - name: connections
+    type: array
+    required: true
+    description: PID Analyzer 연결 분석 결과
+  - name: lines
+    type: array
+    required: false
+    description: Line Detector 결과
+
+outputs:
+  - name: violations
+    type: array
+    description: 위반 사항 목록
+  - name: summary
+    type: object
+    description: 검사 요약
+  - name: compliance_score
+    type: number
+    description: 규정 준수율 (0-100%)
+
+parameters:
+  - name: categories
+    type: string
+    default: ""
+    description: 검사할 규칙 카테고리 (쉼표 구분, 빈값=전체)
+  - name: severity_threshold
+    type: select
+    options:
+      - error
+      - warning
+      - info
+    default: info
+    description: 보고할 최소 심각도
+
+i18n:
+  ko:
+    label: Design Checker
+    description: P&ID 도면 설계 오류 검출 및 규정 검증
+  en:
+    label: Design Checker
+    description: P&ID design error detection and rule validation

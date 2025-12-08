@@ -8,14 +8,89 @@ interface PipelineStep {
   label: string;
   description: string;
   image?: string; // base64 or URL
-  data: any;
+  data: PipelineStepData;
   processingTime?: number;
   status: 'completed' | 'pending' | 'skipped';
 }
 
+interface PipelineStepData {
+  [key: string]: unknown;
+  filename?: string;
+  size?: string;
+  type?: string;
+  total_detections?: number;
+  classes?: Record<string, number>;
+  dimensions_count?: number;
+  gdt_count?: number;
+  dimensions?: DimensionItem[];
+  components_count?: number;
+  nodes?: number;
+  edges?: number;
+  status_message?: string;
+  final_dimensions?: number;
+  yolo_count?: number;
+  ocr_count?: number;
+  strategy?: string;
+  manufacturability_score?: number;
+  difficulty?: string;
+}
+
+interface DimensionItem {
+  value?: string | number;
+  text?: string;
+  confidence: number;
+}
+
+interface Detection {
+  class_name?: string;
+  class?: string;
+}
+
+// Pipeline result data structure
+interface PipelineResultData {
+  yolo_results?: {
+    visualized_image?: string;
+    total_detections?: number;
+    detections?: Detection[];
+    processing_time?: number;
+  };
+  ocr_results?: {
+    visualized_image?: string;
+    dimensions?: DimensionItem[];
+    gdt_symbols?: unknown[];
+    processing_time?: number;
+  };
+  segmentation_results?: {
+    visualized_image?: string;
+    total_components?: number;
+    components?: unknown[];
+    processing_time?: number;
+  };
+  ensemble?: {
+    visualized_image?: string;
+    dimensions?: unknown[];
+    strategy?: string;
+  };
+  tolerance_results?: {
+    data?: {
+      visualized_image?: string;
+      manufacturability?: {
+        score?: number;
+        difficulty?: string;
+      };
+    };
+    processing_time?: number;
+  };
+}
+
+interface PipelineResult {
+  data?: PipelineResultData;
+  processing_time?: number;
+}
+
 interface PipelineStepsVisualizationProps {
   imageFile: File;
-  result: any; // Full API response
+  result: PipelineResult;
 }
 
 export default function PipelineStepsVisualization({ imageFile, result }: PipelineStepsVisualizationProps) {
@@ -255,7 +330,7 @@ export default function PipelineStepsVisualization({ imageFile, result }: Pipeli
                   )}
 
                   {/* Class Distribution for YOLO */}
-                  {step.id === 'yolo' && Object.keys(step.data.classes).length > 0 && (
+                  {step.id === 'yolo' && step.data.classes && Object.keys(step.data.classes).length > 0 && (
                     <div>
                       <p className="text-sm font-medium mb-2">검출 클래스 분포</p>
                       <div className="grid grid-cols-2 gap-2">

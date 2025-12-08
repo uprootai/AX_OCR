@@ -3,7 +3,7 @@
  * 정적 nodeDefinitions와 동적 API 스펙을 병합하여 제공
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { nodeDefinitions } from '../config/nodeDefinitions';
 import type { NodeDefinition } from '../config/nodeDefinitions';
 import { fetchAllNodeDefinitions } from '../services/specService';
@@ -69,7 +69,7 @@ export function useNodeDefinitions(
   const [error, setError] = useState<string | null>(null);
 
   // 동적 스펙 로드
-  const loadDynamicSpecs = async () => {
+  const loadDynamicSpecs = useCallback(async () => {
     if (!enableDynamicSpecs) return;
 
     setIsLoading(true);
@@ -84,12 +84,12 @@ export function useNodeDefinitions(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [enableDynamicSpecs, lang]);
 
   // 초기 로드
   useEffect(() => {
     loadDynamicSpecs();
-  }, [enableDynamicSpecs, lang]);
+  }, [loadDynamicSpecs]);
 
   // 자동 새로고침
   useEffect(() => {
@@ -97,7 +97,7 @@ export function useNodeDefinitions(
       const intervalId = setInterval(loadDynamicSpecs, refreshInterval);
       return () => clearInterval(intervalId);
     }
-  }, [refreshInterval, enableDynamicSpecs]);
+  }, [refreshInterval, enableDynamicSpecs, loadDynamicSpecs]);
 
   // 정적 + 동적 병합 (정적이 우선)
   const definitions = useMemo(() => {

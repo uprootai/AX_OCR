@@ -17,7 +17,8 @@ class SkinmodelExecutor(BaseNodeExecutor):
         SkinModel 공차 예측 실행
 
         Parameters:
-            - dimensions: 차원 정보 리스트
+            - dimensions: 차원 정보 리스트 (입력에서 받거나 수동 입력)
+            - dimensions_manual: 수동 치수 입력 (JSON 문자열)
             - material: 재료 정보 (default: {"name": "Steel"})
             - material_type: 재료 타입 (default: "steel")
             - manufacturing_process: 제조 공정 (default: "general")
@@ -27,11 +28,29 @@ class SkinmodelExecutor(BaseNodeExecutor):
             - tolerances: 공차 예측 결과
             - total_tolerances: 총 공차 개수
         """
-        # 입력에서 차원 정보 가져오기
+        import json
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"🔧 SkinModel 파라미터: {self.parameters}")
+        logger.info(f"🔧 SkinModel 입력: {list(inputs.keys())}")
+
+        # 입력에서 차원 정보 가져오기 (OCR 결과에서)
         dimensions = inputs.get("dimensions")
 
+        # 입력이 없으면 수동 입력 파라미터 확인
         if not dimensions:
-            raise ValueError("dimensions 입력이 필요합니다")
+            dimensions_manual = self.parameters.get("dimensions_manual", "")
+            logger.info(f"🔧 dimensions_manual 값: '{dimensions_manual}'")
+            if dimensions_manual and dimensions_manual.strip():
+                try:
+                    dimensions = json.loads(dimensions_manual)
+                    logger.info(f"🔧 파싱된 dimensions: {dimensions}")
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"dimensions_manual JSON 파싱 오류: {e}. 예시: [{{'nominal': 50, 'tolerance': 0.1}}]")
+
+        if not dimensions:
+            raise ValueError("dimensions 입력이 필요합니다. OCR 노드를 연결하거나 'dimensions_manual' 파라미터에 JSON을 입력하세요. 예: [{\"value\": 50, \"tolerance\": 0.1, \"type\": \"length\"}]")
 
         # 파라미터 추출
         material = self.parameters.get("material", "steel")  # 문자열 또는 객체
@@ -48,10 +67,16 @@ class SkinmodelExecutor(BaseNodeExecutor):
             correlation_length=correlation_length
         )
 
+        data = result.get("data", {})
+        predicted_tolerances = data.get("predicted_tolerances", {})
+        manufacturability = data.get("manufacturability", {})
+
         return {
-            "tolerances": result.get("data", {}).get("tolerances", []),
-            "total_tolerances": len(result.get("data", {}).get("tolerances", [])),
-            "model_used": result.get("model_used", "SkinModel"),
+            "predicted_tolerances": predicted_tolerances,
+            "manufacturability_score": manufacturability.get("score", 0),
+            "difficulty": manufacturability.get("difficulty", "Unknown"),
+            "recommendations": manufacturability.get("recommendations", []),
+            "assemblability": data.get("assemblability", {}),
             "processing_time": result.get("processing_time", 0),
         }
 
@@ -98,13 +123,25 @@ class SkinmodelExecutor(BaseNodeExecutor):
         return {
             "type": "object",
             "properties": {
-                "tolerances": {
-                    "type": "array",
-                    "description": "공차 예측 결과"
+                "predicted_tolerances": {
+                    "type": "object",
+                    "description": "예측된 GD&T 공차 (flatness, cylindricity, position, perpendicularity)"
                 },
-                "total_tolerances": {
-                    "type": "integer",
-                    "description": "총 공차 개수"
+                "manufacturability_score": {
+                    "type": "number",
+                    "description": "제조 가능성 점수 (0-1)"
+                },
+                "difficulty": {
+                    "type": "string",
+                    "description": "제조 난이도 (Easy, Medium, Hard)"
+                },
+                "recommendations": {
+                    "type": "array",
+                    "description": "제조 권장 사항"
+                },
+                "assemblability": {
+                    "type": "object",
+                    "description": "조립성 분석 결과"
                 }
             }
         }

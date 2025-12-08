@@ -72,7 +72,7 @@ async def call_edocr2_ocr(
             # Call both v1 and v2, then merge with weighted average
             logger.info("Using ensemble mode: calling both v1 and v2")
 
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=180.0) as client:
                 files = {"file": (filename, file_bytes, content_type)}
                 data = {
                     "extract_dimensions": extract_dimensions,
@@ -111,7 +111,7 @@ async def call_edocr2_ocr(
             else:
                 raise HTTPException(status_code=400, detail=f"Invalid version: {version}. Use v1, v2, or ensemble")
 
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=180.0) as client:
                 files = {"file": (filename, file_bytes, content_type)}
                 data = {
                     "extract_dimensions": extract_dimensions,
@@ -174,7 +174,7 @@ async def call_paddleocr(
         content_type = mimetypes.guess_type(filename)[0] or "image/png"
         logger.info(f"Calling PaddleOCR API for {filename} (min_conf={min_confidence}, visualize={visualize})")
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             files = {"file": (filename, file_bytes, content_type)}
             data = {
                 "min_confidence": str(min_confidence),

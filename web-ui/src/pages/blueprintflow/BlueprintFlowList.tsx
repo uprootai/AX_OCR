@@ -80,11 +80,10 @@ export default function BlueprintFlowList() {
         ...workflow,
         name: `${workflow.name} (Copy)`,
       };
-      delete (duplicated as any).id;
-      delete (duplicated as any).created_at;
-      delete (duplicated as any).updated_at;
+      const { id: _id, created_at: _created, updated_at: _updated, ...cleanDuplicated } = duplicated as typeof duplicated & { id?: string; created_at?: string; updated_at?: string };
+      const workflowToSave = cleanDuplicated;
 
-      await workflowApi.saveWorkflow(duplicated);
+      await workflowApi.saveWorkflow(workflowToSave);
       await loadWorkflows();
     } catch (error) {
       console.error('Failed to duplicate workflow:', error);

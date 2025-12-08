@@ -66,11 +66,12 @@
 
 ---
 
-## API 서비스 (15개)
+## API 서비스 (19개)
 
 | 카테고리 | 서비스 | 포트 | 용도 |
 |----------|--------|------|------|
 | **Detection** | YOLO | 5005 | 객체 검출 (14가지 심볼) |
+| **Detection** | YOLO-PID | 5017 | P&ID 심볼 검출 (60종) |
 | **OCR** | eDOCr2 | 5002 | 한국어 치수 인식 |
 | **OCR** | PaddleOCR | 5006 | 다국어 OCR |
 | **OCR** | Tesseract | 5008 | 문서 OCR |
@@ -80,8 +81,11 @@
 | **OCR** | DocTR | 5014 | 2단계 파이프라인 |
 | **OCR** | EasyOCR | 5015 | 80+ 언어, CPU 친화적 |
 | **Segmentation** | EDGNet | 5012 | 엣지 세그멘테이션 |
+| **Segmentation** | Line Detector | 5016 | P&ID 라인 검출 |
 | **Preprocessing** | ESRGAN | 5010 | 4x 업스케일링 |
 | **Analysis** | SkinModel | 5003 | 공차 분석 |
+| **Analysis** | PID Analyzer | 5018 | P&ID 연결 분석, BOM 생성 |
+| **Analysis** | Design Checker | 5019 | P&ID 설계 규칙 검증 |
 | **Knowledge** | Knowledge | 5007 | Neo4j + GraphRAG |
 | **AI** | VL | 5004 | Vision-Language 모델 |
 | **Orchestrator** | Gateway | 8000 | 파이프라인 조정 |
@@ -216,16 +220,16 @@ class TestName:
 
 ## BlueprintFlow
 
-### 노드 타입 (16개)
+### 노드 타입 (20개)
 
 | 카테고리 | 노드 |
 |----------|------|
 | Input | ImageInput, TextInput |
-| Detection | YOLO |
+| Detection | YOLO, YOLO-PID |
 | OCR | eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble |
-| Segmentation | EDGNet |
+| Segmentation | EDGNet, Line Detector |
 | Preprocessing | ESRGAN |
-| Analysis | SkinModel |
+| Analysis | SkinModel, PID Analyzer, Design Checker |
 | Knowledge | Knowledge |
 | AI | VL |
 | Control | IF, Loop, Merge |
@@ -294,10 +298,14 @@ docs/
 gateway-api/api_specs/
 ├── api_spec_schema.json    # JSON Schema (검증용)
 ├── yolo.yaml               # YOLO Detection
+├── yolo-pid.yaml           # YOLO-PID Symbol Detection
 ├── edocr2.yaml             # eDOCr2 OCR
 ├── edgnet.yaml             # EDGNet Segmentation
+├── line-detector.yaml      # P&ID Line Detection
 ├── vl.yaml                 # Vision-Language
 ├── skinmodel.yaml          # SkinModel Tolerance
+├── pid-analyzer.yaml       # P&ID Connectivity & BOM
+├── design-checker.yaml     # P&ID Design Validation
 ├── paddleocr.yaml          # PaddleOCR
 ├── knowledge.yaml          # Knowledge Engine
 ├── tesseract.yaml          # Tesseract OCR
@@ -317,6 +325,7 @@ gateway-api/api_specs/
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
+| 8.0 | 2025-12-06 | P&ID 분석 시스템 (YOLO-PID, Line Detector, PID Analyzer, Design Checker) |
 | 7.0 | 2025-12-03 | API 스펙 표준화 시스템, 스캐폴딩 스크립트 |
 | 6.0 | 2025-12-03 | 테스트 체계 구축, ESLint 정리, 번들 최적화 |
 | 5.0 | 2025-12-01 | 5개 신규 API 추가 (Knowledge, Tesseract, TrOCR, ESRGAN, OCR Ensemble) |

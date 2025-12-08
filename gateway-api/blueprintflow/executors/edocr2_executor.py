@@ -42,7 +42,7 @@ class Edocr2Executor(BaseNodeExecutor):
         extract_gdt = self.parameters.get("extract_gdt", True)
         extract_text = self.parameters.get("extract_text", True)
         extract_tables = self.parameters.get("extract_tables", True)
-        visualize = self.parameters.get("visualize", False)
+        visualize = self.parameters.get("visualize", True)  # 기본값을 True로 변경하여 시각화 활성화
 
         # eDOCr2 API 호출
         result = await call_edocr2_ocr(

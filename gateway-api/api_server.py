@@ -60,7 +60,7 @@ from services import (
     process_yolo_crop_ocr, ensemble_ocr_results, calculate_quote
 )
 from api_registry import get_api_registry, APIMetadata
-from routers import admin_router
+from routers import admin_router, container_router
 from routers.admin_router import set_api_registry
 
 # Logging setup
@@ -93,8 +93,9 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
-# Include Admin Router
+# Include Routers
 app.include_router(admin_router)
+app.include_router(container_router)
 
 # Configuration
 EDOCR_V1_URL = os.getenv("EDOCR_V1_URL", "http://edocr2-api:5001")
@@ -921,6 +922,13 @@ async def startup_event():
     # 백그라운드 헬스체크 시작
     registry.start_health_check_background()
 
+    # 결과 자동 정리 스케줄러 시작
+    try:
+        from utils.result_manager import start_cleanup_scheduler
+        start_cleanup_scheduler()
+    except ImportError:
+        logger.warning("결과 자동 정리 기능을 사용할 수 없습니다")
+
     logger.info("=" * 70)
     logger.info(f"✅ Gateway API 준비 완료 (등록된 API: {len(registry.get_all_apis())}개)")
     logger.info("=" * 70)
@@ -930,6 +938,13 @@ async def startup_event():
 async def shutdown_event():
     """서버 종료"""
     logger.info("🛑 Gateway API 종료")
+
+    # 결과 자동 정리 스케줄러 중지
+    try:
+        from utils.result_manager import stop_cleanup_scheduler
+        stop_cleanup_scheduler()
+    except ImportError:
+        pass
 
 
 # =====================

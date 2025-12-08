@@ -1,6 +1,6 @@
 import { useState, useCallback, type DragEvent, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Upload, File, X, AlertCircle, Image } from 'lucide-react';
+import { Upload, File as FileIcon, X, AlertCircle, Image } from 'lucide-react';
 import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 
@@ -56,7 +56,7 @@ export default function FileUploader({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     // Check file size
     const sizeMB = file.size / (1024 * 1024);
     if (sizeMB > maxSize) {
@@ -80,7 +80,7 @@ export default function FileUploader({
     }
 
     return null;
-  };
+  }, [maxSize, accept]);
 
   const handleFile = useCallback(
     (file: File) => {
@@ -105,7 +105,7 @@ export default function FileUploader({
 
       onFileSelect(file);
     },
-    [onFileSelect, maxSize, accept]
+    [onFileSelect, validateFile]
   );
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
@@ -175,7 +175,7 @@ export default function FileUploader({
         }
       }
 
-      const file = new (window as any).File([blob], filename, { type: mimeType }) as File;
+      const file = new File([blob], filename, { type: mimeType });
 
       handleFile(file);
     } catch (err) {
@@ -263,7 +263,7 @@ export default function FileUploader({
                 />
               ) : (
                 <div className="w-24 h-24 bg-accent rounded border flex items-center justify-center">
-                  <File className="h-8 w-8 text-muted-foreground" />
+                  <FileIcon className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}
               <div className="flex-1 min-w-0">

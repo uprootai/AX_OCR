@@ -33,6 +33,14 @@ from .executors import (
     trocr_executor,
     esrgan_executor,
     ocr_ensemble_executor,
+    doctr_executor,
+    easyocr_executor,
+    suryaocr_executor,
+    # P&ID Analysis Executors
+    linedetector_executor,
+    yolopid_executor,
+    pidanalyzer_executor,
+    designchecker_executor,
 )
 
 __all__ = [

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import APIStatusMonitor from '../../components/monitoring/APIStatusMonitor';
+import ContainerManager from '../../components/dashboard/ContainerManager';
 import AddAPIDialog from '../../components/dashboard/AddAPIDialog';
 import ExportToBuiltinDialog from '../../components/dashboard/ExportToBuiltinDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
@@ -54,7 +55,21 @@ export default function Dashboard() {
         const currentAPIs = useAPIConfigStore.getState().customAPIs;
 
         let addedCount = 0;
-        apis.forEach((apiInfo: any) => {
+        apis.forEach((apiInfo: {
+          id: string;
+          name?: string;
+          base_url: string;
+          display_name?: string;
+          category?: string;
+          port?: number;
+          icon?: string;
+          color?: string;
+          description?: string;
+          status?: string;
+          inputs?: Array<{ name: string; type: string }>;
+          outputs?: Array<{ name: string; type: string }>;
+          parameters?: Array<{ name: string; type: string; default?: string | number | boolean }>;
+        }) => {
           // 이미 추가된 API는 건너뛰기
           if (currentAPIs.find(api => api.id === apiInfo.id)) {
             return;
@@ -66,18 +81,23 @@ export default function Dashboard() {
           // APIConfig 형식으로 변환하여 추가
           addAPI({
             id: apiInfo.id,
-            name: apiInfo.name,
-            displayName: apiInfo.display_name,
+            name: apiInfo.name || apiInfo.id,
+            displayName: apiInfo.display_name || apiInfo.id,
             baseUrl: browserAccessibleUrl,
-            port: apiInfo.port,
-            icon: apiInfo.icon,
-            color: apiInfo.color,
-            category: apiInfo.category || 'ocr',
-            description: apiInfo.description,
+            port: apiInfo.port || 0,
+            icon: apiInfo.icon || '🔧',
+            color: apiInfo.color || '#666',
+            category: (apiInfo.category || 'ocr') as 'knowledge' | 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'ai' | 'control',
+            description: apiInfo.description || '',
             enabled: apiInfo.status === 'healthy',
-            inputs: apiInfo.inputs || [],
-            outputs: apiInfo.outputs || [],
-            parameters: apiInfo.parameters || [],
+            inputs: (apiInfo.inputs || []).map(i => ({ ...i, description: '' })),
+            outputs: (apiInfo.outputs || []).map(o => ({ ...o, description: '' })),
+            parameters: (apiInfo.parameters || []).map(p => ({
+              name: p.name,
+              type: (p.type || 'string') as 'number' | 'string' | 'boolean' | 'select',
+              default: p.default ?? '',
+              description: '',
+            })),
           });
           addedCount++;
         });
@@ -104,6 +124,7 @@ export default function Dashboard() {
       handleAutoDiscover();
       localStorage.setItem('auto-discovered', 'true');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -133,6 +154,9 @@ export default function Dashboard() {
 
       {/* API Status Monitor */}
       <APIStatusMonitor />
+
+      {/* Container Manager */}
+      <ContainerManager />
 
       {/* Add API Dialog */}
       <AddAPIDialog

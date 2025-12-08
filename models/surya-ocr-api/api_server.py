@@ -69,10 +69,28 @@ def load_surya_models():
             raise HTTPException(status_code=500, detail=f"Surya not installed: {e}")
 
 
+def get_korean_font(size: int = 12):
+    """한글 지원 폰트 로드"""
+    font_paths = [
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+    for font_path in font_paths:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except (IOError, OSError):
+            continue
+    return ImageFont.load_default()
+
+
 def draw_overlay(image: Image.Image, texts: List[Dict]) -> str:
     """OCR 결과를 이미지 위에 오버레이하고 base64로 반환"""
     overlay = image.copy()
     draw = ImageDraw.Draw(overlay)
+
+    # 한글 폰트 로드
+    font = get_korean_font(12)
 
     # 색상 설정 (보라색 - Surya 테마 컬러)
     box_color = (139, 92, 246)  # #8b5cf6
@@ -91,11 +109,11 @@ def draw_overlay(image: Image.Image, texts: List[Dict]) -> str:
             # 박스 그리기
             draw.rectangle([x1, y1, x2, y2], outline=box_color, width=2)
 
-            # 텍스트 라벨 그리기
-            label = f"{text[:20]}{'...' if len(text) > 20 else ''} ({conf:.0%})"
-            text_bbox = draw.textbbox((x1, y1 - 15), label)
+            # 텍스트 라벨 그리기 (전체 텍스트 표시)
+            label = f"{text} ({conf:.0%})"
+            text_bbox = draw.textbbox((x1, y1 - 15), label, font=font)
             draw.rectangle(text_bbox, fill=box_color)
-            draw.text((x1, y1 - 15), label, fill=text_color)
+            draw.text((x1, y1 - 15), label, fill=text_color, font=font)
 
     # Base64로 변환
     buffer = io.BytesIO()

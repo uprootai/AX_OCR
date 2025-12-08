@@ -22,6 +22,56 @@ interface BoundingBox {
   type: 'dimension' | 'gdt' | 'text';
 }
 
+// Parse location from various formats to {x, y, width, height}
+function parseLocation(location: unknown): { x: number; y: number; width: number; height: number } | null {
+  if (!location) return null;
+
+  // Already in dict format: {x, y, width, height}
+  if (typeof location === 'object' && !Array.isArray(location) && location !== null) {
+    const loc = location as Record<string, unknown>;
+    if ('x' in loc && 'y' in loc) {
+      return {
+        x: Number(loc.x) || 0,
+        y: Number(loc.y) || 0,
+        width: Number(loc.width) || 0,
+        height: Number(loc.height) || 0,
+      };
+    }
+  }
+
+  // Array format
+  if (Array.isArray(location)) {
+    // Polygon format: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+    if (location.length >= 4 && Array.isArray(location[0])) {
+      const points = location as number[][];
+      const xs = points.map(p => p[0]);
+      const ys = points.map(p => p[1]);
+      const xMin = Math.min(...xs);
+      const yMin = Math.min(...ys);
+      const xMax = Math.max(...xs);
+      const yMax = Math.max(...ys);
+      return {
+        x: xMin,
+        y: yMin,
+        width: xMax - xMin,
+        height: yMax - yMin,
+      };
+    }
+
+    // Flat array format: [x, y, width, height] or [x1, y1, x2, y2]
+    if (location.length === 4 && typeof location[0] === 'number') {
+      const [a, b, c, d] = location as number[];
+      // Heuristic: if c,d are much larger than a,b, it's [x1,y1,x2,y2]
+      if (c > a * 2 || d > b * 2) {
+        return { x: a, y: b, width: c - a, height: d - b };
+      }
+      return { x: a, y: b, width: c, height: d };
+    }
+  }
+
+  return null;
+}
+
 export default function OCRVisualization({ imageFile, imageBase64, ocrResult, onZoomClick, compact: _compact = false }: OCRVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -40,15 +90,15 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
     // Dimensions
     if (ocrResult.dimensions) {
       ocrResult.dimensions.forEach((dim) => {
-        // Support both old 'location' and new 'bbox' format
-        const bbox = dim.bbox || dim.location;
+        // Support both 'bbox' and 'location' in various formats
+        const bbox = parseLocation(dim.bbox) || parseLocation(dim.location);
         if (bbox) {
           boxes.push({
             x: bbox.x,
             y: bbox.y,
-            width: ('width' in bbox ? bbox.width : 0) as number,
-            height: ('height' in bbox ? bbox.height : 0) as number,
-            label: `${dim.type}: ${dim.value}${dim.unit || ''} ${dim.tolerance || ''}`,
+            width: bbox.width,
+            height: bbox.height,
+            label: `${dim.type || 'dim'}: ${dim.value}${dim.unit || ''} ${dim.tolerance || ''}`.trim(),
             type: 'dimension',
           });
         }
@@ -58,16 +108,33 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
     // GD&T
     if (ocrResult.gdt) {
       ocrResult.gdt.forEach((gdt) => {
-        // Support both old 'location' and new 'bbox' format
-        const bbox = gdt.bbox || gdt.location;
+        // Support both 'bbox' and 'location' in various formats
+        const bbox = parseLocation(gdt.bbox) || parseLocation(gdt.location);
         if (bbox) {
           boxes.push({
             x: bbox.x,
             y: bbox.y,
-            width: ('width' in bbox ? bbox.width : 0) as number,
-            height: ('height' in bbox ? bbox.height : 0) as number,
-            label: `${gdt.type}: ${gdt.value}${gdt.datum ? ` (${gdt.datum})` : ''}`,
+            width: bbox.width,
+            height: bbox.height,
+            label: `${gdt.type || 'GD&T'}: ${gdt.value}${gdt.datum ? ` (${gdt.datum})` : ''}`,
             type: 'gdt',
+          });
+        }
+      });
+    }
+
+    // Possible text (from eDOCr2)
+    if (ocrResult.possible_text) {
+      ocrResult.possible_text.forEach((textItem: { text?: string; location?: unknown }) => {
+        const bbox = parseLocation(textItem.location);
+        if (bbox) {
+          boxes.push({
+            x: bbox.x,
+            y: bbox.y,
+            width: bbox.width,
+            height: bbox.height,
+            label: textItem.text || 'text',
+            type: 'text',
           });
         }
       });
@@ -164,7 +231,8 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
 
   const dimensionCount = ocrResult.dimensions?.length || 0;
   const gdtCount = ocrResult.gdt?.length || 0;
-  const totalDetections = dimensionCount + gdtCount;
+  const textCount = (ocrResult.possible_text as unknown[])?.length || 0;
+  const totalDetections = dimensionCount + gdtCount + textCount;
 
   return (
     <Card>
@@ -189,7 +257,7 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 text-sm">
+        <div className="flex flex-wrap gap-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-500 rounded"></div>
             <span>치수 ({dimensionCount}개)</span>
@@ -198,6 +266,12 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
             <div className="w-4 h-4 bg-green-500 rounded"></div>
             <span>GD&T ({gdtCount}개)</span>
           </div>
+          {textCount > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-500 rounded"></div>
+              <span>텍스트 ({textCount}개)</span>
+            </div>
+          )}
         </div>
 
         {/* Canvas */}

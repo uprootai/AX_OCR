@@ -1,8 +1,9 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, Lightbulb, Link } from 'lucide-react';
+import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage } from 'lucide-react';
 import { useState, memo } from 'react';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
+import { useWorkflowStore } from '../../store/workflowStore';
 import type { Node } from 'reactflow';
 
 interface NodeDetailPanelProps {
@@ -14,10 +15,48 @@ interface NodeDetailPanelProps {
 const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }: NodeDetailPanelProps) {
   const [showParameters, setShowParameters] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Get uploaded image from store
+  const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
+  const uploadedFileName = useWorkflowStore((state) => state.uploadedFileName);
+
+  // Collapsed state - show only toggle button
+  if (isCollapsed) {
+    return (
+      <div className="w-12 bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 relative flex flex-col items-center pt-4">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="absolute -left-3 top-4 z-10 w-6 h-6 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full flex items-center justify-center shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+          title="Expand panel"
+        >
+          <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        </button>
+        <div className="mt-6 space-y-3">
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30" title="Node Details">
+            <Info className="w-4 h-4 text-blue-500" />
+          </div>
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-purple-100 dark:bg-purple-900/30" title="Parameters">
+            <Settings className="w-4 h-4 text-purple-500" />
+          </div>
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-green-100 dark:bg-green-900/30" title="Connections">
+            <Link className="w-4 h-4 text-green-500" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!selectedNode) {
     return (
-      <div className="w-96 bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-6 flex items-center justify-center">
+      <div className="w-96 bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-6 flex items-center justify-center relative">
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="absolute -left-3 top-4 z-10 w-6 h-6 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full flex items-center justify-center shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+          title="Collapse panel"
+        >
+          <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        </button>
         <div className="text-center text-gray-500 dark:text-gray-400">
           <Info className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="text-sm">노드를 선택하면</p>
@@ -32,7 +71,14 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
 
   if (!definition) {
     return (
-      <div className="w-96 bg-white dark:bg-gray-800 border-l p-6">
+      <div className="w-96 bg-white dark:bg-gray-800 border-l p-6 relative">
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="absolute -left-3 top-4 z-10 w-6 h-6 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full flex items-center justify-center shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+          title="Collapse panel"
+        >
+          <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        </button>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">알 수 없는 노드</h3>
           <Button onClick={onClose} variant="ghost" size="sm">
@@ -57,7 +103,16 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
   };
 
   return (
-    <div className="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
+    <div className="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto relative">
+      {/* Collapse Button */}
+      <button
+        onClick={() => setIsCollapsed(true)}
+        className="absolute -left-3 top-4 z-20 w-6 h-6 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full flex items-center justify-center shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+        title="Collapse panel"
+      >
+        <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+      </button>
+
       {/* Header */}
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 z-10">
         <div className="flex items-center justify-between">
@@ -94,6 +149,44 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             </p>
           </CardContent>
         </Card>
+
+        {/* Image Preview - Only for ImageInput node */}
+        {nodeType === 'imageinput' && (
+          <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2 text-green-700 dark:text-green-300">
+                <FileImage className="w-4 h-4" />
+                현재 이미지
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {uploadedImage ? (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <img
+                      src={uploadedImage}
+                      alt="Uploaded preview"
+                      className="w-full h-auto rounded-lg border border-green-300 dark:border-green-700 max-h-48 object-contain bg-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                    <Image className="w-3 h-3" />
+                    <span className="truncate font-medium">{uploadedFileName || '이미지'}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    크기: {Math.round(uploadedImage.length / 1024)} KB (base64)
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-400 dark:text-gray-500">
+                  <Image className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">이미지가 업로드되지 않았습니다</p>
+                  <p className="text-xs mt-1">왼쪽 상단의 Upload 버튼을 사용하세요</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Inputs */}
         <Card>
@@ -196,12 +289,16 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                         </div>
                       )}
 
-                      {param.type === 'string' && (
-                        <input
-                          type="text"
-                          value={currentValue}
+                      {(param.type === 'string' || param.type === 'textarea') && (
+                        <textarea
+                          value={currentValue || ''}
                           onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                          className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600"
+                          onFocus={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          placeholder={param.placeholder || '텍스트를 입력하세요...'}
+                          rows={param.type === 'textarea' ? 4 : 3}
+                          className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px] nodrag nopan font-mono"
                         />
                       )}
 

@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 
 from .base_executor import BaseNodeExecutor
 from .executor_registry import ExecutorRegistry
-from .image_utils import prepare_image_for_api
+from .image_utils import prepare_image_for_api, draw_ocr_visualization, normalize_ocr_results
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +37,17 @@ class TesseractExecutor(BaseNodeExecutor):
             psm = self.parameters.get("psm", "3")
             oem = self.parameters.get("oem", "3")
             output_type = self.parameters.get("output_type", "data")
+            visualize = self.parameters.get("visualize", True)  # 시각화 기본 활성화
 
             # API 호출
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=180.0) as client:
                 files = {"file": ("image.jpg", file_bytes, "image/jpeg")}
                 data = {
                     "lang": lang,
                     "psm": psm,
                     "oem": oem,
                     "output_type": output_type,
+                    "visualize": str(visualize).lower(),
                 }
                 response = await client.post(
                     f"{self.api_url}/api/v1/ocr",
@@ -59,9 +61,31 @@ class TesseractExecutor(BaseNodeExecutor):
             result = response.json()
             self.logger.info(f"Tesseract OCR 완료: {len(result.get('texts', []))}개 텍스트 검출")
 
+            # API에서 시각화 이미지가 없으면 로컬에서 생성
+            visualized_image = result.get("visualized_image", "")
+            if not visualized_image and visualize:
+                try:
+                    # OCR 결과 정규화
+                    texts = result.get("texts", [])
+                    normalized_results = normalize_ocr_results(texts, source="tesseract")
+
+                    # 시각화 이미지 생성
+                    if normalized_results:
+                        visualized_image = draw_ocr_visualization(
+                            file_bytes,
+                            normalized_results,
+                            box_color=(0, 200, 0),  # 녹색
+                            text_color=(0, 0, 200),  # 파란색
+                        )
+                        self.logger.info(f"Tesseract 시각화 이미지 로컬 생성 완료")
+                except Exception as viz_err:
+                    self.logger.warning(f"시각화 생성 실패 (무시됨): {viz_err}")
+
             return {
                 "texts": result.get("texts", []),
                 "full_text": result.get("full_text", ""),
+                "visualized_image": visualized_image,
+                "image": visualized_image,  # 대체 필드명
                 "processing_time": result.get("processing_time_ms", 0),
                 "raw_response": result,
             }

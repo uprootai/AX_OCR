@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Image,
   Target,
@@ -18,9 +18,37 @@ import {
   Wand2,
   Maximize2,
   Layers,
+  Minus,
+  CircuitBoard,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
 } from 'lucide-react';
 import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
+
+// 노드 타입 → 컨테이너 이름 매핑
+const nodeToContainerMap: Record<string, string> = {
+  yolo: 'yolo-api',
+  yolopid: 'yolo-pid-api',
+  edocr2: 'edocr2-v2-api',
+  paddleocr: 'paddleocr-api',
+  tesseract: 'tesseract-api',
+  trocr: 'trocr-api',
+  ocr_ensemble: 'ocr-ensemble-api',
+  suryaocr: 'surya-ocr-api',
+  doctr: 'doctr-api',
+  easyocr: 'easyocr-api',
+  edgnet: 'edgnet-api',
+  linedetector: 'line-detector-api',
+  skinmodel: 'skinmodel-api',
+  pidanalyzer: 'pid-analyzer-api',
+  designchecker: 'design-checker-api',
+  vl: 'vl-api',
+  knowledge: 'knowledge-api',
+  esrgan: 'esrgan-api',
+};
 
 interface NodeConfig {
   type: string;
@@ -58,6 +86,22 @@ const baseNodeConfigs: NodeConfig[] = [
     color: '#10b981',
     category: 'detection',
   },
+  {
+    type: 'linedetector',
+    label: 'Line Detector',
+    description: 'P&ID line detection',
+    icon: Minus,
+    color: '#0d9488',
+    category: 'segmentation',
+  },
+  {
+    type: 'yolopid',
+    label: 'YOLO-PID',
+    description: 'P&ID symbol detection',
+    icon: CircuitBoard,
+    color: '#059669',
+    category: 'detection',
+  },
   // OCR Nodes
   {
     type: 'edocr2',
@@ -91,6 +135,22 @@ const baseNodeConfigs: NodeConfig[] = [
     description: 'Tolerance analysis',
     icon: Ruler,
     color: '#f59e0b',
+    category: 'analysis',
+  },
+  {
+    type: 'pidanalyzer',
+    label: 'P&ID Analyzer',
+    description: 'BOM & connectivity analysis',
+    icon: Network,
+    color: '#7c3aed',
+    category: 'analysis',
+  },
+  {
+    type: 'designchecker',
+    label: 'Design Checker',
+    description: 'Design rule validation',
+    icon: ShieldCheck,
+    color: '#ef4444',
     category: 'analysis',
   },
   // AI Nodes
@@ -170,6 +230,30 @@ const baseNodeConfigs: NodeConfig[] = [
     color: '#0891b2',
     category: 'ocr',
   },
+  {
+    type: 'suryaocr',
+    label: 'Surya OCR',
+    description: '90+ language OCR',
+    icon: '🌞',
+    color: '#f59e0b',
+    category: 'ocr',
+  },
+  {
+    type: 'doctr',
+    label: 'DocTR',
+    description: '2-stage OCR pipeline',
+    icon: '📄',
+    color: '#6366f1',
+    category: 'ocr',
+  },
+  {
+    type: 'easyocr',
+    label: 'EasyOCR',
+    description: '80+ language OCR',
+    icon: '👁️',
+    color: '#22c55e',
+    category: 'ocr',
+  },
 ];
 
 interface NodePaletteProps {
@@ -181,11 +265,59 @@ interface NodePaletteProps {
 export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFileName }: NodePaletteProps) {
   const { customAPIs } = useAPIConfigStore();
   const [allNodeConfigs, setAllNodeConfigs] = useState<NodeConfig[]>(baseNodeConfigs);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [stoppedContainers, setStoppedContainers] = useState<Set<string>>(new Set());
+  const [statusFetched, setStatusFetched] = useState(false);
+
+  // 컨테이너 상태 가져오기
+  const fetchContainerStatus = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/containers');
+      const data = await response.json();
+      if (data.success && data.containers) {
+        const stopped = new Set<string>(
+          data.containers
+            .filter((c: { status: string }) => c.status !== 'running')
+            .map((c: { name: string }) => c.name)
+        );
+        setStoppedContainers(stopped);
+        setStatusFetched(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch container status:', error);
+      setStatusFetched(true);
+    }
+  }, []);
+
+  // 컨테이너 상태 주기적 갱신 (5초마다)
+  useEffect(() => {
+    fetchContainerStatus();
+    const interval = setInterval(fetchContainerStatus, 5000);
+    return () => clearInterval(interval);
+  }, [fetchContainerStatus]);
+
+  // 노드가 활성화 상태인지 확인
+  const isNodeActive = useCallback((nodeType: string): boolean => {
+    // Input, Control 노드는 항상 활성화
+    if (['imageinput', 'textinput', 'if', 'loop', 'merge'].includes(nodeType)) {
+      return true;
+    }
+    // 상태를 아직 가져오지 않았으면 기본 활성화
+    if (!statusFetched) {
+      return true;
+    }
+    const containerName = nodeToContainerMap[nodeType];
+    if (!containerName) return true; // 매핑 없으면 활성화로 간주
+    return !stoppedContainers.has(containerName);
+  }, [statusFetched, stoppedContainers]);
 
   useEffect(() => {
-    // 커스텀 API를 NodeConfig로 변환
+    // 기본 노드 타입 집합
+    const baseTypes = new Set(baseNodeConfigs.map((n) => n.type));
+
+    // 커스텀 API를 NodeConfig로 변환 (기본 노드와 중복되지 않는 것만)
     const customNodeConfigs: NodeConfig[] = customAPIs
-      .filter((api) => api.enabled)
+      .filter((api) => api.enabled && !baseTypes.has(api.id))
       .map((api) => ({
         type: api.id,
         label: api.displayName,
@@ -195,7 +327,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
         category: api.category,
       }));
 
-    // 기본 노드 + 커스텀 노드 병합
+    // 기본 노드 + 커스텀 노드 병합 (중복 제거됨)
     setAllNodeConfigs([...baseNodeConfigs, ...customNodeConfigs]);
   }, [customAPIs]);
 
@@ -210,8 +342,55 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
   const controlNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'control'), [allNodeConfigs]);
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
-      <h2 className="text-lg font-semibold mb-4">Node Palette</h2>
+    <div className={`${isCollapsed ? 'w-12' : 'w-64'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300 relative flex flex-col`}>
+      {/* Toggle Button */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-4 z-10 w-6 h-6 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full flex items-center justify-center shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+        title={isCollapsed ? 'Expand palette' : 'Collapse palette'}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        ) : (
+          <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+        )}
+      </button>
+
+      {/* Collapsed View - Icons Only */}
+      {isCollapsed ? (
+        <div className="p-2 pt-10 space-y-2">
+          {/* Input icon */}
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-orange-100 dark:bg-orange-900/30" title="Input">
+            <Image className="w-4 h-4 text-orange-500" />
+          </div>
+          {/* Detection icon */}
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-green-100 dark:bg-green-900/30" title="Detection">
+            <Target className="w-4 h-4 text-green-500" />
+          </div>
+          {/* OCR icon */}
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30" title="OCR">
+            <FileText className="w-4 h-4 text-blue-500" />
+          </div>
+          {/* Segmentation icon */}
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-purple-100 dark:bg-purple-900/30" title="Segmentation">
+            <Network className="w-4 h-4 text-purple-500" />
+          </div>
+          {/* Analysis icon */}
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-amber-100 dark:bg-amber-900/30" title="Analysis">
+            <Ruler className="w-4 h-4 text-amber-500" />
+          </div>
+          {/* AI icon */}
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-pink-100 dark:bg-pink-900/30" title="AI">
+            <Eye className="w-4 h-4 text-pink-500" />
+          </div>
+          {/* Control icon */}
+          <div className="w-8 h-8 flex items-center justify-center rounded bg-red-100 dark:bg-red-900/30" title="Control">
+            <GitBranch className="w-4 h-4 text-red-500" />
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 flex-1">
+          <h2 className="text-lg font-semibold mb-4">Node Palette</h2>
 
       {/* 동적 API 안내 */}
       {customAPIs.length > 0 && (
@@ -326,29 +505,36 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
               const definition = getNodeDefinition(node.type);
               const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
 
               return (
                 <div key={node.type} className="relative group">
                   <div
-                    draggable
-                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
-                    className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow"
-                    style={{ borderColor: `${node.color}40` }}
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive
+                        ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md'
+                        : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: isActive ? `${node.color}40` : '#9ca3af40' }}
+                    title={isActive ? undefined : 'Container is stopped'}
                   >
                     {isEmojiIcon ? (
-                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                      <span className={`text-xl mt-0.5 flex-shrink-0 ${!isActive && 'grayscale'}`}>{String(node.icon)}</span>
                     ) : Icon ? (
-                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: isActive ? node.color : '#9ca3af' }} />
                     ) : null}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
-                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        <div className="font-medium text-sm" style={{ color: isActive ? node.color : '#9ca3af' }}>{node.label}</div>
+                        {hasRecommendedInputs && isActive && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        {!isActive && <AlertCircle className="w-3 h-3 text-red-400" />}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
                     </div>
                   </div>
-                  {hasRecommendedInputs && (
+                  {hasRecommendedInputs && isActive && (
                     <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
                       <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/90 dark:to-emerald-900/90 p-3 rounded-lg shadow-xl border-2 border-green-300 dark:border-green-700">
                         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-green-200 dark:border-green-700">
@@ -389,14 +575,24 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
               const definition = getNodeDefinition(node.type);
               const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
               return (
                 <div key={node.type} className="relative group">
-                  <div draggable onDragStart={(e) => onNodeDragStart(e, node.type, node.label)} className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow" style={{ borderColor: `${node.color}40` }}>
-                    {isEmojiIcon ? <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} /> : null}
+                  <div
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md' : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: isActive ? `${node.color}40` : '#9ca3af40' }}
+                    title={isActive ? undefined : 'Container is stopped'}
+                  >
+                    {isEmojiIcon ? <span className={`text-xl mt-0.5 flex-shrink-0 ${!isActive && 'grayscale'}`}>{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: isActive ? node.color : '#9ca3af' }} /> : null}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
-                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        <div className="font-medium text-sm" style={{ color: isActive ? node.color : '#9ca3af' }}>{node.label}</div>
+                        {hasRecommendedInputs && isActive && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        {!isActive && <AlertCircle className="w-3 h-3 text-red-400" />}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
                     </div>
@@ -420,14 +616,24 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
               const definition = getNodeDefinition(node.type);
               const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
               return (
                 <div key={node.type} className="relative group">
-                  <div draggable onDragStart={(e) => onNodeDragStart(e, node.type, node.label)} className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow" style={{ borderColor: `${node.color}40` }}>
-                    {isEmojiIcon ? <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} /> : null}
+                  <div
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md' : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: isActive ? `${node.color}40` : '#9ca3af40' }}
+                    title={isActive ? undefined : 'Container is stopped'}
+                  >
+                    {isEmojiIcon ? <span className={`text-xl mt-0.5 flex-shrink-0 ${!isActive && 'grayscale'}`}>{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: isActive ? node.color : '#9ca3af' }} /> : null}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
-                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        <div className="font-medium text-sm" style={{ color: isActive ? node.color : '#9ca3af' }}>{node.label}</div>
+                        {hasRecommendedInputs && isActive && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        {!isActive && <AlertCircle className="w-3 h-3 text-red-400" />}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
                     </div>
@@ -451,32 +657,31 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
               const definition = getNodeDefinition(node.type);
               const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
 
               return (
                 <div key={node.type} className="relative group">
                   <div
-                    draggable
-                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
-                    className="
-                      flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
-                      bg-white dark:bg-gray-700
-                      hover:shadow-md transition-shadow
-                    "
-                    style={{ borderColor: `${node.color}40` }}
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md' : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: isActive ? `${node.color}40` : '#9ca3af40' }}
+                    title={isActive ? undefined : 'Container is stopped'}
                   >
                     {isEmojiIcon ? (
-                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                      <span className={`text-xl mt-0.5 flex-shrink-0 ${!isActive && 'grayscale'}`}>{String(node.icon)}</span>
                     ) : Icon ? (
-                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: isActive ? node.color : '#9ca3af' }} />
                     ) : null}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-sm" style={{ color: node.color }}>
+                        <div className="font-medium text-sm" style={{ color: isActive ? node.color : '#9ca3af' }}>
                           {node.label}
                         </div>
-                        {hasRecommendedInputs && (
-                          <Lightbulb className="w-3 h-3 text-yellow-500" />
-                        )}
+                        {hasRecommendedInputs && isActive && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        {!isActive && <AlertCircle className="w-3 h-3 text-red-400" />}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {node.description}
@@ -485,7 +690,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
                   </div>
 
                   {/* Hover Tooltip - Recommended Connections */}
-                  {hasRecommendedInputs && (
+                  {hasRecommendedInputs && isActive && (
                     <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
                       <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/90 dark:to-violet-900/90 p-3 rounded-lg shadow-xl border-2 border-purple-300 dark:border-purple-700">
                         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-purple-200 dark:border-purple-700">
@@ -534,14 +739,24 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
               const definition = getNodeDefinition(node.type);
               const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
               return (
                 <div key={node.type} className="relative group">
-                  <div draggable onDragStart={(e) => onNodeDragStart(e, node.type, node.label)} className="flex items-start gap-2 p-3 rounded-lg border-2 cursor-move bg-white dark:bg-gray-700 hover:shadow-md transition-shadow" style={{ borderColor: `${node.color}40` }}>
-                    {isEmojiIcon ? <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} /> : null}
+                  <div
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md' : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: isActive ? `${node.color}40` : '#9ca3af40' }}
+                    title={isActive ? undefined : 'Container is stopped'}
+                  >
+                    {isEmojiIcon ? <span className={`text-xl mt-0.5 flex-shrink-0 ${!isActive && 'grayscale'}`}>{String(node.icon)}</span> : Icon ? <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: isActive ? node.color : '#9ca3af' }} /> : null}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-sm" style={{ color: node.color }}>{node.label}</div>
-                        {hasRecommendedInputs && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        <div className="font-medium text-sm" style={{ color: isActive ? node.color : '#9ca3af' }}>{node.label}</div>
+                        {hasRecommendedInputs && isActive && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        {!isActive && <AlertCircle className="w-3 h-3 text-red-400" />}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{node.description}</div>
                     </div>
@@ -565,32 +780,31 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
               const definition = getNodeDefinition(node.type);
               const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
 
               return (
                 <div key={node.type} className="relative group">
                   <div
-                    draggable
-                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
-                    className="
-                      flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
-                      bg-white dark:bg-gray-700
-                      hover:shadow-md transition-shadow
-                    "
-                    style={{ borderColor: `${node.color}40` }}
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md' : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: isActive ? `${node.color}40` : '#9ca3af40' }}
+                    title={isActive ? undefined : 'Container is stopped'}
                   >
                     {isEmojiIcon ? (
-                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                      <span className={`text-xl mt-0.5 flex-shrink-0 ${!isActive && 'grayscale'}`}>{String(node.icon)}</span>
                     ) : Icon ? (
-                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: isActive ? node.color : '#9ca3af' }} />
                     ) : null}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-sm" style={{ color: node.color }}>
+                        <div className="font-medium text-sm" style={{ color: isActive ? node.color : '#9ca3af' }}>
                           {node.label}
                         </div>
-                        {hasRecommendedInputs && (
-                          <Lightbulb className="w-3 h-3 text-yellow-500" />
-                        )}
+                        {hasRecommendedInputs && isActive && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        {!isActive && <AlertCircle className="w-3 h-3 text-red-400" />}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {node.description}
@@ -599,7 +813,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
                   </div>
 
                   {/* Hover Tooltip */}
-                  {hasRecommendedInputs && (
+                  {hasRecommendedInputs && isActive && (
                     <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
                       <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/90 dark:to-orange-900/90 p-3 rounded-lg shadow-xl border-2 border-red-300 dark:border-red-700">
                         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-red-200 dark:border-red-700">
@@ -648,32 +862,31 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
               const definition = getNodeDefinition(node.type);
               const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
 
               return (
                 <div key={node.type} className="relative group">
                   <div
-                    draggable
-                    onDragStart={(e) => onNodeDragStart(e, node.type, node.label)}
-                    className="
-                      flex items-start gap-2 p-3 rounded-lg border-2 cursor-move
-                      bg-white dark:bg-gray-700
-                      hover:shadow-md transition-shadow
-                    "
-                    style={{ borderColor: `${node.color}40` }}
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md' : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: isActive ? `${node.color}40` : '#9ca3af40' }}
+                    title={isActive ? undefined : 'Container is stopped'}
                   >
                     {isEmojiIcon ? (
-                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                      <span className={`text-xl mt-0.5 flex-shrink-0 ${!isActive && 'grayscale'}`}>{String(node.icon)}</span>
                     ) : Icon ? (
-                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: isActive ? node.color : '#9ca3af' }} />
                     ) : null}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="font-medium text-sm" style={{ color: node.color }}>
+                        <div className="font-medium text-sm" style={{ color: isActive ? node.color : '#9ca3af' }}>
                           {node.label}
                         </div>
-                        {hasRecommendedInputs && (
-                          <Lightbulb className="w-3 h-3 text-yellow-500" />
-                        )}
+                        {hasRecommendedInputs && isActive && <Lightbulb className="w-3 h-3 text-yellow-500" />}
+                        {!isActive && <AlertCircle className="w-3 h-3 text-red-400" />}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {node.description}
@@ -682,7 +895,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
                   </div>
 
                   {/* Hover Tooltip */}
-                  {hasRecommendedInputs && (
+                  {hasRecommendedInputs && isActive && (
                     <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50 w-72">
                       <div className="bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/90 dark:to-teal-900/90 p-3 rounded-lg shadow-xl border-2 border-cyan-300 dark:border-cyan-700">
                         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-cyan-200 dark:border-cyan-700">
@@ -750,6 +963,8 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
           })}
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 }

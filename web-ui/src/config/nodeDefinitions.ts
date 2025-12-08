@@ -1,12 +1,13 @@
 export interface NodeParameter {
   name: string;
-  type: 'number' | 'string' | 'boolean' | 'select';
-  default: any;
+  type: 'number' | 'string' | 'boolean' | 'select' | 'textarea';
+  default: string | number | boolean;
   min?: number;
   max?: number;
   step?: number;
   options?: string[];
   description: string;
+  placeholder?: string;
 }
 
 export interface RecommendedInput {
@@ -26,6 +27,7 @@ export interface NodeDefinition {
     name: string;
     type: string;
     description: string;
+    optional?: boolean;
   }[];
   outputs: {
     name: string;
@@ -375,9 +377,10 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     description: '인식된 치수 데이터를 분석하여 공차를 계산하고 제조 가능성을 평가합니다.',
     inputs: [
       {
-        name: 'ocr_results',
-        type: 'OCRResult[]',
-        description: '📝 OCR이 읽은 치수 및 공차 텍스트 (예: "50±0.1")',
+        name: 'dimensions',
+        type: 'Dimension[]',
+        description: '📝 OCR에서 추출된 치수 데이터 (예: [{nominal: 50, tolerance: 0.1}])',
+        optional: true,
       },
     ],
     outputs: [
@@ -388,6 +391,13 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       },
     ],
     parameters: [
+      {
+        name: 'dimensions_manual',
+        type: 'textarea',
+        default: '',
+        description: '수동 치수 입력 (JSON 배열). 예: [{"value": 50, "tolerance": 0.1, "type": "length", "unit": "mm"}]',
+        placeholder: '[{"value": 50, "tolerance": 0.1, "type": "length"}]',
+      },
       {
         name: 'material_type',
         type: 'select',
@@ -426,7 +436,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     usageTips: [
       '⭐ eDOCr2의 출력을 입력으로 받으면 텍스트 위치 정보가 자동으로 활용됩니다',
       '위치 정보 덕분에 치수와 공차가 정확히 매칭되어 분석 정확도가 크게 향상됩니다',
-      'SkinModel 자체는 이미지를 생성하지 않지만, eDOCr2의 시각화 이미지를 함께 확인하면 어떤 위치의 치수를 분석했는지 알 수 있습니다',
+      '💡 OCR 연결 없이 테스트하려면 dimensions_manual에 JSON을 직접 입력하세요',
       'material_type과 manufacturing_process를 정확히 설정하면 더 정확한 제조성 평가를 받을 수 있습니다',
     ],
     recommendedInputs: [
@@ -1349,6 +1359,376 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         from: 'esrgan',
         field: 'image',
         reason: '저해상도 이미지 업스케일 후 OCR 정확도 향상',
+      },
+    ],
+  },
+  // =====================
+  // P&ID Analysis APIs
+  // =====================
+  linedetector: {
+    type: 'linedetector',
+    label: 'Line Detector',
+    category: 'segmentation',
+    color: '#0d9488',
+    icon: 'Minus',
+    description: 'P&ID 도면에서 배관 라인과 신호선을 검출합니다. LSD(Line Segment Detector) + Hough Transform 기반.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 P&ID 도면 이미지',
+      },
+    ],
+    outputs: [
+      {
+        name: 'lines',
+        type: 'Line[]',
+        description: '📏 검출된 라인 목록 (시작점, 끝점, 타입)',
+      },
+      {
+        name: 'intersections',
+        type: 'Point[]',
+        description: '⭕ 라인 교차점 목록',
+      },
+      {
+        name: 'line_stats',
+        type: 'object',
+        description: '📊 라인 통계 (총 개수, 타입별 분포)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'method',
+        type: 'select',
+        default: 'combined',
+        options: ['lsd', 'hough', 'combined'],
+        description: '검출 방법 (lsd: 정밀, hough: 빠름, combined: 최고 정확도)',
+      },
+      {
+        name: 'min_length',
+        type: 'number',
+        default: 30,
+        min: 10,
+        max: 200,
+        step: 10,
+        description: '최소 라인 길이 (픽셀)',
+      },
+      {
+        name: 'merge_threshold',
+        type: 'number',
+        default: 10,
+        min: 5,
+        max: 50,
+        step: 5,
+        description: '동일선상 라인 병합 거리 (픽셀)',
+      },
+      {
+        name: 'classify_types',
+        type: 'boolean',
+        default: true,
+        description: '라인 타입 분류 (배관 vs 신호선)',
+      },
+      {
+        name: 'detect_intersections',
+        type: 'boolean',
+        default: true,
+        description: '교차점 검출 활성화',
+      },
+      {
+        name: 'visualize',
+        type: 'boolean',
+        default: true,
+        description: '검출 결과 시각화 생성',
+      },
+    ],
+    examples: [
+      'ImageInput → Line Detector → 배관 라인 검출',
+      'Line Detector → PID Analyzer → 연결 관계 분석',
+    ],
+    usageTips: [
+      '⭐ YOLO-PID와 함께 사용하면 심볼과 라인의 연결 관계를 분석할 수 있습니다',
+      '💡 combined 방법이 가장 정확하지만 처리 시간이 더 깁니다',
+      '💡 min_length를 높이면 노이즈가 줄어들지만 짧은 라인을 놓칠 수 있습니다',
+      '💡 P&ID Analyzer의 입력으로 사용하여 심볼 간 연결성을 분석합니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: 'P&ID 도면 이미지에서 라인을 검출합니다',
+      },
+      {
+        from: 'edgnet',
+        field: 'segmented_image',
+        reason: '전처리된 이미지에서 더 정확한 라인 검출이 가능합니다',
+      },
+    ],
+  },
+  yolopid: {
+    type: 'yolopid',
+    label: 'YOLO-PID Symbol Detector',
+    category: 'detection',
+    color: '#059669',
+    icon: 'CircuitBoard',
+    description: 'P&ID 도면 전용 YOLO 심볼 검출기. 밸브, 펌프, 계기, 탱크 등 60종 심볼 인식.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 P&ID 도면 이미지',
+      },
+    ],
+    outputs: [
+      {
+        name: 'symbols',
+        type: 'PIDSymbol[]',
+        description: '🔧 검출된 P&ID 심볼 목록 (위치, 종류, 신뢰도)',
+      },
+      {
+        name: 'symbol_counts',
+        type: 'object',
+        description: '📊 심볼 타입별 개수',
+      },
+    ],
+    parameters: [
+      {
+        name: 'model_type',
+        type: 'select',
+        default: 'yolov8-pid',
+        options: ['yolov8-pid', 'yolov11-pid'],
+        description: 'P&ID 심볼 검출 모델',
+      },
+      {
+        name: 'confidence',
+        type: 'number',
+        default: 0.5,
+        min: 0.1,
+        max: 0.9,
+        step: 0.05,
+        description: '검출 신뢰도 임계값',
+      },
+      {
+        name: 'iou',
+        type: 'number',
+        default: 0.45,
+        min: 0.1,
+        max: 0.9,
+        step: 0.05,
+        description: 'NMS IoU 임계값',
+      },
+      {
+        name: 'imgsz',
+        type: 'number',
+        default: 1280,
+        min: 640,
+        max: 1920,
+        step: 320,
+        description: '입력 이미지 크기 (P&ID는 큰 사이즈 권장)',
+      },
+      {
+        name: 'symbol_categories',
+        type: 'select',
+        default: 'all',
+        options: ['all', 'valves', 'pumps', 'instruments', 'vessels', 'heat_exchangers', 'piping'],
+        description: '검출할 심볼 카테고리',
+      },
+      {
+        name: 'visualize',
+        type: 'boolean',
+        default: true,
+        description: '검출 결과 시각화 생성',
+      },
+    ],
+    examples: [
+      'ImageInput → YOLO-PID → 밸브, 펌프, 계기 검출',
+      'YOLO-PID + Line Detector → PID Analyzer → 연결 분석',
+    ],
+    usageTips: [
+      '⭐ P&ID 도면 전용 모델로 일반 YOLO보다 심볼 인식 정확도가 높습니다',
+      '💡 60종의 P&ID 심볼을 인식합니다 (밸브 15종, 펌프 5종, 계기 20종 등)',
+      '💡 imgsz를 1280 이상으로 설정하면 작은 심볼도 정확히 검출됩니다',
+      '💡 Line Detector와 함께 사용하여 PID Analyzer로 연결 관계를 분석하세요',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: 'P&ID 도면 이미지에서 심볼을 검출합니다',
+      },
+      {
+        from: 'esrgan',
+        field: 'image',
+        reason: '저해상도 P&ID 도면 업스케일 후 검출 정확도 향상',
+      },
+    ],
+  },
+  pidanalyzer: {
+    type: 'pidanalyzer',
+    label: 'P&ID Analyzer',
+    category: 'analysis',
+    color: '#7c3aed',
+    icon: 'Network',
+    description: 'P&ID 심볼과 라인을 분석하여 연결 관계, BOM, 밸브 시그널 리스트, 장비 목록을 생성합니다.',
+    inputs: [
+      {
+        name: 'symbols',
+        type: 'PIDSymbol[]',
+        description: '🔧 YOLO-PID가 검출한 심볼 목록',
+      },
+      {
+        name: 'lines',
+        type: 'Line[]',
+        description: '📏 Line Detector가 검출한 라인 목록',
+      },
+    ],
+    outputs: [
+      {
+        name: 'connections',
+        type: 'Connection[]',
+        description: '🔗 심볼 간 연결 관계 그래프',
+      },
+      {
+        name: 'bom',
+        type: 'BOMEntry[]',
+        description: '📋 BOM (Bill of Materials) 부품 목록',
+      },
+      {
+        name: 'valve_signal_list',
+        type: 'ValveSignal[]',
+        description: '🎛️ 밸브 시그널 리스트',
+      },
+      {
+        name: 'equipment_list',
+        type: 'Equipment[]',
+        description: '⚙️ 장비 목록',
+      },
+    ],
+    parameters: [
+      {
+        name: 'analysis_type',
+        type: 'select',
+        default: 'full',
+        options: ['connectivity', 'bom', 'valve_signals', 'equipment', 'full'],
+        description: '분석 유형 (full: 전체 분석)',
+      },
+      {
+        name: 'connection_threshold',
+        type: 'number',
+        default: 50,
+        min: 20,
+        max: 200,
+        step: 10,
+        description: '심볼-라인 연결 거리 임계값 (픽셀)',
+      },
+      {
+        name: 'include_tag_numbers',
+        type: 'boolean',
+        default: true,
+        description: 'OCR 결과에서 태그번호 추출 포함',
+      },
+      {
+        name: 'generate_graph_json',
+        type: 'boolean',
+        default: false,
+        description: '연결 그래프 JSON 출력 (Neo4j 연동용)',
+      },
+    ],
+    examples: [
+      'YOLO-PID + Line Detector → PID Analyzer → BOM 생성',
+      'PID Analyzer → Design Checker → 설계 오류 검출',
+    ],
+    usageTips: [
+      '⭐ YOLO-PID와 Line Detector의 결과를 함께 입력해야 정확한 분석이 가능합니다',
+      '💡 BOM 생성으로 도면에서 부품 목록을 자동 추출합니다',
+      '💡 밸브 시그널 리스트로 제어 시스템 연동 정보를 추출합니다',
+      '💡 Design Checker와 연결하여 설계 오류를 자동 검출할 수 있습니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolopid',
+        field: 'symbols',
+        reason: '⭐ P&ID 심볼 목록을 입력받아 연결 관계를 분석합니다',
+      },
+      {
+        from: 'linedetector',
+        field: 'lines',
+        reason: '⭐ 라인 정보로 심볼 간 연결성을 파악합니다',
+      },
+    ],
+  },
+  designchecker: {
+    type: 'designchecker',
+    label: 'Design Checker',
+    category: 'analysis',
+    color: '#ef4444',
+    icon: 'ShieldCheck',
+    description: 'P&ID 설계 오류 검출 및 규정 검증. ISO 10628, ISA 5.1 등 표준 준수 여부 확인.',
+    inputs: [
+      {
+        name: 'symbols',
+        type: 'PIDSymbol[]',
+        description: '🔧 P&ID 심볼 목록',
+      },
+      {
+        name: 'connections',
+        type: 'Connection[]',
+        description: '🔗 심볼 연결 관계',
+      },
+    ],
+    outputs: [
+      {
+        name: 'violations',
+        type: 'Violation[]',
+        description: '⚠️ 검출된 규칙 위반 목록',
+      },
+      {
+        name: 'summary',
+        type: 'CheckSummary',
+        description: '📊 검사 결과 요약 (오류/경고/정보 개수)',
+      },
+      {
+        name: 'compliance_score',
+        type: 'number',
+        description: '✅ 규정 준수율 (0-100%)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'categories',
+        type: 'select',
+        default: 'all',
+        options: ['all', 'connectivity', 'symbol', 'labeling', 'specification', 'standard', 'safety'],
+        description: '검사할 규칙 카테고리',
+      },
+      {
+        name: 'severity_threshold',
+        type: 'select',
+        default: 'info',
+        options: ['error', 'warning', 'info'],
+        description: '보고할 최소 심각도',
+      },
+    ],
+    examples: [
+      'PID Analyzer → Design Checker → 설계 오류 리포트',
+      'YOLO-PID → Design Checker → 심볼 규격 검증',
+    ],
+    usageTips: [
+      '⭐ 20+ 설계 규칙을 자동으로 검사합니다 (연결, 심볼, 라벨링, 사양, 표준, 안전)',
+      '💡 ISO 10628, ISA 5.1, ASME, IEC 61511 등 주요 표준 지원',
+      '💡 compliance_score로 전체 설계 품질을 수치화합니다',
+      '💡 severity_threshold를 error로 설정하면 중요한 오류만 표시됩니다',
+      '⚠️ 압력용기 안전밸브 누락, 태그번호 중복 등 중요 오류를 검출합니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolopid',
+        field: 'symbols',
+        reason: '검출된 심볼의 규격 준수 여부를 검사합니다',
+      },
+      {
+        from: 'pidanalyzer',
+        field: 'connections',
+        reason: '⭐ 심볼 연결 관계를 분석하여 설계 오류를 검출합니다',
       },
     ],
   },

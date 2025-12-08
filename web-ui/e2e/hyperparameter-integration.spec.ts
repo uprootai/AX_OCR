@@ -128,7 +128,7 @@ test.describe('Hyperparameter Integration Tests', () => {
       if (!savedHyperParams) return {};
 
       const allParams = JSON.parse(savedHyperParams);
-      const result: Record<string, any> = {};
+      const result: Record<string, unknown> = {};
       const prefix = 'yolo';
 
       Object.keys(allParams).forEach((key) => {

@@ -7,6 +7,7 @@ import uuid
 import time
 import logging
 import json
+import os
 from typing import Dict, Any, Optional, AsyncGenerator
 
 from ..schemas.workflow import (
@@ -18,6 +19,14 @@ from ..executors.executor_registry import ExecutorRegistry
 from .execution_context import ExecutionContext
 from .input_collector import collect_node_inputs
 
+# 결과 저장 기능
+try:
+    from utils.result_manager import get_result_manager
+    RESULT_SAVING_ENABLED = os.getenv("ENABLE_RESULT_SAVING", "true").lower() == "true"
+except ImportError:
+    RESULT_SAVING_ENABLED = False
+    get_result_manager = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,6 +35,8 @@ class PipelineEngine:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+        self.result_manager = get_result_manager() if RESULT_SAVING_ENABLED and get_result_manager else None
+        self.node_execution_order = 0  # 노드 실행 순서 추적
 
     async def execute_workflow(
         self,
@@ -39,13 +50,16 @@ class PipelineEngine:
         Args:
             workflow: 워크플로우 정의
             inputs: 초기 입력 데이터
-            config: 실행 설정
+            config: 실행 설정 (execution_mode: 'sequential' | 'parallel')
 
         Returns:
             실행 결과
         """
         execution_id = str(uuid.uuid4())
-        self.logger.info(f"워크플로우 실행 시작: {workflow.name} (ID: {execution_id})")
+
+        # 실행 모드 결정 (기본값: sequential)
+        execution_mode = (config or {}).get("execution_mode", "sequential")
+        self.logger.info(f"워크플로우 실행 시작: {workflow.name} (ID: {execution_id}, 모드: {execution_mode})")
 
         try:
             # 1. 검증 단계
@@ -86,30 +100,44 @@ class PipelineEngine:
 
             # 5. 노드 실행
             self.logger.info("4단계: 노드 실행")
-            for group_idx, node_group in enumerate(parallel_groups):
-                self.logger.info(f"그룹 {group_idx + 1}/{len(parallel_groups)} 실행: {node_group}")
 
-                if len(node_group) > 1:
-                    # 병렬 실행
-                    tasks = [
-                        self._execute_node(node_id, workflow, context)
-                        for node_id in node_group
-                    ]
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-                    # 에러 체크
-                    for node_id, result in zip(node_group, results):
-                        if isinstance(result, Exception):
-                            self.logger.error(f"노드 {node_id} 실행 중 에러: {result}")
-                            context.set_node_status(node_id, "failed", error=str(result))
-                else:
-                    # 단일 실행
-                    node_id = node_group[0]
+            if execution_mode == "sequential":
+                # 순차 실행: 위상 정렬 순서대로 하나씩 실행
+                self.logger.info("🔄 순차 실행 모드")
+                for node_id in sorted_nodes:
                     try:
+                        self.logger.info(f"노드 실행: {node_id}")
                         await self._execute_node(node_id, workflow, context)
                     except Exception as e:
                         self.logger.error(f"노드 {node_id} 실행 중 에러: {e}")
                         context.set_node_status(node_id, "failed", error=str(e))
+            else:
+                # 병렬 실행: 병렬 그룹 단위로 실행
+                self.logger.info("⚡ 병렬 실행 모드")
+                for group_idx, node_group in enumerate(parallel_groups):
+                    self.logger.info(f"그룹 {group_idx + 1}/{len(parallel_groups)} 실행: {node_group}")
+
+                    if len(node_group) > 1:
+                        # 병렬 실행
+                        tasks = [
+                            self._execute_node(node_id, workflow, context)
+                            for node_id in node_group
+                        ]
+                        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                        # 에러 체크
+                        for node_id, result in zip(node_group, results):
+                            if isinstance(result, Exception):
+                                self.logger.error(f"노드 {node_id} 실행 중 에러: {result}")
+                                context.set_node_status(node_id, "failed", error=str(result))
+                    else:
+                        # 단일 실행
+                        node_id = node_group[0]
+                        try:
+                            await self._execute_node(node_id, workflow, context)
+                        except Exception as e:
+                            self.logger.error(f"노드 {node_id} 실행 중 에러: {e}")
+                            context.set_node_status(node_id, "failed", error=str(e))
 
             # 6. 결과 집계
             self.logger.info("5단계: 결과 집계")
@@ -223,13 +251,26 @@ class PipelineEngine:
         Args:
             workflow: 워크플로우 정의
             inputs: 초기 입력 데이터
-            config: 실행 설정
+            config: 실행 설정 (execution_mode: 'sequential' | 'parallel')
 
         Yields:
             SSE 포맷 이벤트 문자열
         """
         execution_id = str(uuid.uuid4())
-        self.logger.info(f"[SSE] 워크플로우 실행 시작: {workflow.name} (ID: {execution_id})")
+
+        # 실행 모드 결정 (기본값: sequential)
+        execution_mode = (config or {}).get("execution_mode", "sequential")
+        self.logger.info(f"[SSE] 워크플로우 실행 시작: {workflow.name} (ID: {execution_id}, 모드: {execution_mode})")
+
+        # 결과 저장 세션 초기화
+        self.node_execution_order = 0
+        session_dir = None
+        if self.result_manager:
+            try:
+                session_dir = self.result_manager.create_session(workflow.name)
+                self.logger.info(f"[결과저장] 세션 생성: {session_dir}")
+            except Exception as e:
+                self.logger.warning(f"[결과저장] 세션 생성 실패: {e}")
 
         try:
             # 초기 상태 전송
@@ -270,38 +311,15 @@ class PipelineEngine:
                 "type": "execution_plan",
                 "sorted_nodes": sorted_nodes,
                 "parallel_groups": parallel_groups,
+                "execution_mode": execution_mode,
                 "total_nodes": len(workflow.nodes)
             })
 
             # 4. 노드 실행
-            for group_idx, node_group in enumerate(parallel_groups):
-                if len(node_group) > 1:
-                    # 병렬 실행
-                    tasks = []
-                    for node_id in node_group:
-                        tasks.append(self._execute_node_with_events(
-                            node_id, workflow, context, self._event_callback
-                        ))
-
-                    # 병렬 실행 중 이벤트를 받기 위해 gather 사용
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-                    # 각 노드 완료 이벤트 전송
-                    for node_id, result in zip(node_group, results):
-                        node_status = context.get_node_status(node_id)
-                        if node_status:
-                            yield self._format_sse_event({
-                                "type": "node_update",
-                                "node_id": node_id,
-                                "status": node_status.status,
-                                "progress": node_status.progress,
-                                "error": node_status.error,
-                                "output": node_status.output  # ✅ output 추가!
-                            })
-                else:
-                    # 단일 실행
-                    node_id = node_group[0]
-
+            if execution_mode == "sequential":
+                # 순차 실행: 위상 정렬 순서대로 하나씩 실행
+                self.logger.info("🔄 [SSE] 순차 실행 모드")
+                for node_id in sorted_nodes:
                     # 노드 실행 시작 이벤트
                     yield self._format_sse_event({
                         "type": "node_start",
@@ -309,26 +327,67 @@ class PipelineEngine:
                         "status": "running"
                     })
 
-                    try:
-                        await self._execute_node(node_id, workflow, context)
-                        node_status = context.get_node_status(node_id)
+                    async for event in self._execute_single_node_stream(
+                        node_id, workflow, context, session_dir
+                    ):
+                        yield event
+            else:
+                # 병렬 실행: 병렬 그룹 단위로 실행
+                self.logger.info("⚡ [SSE] 병렬 실행 모드")
+                for group_idx, node_group in enumerate(parallel_groups):
+                    if len(node_group) > 1:
+                        # 병렬 실행
+                        tasks = []
+                        for node_id in node_group:
+                            tasks.append(self._execute_node_with_events(
+                                node_id, workflow, context, self._event_callback
+                            ))
 
-                        # 노드 완료 이벤트
+                        # 병렬 실행 중 이벤트를 받기 위해 gather 사용
+                        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                        # 각 노드 완료 이벤트 전송 및 결과 저장
+                        for node_id, result in zip(node_group, results):
+                            node_status = context.get_node_status(node_id)
+                            if node_status:
+                                # 결과 저장
+                                if self.result_manager and session_dir and node_status.output:
+                                    try:
+                                        node = next((n for n in workflow.nodes if n.id == node_id), None)
+                                        self.node_execution_order += 1
+                                        self.result_manager.save_node_result(
+                                            node_id=node_id,
+                                            node_type=node.type if node else "unknown",
+                                            result=node_status.output,
+                                            execution_order=self.node_execution_order,
+                                            session_dir=session_dir
+                                        )
+                                    except Exception as save_err:
+                                        self.logger.warning(f"[결과저장] 병렬 노드 저장 실패: {save_err}")
+
+                                yield self._format_sse_event({
+                                    "type": "node_update",
+                                    "node_id": node_id,
+                                    "status": node_status.status,
+                                    "progress": node_status.progress,
+                                    "error": node_status.error,
+                                    "output": node_status.output
+                                })
+                    else:
+                        # 단일 실행
+                        node_id = node_group[0]
+
+                        # 노드 실행 시작 이벤트
                         yield self._format_sse_event({
-                            "type": "node_complete",
+                            "type": "node_start",
                             "node_id": node_id,
-                            "status": node_status.status if node_status else "completed",
-                            "progress": node_status.progress if node_status else 1.0,
-                            "output": node_status.output if node_status else None  # ✅ output 추가!
+                            "status": "running"
                         })
-                    except Exception as e:
-                        # 노드 실패 이벤트
-                        yield self._format_sse_event({
-                            "type": "node_error",
-                            "node_id": node_id,
-                            "status": "failed",
-                            "error": str(e)
-                        })
+
+                        async for event in self._execute_single_node_stream(
+                            node_id, workflow, context, session_dir
+                        ):
+                            yield event
 
             # 5. 완료
             execution_time = (time.time() - context.start_time) * 1000
@@ -345,17 +404,33 @@ class PipelineEngine:
             has_failed = any(s.status == "failed" for s in context.node_statuses.values())
             overall_status = "failed" if has_failed else "completed"
 
+            # 워크플로우 메타데이터 저장
+            if self.result_manager and session_dir:
+                try:
+                    self.result_manager.save_workflow_metadata(
+                        workflow_name=workflow.name,
+                        nodes=[n.model_dump() for n in workflow.nodes],
+                        execution_time=execution_time / 1000,  # ms -> seconds
+                        status=overall_status,
+                        session_dir=session_dir
+                    )
+                    self.logger.info(f"[결과저장] 워크플로우 메타데이터 저장 완료: {session_dir}")
+                except Exception as meta_err:
+                    self.logger.warning(f"[결과저장] 메타데이터 저장 실패: {meta_err}")
+
             # 완료 이벤트 전송
             yield self._format_sse_event({
                 "type": "workflow_complete",
                 "status": overall_status,
                 "execution_time_ms": execution_time,
+                "result_save_path": str(session_dir) if session_dir else None,  # 저장 경로 추가
                 "node_statuses": [
                     {
                         "node_id": ns.node_id,
                         "status": ns.status,
                         "progress": ns.progress,
-                        "error": ns.error
+                        "error": ns.error,
+                        "output": ns.output  # ✅ output 추가 (이미지 포함)
                     }
                     for ns in context.node_statuses.values()
                 ],
@@ -378,6 +453,62 @@ class PipelineEngine:
     ):
         """이벤트 콜백을 지원하는 노드 실행"""
         await self._execute_node(node_id, workflow, context)
+
+    async def _execute_single_node_stream(
+        self,
+        node_id: str,
+        workflow: WorkflowDefinition,
+        context: ExecutionContext,
+        session_dir: Optional[Any] = None
+    ) -> AsyncGenerator[str, None]:
+        """단일 노드 실행 및 SSE 이벤트 생성 (순차/병렬 모드 공용)"""
+        try:
+            await self._execute_node(node_id, workflow, context)
+            node_status = context.get_node_status(node_id)
+
+            # 디버그: output 확인
+            output_data = node_status.output if node_status else None
+            if output_data:
+                output_keys = list(output_data.keys()) if isinstance(output_data, dict) else []
+                has_image = 'image' in output_keys or 'visualized_image' in output_keys
+                image_size = len(output_data.get('image', '') or output_data.get('visualized_image', '') or '') if has_image else 0
+                self.logger.info(f"[SSE] Node {node_id} output keys: {output_keys}, has_image: {has_image}, image_size: {image_size}")
+            else:
+                self.logger.warning(f"[SSE] Node {node_id} has NO output!")
+
+            # 결과 저장
+            if self.result_manager and session_dir and output_data:
+                try:
+                    node = next((n for n in workflow.nodes if n.id == node_id), None)
+                    self.node_execution_order += 1
+                    saved = self.result_manager.save_node_result(
+                        node_id=node_id,
+                        node_type=node.type if node else "unknown",
+                        result=output_data,
+                        execution_order=self.node_execution_order,
+                        session_dir=session_dir
+                    )
+                    if saved:
+                        self.logger.info(f"[결과저장] {node_id}: {list(saved.keys())}")
+                except Exception as save_err:
+                    self.logger.warning(f"[결과저장] 노드 결과 저장 실패: {save_err}")
+
+            # 노드 완료 이벤트
+            yield self._format_sse_event({
+                "type": "node_complete",
+                "node_id": node_id,
+                "status": node_status.status if node_status else "completed",
+                "progress": node_status.progress if node_status else 1.0,
+                "output": output_data
+            })
+        except Exception as e:
+            # 노드 실패 이벤트
+            yield self._format_sse_event({
+                "type": "node_error",
+                "node_id": node_id,
+                "status": "failed",
+                "error": str(e)
+            })
 
     def _event_callback(self, event: Dict[str, Any]):
         """노드 실행 중 이벤트 콜백 (추후 확장 가능)"""

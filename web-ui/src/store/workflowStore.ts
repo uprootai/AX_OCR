@@ -1,16 +1,57 @@
 import { create } from 'zustand';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
-import type { Node, Edge, Connection } from 'reactflow';
+import type { Node, Edge, Connection, NodeChange, EdgeChange } from 'reactflow';
 import { getNodeDefinition } from '../config/nodeDefinitions';
 
+// Type definitions
+type ParameterValue = string | number | boolean | null | undefined;
+type ParameterRecord = Record<string, ParameterValue>;
+
+// Workflow result type
+interface WorkflowExecutionResult {
+  status: string;
+  execution_time_ms?: number;
+  node_statuses?: Array<{
+    node_id: string;
+    status: string;
+    execution_time?: number;
+    start_time?: string;
+    end_time?: string;
+    output?: Record<string, unknown>;
+    error?: string;
+  }>;
+  final_output?: Record<string, unknown>;
+}
+
+// Workflow template type for loading (accepts looser types for compatibility)
+interface WorkflowTemplate {
+  name?: string;
+  description?: string;
+  nodes?: Array<{
+    id: string;
+    type?: string;
+    label?: string;
+    position?: { x: number; y: number };
+    parameters?: Record<string, unknown>;
+    data?: { label?: string; parameters?: Record<string, unknown> };
+  }>;
+  edges?: Array<{
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+  }>;
+}
+
 // Helper: Get saved hyperparameters from localStorage for a specific node type
-const getSavedHyperparameters = (nodeType: string): Record<string, any> => {
+const getSavedHyperparameters = (nodeType: string): ParameterRecord => {
   try {
     const savedHyperParams = localStorage.getItem('hyperParameters');
     if (!savedHyperParams) return {};
 
-    const allParams = JSON.parse(savedHyperParams);
-    const result: Record<string, any> = {};
+    const allParams = JSON.parse(savedHyperParams) as Record<string, ParameterValue>;
+    const result: ParameterRecord = {};
 
     // Map node types to their localStorage prefixes
     const prefixMap: Record<string, string> = {
@@ -45,13 +86,16 @@ const getSavedHyperparameters = (nodeType: string): Record<string, any> => {
   }
 };
 
-interface NodeStatus {
+export interface NodeStatus {
   nodeId: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   progress: number;
   error?: string;
-  output?: any;
+  output?: Record<string, unknown>;
 }
+
+// Execution mode type
+type ExecutionMode = 'sequential' | 'parallel';
 
 interface WorkflowState {
   // Workflow metadata
@@ -67,37 +111,77 @@ interface WorkflowState {
 
   // Execution state
   isExecuting: boolean;
-  executionResult: any | null;
+  executionResult: WorkflowExecutionResult | null;
   executionError: string | null;
 
   // Real-time node statuses (SSE)
   nodeStatuses: Record<string, NodeStatus>;
   executionId: string | null;
 
+  // Uploaded image (persistent across navigation)
+  uploadedImage: string | null;
+  uploadedFileName: string | null;
+
+  // Execution mode (default: sequential)
+  executionMode: ExecutionMode;
+
   // Actions
   setWorkflowName: (name: string) => void;
   setWorkflowDescription: (description: string) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
-  onNodesChange: (changes: any) => void;
-  onEdgesChange: (changes: any) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
   addNode: (node: Node) => void;
   removeNode: (nodeId: string) => void;
-  updateNodeData: (nodeId: string, data: any) => void;
+  updateNodeData: (nodeId: string, data: Record<string, unknown>) => void;
   setSelectedNode: (node: Node | null) => void;
   clearWorkflow: () => void;
-  loadWorkflow: (workflow: any) => void;
+  loadWorkflow: (workflow: WorkflowTemplate) => void;
   setExecuting: (isExecuting: boolean) => void;
-  setExecutionResult: (result: any) => void;
+  setExecutionResult: (result: WorkflowExecutionResult | null) => void;
   setExecutionError: (error: string | null) => void;
   executeWorkflow: (inputImage: string) => Promise<void>;
   executeWorkflowStream: (inputImage: string) => Promise<void>;
   updateNodeStatus: (nodeId: string, status: Partial<NodeStatus>) => void;
   clearNodeStatuses: () => void;
+  setUploadedImage: (image: string | null, fileName?: string | null) => void;
+  setExecutionMode: (mode: ExecutionMode) => void;
 }
 
-export const useWorkflowStore = create<WorkflowState>((set, get) => ({
+// Helper to load image from sessionStorage
+const loadPersistedImage = (): { uploadedImage: string | null; uploadedFileName: string | null } => {
+  if (typeof window === 'undefined') return { uploadedImage: null, uploadedFileName: null };
+  try {
+    const image = sessionStorage.getItem('blueprintflow-uploadedImage');
+    const fileName = sessionStorage.getItem('blueprintflow-uploadedFileName');
+    return { uploadedImage: image, uploadedFileName: fileName };
+  } catch {
+    return { uploadedImage: null, uploadedFileName: null };
+  }
+};
+
+// Helper to save image to sessionStorage
+const persistImage = (image: string | null, fileName: string | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (image) {
+      sessionStorage.setItem('blueprintflow-uploadedImage', image);
+      sessionStorage.setItem('blueprintflow-uploadedFileName', fileName || '');
+    } else {
+      sessionStorage.removeItem('blueprintflow-uploadedImage');
+      sessionStorage.removeItem('blueprintflow-uploadedFileName');
+    }
+  } catch (e) {
+    console.warn('Failed to persist image to sessionStorage:', e);
+  }
+};
+
+// Load persisted image on init
+const persistedImage = loadPersistedImage();
+
+export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   // Initial state
   workflowName: 'Untitled Workflow',
   workflowDescription: '',
@@ -109,6 +193,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   executionError: null,
   nodeStatuses: {},
   executionId: null,
+  uploadedImage: persistedImage.uploadedImage,
+  uploadedFileName: persistedImage.uploadedFileName,
+  executionMode: 'sequential', // Default: sequential execution
 
   // Actions
   setWorkflowName: (name) => set({ workflowName: name }),
@@ -152,10 +239,17 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   updateNodeData: (nodeId, data) => {
+    const updatedNodes = get().nodes.map((node) =>
+      node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
+    );
+    const selectedNode = get().selectedNode;
+    const updatedSelectedNode = selectedNode?.id === nodeId
+      ? { ...selectedNode, data: { ...selectedNode.data, ...data } }
+      : selectedNode;
+
     set({
-      nodes: get().nodes.map((node) =>
-        node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
-      ),
+      nodes: updatedNodes,
+      selectedNode: updatedSelectedNode,
     });
   },
 
@@ -173,12 +267,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     });
   },
 
-  loadWorkflow: (workflow) => {
+  loadWorkflow: (workflow: WorkflowTemplate) => {
     // Transform template nodes to ReactFlow Node format
     const transformedNodes = (workflow.nodes || [])
-      .filter((node: any) => node && node.id) // Filter out invalid nodes
-      .map((node: any) => ({
+      .filter((node) => node && node.id) // Filter out invalid nodes
+      .map((node) => ({
         ...node,
+        position: node.position || { x: 0, y: 0 },
         data: {
           label: node.label || node.data?.label || '',
           parameters: node.parameters || node.data?.parameters || {},
@@ -189,8 +284,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
     // Transform edges with selected property
     const transformedEdges = (workflow.edges || [])
-      .filter((edge: any) => edge && edge.id) // Filter out invalid edges
-      .map((edge: any) => ({
+      .filter((edge) => edge && edge.id) // Filter out invalid edges
+      .map((edge) => ({
         ...edge,
         selected: false,
       }));
@@ -236,7 +331,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         nodes: nodes.map((node) => {
           // Get node definition to merge default parameters
           const nodeDefinition = getNodeDefinition(node.type || '');
-          const defaultParams: Record<string, any> = {};
+          const defaultParams: ParameterRecord = {};
 
           // Extract default values from node definition
           if (nodeDefinition?.parameters) {
@@ -306,18 +401,18 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         executionResult: result,
         executionError: null,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Workflow execution failed:', error);
       set({
         isExecuting: false,
-        executionError: error.message || 'Unknown error occurred',
+        executionError: error instanceof Error ? error.message : 'Unknown error occurred',
         executionResult: null,
       });
     }
   },
 
   executeWorkflowStream: async (inputImage: string) => {
-    const { nodes, edges, workflowName } = get();
+    const { nodes, edges, workflowName, executionMode } = get();
 
     // Validation
     if (nodes.length === 0) {
@@ -346,7 +441,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         nodes: nodes.map((node) => {
           // Get node definition to merge default parameters
           const nodeDefinition = getNodeDefinition(node.type || '');
-          const defaultParams: Record<string, any> = {};
+          const defaultParams: ParameterRecord = {};
 
           // Extract default values from node definition
           if (nodeDefinition?.parameters) {
@@ -387,11 +482,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         inputs: {
           image: inputImage,
         },
-        config: {},
+        config: {
+          execution_mode: executionMode, // 'sequential' or 'parallel'
+        },
       };
 
       console.log('🚀 [SSE] Executing workflow:', workflowDefinition.name);
       console.log('📋 [SSE] Workflow definition:', workflowDefinition);
+      console.log('⚙️ [SSE] Execution mode:', executionMode);
 
       // Use EventSource for SSE
       const response = await fetch('http://localhost:8000/api/v1/workflow/execute-stream', {
@@ -447,7 +545,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
                 set({ executionId: event.execution_id });
                 break;
 
-              case 'execution_plan':
+              case 'execution_plan': {
                 // Initialize node statuses
                 const statuses: Record<string, NodeStatus> = {};
                 nodes.forEach((node) => {
@@ -459,6 +557,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
                 });
                 set({ nodeStatuses: statuses });
                 break;
+              }
 
               case 'node_start':
                 get().updateNodeStatus(event.node_id, {
@@ -514,16 +613,16 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
               case 'error':
                 throw new Error(event.message);
             }
-          } catch (parseError: any) {
+          } catch (parseError) {
             console.error('❌ [SSE] Failed to parse event:', parseError, message);
           }
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ [SSE] Workflow execution failed:', error);
       set({
         isExecuting: false,
-        executionError: error.message || 'Unknown error occurred',
+        executionError: error instanceof Error ? error.message : 'Unknown error occurred',
         executionResult: null,
       });
     }
@@ -544,4 +643,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   clearNodeStatuses: () => {
     set({ nodeStatuses: {}, executionId: null });
   },
+
+  setUploadedImage: (image, fileName = null) => {
+    set({ uploadedImage: image, uploadedFileName: fileName });
+    persistImage(image, fileName);
+  },
+
+  setExecutionMode: (mode) => set({ executionMode: mode }),
 }));

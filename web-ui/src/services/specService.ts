@@ -48,7 +48,7 @@ export interface APISpec {
   parameters?: {
     name: string;
     type: string;
-    default: any;
+    default: string | number | boolean;
     min?: number;
     max?: number;
     step?: number;

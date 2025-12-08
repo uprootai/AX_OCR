@@ -63,7 +63,7 @@ export interface TextInfo {
   material?: string;
   notes?: string[];
   total_blocks?: number;
-  tables?: any[]; // v2 feature: table OCR results
+  tables?: Array<{ rows: string[][]; headers?: string[] }>; // v2 feature: table OCR results
 }
 
 export interface OCRResult {
@@ -72,6 +72,7 @@ export interface OCRResult {
   text: TextInfo;
   visualization_url?: string;
   visualization?: string; // v2 feature: filename of visualization image
+  possible_text?: Array<{ text?: string; location?: unknown }>; // eDOCr2 v2 possible text
 }
 
 export interface SegmentationResult {
@@ -124,7 +125,7 @@ export interface AnalysisResult {
     yolo_results?: {
       status: string;
       file_id: string;
-      detections: any[];
+      detections: Array<{ class_name: string; confidence: number; bbox: { x: number; y: number; width: number; height: number }; class_id?: number }>;
       total_detections: number;
       processing_time: number;
       model_used: string;
@@ -152,14 +153,14 @@ export interface AnalysisResult {
       processing_time: number;
     };
     yolo_crop_ocr_results?: {
-      dimensions: any[];
+      dimensions: Dimension[];
       total_texts: number;
       crop_count: number;
       successful_crops: number;
       processing_time: number;
     };
     ensemble?: {
-      dimensions: any[];
+      dimensions: Dimension[];
       yolo_detections_count: number;
       ocr_dimensions_count: number;
       yolo_crop_ocr_count?: number;

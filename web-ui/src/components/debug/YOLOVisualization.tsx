@@ -95,6 +95,53 @@ const CLASS_CATEGORIES = {
   other: ['surface_roughness', 'text_block'],
 };
 
+// Parse bbox from various formats to {x, y, width, height}
+function parseBbox(bbox: unknown): { x: number; y: number; width: number; height: number } | null {
+  if (!bbox) return null;
+
+  // Already in array format: [x, y, width, height]
+  if (Array.isArray(bbox)) {
+    // Polygon format: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+    if (bbox.length >= 4 && Array.isArray(bbox[0])) {
+      const points = bbox as number[][];
+      const xs = points.map(p => p[0]);
+      const ys = points.map(p => p[1]);
+      const xMin = Math.min(...xs);
+      const yMin = Math.min(...ys);
+      const xMax = Math.max(...xs);
+      const yMax = Math.max(...ys);
+      return { x: xMin, y: yMin, width: xMax - xMin, height: yMax - yMin };
+    }
+
+    // Flat array format: [x, y, width, height] or [x1, y1, x2, y2]
+    if (bbox.length === 4 && typeof bbox[0] === 'number') {
+      const [a, b, c, d] = bbox as number[];
+      // Heuristic: if c,d are much larger than a,b, it's [x1,y1,x2,y2]
+      // (e.g., x1=100, y1=50, x2=200, y2=150 => x2 > x1*2 is false, but x2 > x1 and y2 > y1)
+      // Better heuristic: if c > a and d > b and (c > a + 10 or d > b + 10), assume it's coordinates
+      if (c > a && d > b && (c > a * 2 || d > b * 2 || (c > a + 50 && d > b + 50))) {
+        return { x: a, y: b, width: c - a, height: d - b };
+      }
+      return { x: a, y: b, width: c, height: d };
+    }
+  }
+
+  // Dict format: {x, y, width, height}
+  if (typeof bbox === 'object' && bbox !== null && !Array.isArray(bbox)) {
+    const b = bbox as Record<string, unknown>;
+    if ('x' in b && 'y' in b) {
+      return {
+        x: Number(b.x) || 0,
+        y: Number(b.y) || 0,
+        width: Number(b.width) || 0,
+        height: Number(b.height) || 0,
+      };
+    }
+  }
+
+  return null;
+}
+
 export default function YOLOVisualization({ imageFile, detections, onZoomClick }: YOLOVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -111,18 +158,11 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
     const boxes: BoundingBox[] = [];
 
     detections.forEach((det) => {
-      let x, y, width, height;
+      // Parse bbox from various formats (array, polygon, dict)
+      const parsed = parseBbox(det.bbox);
+      if (!parsed) return; // Skip if bbox is invalid
 
-      // bbox가 배열 형식인 경우 [x, y, width, height]
-      if (Array.isArray(det.bbox)) {
-        [x, y, width, height] = det.bbox;
-      } else {
-        // bbox가 객체 형식인 경우 {x, y, width, height}
-        x = det.bbox.x;
-        y = det.bbox.y;
-        width = det.bbox.width;
-        height = det.bbox.height;
-      }
+      const { x, y, width, height } = parsed;
 
       // Support both 'class' and 'class_name' field names
       const className = det.class_name || det.class || 'unknown';

@@ -15,7 +15,7 @@ interface ToleranceVisualizationProps {
       concentricity?: number;
       runout?: number;
     };
-    analysis?: Record<string, any>;
+    analysis?: Record<string, unknown>;
   };
   compact?: boolean;
 }
