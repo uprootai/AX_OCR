@@ -263,7 +263,30 @@
     "containersNotRunningDesc": "The following services are stopped and cannot execute the workflow:",
     "containersStartHint": "Start services from Dashboard or click the button below to start automatically.",
     "startAndExecute": "Start & Execute",
-    "startingContainers": "Starting..."
+    "startingContainers": "Starting...",
+    "forComparison": "Comparison"
+  },
+  "nodeDetail": {
+    "selectNode": "Select a node to",
+    "showDetails": "view details",
+    "unknownNode": "Unknown Node",
+    "noNodeInfo": "No information for this node type.",
+    "controlNode": "Control Node",
+    "apiNode": "API Node",
+    "description": "Description",
+    "currentImage": "Current Image",
+    "image": "Image",
+    "size": "Size",
+    "noImageUploaded": "No image uploaded",
+    "useUploadButton": "Use the Upload button in the top left",
+    "inputs": "Inputs",
+    "outputs": "Outputs",
+    "parameters": "Parameters",
+    "enterText": "Enter text...",
+    "enabled": "Enabled",
+    "usageExample": "Usage Example",
+    "usageTip": "Usage Tip",
+    "recommendedConnections": "Recommended Connections"
   },
   "settings": {
     "title": "Model Settings",

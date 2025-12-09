@@ -392,23 +392,6 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
         <div className="p-4 flex-1">
           <h2 className="text-lg font-semibold mb-4">Node Palette</h2>
 
-      {/* 동적 API 안내 */}
-      {customAPIs.length > 0 && (
-        <div className="mb-4 p-3 bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 rounded-lg">
-          <div className="flex items-start gap-2">
-            <span className="text-sm flex-shrink-0">➕</span>
-            <div>
-              <p className="text-xs font-semibold text-cyan-900 dark:text-cyan-100 mb-1">
-                동적 API {customAPIs.length}개 추가됨
-              </p>
-              <p className="text-xs text-cyan-700 dark:text-cyan-300">
-                Dashboard에서 추가한 API가 자동으로 노드 팔레트에 추가되었습니다.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Input Nodes */}
       {inputNodes.length > 0 && (
         <div className="mb-6">

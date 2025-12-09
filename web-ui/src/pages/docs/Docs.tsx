@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown, Book, Search, X } from 'lucide-react';
+import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown, Book, Search, X, PanelLeftClose, PanelLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -252,6 +252,7 @@ export default function Docs() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Get current file name for breadcrumb
   const currentFileName = useMemo(() => {
@@ -287,12 +288,30 @@ export default function Docs() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+      {/* Sidebar Toggle Button (visible when sidebar is closed) */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed left-0 top-20 z-10 p-2 bg-card border border-l-0 rounded-r-md shadow-md hover:bg-accent transition-colors"
+          title="Open sidebar"
+        >
+          <PanelLeft className="w-5 h-5 text-muted-foreground" />
+        </button>
+      )}
+
       {/* Sidebar */}
-      <div className="w-72 border-r bg-card/50 flex flex-col">
-        <div className="p-4 border-b">
+      <div className={`${sidebarOpen ? 'w-72' : 'w-0'} border-r bg-card/50 flex flex-col transition-all duration-300 overflow-hidden`}>
+        <div className="p-4 border-b min-w-[288px]">
           <div className="flex items-center gap-2 mb-3">
             <Book className="w-5 h-5 text-primary" />
-            <h2 className="font-bold text-lg">{t('docs.title')}</h2>
+            <h2 className="font-bold text-lg flex-1">{t('docs.title')}</h2>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 hover:bg-accent rounded-md transition-colors"
+              title="Close sidebar"
+            >
+              <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
           {/* Search Input */}
           <div className="relative">
@@ -314,7 +333,7 @@ export default function Docs() {
             )}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2 min-w-[288px]">
           <FolderTree
             items={docStructure}
             onSelectFile={setSelectedFile}
@@ -323,7 +342,7 @@ export default function Docs() {
           />
         </div>
         {/* Stats */}
-        <div className="p-3 border-t text-xs text-muted-foreground">
+        <div className="p-3 border-t text-xs text-muted-foreground min-w-[288px]">
           8 categories, 60 documents
         </div>
       </div>

@@ -166,7 +166,7 @@ const baseNodeTypes = {
 let nodeId = 0;
 const getId = () => `node_${nodeId++}`;
 
-// BlueprintFlow 샘플 이미지 (이미지 2개만)
+// BlueprintFlow 샘플 이미지 (이미지 3개)
 const BLUEPRINT_SAMPLES: SampleFile[] = [
   {
     id: 'sample-1',
@@ -181,6 +181,13 @@ const BLUEPRINT_SAMPLES: SampleFile[] = [
     name: 'S60ME-C Shaft (Korean)',
     path: '/samples/sample3_s60me_shaft.jpg',
     description: 'S60ME-C 중간축 도면 - 한글 포함',
+    type: 'image'
+  },
+  {
+    id: 'sample-3',
+    name: 'P&ID Diagram (Eastman)',
+    path: '/samples/sample6_pid_diagram.png',
+    description: 'P&ID 공정도 - YOLO-PID, Line Detector, PID Analyzer 분석용',
     type: 'image'
   }
 ];

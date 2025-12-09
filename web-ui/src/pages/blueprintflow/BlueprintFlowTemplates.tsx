@@ -229,7 +229,7 @@ export default function BlueprintFlowTemplates() {
       descKey: 'fullOCRBenchmarkDesc',
       useCaseKey: 'fullOCRBenchmarkUseCase',
       estimatedTime: '25-35s',
-      accuracy: '비교용',
+      accuracy: 'Comparison',
       category: 'benchmark',
       workflow: {
         name: 'Full OCR Benchmark',
@@ -237,15 +237,15 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 300 } },
           // Row 1: Detection-based OCRs
-          { id: 'edocr2_1', type: 'edocr2', label: 'eDOCr2 (도면전용)', parameters: {}, position: { x: 350, y: 50 } },
-          { id: 'paddleocr_1', type: 'paddleocr', label: 'PaddleOCR (빠름)', parameters: { lang: 'en' }, position: { x: 350, y: 130 } },
-          { id: 'tesseract_1', type: 'tesseract', label: 'Tesseract (범용)', parameters: { lang: 'eng' }, position: { x: 350, y: 210 } },
-          { id: 'trocr_1', type: 'trocr', label: 'TrOCR (필기체)', parameters: {}, position: { x: 350, y: 290 } },
+          { id: 'edocr2_1', type: 'edocr2', label: 'eDOCr2 (Drawing)', parameters: {}, position: { x: 350, y: 50 } },
+          { id: 'paddleocr_1', type: 'paddleocr', label: 'PaddleOCR (Fast)', parameters: { lang: 'en' }, position: { x: 350, y: 130 } },
+          { id: 'tesseract_1', type: 'tesseract', label: 'Tesseract (General)', parameters: { lang: 'eng' }, position: { x: 350, y: 210 } },
+          { id: 'trocr_1', type: 'trocr', label: 'TrOCR (Handwriting)', parameters: {}, position: { x: 350, y: 290 } },
           // Row 2: Advanced OCRs
-          { id: 'suryaocr_1', type: 'suryaocr', label: 'Surya (레이아웃)', parameters: {}, position: { x: 350, y: 370 } },
-          { id: 'doctr_1', type: 'doctr', label: 'DocTR (문서)', parameters: {}, position: { x: 350, y: 450 } },
-          { id: 'easyocr_1', type: 'easyocr', label: 'EasyOCR (다국어)', parameters: { languages: ['en'] }, position: { x: 350, y: 530 } },
-          { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'Ensemble (투표)', parameters: {}, position: { x: 350, y: 610 } },
+          { id: 'suryaocr_1', type: 'suryaocr', label: 'Surya (Layout)', parameters: {}, position: { x: 350, y: 370 } },
+          { id: 'doctr_1', type: 'doctr', label: 'DocTR (Document)', parameters: {}, position: { x: 350, y: 450 } },
+          { id: 'easyocr_1', type: 'easyocr', label: 'EasyOCR (Multilingual)', parameters: { languages: ['en'] }, position: { x: 350, y: 530 } },
+          { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'Ensemble (Voting)', parameters: {}, position: { x: 350, y: 610 } },
           // Merge all results
           { id: 'merge_1', type: 'merge', label: 'All OCR Results', parameters: {}, position: { x: 650, y: 300 } },
         ],
@@ -276,7 +276,7 @@ export default function BlueprintFlowTemplates() {
       descKey: 'detectionBenchmarkDesc',
       useCaseKey: 'detectionBenchmarkUseCase',
       estimatedTime: '10-15s',
-      accuracy: '비교용',
+      accuracy: 'Comparison',
       category: 'benchmark',
       workflow: {
         name: 'Detection Benchmark',
@@ -284,10 +284,10 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
           // YOLO variants
-          { id: 'yolo_1', type: 'yolo', label: 'YOLO (일반 심볼)', parameters: { confidence: 0.35, imgsz: 1280 }, position: { x: 350, y: 100 } },
-          { id: 'yolo_2', type: 'yolo', label: 'YOLO (고신뢰도)', parameters: { confidence: 0.5, imgsz: 1280 }, position: { x: 350, y: 180 } },
+          { id: 'yolo_1', type: 'yolo', label: 'YOLO (General)', parameters: { confidence: 0.35, imgsz: 1280 }, position: { x: 350, y: 100 } },
+          { id: 'yolo_2', type: 'yolo', label: 'YOLO (High Conf)', parameters: { confidence: 0.5, imgsz: 1280 }, position: { x: 350, y: 180 } },
           { id: 'yolopid_1', type: 'yolopid', label: 'YOLO-PID (P&ID)', parameters: { confidence: 0.25, imgsz: 640 }, position: { x: 350, y: 260 } },
-          { id: 'yolopid_2', type: 'yolopid', label: 'YOLO-PID (고해상도)', parameters: { confidence: 0.25, imgsz: 1280 }, position: { x: 350, y: 340 } },
+          { id: 'yolopid_2', type: 'yolopid', label: 'YOLO-PID (High Res)', parameters: { confidence: 0.25, imgsz: 1280 }, position: { x: 350, y: 340 } },
           // Merge results
           { id: 'merge_1', type: 'merge', label: 'Detection Comparison', parameters: {}, position: { x: 650, y: 200 } },
         ],
@@ -310,7 +310,7 @@ export default function BlueprintFlowTemplates() {
       descKey: 'segmentationBenchmarkDesc',
       useCaseKey: 'segmentationBenchmarkUseCase',
       estimatedTime: '8-12s',
-      accuracy: '비교용',
+      accuracy: 'Comparison',
       category: 'benchmark',
       workflow: {
         name: 'Segmentation Benchmark',
@@ -318,8 +318,8 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
           // EDGNet variants
-          { id: 'edgnet_1', type: 'edgnet', label: 'EDGNet (기본)', parameters: { threshold: 0.5 }, position: { x: 350, y: 80 } },
-          { id: 'edgnet_2', type: 'edgnet', label: 'EDGNet (고감도)', parameters: { threshold: 0.3 }, position: { x: 350, y: 160 } },
+          { id: 'edgnet_1', type: 'edgnet', label: 'EDGNet (Default)', parameters: { threshold: 0.5 }, position: { x: 350, y: 80 } },
+          { id: 'edgnet_2', type: 'edgnet', label: 'EDGNet (High Sens)', parameters: { threshold: 0.3 }, position: { x: 350, y: 160 } },
           // Line Detector variants
           { id: 'linedetector_1', type: 'linedetector', label: 'Line Detector (LSD)', parameters: { method: 'lsd', merge_lines: true, classify_types: true }, position: { x: 350, y: 240 } },
           { id: 'linedetector_2', type: 'linedetector', label: 'Line Detector (Hough)', parameters: { method: 'hough', merge_lines: true, classify_types: true }, position: { x: 350, y: 320 } },
@@ -345,7 +345,7 @@ export default function BlueprintFlowTemplates() {
       descKey: 'analysisBenchmarkDesc',
       useCaseKey: 'analysisBenchmarkUseCase',
       estimatedTime: '15-25s',
-      accuracy: '비교용',
+      accuracy: 'Comparison',
       category: 'benchmark',
       workflow: {
         name: 'Analysis Benchmark',
@@ -359,9 +359,9 @@ export default function BlueprintFlowTemplates() {
           // OCR for tolerance
           { id: 'edocr2_1', type: 'edocr2', label: 'Dimension OCR', parameters: {}, position: { x: 450, y: 100 } },
           // Analysis engines
-          { id: 'skinmodel_1', type: 'skinmodel', label: 'SkinModel (공차분석)', parameters: {}, position: { x: 650, y: 100 } },
-          { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'PID Analyzer (연결분석)', parameters: { generate_bom: true, generate_valve_list: true }, position: { x: 650, y: 250 } },
-          { id: 'designchecker_1', type: 'designchecker', label: 'Design Checker (설계검증)', parameters: { severity_threshold: 'warning' }, position: { x: 650, y: 400 } },
+          { id: 'skinmodel_1', type: 'skinmodel', label: 'SkinModel (Tolerance)', parameters: {}, position: { x: 650, y: 100 } },
+          { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'PID Analyzer (Connectivity)', parameters: { generate_bom: true, generate_valve_list: true }, position: { x: 650, y: 250 } },
+          { id: 'designchecker_1', type: 'designchecker', label: 'Design Checker (Validation)', parameters: { severity_threshold: 'warning' }, position: { x: 650, y: 400 } },
           // Merge results
           { id: 'merge_1', type: 'merge', label: 'Analysis Comparison', parameters: {}, position: { x: 900, y: 250 } },
         ],
@@ -387,7 +387,7 @@ export default function BlueprintFlowTemplates() {
       descKey: 'preprocessingBenchmarkDesc',
       useCaseKey: 'preprocessingBenchmarkUseCase',
       estimatedTime: '20-30s',
-      accuracy: '비교용',
+      accuracy: 'Comparison',
       category: 'benchmark',
       workflow: {
         name: 'Preprocessing Benchmark',
@@ -395,13 +395,13 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
           // Original path
-          { id: 'edocr2_1', type: 'edocr2', label: 'OCR (원본)', parameters: {}, position: { x: 350, y: 50 } },
+          { id: 'edocr2_1', type: 'edocr2', label: 'OCR (Original)', parameters: {}, position: { x: 350, y: 50 } },
           // ESRGAN 2x path
           { id: 'esrgan_1', type: 'esrgan', label: 'ESRGAN 2x', parameters: { scale: 2 }, position: { x: 250, y: 200 } },
-          { id: 'edocr2_2', type: 'edocr2', label: 'OCR (2x 업스케일)', parameters: {}, position: { x: 450, y: 200 } },
+          { id: 'edocr2_2', type: 'edocr2', label: 'OCR (2x Upscale)', parameters: {}, position: { x: 450, y: 200 } },
           // ESRGAN 4x path
           { id: 'esrgan_2', type: 'esrgan', label: 'ESRGAN 4x', parameters: { scale: 4 }, position: { x: 250, y: 350 } },
-          { id: 'edocr2_3', type: 'edocr2', label: 'OCR (4x 업스케일)', parameters: {}, position: { x: 450, y: 350 } },
+          { id: 'edocr2_3', type: 'edocr2', label: 'OCR (4x Upscale)', parameters: {}, position: { x: 450, y: 350 } },
           // Merge results
           { id: 'merge_1', type: 'merge', label: 'Quality Comparison', parameters: {}, position: { x: 650, y: 200 } },
         ],
@@ -424,7 +424,7 @@ export default function BlueprintFlowTemplates() {
       descKey: 'aiBenchmarkDesc',
       useCaseKey: 'aiBenchmarkUseCase',
       estimatedTime: '15-25s',
-      accuracy: '비교용',
+      accuracy: 'Comparison',
       category: 'benchmark',
       workflow: {
         name: 'AI Benchmark',
@@ -432,13 +432,13 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
           // Different prompt inputs
-          { id: 'textinput_1', type: 'textinput', label: '도면 설명 요청', parameters: { text: 'Describe this engineering drawing in detail' }, position: { x: 250, y: 50 } },
-          { id: 'textinput_2', type: 'textinput', label: '치수 추출 요청', parameters: { text: 'Extract all dimensions and tolerances from this drawing' }, position: { x: 250, y: 200 } },
-          { id: 'textinput_3', type: 'textinput', label: '문제점 분석 요청', parameters: { text: 'Identify potential issues or errors in this drawing' }, position: { x: 250, y: 350 } },
+          { id: 'textinput_1', type: 'textinput', label: 'Describe Drawing', parameters: { text: 'Describe this engineering drawing in detail' }, position: { x: 250, y: 50 } },
+          { id: 'textinput_2', type: 'textinput', label: 'Extract Dimensions', parameters: { text: 'Extract all dimensions and tolerances from this drawing' }, position: { x: 250, y: 200 } },
+          { id: 'textinput_3', type: 'textinput', label: 'Analyze Issues', parameters: { text: 'Identify potential issues or errors in this drawing' }, position: { x: 250, y: 350 } },
           // VL models with different prompts
-          { id: 'vl_1', type: 'vl', label: 'VL (설명)', parameters: {}, position: { x: 500, y: 50 } },
-          { id: 'vl_2', type: 'vl', label: 'VL (치수)', parameters: {}, position: { x: 500, y: 200 } },
-          { id: 'vl_3', type: 'vl', label: 'VL (검토)', parameters: {}, position: { x: 500, y: 350 } },
+          { id: 'vl_1', type: 'vl', label: 'VL (Description)', parameters: {}, position: { x: 500, y: 50 } },
+          { id: 'vl_2', type: 'vl', label: 'VL (Dimensions)', parameters: {}, position: { x: 500, y: 200 } },
+          { id: 'vl_3', type: 'vl', label: 'VL (Review)', parameters: {}, position: { x: 500, y: 350 } },
           // Merge results
           { id: 'merge_1', type: 'merge', label: 'AI Response Comparison', parameters: {}, position: { x: 750, y: 200 } },
         ],

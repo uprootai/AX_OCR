@@ -1,5 +1,6 @@
 import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage } from 'lucide-react';
 import { useState, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
@@ -13,6 +14,7 @@ interface NodeDetailPanelProps {
 }
 
 const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }: NodeDetailPanelProps) {
+  const { t } = useTranslation();
   const [showParameters, setShowParameters] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -59,8 +61,8 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
         </button>
         <div className="text-center text-gray-500 dark:text-gray-400">
           <Info className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">노드를 선택하면</p>
-          <p className="text-sm">상세 정보가 표시됩니다</p>
+          <p className="text-sm">{t('nodeDetail.selectNode')}</p>
+          <p className="text-sm">{t('nodeDetail.showDetails')}</p>
         </div>
       </div>
     );
@@ -80,12 +82,12 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-300" />
         </button>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">알 수 없는 노드</h3>
+          <h3 className="text-lg font-semibold">{t('nodeDetail.unknownNode')}</h3>
           <Button onClick={onClose} variant="ghost" size="sm">
             <X className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-sm text-gray-500">이 노드 타입의 정보가 없습니다.</p>
+        <p className="text-sm text-gray-500">{t('nodeDetail.noNodeInfo')}</p>
       </div>
     );
   }
@@ -130,7 +132,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           </Button>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {definition.category === 'control' ? '제어 노드' : 'API 노드'}
+          {definition.category === 'control' ? t('nodeDetail.controlNode') : t('nodeDetail.apiNode')}
         </p>
       </div>
 
@@ -140,7 +142,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <Info className="w-4 h-4" />
-              설명
+              {t('nodeDetail.description')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -156,7 +158,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2 text-green-700 dark:text-green-300">
                 <FileImage className="w-4 h-4" />
-                현재 이미지
+                {t('nodeDetail.currentImage')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -171,17 +173,17 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                   </div>
                   <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
                     <Image className="w-3 h-3" />
-                    <span className="truncate font-medium">{uploadedFileName || '이미지'}</span>
+                    <span className="truncate font-medium">{uploadedFileName || t('nodeDetail.image')}</span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    크기: {Math.round(uploadedImage.length / 1024)} KB (base64)
+                    {t('nodeDetail.size')}: {Math.round(uploadedImage.length / 1024)} KB (base64)
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-400 dark:text-gray-500">
                   <Image className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">이미지가 업로드되지 않았습니다</p>
-                  <p className="text-xs mt-1">왼쪽 상단의 Upload 버튼을 사용하세요</p>
+                  <p className="text-sm">{t('nodeDetail.noImageUploaded')}</p>
+                  <p className="text-xs mt-1">{t('nodeDetail.useUploadButton')}</p>
                 </div>
               )}
             </CardContent>
@@ -193,7 +195,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <ArrowRight className="w-4 h-4 rotate-180 text-blue-500" />
-              입력 (Inputs)
+              {t('nodeDetail.inputs')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -218,7 +220,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <ArrowRight className="w-4 h-4 text-green-500" />
-              출력 (Outputs)
+              {t('nodeDetail.outputs')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -248,7 +250,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
               >
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Settings className="w-4 h-4 text-purple-500" />
-                  파라미터
+                  {t('nodeDetail.parameters')}
                 </CardTitle>
                 {showParameters ? (
                   <ChevronUp className="w-4 h-4" />
@@ -296,7 +298,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                           onFocus={(e) => e.stopPropagation()}
                           onKeyDown={(e) => e.stopPropagation()}
                           onMouseDown={(e) => e.stopPropagation()}
-                          placeholder={param.placeholder || '텍스트를 입력하세요...'}
+                          placeholder={param.placeholder || t('nodeDetail.enterText')}
                           rows={param.type === 'textarea' ? 4 : 3}
                           className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px] nodrag nopan font-mono"
                         />
@@ -325,7 +327,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                               handleParameterChange(param.name, e.target.checked)
                             }
                           />
-                          <span className="text-xs">활성화</span>
+                          <span className="text-xs">{t('nodeDetail.enabled')}</span>
                         </label>
                       )}
                     </div>
@@ -344,7 +346,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                 onClick={() => setShowExamples(!showExamples)}
                 className="w-full flex items-center justify-between cursor-pointer"
               >
-                <CardTitle className="text-sm">💡 사용 예시</CardTitle>
+                <CardTitle className="text-sm">💡 {t('nodeDetail.usageExample')}</CardTitle>
                 {showExamples ? (
                   <ChevronUp className="w-4 h-4" />
                 ) : (
@@ -373,7 +375,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2 text-blue-900 dark:text-blue-300">
                 <Lightbulb className="w-4 h-4" />
-                💡 사용 팁
+                💡 {t('nodeDetail.usageTip')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -395,7 +397,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2 text-green-900 dark:text-green-300">
                 <Link className="w-4 h-4" />
-                🔗 추천 연결
+                🔗 {t('nodeDetail.recommendedConnections')}
               </CardTitle>
             </CardHeader>
             <CardContent>
