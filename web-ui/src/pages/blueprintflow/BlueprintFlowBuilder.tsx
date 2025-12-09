@@ -113,7 +113,7 @@ import {
 } from '../../components/blueprintflow/nodes';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
-import { Play, Save, Trash2, Upload, X, Bug, Download, RotateCcw } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X, Bug, Download, RotateCcw, AlertTriangle } from 'lucide-react';
 import { workflowApi } from '../../lib/api';
 import type { SampleFile } from '../../components/upload/SampleFileGrid';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
@@ -122,6 +122,31 @@ import ToleranceVisualization from '../../components/debug/ToleranceVisualizatio
 import SegmentationVisualization from '../../components/debug/SegmentationVisualization';
 import ResultSummaryCard from '../../components/blueprintflow/ResultSummaryCard';
 import PipelineConclusionCard from '../../components/blueprintflow/PipelineConclusionCard';
+
+// Node type to container name mapping (for container status check)
+const NODE_TO_CONTAINER: Record<string, string> = {
+  yolo: 'yolo-api',
+  yolopid: 'yolo-pid-api',
+  edocr2: 'edocr2-v2-api',
+  paddleocr: 'paddleocr-api',
+  tesseract: 'tesseract-api',
+  trocr: 'trocr-api',
+  suryaocr: 'surya-ocr-api',
+  doctr: 'doctr-api',
+  easyocr: 'easyocr-api',
+  ocr_ensemble: 'ocr-ensemble-api',
+  edgnet: 'edgnet-api',
+  linedetector: 'line-detector-api',
+  esrgan: 'esrgan-api',
+  skinmodel: 'skinmodel-api',
+  pidanalyzer: 'pid-analyzer-api',
+  designchecker: 'design-checker-api',
+  knowledge: 'knowledge-api',
+  vl: 'vl-api',
+};
+
+// Control nodes that don't need containers
+const CONTROL_NODES = ['imageinput', 'textinput', 'if', 'loop', 'merge'];
 
 // Base node type mapping
 const baseNodeTypes = {
@@ -169,6 +194,13 @@ function WorkflowBuilderCanvas() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
   const [isStatusCollapsed, setIsStatusCollapsed] = useState(false);
+
+  // Container status check modal state
+  const [containerWarningModal, setContainerWarningModal] = useState<{
+    isOpen: boolean;
+    stoppedContainers: string[];
+    isStarting: boolean;
+  }>({ isOpen: false, stoppedContainers: [], isStarting: false });
 
   // Uploaded image from store (persists across navigation)
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
@@ -394,6 +426,62 @@ function WorkflowBuilderCanvas() {
     []
   );
 
+  // Check container status before execution
+  const checkContainerStatus = async (): Promise<string[]> => {
+    try {
+      // Get unique node types that need containers
+      const nodeTypes = [...new Set(nodes.map(n => n.type).filter(Boolean))] as string[];
+      const containerNodes = nodeTypes.filter(t => !CONTROL_NODES.includes(t));
+
+      if (containerNodes.length === 0) return [];
+
+      // Fetch container status from Gateway API (lightweight endpoint - no stats)
+      const response = await fetch('http://localhost:8000/api/v1/containers/status');
+      if (!response.ok) throw new Error('Failed to fetch container status');
+
+      const data = await response.json();
+      const containers = data.containers || [];
+
+      // Check which required containers are not running
+      const stoppedContainers: string[] = [];
+      containerNodes.forEach(nodeType => {
+        const containerName = NODE_TO_CONTAINER[nodeType];
+        if (containerName) {
+          const container = containers.find((c: { name: string }) => c.name === containerName);
+          if (!container || container.status !== 'running') {
+            stoppedContainers.push(containerName);
+          }
+        }
+      });
+
+      return stoppedContainers;
+    } catch (error) {
+      console.error('Failed to check container status:', error);
+      return []; // Continue execution if check fails
+    }
+  };
+
+  // Start stopped containers
+  const startContainers = async (containerNames: string[]) => {
+    setContainerWarningModal(prev => ({ ...prev, isStarting: true }));
+    try {
+      for (const name of containerNames) {
+        await fetch(`http://localhost:8000/api/v1/containers/${name}/start`, {
+          method: 'POST'
+        });
+      }
+      // Wait for containers to be ready
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setContainerWarningModal({ isOpen: false, stoppedContainers: [], isStarting: false });
+      // Execute workflow after starting containers
+      await executeWorkflowStream(uploadedImage!);
+    } catch (error) {
+      console.error('Failed to start containers:', error);
+      alert('Failed to start containers. Please start them manually from Dashboard.');
+      setContainerWarningModal({ isOpen: false, stoppedContainers: [], isStarting: false });
+    }
+  };
+
   const handleExecute = async () => {
     if (nodes.length === 0) {
       alert('Please add at least one node to the workflow');
@@ -402,6 +490,17 @@ function WorkflowBuilderCanvas() {
 
     if (!uploadedImage) {
       alert('Please upload an image first');
+      return;
+    }
+
+    // Check container status before execution
+    const stoppedContainers = await checkContainerStatus();
+    if (stoppedContainers.length > 0) {
+      setContainerWarningModal({
+        isOpen: true,
+        stoppedContainers,
+        isStarting: false
+      });
       return;
     }
 
@@ -1360,6 +1459,61 @@ function WorkflowBuilderCanvas() {
         executionResult={executionResult as Record<string, unknown> | null}
         executionError={executionError}
       />
+
+      {/* Container Warning Modal */}
+      {containerWarningModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-amber-50 dark:bg-amber-900/30 px-6 py-4 border-b border-amber-200 dark:border-amber-800">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
+                  {t('blueprintflow.containersNotRunning') || '컨테이너가 실행 중이 아닙니다'}
+                </h3>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-4">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                {t('blueprintflow.containersNotRunningDesc') || '다음 서비스가 중지되어 있어 워크플로우를 실행할 수 없습니다:'}
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 mb-4 max-h-40 overflow-y-auto">
+                {containerWarningModal.stoppedContainers.map((name, idx) => (
+                  <div key={idx} className="flex items-center gap-2 py-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-sm font-mono text-gray-700 dark:text-gray-300">{name}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                {t('blueprintflow.containersStartHint') || 'Dashboard에서 서비스를 시작하거나, 아래 버튼을 클릭하여 자동으로 시작할 수 있습니다.'}
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setContainerWarningModal({ isOpen: false, stoppedContainers: [], isStarting: false })}
+                disabled={containerWarningModal.isStarting}
+              >
+                {t('common.cancel') || '취소'}
+              </Button>
+              <Button
+                onClick={() => startContainers(containerWarningModal.stoppedContainers)}
+                disabled={containerWarningModal.isStarting}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {containerWarningModal.isStarting
+                  ? (t('blueprintflow.startingContainers') || '시작 중...')
+                  : (t('blueprintflow.startAndExecute') || '시작 후 실행')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

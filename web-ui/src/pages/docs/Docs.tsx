@@ -59,6 +59,7 @@ const docStructure: DocFile[] = [
       { name: 'YOLO Models', path: '/docs/blueprintflow/04_optimization/yolo_models.md', type: 'file' },
       { name: 'Pipeline Options', path: '/docs/blueprintflow/04_optimization/pipeline_options.md', type: 'file' },
       { name: 'Optimization Guide', path: '/docs/blueprintflow/04_optimization/optimization_guide.md', type: 'file' },
+      { name: 'Benchmark Insights', path: '/docs/blueprintflow/benchmark-insights.md', type: 'file' },
     ],
   },
   {
@@ -67,17 +68,30 @@ const docStructure: DocFile[] = [
     type: 'folder',
     children: [
       { name: 'API Overview', path: '/docs/api/README.md', type: 'file' },
+      // Detection
       { name: 'YOLO', path: '/docs/api/yolo/parameters.md', type: 'file' },
+      { name: 'YOLO-PID', path: '/docs/api/yolo-pid/parameters.md', type: 'file' },
+      // OCR
       { name: 'eDOCr2', path: '/docs/api/edocr2/parameters.md', type: 'file' },
-      { name: 'EDGNet', path: '/docs/api/edgnet/parameters.md', type: 'file' },
-      { name: 'SkinModel', path: '/docs/api/skinmodel/parameters.md', type: 'file' },
-      { name: 'VL', path: '/docs/api/vl/parameters.md', type: 'file' },
       { name: 'PaddleOCR', path: '/docs/api/paddleocr/parameters.md', type: 'file' },
-      { name: 'Knowledge', path: '/docs/api/knowledge/parameters.md', type: 'file' },
       { name: 'Tesseract', path: '/docs/api/tesseract/parameters.md', type: 'file' },
       { name: 'TrOCR', path: '/docs/api/trocr/parameters.md', type: 'file' },
-      { name: 'ESRGAN', path: '/docs/api/esrgan/parameters.md', type: 'file' },
+      { name: 'Surya OCR', path: '/docs/api/surya-ocr/parameters.md', type: 'file' },
+      { name: 'DocTR', path: '/docs/api/doctr/parameters.md', type: 'file' },
+      { name: 'EasyOCR', path: '/docs/api/easyocr/parameters.md', type: 'file' },
       { name: 'OCR Ensemble', path: '/docs/api/ocr-ensemble/parameters.md', type: 'file' },
+      // Segmentation
+      { name: 'EDGNet', path: '/docs/api/edgnet/parameters.md', type: 'file' },
+      { name: 'Line Detector', path: '/docs/api/line-detector/parameters.md', type: 'file' },
+      // Preprocessing
+      { name: 'ESRGAN', path: '/docs/api/esrgan/parameters.md', type: 'file' },
+      // Analysis
+      { name: 'SkinModel', path: '/docs/api/skinmodel/parameters.md', type: 'file' },
+      { name: 'PID Analyzer', path: '/docs/api/pid-analyzer/parameters.md', type: 'file' },
+      { name: 'Design Checker', path: '/docs/api/design-checker/parameters.md', type: 'file' },
+      // Knowledge & AI
+      { name: 'Knowledge', path: '/docs/api/knowledge/parameters.md', type: 'file' },
+      { name: 'VL', path: '/docs/api/vl/parameters.md', type: 'file' },
     ],
   },
   {
@@ -310,7 +324,7 @@ export default function Docs() {
         </div>
         {/* Stats */}
         <div className="p-3 border-t text-xs text-muted-foreground">
-          8 categories, 53 documents
+          8 categories, 60 documents
         </div>
       </div>
 

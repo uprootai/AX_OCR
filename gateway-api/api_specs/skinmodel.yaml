@@ -120,3 +120,19 @@ examples:
 usageTips:
   - eDOCr2에서 추출한 치수를 입력으로 사용하세요
   - 재질에 따라 예측 결과가 달라집니다
+
+resources:
+  gpu:
+    vram: "~1GB"
+    minVram: 512
+    recommended: "GTX 1050 이상"
+    cudaVersion: "11.0+"
+  cpu:
+    ram: "~2GB"
+    minRam: 1024
+    cores: 2
+    note: "CPU로도 빠름"
+  parameterImpact:
+    - parameter: task
+      impact: "manufacturability 분석 시 시간 증가"
+      examples: "tolerance:빠름, manufacturability:보통"

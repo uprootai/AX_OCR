@@ -72,3 +72,19 @@ usageTips:
   - OCR 전에 사용하면 정확도가 크게 향상됩니다
   - 이미 고해상도인 경우 불필요합니다
   - GPU 사용시 훨씬 빠릅니다
+
+resources:
+  gpu:
+    vram: "~4GB"
+    minVram: 3000
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~8GB"
+    minRam: 6144
+    cores: 8
+    note: "GPU 대비 20배 느림 (권장하지 않음)"
+  parameterImpact:
+    - parameter: scale
+      impact: "4x 스케일 시 VRAM/RAM 급증"
+      examples: "2x:2GB, 4x:4GB"

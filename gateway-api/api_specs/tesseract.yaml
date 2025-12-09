@@ -99,3 +99,15 @@ usageTips:
   - PSM 3은 자동 페이지 분할
   - PSM 6은 단일 블록으로 처리
   - OCR Ensemble과 함께 사용시 15% 가중치
+
+resources:
+  gpu:
+    vram: "N/A"
+    minVram: 0
+    recommended: "CPU 전용"
+    cudaVersion: "N/A"
+  cpu:
+    ram: "~1GB"
+    minRam: 512
+    cores: 2
+    note: "CPU 전용 - 빠르고 가벼움"

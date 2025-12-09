@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { Sparkles, Download, GitBranch, Clock, Target, Star, Zap, Brain, Layers, Lightbulb } from 'lucide-react';
+import { Sparkles, Download, GitBranch, Clock, Target, Star, Zap, Brain, Layers, Lightbulb, FlaskConical } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import type { WorkflowDefinition } from '../../lib/api';
 
@@ -14,7 +14,7 @@ interface TemplateInfo {
   workflow: WorkflowDefinition;
   estimatedTime: string;
   accuracy: string;
-  category: 'basic' | 'advanced' | 'pid' | 'ai';
+  category: 'basic' | 'advanced' | 'pid' | 'ai' | 'benchmark';
   featured?: boolean;
 }
 
@@ -230,7 +230,7 @@ export default function BlueprintFlowTemplates() {
       useCaseKey: 'fullOCRBenchmarkUseCase',
       estimatedTime: '25-35s',
       accuracy: '비교용',
-      category: 'advanced',
+      category: 'benchmark',
       workflow: {
         name: 'Full OCR Benchmark',
         description: 'Compare all 8 OCR engines side-by-side for comprehensive evaluation',
@@ -266,6 +266,192 @@ export default function BlueprintFlowTemplates() {
           { id: 'e14', source: 'doctr_1', target: 'merge_1' },
           { id: 'e15', source: 'easyocr_1', target: 'merge_1' },
           { id: 'e16', source: 'ocr_ensemble_1', target: 'merge_1' },
+        ],
+      },
+    },
+
+    // Detection Benchmark - YOLO vs YOLO-PID
+    {
+      nameKey: 'detectionBenchmark',
+      descKey: 'detectionBenchmarkDesc',
+      useCaseKey: 'detectionBenchmarkUseCase',
+      estimatedTime: '10-15s',
+      accuracy: '비교용',
+      category: 'benchmark',
+      workflow: {
+        name: 'Detection Benchmark',
+        description: 'Compare YOLO (general symbol) vs YOLO-PID (P&ID specialized) detection',
+        nodes: [
+          { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
+          // YOLO variants
+          { id: 'yolo_1', type: 'yolo', label: 'YOLO (일반 심볼)', parameters: { confidence: 0.35, imgsz: 1280 }, position: { x: 350, y: 100 } },
+          { id: 'yolo_2', type: 'yolo', label: 'YOLO (고신뢰도)', parameters: { confidence: 0.5, imgsz: 1280 }, position: { x: 350, y: 180 } },
+          { id: 'yolopid_1', type: 'yolopid', label: 'YOLO-PID (P&ID)', parameters: { confidence: 0.25, imgsz: 640 }, position: { x: 350, y: 260 } },
+          { id: 'yolopid_2', type: 'yolopid', label: 'YOLO-PID (고해상도)', parameters: { confidence: 0.25, imgsz: 1280 }, position: { x: 350, y: 340 } },
+          // Merge results
+          { id: 'merge_1', type: 'merge', label: 'Detection Comparison', parameters: {}, position: { x: 650, y: 200 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'yolo_2' },
+          { id: 'e3', source: 'imageinput_1', target: 'yolopid_1' },
+          { id: 'e4', source: 'imageinput_1', target: 'yolopid_2' },
+          { id: 'e5', source: 'yolo_1', target: 'merge_1' },
+          { id: 'e6', source: 'yolo_2', target: 'merge_1' },
+          { id: 'e7', source: 'yolopid_1', target: 'merge_1' },
+          { id: 'e8', source: 'yolopid_2', target: 'merge_1' },
+        ],
+      },
+    },
+
+    // Segmentation Benchmark - EDGNet vs Line Detector
+    {
+      nameKey: 'segmentationBenchmark',
+      descKey: 'segmentationBenchmarkDesc',
+      useCaseKey: 'segmentationBenchmarkUseCase',
+      estimatedTime: '8-12s',
+      accuracy: '비교용',
+      category: 'benchmark',
+      workflow: {
+        name: 'Segmentation Benchmark',
+        description: 'Compare EDGNet edge segmentation vs Line Detector for different use cases',
+        nodes: [
+          { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
+          // EDGNet variants
+          { id: 'edgnet_1', type: 'edgnet', label: 'EDGNet (기본)', parameters: { threshold: 0.5 }, position: { x: 350, y: 80 } },
+          { id: 'edgnet_2', type: 'edgnet', label: 'EDGNet (고감도)', parameters: { threshold: 0.3 }, position: { x: 350, y: 160 } },
+          // Line Detector variants
+          { id: 'linedetector_1', type: 'linedetector', label: 'Line Detector (LSD)', parameters: { method: 'lsd', merge_lines: true, classify_types: true }, position: { x: 350, y: 240 } },
+          { id: 'linedetector_2', type: 'linedetector', label: 'Line Detector (Hough)', parameters: { method: 'hough', merge_lines: true, classify_types: true }, position: { x: 350, y: 320 } },
+          // Merge results
+          { id: 'merge_1', type: 'merge', label: 'Segmentation Comparison', parameters: {}, position: { x: 650, y: 200 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'imageinput_1', target: 'edgnet_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'edgnet_2' },
+          { id: 'e3', source: 'imageinput_1', target: 'linedetector_1' },
+          { id: 'e4', source: 'imageinput_1', target: 'linedetector_2' },
+          { id: 'e5', source: 'edgnet_1', target: 'merge_1' },
+          { id: 'e6', source: 'edgnet_2', target: 'merge_1' },
+          { id: 'e7', source: 'linedetector_1', target: 'merge_1' },
+          { id: 'e8', source: 'linedetector_2', target: 'merge_1' },
+        ],
+      },
+    },
+
+    // Analysis Benchmark - SkinModel, PID Analyzer, Design Checker
+    {
+      nameKey: 'analysisBenchmark',
+      descKey: 'analysisBenchmarkDesc',
+      useCaseKey: 'analysisBenchmarkUseCase',
+      estimatedTime: '15-25s',
+      accuracy: '비교용',
+      category: 'benchmark',
+      workflow: {
+        name: 'Analysis Benchmark',
+        description: 'Compare all analysis engines: SkinModel tolerance, PID Analyzer connectivity, Design Checker validation',
+        nodes: [
+          { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
+          // Detection first
+          { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.35 }, position: { x: 250, y: 100 } },
+          { id: 'yolopid_1', type: 'yolopid', label: 'YOLO-PID Detection', parameters: { confidence: 0.25 }, position: { x: 250, y: 300 } },
+          { id: 'linedetector_1', type: 'linedetector', label: 'Line Detector', parameters: { method: 'lsd' }, position: { x: 250, y: 400 } },
+          // OCR for tolerance
+          { id: 'edocr2_1', type: 'edocr2', label: 'Dimension OCR', parameters: {}, position: { x: 450, y: 100 } },
+          // Analysis engines
+          { id: 'skinmodel_1', type: 'skinmodel', label: 'SkinModel (공차분석)', parameters: {}, position: { x: 650, y: 100 } },
+          { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'PID Analyzer (연결분석)', parameters: { generate_bom: true, generate_valve_list: true }, position: { x: 650, y: 250 } },
+          { id: 'designchecker_1', type: 'designchecker', label: 'Design Checker (설계검증)', parameters: { severity_threshold: 'warning' }, position: { x: 650, y: 400 } },
+          // Merge results
+          { id: 'merge_1', type: 'merge', label: 'Analysis Comparison', parameters: {}, position: { x: 900, y: 250 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'yolopid_1' },
+          { id: 'e3', source: 'imageinput_1', target: 'linedetector_1' },
+          { id: 'e4', source: 'yolo_1', target: 'edocr2_1' },
+          { id: 'e5', source: 'edocr2_1', target: 'skinmodel_1' },
+          { id: 'e6', source: 'yolopid_1', target: 'pidanalyzer_1' },
+          { id: 'e7', source: 'linedetector_1', target: 'pidanalyzer_1' },
+          { id: 'e8', source: 'pidanalyzer_1', target: 'designchecker_1' },
+          { id: 'e9', source: 'skinmodel_1', target: 'merge_1' },
+          { id: 'e10', source: 'pidanalyzer_1', target: 'merge_1' },
+          { id: 'e11', source: 'designchecker_1', target: 'merge_1' },
+        ],
+      },
+    },
+
+    // Preprocessing Benchmark - ESRGAN scales
+    {
+      nameKey: 'preprocessingBenchmark',
+      descKey: 'preprocessingBenchmarkDesc',
+      useCaseKey: 'preprocessingBenchmarkUseCase',
+      estimatedTime: '20-30s',
+      accuracy: '비교용',
+      category: 'benchmark',
+      workflow: {
+        name: 'Preprocessing Benchmark',
+        description: 'Compare image enhancement effects: Original vs ESRGAN 2x vs ESRGAN 4x on OCR accuracy',
+        nodes: [
+          { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
+          // Original path
+          { id: 'edocr2_1', type: 'edocr2', label: 'OCR (원본)', parameters: {}, position: { x: 350, y: 50 } },
+          // ESRGAN 2x path
+          { id: 'esrgan_1', type: 'esrgan', label: 'ESRGAN 2x', parameters: { scale: 2 }, position: { x: 250, y: 200 } },
+          { id: 'edocr2_2', type: 'edocr2', label: 'OCR (2x 업스케일)', parameters: {}, position: { x: 450, y: 200 } },
+          // ESRGAN 4x path
+          { id: 'esrgan_2', type: 'esrgan', label: 'ESRGAN 4x', parameters: { scale: 4 }, position: { x: 250, y: 350 } },
+          { id: 'edocr2_3', type: 'edocr2', label: 'OCR (4x 업스케일)', parameters: {}, position: { x: 450, y: 350 } },
+          // Merge results
+          { id: 'merge_1', type: 'merge', label: 'Quality Comparison', parameters: {}, position: { x: 650, y: 200 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'imageinput_1', target: 'edocr2_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'esrgan_1' },
+          { id: 'e3', source: 'imageinput_1', target: 'esrgan_2' },
+          { id: 'e4', source: 'esrgan_1', target: 'edocr2_2' },
+          { id: 'e5', source: 'esrgan_2', target: 'edocr2_3' },
+          { id: 'e6', source: 'edocr2_1', target: 'merge_1' },
+          { id: 'e7', source: 'edocr2_2', target: 'merge_1' },
+          { id: 'e8', source: 'edocr2_3', target: 'merge_1' },
+        ],
+      },
+    },
+
+    // AI Benchmark - VL with different prompts
+    {
+      nameKey: 'aiBenchmark',
+      descKey: 'aiBenchmarkDesc',
+      useCaseKey: 'aiBenchmarkUseCase',
+      estimatedTime: '15-25s',
+      accuracy: '비교용',
+      category: 'benchmark',
+      workflow: {
+        name: 'AI Benchmark',
+        description: 'Compare Vision-Language model responses with different prompts and contexts',
+        nodes: [
+          { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
+          // Different prompt inputs
+          { id: 'textinput_1', type: 'textinput', label: '도면 설명 요청', parameters: { text: 'Describe this engineering drawing in detail' }, position: { x: 250, y: 50 } },
+          { id: 'textinput_2', type: 'textinput', label: '치수 추출 요청', parameters: { text: 'Extract all dimensions and tolerances from this drawing' }, position: { x: 250, y: 200 } },
+          { id: 'textinput_3', type: 'textinput', label: '문제점 분석 요청', parameters: { text: 'Identify potential issues or errors in this drawing' }, position: { x: 250, y: 350 } },
+          // VL models with different prompts
+          { id: 'vl_1', type: 'vl', label: 'VL (설명)', parameters: {}, position: { x: 500, y: 50 } },
+          { id: 'vl_2', type: 'vl', label: 'VL (치수)', parameters: {}, position: { x: 500, y: 200 } },
+          { id: 'vl_3', type: 'vl', label: 'VL (검토)', parameters: {}, position: { x: 500, y: 350 } },
+          // Merge results
+          { id: 'merge_1', type: 'merge', label: 'AI Response Comparison', parameters: {}, position: { x: 750, y: 200 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'imageinput_1', target: 'vl_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'vl_2' },
+          { id: 'e3', source: 'imageinput_1', target: 'vl_3' },
+          { id: 'e4', source: 'textinput_1', target: 'vl_1' },
+          { id: 'e5', source: 'textinput_2', target: 'vl_2' },
+          { id: 'e6', source: 'textinput_3', target: 'vl_3' },
+          { id: 'e7', source: 'vl_1', target: 'merge_1' },
+          { id: 'e8', source: 'vl_2', target: 'merge_1' },
+          { id: 'e9', source: 'vl_3', target: 'merge_1' },
         ],
       },
     },
@@ -389,6 +575,7 @@ export default function BlueprintFlowTemplates() {
   const advancedTemplates = templates.filter(t => t.category === 'advanced' && !t.featured);
   const pidTemplates = templates.filter(t => t.category === 'pid' && !t.featured);
   const aiTemplates = templates.filter(t => t.category === 'ai');
+  const benchmarkTemplates = templates.filter(t => t.category === 'benchmark');
 
   const categoryInfo = {
     featured: { icon: Star, color: 'from-amber-500 to-orange-500', label: t('blueprintflow.featuredTemplates') },
@@ -396,6 +583,7 @@ export default function BlueprintFlowTemplates() {
     advanced: { icon: Layers, color: 'from-blue-500 to-indigo-500', label: t('blueprintflow.advancedTemplates') },
     pid: { icon: GitBranch, color: 'from-purple-500 to-pink-500', label: t('blueprintflow.pidTemplates') },
     ai: { icon: Brain, color: 'from-cyan-500 to-teal-500', label: t('blueprintflow.aiTemplates') },
+    benchmark: { icon: FlaskConical, color: 'from-rose-500 to-red-500', label: t('blueprintflow.benchmarkTemplates') },
   };
 
   const renderCategorySection = (categoryTemplates: TemplateInfo[], categoryKey: keyof typeof categoryInfo) => {
@@ -539,6 +727,9 @@ export default function BlueprintFlowTemplates() {
 
       {/* AI Templates */}
       {renderCategorySection(aiTemplates, 'ai')}
+
+      {/* Benchmark Templates */}
+      {renderCategorySection(benchmarkTemplates, 'benchmark')}
 
       {/* How Templates Work */}
       <Card className="mt-8 border-cyan-200 dark:border-cyan-800">

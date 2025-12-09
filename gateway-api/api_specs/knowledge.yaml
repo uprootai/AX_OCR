@@ -128,3 +128,19 @@ usageTips:
   - GraphRAG는 관계 기반 검색에 강합니다
   - VectorRAG는 의미 기반 유사도 검색에 강합니다
   - Hybrid 모드가 가장 정확합니다
+
+resources:
+  gpu:
+    vram: "N/A"
+    minVram: 0
+    recommended: "CPU 전용"
+    cudaVersion: "N/A"
+  cpu:
+    ram: "~2GB"
+    minRam: 1024
+    cores: 2
+    note: "Neo4j에 의존 (별도 메모리 필요)"
+  parameterImpact:
+    - parameter: search_mode
+      impact: "hybrid 모드 시 처리 시간 증가"
+      examples: "graphrag:빠름, hybrid:보통"

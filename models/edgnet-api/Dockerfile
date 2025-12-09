@@ -23,14 +23,23 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy EDGNet source code (included in image for reliability)
+COPY edgnet_src/ ./edgnet/
+
+# Copy GraphSAGE trained models to /trained_models
+COPY trained_models/ /trained_models/
+
 # Copy application code
 COPY api_server.py .
+# models/ contains schemas.py and UNet models
+# Copy to both trained_models/ and models/ for api_server.py imports
 COPY models/ ./trained_models/
+COPY models/ ./models/
 COPY services/ ./services/
 COPY utils/ ./utils/
 
 # Create directories
-RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results /trained_models
+RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results
 
 # Set Python path
 ENV PYTHONPATH=/app
@@ -40,7 +49,7 @@ EXPOSE 5002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:5002/api/v1/health || exit 1
+    CMD curl -f http://localhost:5002/health || exit 1
 
 # Run API server
 CMD ["python", "api_server.py"]

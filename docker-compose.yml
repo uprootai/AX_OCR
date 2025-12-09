@@ -5,44 +5,6 @@ version: '3.8'
 
 services:
   # =====================
-  # eDOCr2 API (포트 5001)
-  # =====================
-  edocr2-api:
-    build:
-      context: ./models/edocr2-api
-      dockerfile: Dockerfile
-    container_name: edocr2-api
-    ports:
-      - "5001:5001"
-    volumes:
-      - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2:/app/edocr2:ro
-      - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2/models:/models:ro
-      - ./models/edocr2-api/uploads:/tmp/edocr2/uploads
-      - ./models/edocr2-api/results:/tmp/edocr2/results
-    environment:
-      - EDOCR2_PORT=5001
-      - EDOCR2_WORKERS=4
-      - EDOCR2_MODEL_PATH=/models
-      - EDOCR2_LOG_LEVEL=INFO
-      - PYTHONUNBUFFERED=1
-    networks:
-      - ax_poc_network
-    restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # =====================
   # eDOCr2 v2 API (포트 5002)
   # =====================
   edocr2-v2-api:
@@ -53,8 +15,8 @@ services:
     ports:
       - "5002:5002"
     volumes:
-      - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2:/app/edocr2:ro
-      - /home/uproot/ax/opensource/01-immediate/edocr2/edocr2/models:/models:ro
+      # eDOCr2 source code and models are now included in the Docker image
+      # Only mount uploads/results for data persistence
       - ./models/edocr2-v2-api/uploads:/tmp/edocr2/uploads
       - ./models/edocr2-v2-api/results:/tmp/edocr2/results
     environment:
@@ -92,9 +54,8 @@ services:
     ports:
       - "5012:5002"
     volumes:
-      - /home/uproot/ax/dev/edgnet:/app/edgnet:ro
-      - /home/uproot/ax/dev/test_results/sample_tests/graphsage_models:/trained_models:ro
-      - ./models/edgnet-api/models:/app/models:ro  # UNet 모델 마운트
+      # EDGNet source code and GraphSAGE models are now included in the Docker image
+      # Only mount uploads/results for data persistence
       - ./models/edgnet-api/uploads:/tmp/edgnet/uploads
       - ./models/edgnet-api/results:/tmp/edgnet/results
     environment:
@@ -286,7 +247,6 @@ services:
     environment:
       - GATEWAY_PORT=8000
       - GATEWAY_WORKERS=4
-      - EDOCR_V1_URL=http://edocr2-api:5001
       - EDOCR_V2_URL=http://edocr2-v2-api:5002
       - EDOCR2_URL=http://edocr2-v2-api:5002
       - EDGNET_URL=http://edgnet-api:5002

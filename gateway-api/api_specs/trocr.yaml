@@ -94,3 +94,19 @@ usageTips:
   - 단일 텍스트 라인에 최적화됨
   - YOLO로 텍스트 영역 검출 후 사용 권장
   - OCR Ensemble과 함께 사용시 10% 가중치
+
+resources:
+  gpu:
+    vram: "~3GB"
+    minVram: 2500
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~6GB"
+    minRam: 4096
+    cores: 4
+    note: "GPU 대비 10배 느림"
+  parameterImpact:
+    - parameter: model_type
+      impact: "large 모델 시 VRAM 2배"
+      examples: "printed:3GB, large-printed:6GB"

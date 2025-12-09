@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-03
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-09
 > 모든 문서: <100줄, 모듈식 구조, 계층적 구성
 
 ---
@@ -282,10 +282,17 @@ docs/
 │   ├── yolo/
 │   ├── edocr2/
 │   └── ...
-└── blueprintflow/        # BlueprintFlow 문서
-    ├── 01_overview.md
-    ├── 02_node_types.md
-    └── ...
+├── blueprintflow/        # BlueprintFlow 문서
+│   ├── 01_overview.md
+│   ├── 02_node_types.md
+│   └── ...
+├── insights/             # 벤치마크 & 인사이트 아카이브
+│   ├── README.md
+│   ├── benchmarks/       # 성능 측정 결과
+│   ├── optimizations/    # 최적화 실험
+│   ├── model-comparisons/# 모델 비교 분석
+│   └── lessons-learned/  # 베스트 프랙티스
+└── papers/               # 참조 논문 정리
 ```
 
 ---
@@ -311,13 +318,39 @@ gateway-api/api_specs/
 ├── tesseract.yaml          # Tesseract OCR
 ├── trocr.yaml              # TrOCR
 ├── esrgan.yaml             # ESRGAN Upscaler
-└── ocr-ensemble.yaml       # OCR Ensemble
+├── ocr-ensemble.yaml       # OCR Ensemble
+├── suryaocr.yaml           # Surya OCR (90+ 언어)
+├── doctr.yaml              # DocTR (2단계 파이프라인)
+└── easyocr.yaml            # EasyOCR (80+ 언어)
 ```
 
 **API 엔드포인트**:
 - `GET /api/v1/specs` - 모든 스펙 조회
 - `GET /api/v1/specs/{api_id}` - 특정 스펙 조회
 - `GET /api/v1/specs/{api_id}/blueprintflow` - 노드 메타데이터
+- `GET /api/v1/specs/resources` - 모든 API 리소스 요구사항 (동적 로드)
+
+### 리소스 스펙 (resources 섹션)
+
+각 API 스펙 YAML 파일에 `resources` 섹션 포함 (Dashboard에서 동적 로드):
+
+```yaml
+resources:
+  gpu:
+    vram: "~2GB"           # 예상 VRAM
+    minVram: 1500          # 최소 VRAM (MB)
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~3GB"            # 예상 RAM
+    minRam: 2048           # 최소 RAM (MB)
+    cores: 4
+    note: "GPU 대비 10배 느림"
+  parameterImpact:         # 하이퍼파라미터 영향
+    - parameter: imgsz
+      impact: "imgsz↑ → VRAM↑"
+      examples: "640:1.5GB, 1280:2.5GB"
+```
 
 ---
 
@@ -325,6 +358,7 @@ gateway-api/api_specs/
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
+| 9.0 | 2025-12-09 | 동적 리소스 로딩 시스템, 인사이트 아카이브 (benchmarks, lessons-learned) |
 | 8.0 | 2025-12-06 | P&ID 분석 시스템 (YOLO-PID, Line Detector, PID Analyzer, Design Checker) |
 | 7.0 | 2025-12-03 | API 스펙 표준화 시스템, 스캐폴딩 스크립트 |
 | 6.0 | 2025-12-03 | 테스트 체계 구축, ESLint 정리, 번들 최적화 |

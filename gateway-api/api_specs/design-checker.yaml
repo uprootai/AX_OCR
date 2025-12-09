@@ -74,3 +74,15 @@ i18n:
   en:
     label: Design Checker
     description: P&ID design error detection and rule validation
+
+resources:
+  gpu:
+    vram: "N/A"
+    minVram: 0
+    recommended: "CPU 전용"
+    cudaVersion: "N/A"
+  cpu:
+    ram: "~1GB"
+    minRam: 512
+    cores: 2
+    note: "규칙 기반 검증 - 매우 가벼움"

@@ -13,7 +13,10 @@ import {
   Settings,
   Trash2,
   Square,
-  Play
+  Play,
+  Cpu,
+  MemoryStick,
+  Thermometer
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -32,6 +35,44 @@ interface APIInfo {
   icon: string;
   color: string;
   last_check: string | null;
+}
+
+// Container stats from Docker
+interface ContainerStats {
+  name: string;
+  memory_usage: string | null;
+  cpu_percent: number | null;
+}
+
+// GPU stats from nvidia-smi
+interface GPUStats {
+  index: number;
+  name: string;
+  memory_used: number;
+  memory_total: number;
+  memory_percent: number;
+  utilization: number;
+  temperature: number | null;
+}
+
+// API별 리소스 정보 타입 (스펙에서 동적으로 로드)
+interface APIResourceSpec {
+  gpu?: {
+    vram?: string;
+    minVram?: number;
+    recommended?: string;
+  };
+  cpu?: {
+    ram?: string;
+    minRam?: number;
+    cores?: number;
+    note?: string;
+  };
+  parameterImpact?: Array<{
+    parameter: string;
+    impact: string;
+    examples?: string;
+  }>;
 }
 
 // 기본 API 정의 (실제 Docker 컨테이너 기준 - 22개 서비스)
@@ -80,6 +121,15 @@ export default function APIStatusMonitor() {
   });
   const { customAPIs } = useAPIConfigStore();
 
+  // Resource stats state
+  const [containerStats, setContainerStats] = useState<Record<string, ContainerStats>>({});
+  const [gpuStats, setGpuStats] = useState<GPUStats[]>([]);
+  const [gpuAvailable, setGpuAvailable] = useState<boolean>(false);
+  const [showResourcePanel, setShowResourcePanel] = useState<boolean>(true);
+
+  // API 리소스 스펙 (스펙 파일에서 동적 로드)
+  const [apiResources, setApiResources] = useState<Record<string, APIResourceSpec>>({});
+
   // Delete API from list (can be restored via "API 자동 검색")
   const deleteApi = (apiId: string) => {
     if (!confirm('이 API를 목록에서 삭제하시겠습니까?\n(API 자동 검색으로 다시 추가할 수 있습니다)')) {
@@ -116,8 +166,83 @@ export default function APIStatusMonitor() {
     vl: 'vl-api',
   };
 
+  // API ID → Spec ID mapping (스펙 파일의 ID와 매핑)
+  const apiToSpecIdMap: Record<string, string> = {
+    yolo: 'yolo',
+    yolo_pid: 'yolopid',
+    edocr2: 'edocr2',
+    paddleocr: 'paddleocr',
+    tesseract: 'tesseract',
+    trocr: 'trocr',
+    ocr_ensemble: 'ocr-ensemble',
+    surya_ocr: 'suryaocr',
+    doctr: 'doctr',
+    easyocr: 'easyocr',
+    edgnet: 'edgnet',
+    line_detector: 'linedetector',
+    esrgan: 'esrgan',
+    skinmodel: 'skinmodel',
+    pid_analyzer: 'pidanalyzer',
+    design_checker: 'designchecker',
+    knowledge: 'knowledge',
+    vl: 'vl',
+  };
+
+  // Get spec ID from API ID
+  const getSpecId = (apiId: string): string => apiToSpecIdMap[apiId] || apiId;
+
   // Category action loading state
   const [categoryActionLoading, setCategoryActionLoading] = useState<string | null>(null);
+
+  // Fetch container and GPU stats
+  const fetchResourceStats = useCallback(async () => {
+    try {
+      // Fetch container stats (includes memory and CPU)
+      const containerResponse = await axios.get('http://localhost:8000/api/v1/containers', { timeout: 10000 });
+      if (containerResponse.data?.containers) {
+        const stats: Record<string, ContainerStats> = {};
+        for (const container of containerResponse.data.containers) {
+          // Map container name to API ID
+          const apiId = Object.entries(apiToContainerMap).find(([, containerName]) => containerName === container.name)?.[0];
+          if (apiId) {
+            stats[apiId] = {
+              name: container.name,
+              memory_usage: container.memory_usage,
+              cpu_percent: container.cpu_percent,
+            };
+          }
+        }
+        setContainerStats(stats);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch container stats:', error);
+    }
+
+    try {
+      // Fetch GPU stats
+      const gpuResponse = await axios.get('http://localhost:8000/api/v1/containers/gpu/stats', { timeout: 5000 });
+      if (gpuResponse.data?.available) {
+        setGpuAvailable(true);
+        setGpuStats(gpuResponse.data.gpus || []);
+      } else {
+        setGpuAvailable(false);
+        setGpuStats([]);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch GPU stats:', error);
+      setGpuAvailable(false);
+    }
+
+    try {
+      // Fetch API resource specs (동적 로드 - 하드코딩 제거)
+      const resourcesResponse = await axios.get('http://localhost:8000/api/v1/specs/resources', { timeout: 5000 });
+      if (resourcesResponse.data?.resources) {
+        setApiResources(resourcesResponse.data.resources);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch API resources:', error);
+    }
+  }, []);
 
   // Stop/Start all containers in a category
   const handleCategoryAction = async (category: string, action: 'stop' | 'start') => {
@@ -132,7 +257,9 @@ export default function APIStatusMonitor() {
     }
 
     const actionText = action === 'stop' ? '중지' : '시작';
-    if (!confirm(`${category.toUpperCase()} 카테고리의 ${targetAPIs.length}개 API를 ${actionText}하시겠습니까?\n\n${targetAPIs.map(a => a.display_name).join(', ')}`)) {
+    // Knowledge 카테고리의 경우 neo4j도 함께 관리됨을 알림
+    const dependencyNote = category === 'knowledge' ? '\n\n⚠️ Neo4j 데이터베이스도 함께 ' + actionText + '됩니다.' : '';
+    if (!confirm(`${category.toUpperCase()} 카테고리의 ${targetAPIs.length}개 API를 ${actionText}하시겠습니까?\n\n${targetAPIs.map(a => a.display_name).join(', ')}${dependencyNote}`)) {
       return;
     }
 
@@ -140,6 +267,30 @@ export default function APIStatusMonitor() {
     let successCount = 0;
     let failCount = 0;
     const failedAPIs: string[] = [];
+
+    // Knowledge 카테고리의 경우 neo4j도 함께 제어 (종속 서비스)
+    // neo4j는 knowledge-api보다 먼저 시작하고, 나중에 중지해야 함
+    const dependentContainers = category === 'knowledge' ? ['neo4j'] : [];
+
+    // 시작 시: neo4j 먼저 시작
+    if (action === 'start') {
+      for (const depContainer of dependentContainers) {
+        try {
+          await axios.post(
+            `http://localhost:8000/api/v1/containers/${depContainer}/${action}`,
+            {},
+            { timeout: 30000 }
+          );
+          console.log(`Dependent container ${depContainer} ${action}ed`);
+        } catch (error) {
+          console.warn(`Failed to ${action} dependent container ${depContainer}:`, error);
+        }
+      }
+      // neo4j가 준비될 때까지 잠시 대기
+      if (dependentContainers.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
 
     for (const api of targetAPIs) {
       const containerName = apiToContainerMap[api.id];
@@ -170,6 +321,22 @@ export default function APIStatusMonitor() {
         failCount++;
         const errorMsg = error instanceof Error ? error.message : '연결 실패';
         failedAPIs.push(`${api.display_name} (${errorMsg})`);
+      }
+    }
+
+    // 중지 시: knowledge-api 중지 후 neo4j 중지
+    if (action === 'stop') {
+      for (const depContainer of dependentContainers) {
+        try {
+          await axios.post(
+            `http://localhost:8000/api/v1/containers/${depContainer}/${action}`,
+            {},
+            { timeout: 30000 }
+          );
+          console.log(`Dependent container ${depContainer} ${action}ed`);
+        } catch (error) {
+          console.warn(`Failed to ${action} dependent container ${depContainer}:`, error);
+        }
       }
     }
 
@@ -298,9 +465,13 @@ export default function APIStatusMonitor() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(() => fetchStatus(), 30000); // 30초마다 자동 갱신
+    fetchResourceStats();
+    const interval = setInterval(() => {
+      fetchStatus();
+      fetchResourceStats();
+    }, 30000); // 30초마다 자동 갱신
     return () => clearInterval(interval);
-  }, [fetchStatus]);
+  }, [fetchStatus, fetchResourceStats]);
 
   if (loading) {
     return (
@@ -394,6 +565,123 @@ export default function APIStatusMonitor() {
               {apis.length > 0 ? Math.round((healthyAPIs.length / apis.length) * 100) : 0}%
             </p>
           </div>
+        </div>
+
+        {/* Resource Usage Panel */}
+        <div className="border rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowResourcePanel(!showResourcePanel)}
+            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 hover:opacity-90"
+          >
+            <div className="flex items-center gap-2">
+              <Cpu className="h-4 w-4 text-purple-600" />
+              <span className="font-semibold text-purple-700 dark:text-purple-300">시스템 리소스</span>
+              {gpuAvailable && (
+                <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full">
+                  GPU 활성
+                </span>
+              )}
+            </div>
+            {showResourcePanel ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+
+          {showResourcePanel && (
+            <div className="p-3 space-y-3">
+              {/* GPU Stats */}
+              {gpuAvailable && gpuStats.length > 0 && (
+                <div className="space-y-2">
+                  {gpuStats.map((gpu) => (
+                    <div key={gpu.index} className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🎮</span>
+                          <span className="font-medium text-sm">{gpu.name}</span>
+                        </div>
+                        {gpu.temperature && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Thermometer className="h-3 w-3" />
+                            <span className={gpu.temperature > 80 ? 'text-red-500' : gpu.temperature > 60 ? 'text-yellow-500' : 'text-green-500'}>
+                              {gpu.temperature}°C
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">VRAM</span>
+                          <span className="font-mono">{gpu.memory_used}MB / {gpu.memory_total}MB ({gpu.memory_percent}%)</span>
+                        </div>
+                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              gpu.memory_percent > 90 ? 'bg-red-500' :
+                              gpu.memory_percent > 70 ? 'bg-yellow-500' : 'bg-green-500'
+                            }`}
+                            style={{ width: `${gpu.memory_percent}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">GPU 사용률</span>
+                          <span className="font-mono">{gpu.utilization}%</span>
+                        </div>
+                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              gpu.utilization > 90 ? 'bg-red-500' :
+                              gpu.utilization > 70 ? 'bg-yellow-500' : 'bg-blue-500'
+                            }`}
+                            style={{ width: `${gpu.utilization}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!gpuAvailable && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-center">
+                  <span className="text-sm text-muted-foreground">GPU 없음 (CPU 모드)</span>
+                </div>
+              )}
+
+              {/* Container Resource Summary */}
+              {Object.keys(containerStats).length > 0 && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MemoryStick className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">실행 중인 컨테이너 리소스</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {Object.entries(containerStats)
+                      .filter(([, stats]) => stats.memory_usage || stats.cpu_percent)
+                      .map(([apiId, stats]) => {
+                        const api = apis.find(a => a.id === apiId);
+                        return (
+                          <div key={apiId} className="p-2 bg-white dark:bg-gray-800 rounded border text-xs">
+                            <div className="font-medium truncate">{api?.display_name || apiId}</div>
+                            <div className="flex items-center gap-2 mt-1 text-muted-foreground">
+                              {stats.memory_usage && (
+                                <span className="flex items-center gap-1">
+                                  <MemoryStick className="h-3 w-3" />
+                                  {stats.memory_usage}
+                                </span>
+                              )}
+                              {stats.cpu_percent !== null && (
+                                <span className="flex items-center gap-1">
+                                  <Cpu className="h-3 w-3" />
+                                  {stats.cpu_percent.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Unhealthy APIs Alert */}
@@ -553,6 +841,66 @@ export default function APIStatusMonitor() {
                         <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
                           {api.description}
                         </p>
+
+                        {/* Resource Usage & Estimates */}
+                        <div className="mb-2 space-y-1">
+                          {/* Current usage if running */}
+                          {api.status === 'healthy' && containerStats[api.id] && (
+                            <div className="flex items-center gap-2 text-[10px] text-blue-600 dark:text-blue-400">
+                              {containerStats[api.id].memory_usage && (
+                                <span className="flex items-center gap-0.5">
+                                  <MemoryStick className="h-2.5 w-2.5" />
+                                  {containerStats[api.id].memory_usage}
+                                </span>
+                              )}
+                              {containerStats[api.id].cpu_percent !== null && (
+                                <span className="flex items-center gap-0.5">
+                                  <Cpu className="h-2.5 w-2.5" />
+                                  {containerStats[api.id].cpu_percent?.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Expected resource estimates - 스펙에서 동적 로드 */}
+                          {apiResources[getSpecId(api.id)] && (
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap gap-1 text-[9px]">
+                                {/* GPU 모드 */}
+                                {apiResources[getSpecId(api.id)].gpu && (
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded cursor-help ${
+                                      apiResources[getSpecId(api.id)].gpu?.vram === 'N/A'
+                                        ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                                        : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                    }`}
+                                    title={apiResources[getSpecId(api.id)].gpu?.recommended || ''}
+                                  >
+                                    🎮 {apiResources[getSpecId(api.id)].gpu?.vram || '-'}
+                                  </span>
+                                )}
+                                {/* CPU 모드 */}
+                                {apiResources[getSpecId(api.id)].cpu && (
+                                  <span
+                                    className="px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded cursor-help"
+                                    title={apiResources[getSpecId(api.id)].cpu?.note || ''}
+                                  >
+                                    💻 {apiResources[getSpecId(api.id)].cpu?.ram || '?'}/{apiResources[getSpecId(api.id)].cpu?.cores || '?'}c
+                                  </span>
+                                )}
+                              </div>
+                              {/* 하이퍼파라미터 영향 */}
+                              {apiResources[getSpecId(api.id)].parameterImpact && apiResources[getSpecId(api.id)].parameterImpact!.length > 0 && (
+                                <div
+                                  className="text-[8px] text-amber-600 dark:text-amber-400 truncate"
+                                  title={apiResources[getSpecId(api.id)].parameterImpact!.map(p => `${p.parameter}: ${p.impact} (${p.examples || ''})`).join('\n')}
+                                >
+                                  ⚠️ {apiResources[getSpecId(api.id)].parameterImpact![0].impact}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
                         <div className="flex items-center justify-between text-[10px]">
                           <span className="text-muted-foreground">:{api.port}</span>

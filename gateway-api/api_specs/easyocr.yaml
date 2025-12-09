@@ -86,3 +86,19 @@ i18n:
   en:
     label: EasyOCR
     description: "80+ languages, CPU-friendly, Korean support"
+
+resources:
+  gpu:
+    vram: "~2GB"
+    minVram: 1500
+    recommended: "GTX 1060 이상"
+    cudaVersion: "11.0+"
+  cpu:
+    ram: "~3GB"
+    minRam: 2048
+    cores: 4
+    note: "CPU에서도 합리적인 속도"
+  parameterImpact:
+    - parameter: batch_size
+      impact: "배치 크기↑ → 메모리↑, 속도↑"
+      examples: "batch1:2GB, batch8:4GB"

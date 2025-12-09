@@ -38,6 +38,15 @@ class SkinmodelExecutor(BaseNodeExecutor):
         # 입력에서 차원 정보 가져오기 (OCR 결과에서)
         dimensions = inputs.get("dimensions")
 
+        # 다중 부모 노드인 경우 from_ 접두사로 된 입력에서 dimensions 찾기
+        if not dimensions:
+            for key, value in inputs.items():
+                if key.startswith("from_") and isinstance(value, dict):
+                    if "dimensions" in value and value["dimensions"]:
+                        dimensions = value["dimensions"]
+                        logger.info(f"🔧 {key}에서 dimensions 발견: {len(dimensions)}개")
+                        break
+
         # 입력이 없으면 수동 입력 파라미터 확인
         if not dimensions:
             dimensions_manual = self.parameters.get("dimensions_manual", "")

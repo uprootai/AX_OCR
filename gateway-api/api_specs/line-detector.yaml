@@ -80,3 +80,19 @@ i18n:
   en:
     label: Line Detector
     description: P&ID line detection and connectivity analysis
+
+resources:
+  gpu:
+    vram: "N/A"
+    minVram: 0
+    recommended: "CPU 전용"
+    cudaVersion: "N/A"
+  cpu:
+    ram: "~2GB"
+    minRam: 1024
+    cores: 2
+    note: "OpenCV 기반 - CPU로 빠름"
+  parameterImpact:
+    - parameter: method
+      impact: "combined 방식 시 시간 2배"
+      examples: "lsd:빠름, combined:보통"

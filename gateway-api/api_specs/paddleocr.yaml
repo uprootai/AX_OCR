@@ -111,3 +111,19 @@ examples:
 usageTips:
   - 한글 인식에 최적화되어 있습니다
   - det_db_thresh를 낮추면 더 많은 텍스트를 검출합니다
+
+resources:
+  gpu:
+    vram: "~2GB"
+    minVram: 1500
+    recommended: "GTX 1060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~3GB"
+    minRam: 2048
+    cores: 4
+    note: "GPU 대비 5배 느림"
+  parameterImpact:
+    - parameter: use_angle_cls
+      impact: "회전 감지 사용 시 처리 시간 증가"
+      examples: "미사용:1초, 사용:1.5초"

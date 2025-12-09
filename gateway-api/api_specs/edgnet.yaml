@@ -82,3 +82,22 @@ i18n:
   en:
     label: EDGNet Segmentation
     description: Analyzes drawing structure and classifies by layers
+
+resources:
+  gpu:
+    vram: "~3GB"
+    minVram: 2500
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~6GB"
+    minRam: 4096
+    cores: 4
+    note: "GPU 대비 5배 느림"
+  parameterImpact:
+    - parameter: model
+      impact: "graphsage 모델 시 VRAM 2배"
+      examples: "unet:3GB, graphsage:6GB"
+    - parameter: num_classes
+      impact: "클래스 수↑ → 메모리↑"
+      examples: "8클래스:3GB, 20클래스:5GB"

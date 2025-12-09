@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  edgnet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edgnet_container
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./models:/app/models
+      - ./tests:/app/tests
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    command: /bin/bash

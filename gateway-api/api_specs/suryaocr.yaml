@@ -77,3 +77,19 @@ i18n:
   en:
     label: Surya OCR
     description: "90+ language support, layout analysis"
+
+resources:
+  gpu:
+    vram: "~3GB"
+    minVram: 2500
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~6GB"
+    minRam: 4096
+    cores: 4
+    note: "GPU 대비 5배 느림"
+  parameterImpact:
+    - parameter: detect_layout
+      impact: "레이아웃 분석 시 시간/메모리 증가"
+      examples: "OCR만:3GB, 레이아웃:5GB"

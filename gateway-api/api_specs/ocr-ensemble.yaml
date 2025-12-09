@@ -107,3 +107,19 @@ usageTips:
   - 단일 엔진보다 정확도가 높지만 느립니다
   - 가중치를 조절하여 도면 타입에 최적화하세요
   - 여러 엔진이 동의하면 신뢰도가 올라갑니다
+
+resources:
+  gpu:
+    vram: "~6GB"
+    minVram: 4000
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~12GB"
+    minRam: 8192
+    cores: 8
+    note: "4개 엔진 병렬 실행 (시간 오래 걸림)"
+  parameterImpact:
+    - parameter: "4개 엔진"
+      impact: "eDOCr2+PaddleOCR+Tesseract+TrOCR 동시 실행"
+      examples: "단일:2GB, 앙상블:6GB+"

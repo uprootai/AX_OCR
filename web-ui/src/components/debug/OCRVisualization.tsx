@@ -172,11 +172,21 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
       // Draw image
       ctx.drawImage(img, 0, 0);
 
+      // Calculate scale factor based on image size for better visibility
+      // Base reference: 1000px width image uses default sizes
+      const scaleFactor = Math.max(1, Math.min(4, Math.max(img.width, img.height) / 1000));
+      const fontSize = Math.round(14 * scaleFactor);
+      const lineWidth = Math.round(3 * scaleFactor);
+      const pointRadius = Math.round(5 * scaleFactor);
+      const labelPadding = Math.round(4 * scaleFactor);
+      const labelHeight = Math.round(20 * scaleFactor);
+
       // Draw bounding boxes
       boundingBoxes.forEach((box) => {
         // Use actual bbox dimensions if available, otherwise use default size
-        const boxWidth = box.width > 0 ? box.width : 80;
-        const boxHeight = box.height > 0 ? box.height : 80;
+        const defaultBoxSize = 80 * scaleFactor;
+        const boxWidth = box.width > 0 ? box.width : defaultBoxSize;
+        const boxHeight = box.height > 0 ? box.height : defaultBoxSize;
         const x = box.x;
         const y = box.y;
 
@@ -191,32 +201,44 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
 
         // Draw border
         ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = lineWidth;
         ctx.strokeRect(x, y, boxWidth, boxHeight);
 
         // Draw center point
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(x + boxWidth / 2, y + boxHeight / 2, 5, 0, 2 * Math.PI);
+        ctx.arc(x + boxWidth / 2, y + boxHeight / 2, pointRadius, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Draw label background
-        ctx.font = '14px Arial';
+        // Draw label with dynamic font size
+        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif`;
         const textMetrics = ctx.measureText(box.label);
-        const labelX = x + boxWidth / 2 - textMetrics.width / 2;
-        const labelY = y - 10;
+        const labelX = Math.max(labelPadding, x + boxWidth / 2 - textMetrics.width / 2);
 
+        // Ensure label stays within canvas bounds
+        const labelOffset = Math.round(10 * scaleFactor);
+        let labelY = y - labelOffset;
+
+        // If label would go above canvas, place it below the box instead
+        if (labelY - labelHeight < 0) {
+          labelY = y + boxHeight + labelOffset + labelHeight;
+        }
+
+        // Draw label background with rounded corners effect
         ctx.fillStyle = color;
         ctx.fillRect(
-          labelX - 4,
-          labelY - 16,
-          textMetrics.width + 8,
-          20
+          labelX - labelPadding,
+          labelY - labelHeight + labelPadding,
+          textMetrics.width + labelPadding * 2,
+          labelHeight
         );
 
-        // Draw label text
+        // Draw label text with shadow for better readability
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 2 * scaleFactor;
         ctx.fillStyle = '#ffffff';
         ctx.fillText(box.label, labelX, labelY);
+        ctx.shadowBlur = 0;
       });
 
       setImageLoaded(true);

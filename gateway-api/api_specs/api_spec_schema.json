@@ -228,6 +228,75 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "사용 팁"
+    },
+    "resources": {
+      "type": "object",
+      "description": "리소스 요구사항 (GPU/CPU 모드별)",
+      "properties": {
+        "gpu": {
+          "type": "object",
+          "properties": {
+            "vram": {
+              "type": "string",
+              "description": "예상 VRAM 사용량 (예: ~2GB, 2-4GB, -)"
+            },
+            "minVram": {
+              "type": "integer",
+              "description": "최소 VRAM (MB)"
+            },
+            "recommended": {
+              "type": "string",
+              "description": "권장 GPU (예: RTX 3060 이상)"
+            },
+            "cudaVersion": {
+              "type": "string",
+              "description": "필요 CUDA 버전"
+            }
+          }
+        },
+        "cpu": {
+          "type": "object",
+          "properties": {
+            "ram": {
+              "type": "string",
+              "description": "예상 RAM 사용량 (예: ~3GB)"
+            },
+            "minRam": {
+              "type": "integer",
+              "description": "최소 RAM (MB)"
+            },
+            "cores": {
+              "type": "integer",
+              "description": "권장 CPU 코어 수"
+            },
+            "note": {
+              "type": "string",
+              "description": "CPU 모드 관련 참고사항"
+            }
+          }
+        },
+        "parameterImpact": {
+          "type": "array",
+          "description": "하이퍼파라미터가 리소스에 미치는 영향",
+          "items": {
+            "type": "object",
+            "properties": {
+              "parameter": {
+                "type": "string",
+                "description": "파라미터 이름"
+              },
+              "impact": {
+                "type": "string",
+                "description": "영향 설명 (예: imgsz↑ → VRAM↑)"
+              },
+              "examples": {
+                "type": "string",
+                "description": "구체적 예시 (예: 640:1.5GB, 1280:2.5GB)"
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -220,6 +220,15 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
       // Draw image
       ctx.drawImage(img, 0, 0);
 
+      // Calculate scale factor based on image size for better visibility
+      // Base reference: 1000px width image uses default sizes
+      const scaleFactor = Math.max(1, Math.min(4, Math.max(img.width, img.height) / 1000));
+      const fontSize = Math.round(11 * scaleFactor);
+      const baseLineWidth = Math.round(2 * scaleFactor);
+      const padding = Math.round(3 * scaleFactor);
+      const labelHeight = Math.round(16 * scaleFactor);
+      const gap = Math.round(2 * scaleFactor);
+
       // Track used label positions to prevent overlap
       const usedLabelPositions: Array<{x: number; y: number; width: number; height: number}> = [];
 
@@ -244,23 +253,21 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
 
         // Draw border (thicker for text_block)
         ctx.strokeStyle = color;
-        ctx.lineWidth = box.className === 'text_block' ? 4 : 2;  // Thicker border for text blocks
+        ctx.lineWidth = box.className === 'text_block' ? baseLineWidth * 2 : baseLineWidth;
         ctx.strokeRect(x, y, boxWidth, boxHeight);
 
-        // Draw label background
-        ctx.font = 'bold 11px Arial';  // Slightly smaller font to reduce overlap
+        // Draw label background with dynamic font size
+        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif`;
         const textMetrics = ctx.measureText(box.label);
-        const padding = 3;
         const labelWidth = textMetrics.width + padding * 2;
-        const labelHeight = 16;
 
         // Try to position label above bbox first
         let labelX = x;
-        let labelY = y - labelHeight - 2;
+        let labelY = y - labelHeight - gap;
 
         // If label would go off top, try below
         if (labelY < 0) {
-          labelY = y + boxHeight + 2;
+          labelY = y + boxHeight + gap;
         }
 
         // Check for overlap and adjust position
@@ -269,30 +276,33 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
           attempts++;
           // Try different positions: above, below, left, right
           if (attempts === 1) {
-            labelY = y + boxHeight + 2; // below
+            labelY = y + boxHeight + gap; // below
           } else if (attempts === 2) {
-            labelX = x - labelWidth - 2; // left
+            labelX = x - labelWidth - gap; // left
             labelY = y;
           } else if (attempts === 3) {
-            labelX = x + boxWidth + 2; // right
+            labelX = x + boxWidth + gap; // right
             labelY = y;
           }
         }
 
         // If label would go off canvas edges, constrain it
-        if (labelX < 0) labelX = 2;
-        if (labelY < 0) labelY = 2;
-        if (labelX + labelWidth > canvas.width) labelX = canvas.width - labelWidth - 2;
-        if (labelY + labelHeight > canvas.height) labelY = canvas.height - labelHeight - 2;
+        if (labelX < gap) labelX = gap;
+        if (labelY < gap) labelY = gap;
+        if (labelX + labelWidth > canvas.width) labelX = canvas.width - labelWidth - gap;
+        if (labelY + labelHeight > canvas.height) labelY = canvas.height - labelHeight - gap;
 
         // Draw label background
         ctx.fillStyle = color;
         ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
 
-        // Draw label text
+        // Draw label text with shadow for better readability
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = scaleFactor;
         ctx.fillStyle = '#ffffff';
         ctx.textBaseline = 'top';
-        ctx.fillText(box.label, labelX + padding, labelY + 2);
+        ctx.fillText(box.label, labelX + padding, labelY + gap);
+        ctx.shadowBlur = 0;
 
         // Record this label position to prevent future overlaps
         usedLabelPositions.push({x: labelX, y: labelY, width: labelWidth, height: labelHeight});

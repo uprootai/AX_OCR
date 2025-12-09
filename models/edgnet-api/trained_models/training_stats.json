@@ -1,0 +1,12 @@
+{
+  "num_drawings": 2,
+  "total_nodes": 1844,
+  "total_edges": 47007,
+  "class_names": [
+    "Dimension",
+    "Text",
+    "Contour",
+    "Other"
+  ],
+  "model_path": "/home/uproot/ax/dev/test_results/sample_tests/graphsage_models/graphsage_dimension_classifier.pth"
+}

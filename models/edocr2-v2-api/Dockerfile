@@ -28,6 +28,12 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy eDOCr2 source code (included in image for reliability)
+COPY edocr2_src/ ./edocr2/
+
+# Copy eDOCr2 models to /models directory
+COPY edocr2_src/models/ /models/
+
 # Copy application code
 COPY api_server.py .
 COPY gpu_preprocessing.py .
@@ -36,7 +42,7 @@ COPY services/ ./services/
 COPY utils/ ./utils/
 
 # Create directories
-RUN mkdir -p /tmp/edocr2/uploads /tmp/edocr2/results /models
+RUN mkdir -p /tmp/edocr2/uploads /tmp/edocr2/results
 
 # Configure CUDA library path for CuPy
 RUN echo '/usr/local/lib/python3.10/site-packages/nvidia/cuda_nvrtc/lib' > /etc/ld.so.conf.d/cuda-nvrtc.conf && \
@@ -44,12 +50,12 @@ RUN echo '/usr/local/lib/python3.10/site-packages/nvidia/cuda_nvrtc/lib' > /etc/
     echo '/usr/local/lib/python3.10/site-packages/nvidia/cublas/lib' >> /etc/ld.so.conf.d/cuda-nvrtc.conf && \
     ldconfig
 
-# Expose port
-EXPOSE 5001
+# Expose port (5002 for v2 API)
+EXPOSE 5002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:5001/api/v1/health || exit 1
+    CMD curl -f http://localhost:5002/api/v2/health || exit 1
 
 # Run API server
 CMD ["python", "api_server.py"]

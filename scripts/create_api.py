@@ -301,6 +301,23 @@ i18n:
   en:
     label: {title}
     description: {description}
+
+# 리소스 요구사항 (GPU/CPU 모드별)
+resources:
+  gpu:
+    vram: "{gpu_vram}"
+    minVram: {gpu_min_vram}
+    recommended: "{gpu_recommended}"
+  cpu:
+    ram: "{cpu_ram}"
+    minRam: {cpu_min_ram}
+    cores: {cpu_cores}
+    note: "{cpu_note}"
+  # 하이퍼파라미터가 리소스에 미치는 영향 (해당 시 주석 해제)
+  # parameterImpact:
+  #   - parameter: "param_name"
+  #     impact: "param↑ → VRAM↑"
+  #     examples: "low:1GB, high:2GB"
 '''
 
 
@@ -345,6 +362,42 @@ CATEGORY_ICONS = {
     "control": "GitBranch",
 }
 
+# 카테고리별 기본 리소스 요구사항
+CATEGORY_RESOURCES = {
+    "detection": {
+        "gpu": {"vram": "~2GB", "min_vram": 1500, "recommended": "RTX 3060 이상"},
+        "cpu": {"ram": "~3GB", "min_ram": 2048, "cores": 4, "note": "GPU 대비 10배 느림"}
+    },
+    "ocr": {
+        "gpu": {"vram": "~1.5GB", "min_vram": 1024, "recommended": "GPU 권장"},
+        "cpu": {"ram": "~2GB", "min_ram": 1536, "cores": 2, "note": "CPU 모드 지원"}
+    },
+    "segmentation": {
+        "gpu": {"vram": "~1.5GB", "min_vram": 1024, "recommended": "GPU 권장"},
+        "cpu": {"ram": "~2GB", "min_ram": 1536, "cores": 2, "note": "CPU 모드 가능"}
+    },
+    "preprocessing": {
+        "gpu": {"vram": "~2GB", "min_vram": 1500, "recommended": "GPU 권장 (속도)"},
+        "cpu": {"ram": "~3GB", "min_ram": 2048, "cores": 4, "note": "매우 느림"}
+    },
+    "analysis": {
+        "gpu": {"vram": "-", "min_vram": 0, "recommended": "CPU 기반"},
+        "cpu": {"ram": "~1GB", "min_ram": 512, "cores": 1, "note": "경량 분석"}
+    },
+    "knowledge": {
+        "gpu": {"vram": "-", "min_vram": 0, "recommended": "CPU/DB 기반"},
+        "cpu": {"ram": "~2GB", "min_ram": 1024, "cores": 2, "note": "DB 별도 필요"}
+    },
+    "ai": {
+        "gpu": {"vram": "~4-8GB", "min_vram": 4096, "recommended": "RTX 3080 이상"},
+        "cpu": {"ram": "~8GB", "min_ram": 6144, "cores": 8, "note": "권장 안함"}
+    },
+    "control": {
+        "gpu": {"vram": "-", "min_vram": 0, "recommended": "N/A"},
+        "cpu": {"ram": "~256MB", "min_ram": 128, "cores": 1, "note": "경량"}
+    },
+}
+
 
 def create_api(
     api_id: str,
@@ -354,7 +407,10 @@ def create_api(
     icon: str = None,
     color: str = None,
     requires_image: bool = True,
-    add_to_compose: bool = False
+    add_to_compose: bool = False,
+    gpu_vram: str = None,
+    cpu_ram: str = None,
+    cpu_cores: int = None
 ):
     """새 API 서비스 생성"""
 
@@ -371,6 +427,20 @@ def create_api(
     if not icon:
         icon = CATEGORY_ICONS.get(category, "Box")
 
+    # 리소스 기본값 (카테고리 기반)
+    default_resources = CATEGORY_RESOURCES.get(category, CATEGORY_RESOURCES["detection"])
+    if not gpu_vram:
+        gpu_vram = default_resources["gpu"]["vram"]
+    if not cpu_ram:
+        cpu_ram = default_resources["cpu"]["ram"]
+    if not cpu_cores:
+        cpu_cores = default_resources["cpu"]["cores"]
+
+    gpu_min_vram = default_resources["gpu"]["min_vram"]
+    gpu_recommended = default_resources["gpu"]["recommended"]
+    cpu_min_ram = default_resources["cpu"]["min_ram"]
+    cpu_note = default_resources["cpu"]["note"]
+
     print(f"\n{'='*60}")
     print(f"🚀 새 API 생성: {title}")
     print(f"{'='*60}")
@@ -379,6 +449,9 @@ def create_api(
     print(f"  Category: {category}")
     print(f"  Color: {color}")
     print(f"  Icon: {icon}")
+    print(f"  Resources:")
+    print(f"    GPU: {gpu_vram} (권장: {gpu_recommended})")
+    print(f"    CPU: {cpu_ram}, {cpu_cores} cores ({cpu_note})")
     print(f"{'='*60}\n")
 
     # API 디렉토리 생성
@@ -429,7 +502,14 @@ def create_api(
         category=category,
         color=color,
         icon=icon,
-        requires_image_yaml="true" if requires_image else "false"
+        requires_image_yaml="true" if requires_image else "false",
+        gpu_vram=gpu_vram,
+        gpu_min_vram=gpu_min_vram,
+        gpu_recommended=gpu_recommended,
+        cpu_ram=cpu_ram,
+        cpu_min_ram=cpu_min_ram,
+        cpu_cores=cpu_cores,
+        cpu_note=cpu_note
     )
     spec_file = SPECS_DIR / f"{api_id}.yaml"
     spec_file.write_text(spec_content)
@@ -491,6 +571,11 @@ def main():
     parser.add_argument("--no-image", action="store_true", help="이미지 입력 불필요")
     parser.add_argument("--add-to-compose", action="store_true", help="docker-compose.yml에 추가")
 
+    # 리소스 옵션
+    parser.add_argument("--gpu-vram", help="GPU VRAM 요구량 (예: ~2GB, 2-4GB)")
+    parser.add_argument("--cpu-ram", help="CPU RAM 요구량 (예: ~3GB)")
+    parser.add_argument("--cpu-cores", type=int, help="권장 CPU 코어 수")
+
     args = parser.parse_args()
 
     # API ID 검증
@@ -511,7 +596,10 @@ def main():
         icon=args.icon,
         color=args.color,
         requires_image=not args.no_image,
-        add_to_compose=args.add_to_compose
+        add_to_compose=args.add_to_compose,
+        gpu_vram=args.gpu_vram,
+        cpu_ram=args.cpu_ram,
+        cpu_cores=args.cpu_cores
     )
 
     sys.exit(0 if success else 1)

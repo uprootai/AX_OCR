@@ -2385,6 +2385,29 @@ async def get_all_specs():
     }
 
 
+@app.get("/api/v1/specs/resources")
+async def get_all_resources():
+    """
+    모든 API의 리소스 요구사항 조회
+
+    Returns:
+        API ID별 리소스 정보 (GPU/CPU 모드, 하이퍼파라미터 영향)
+    """
+    registry = get_api_registry()
+    specs = registry.get_all_specs()  # Dict[str, Dict[str, Any]]
+
+    resources = {}
+    for api_id, spec in specs.items():
+        if "resources" in spec:
+            resources[api_id] = spec["resources"]
+
+    return {
+        "status": "success",
+        "count": len(resources),
+        "resources": resources
+    }
+
+
 @app.get("/api/v1/specs/{api_id}")
 async def get_api_spec(api_id: str):
     """

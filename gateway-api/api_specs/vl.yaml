@@ -81,3 +81,19 @@ i18n:
   en:
     label: VL Model
     description: Multimodal AI for image understanding and Q&A
+
+resources:
+  gpu:
+    vram: "~8GB"
+    minVram: 6000
+    recommended: "RTX 4070 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~16GB"
+    minRam: 12288
+    cores: 8
+    note: "GPU 필수 권장"
+  parameterImpact:
+    - parameter: model
+      impact: "모델에 따라 VRAM 차이"
+      examples: "qwen-vl:8GB, llava:6GB, cogvlm:10GB"

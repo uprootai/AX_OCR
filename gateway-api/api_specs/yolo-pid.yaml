@@ -78,3 +78,19 @@ i18n:
   en:
     label: YOLO-PID
     description: P&ID symbol detection (valves, pumps, instruments)
+
+resources:
+  gpu:
+    vram: "~2.5GB"
+    minVram: 2000
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~4GB"
+    minRam: 3072
+    cores: 4
+    note: "GPU 대비 8배 느림"
+  parameterImpact:
+    - parameter: imgsz
+      impact: "이미지 크기↑ → VRAM↑"
+      examples: "320:1GB, 640:2GB, 1280:4GB"

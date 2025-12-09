@@ -123,3 +123,19 @@ examples:
 usageTips:
   - YOLO와 함께 사용하면 정확도가 높아집니다
   - 한글+영어 혼합 도면은 ko+en 언어 사용
+
+resources:
+  gpu:
+    vram: "~2GB"
+    minVram: 1500
+    recommended: "GTX 1060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~4GB"
+    minRam: 2048
+    cores: 4
+    note: "GPU 대비 3배 느림"
+  parameterImpact:
+    - parameter: extract_tables
+      impact: "테이블 추출 시 메모리 2배"
+      examples: "기본:2GB, 테이블:4GB"

@@ -142,3 +142,23 @@ usageTips:
   - 복잡한 도면은 imgsz를 1920으로 올려보세요
   - 작은 심볼이 많으면 confidence를 0.3으로 낮춰보세요
   - 중복 검출이 많으면 iou를 0.6으로 올려보세요
+
+# 리소스 요구사항
+resources:
+  gpu:
+    vram: "~2GB"
+    minVram: 1500
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~3GB"
+    minRam: 2048
+    cores: 4
+    note: "GPU 대비 10배 느림"
+  parameterImpact:
+    - parameter: imgsz
+      impact: "imgsz↑ → VRAM↑"
+      examples: "640:1.5GB, 1280:2.5GB, 1920:4GB"
+    - parameter: task
+      impact: "segment 모드 시 VRAM 1.5배"
+      examples: "detect:2GB, segment:3GB"

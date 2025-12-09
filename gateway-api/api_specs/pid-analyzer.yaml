@@ -87,3 +87,15 @@ i18n:
   en:
     label: P&ID Analyzer
     description: P&ID connectivity analysis and BOM extraction
+
+resources:
+  gpu:
+    vram: "N/A"
+    minVram: 0
+    recommended: "CPU 전용"
+    cudaVersion: "N/A"
+  cpu:
+    ram: "~2GB"
+    minRam: 1024
+    cores: 2
+    note: "그래프 분석 - CPU로 빠름"
