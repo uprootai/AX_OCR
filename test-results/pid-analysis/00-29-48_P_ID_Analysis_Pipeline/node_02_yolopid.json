@@ -1,0 +1,2916 @@
+{
+  "node_id": "yolopid_1",
+  "node_type": "yolopid",
+  "saved_at": "2025-12-10T00:30:03.342576",
+  "detections": [
+    {
+      "id": 0,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.9308,
+      "bbox": [
+        3523.03,
+        769.38,
+        3584.0,
+        891.14
+      ],
+      "center": [
+        3553.51,
+        830.26
+      ],
+      "width": 60.97,
+      "height": 121.76
+    },
+    {
+      "id": 1,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.9242,
+      "bbox": [
+        3036.94,
+        717.01,
+        3068.96,
+        735.24
+      ],
+      "center": [
+        3052.95,
+        726.13
+      ],
+      "width": 32.02,
+      "height": 18.23
+    },
+    {
+      "id": 2,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.922,
+      "bbox": [
+        1251.36,
+        1000.82,
+        1279.98,
+        1103.95
+      ],
+      "center": [
+        1265.67,
+        1052.38
+      ],
+      "width": 28.62,
+      "height": 103.14
+    },
+    {
+      "id": 3,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.9207,
+      "bbox": [
+        1722.58,
+        752.19,
+        1755.22,
+        770.92
+      ],
+      "center": [
+        1738.9,
+        761.56
+      ],
+      "width": 32.64,
+      "height": 18.73
+    },
+    {
+      "id": 4,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.9177,
+      "bbox": [
+        482.49,
+        1825.43,
+        512.0,
+        1931.11
+      ],
+      "center": [
+        497.24,
+        1878.27
+      ],
+      "width": 29.51,
+      "height": 105.68
+    },
+    {
+      "id": 5,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.9017,
+      "bbox": [
+        2777.63,
+        1970.92,
+        2810.46,
+        1989.57
+      ],
+      "center": [
+        2794.04,
+        1980.25
+      ],
+      "width": 32.83,
+      "height": 18.65
+    },
+    {
+      "id": 6,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.8819,
+      "bbox": [
+        1461.81,
+        1221.19,
+        1495.77,
+        1241.67
+      ],
+      "center": [
+        1478.79,
+        1231.43
+      ],
+      "width": 33.96,
+      "height": 20.48
+    },
+    {
+      "id": 7,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.8794,
+      "bbox": [
+        2028.28,
+        47.3,
+        2064.45,
+        88.62
+      ],
+      "center": [
+        2046.36,
+        67.96
+      ],
+      "width": 36.17,
+      "height": 41.32
+    },
+    {
+      "id": 8,
+      "class_id": 7,
+      "class_name": "Column",
+      "category": "tank",
+      "korean_name": "컬럼",
+      "confidence": 0.8759,
+      "bbox": [
+        1713.33,
+        833.83,
+        1764.72,
+        896.0
+      ],
+      "center": [
+        1739.03,
+        864.92
+      ],
+      "width": 51.39,
+      "height": 62.17
+    },
+    {
+      "id": 9,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.872,
+      "bbox": [
+        3232.52,
+        2520.26,
+        3248.89,
+        2552.72
+      ],
+      "center": [
+        3240.71,
+        2536.49
+      ],
+      "width": 16.37,
+      "height": 32.46
+    },
+    {
+      "id": 10,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.868,
+      "bbox": [
+        2801.9,
+        887.57,
+        2824.26,
+        920.11
+      ],
+      "center": [
+        2813.08,
+        903.84
+      ],
+      "width": 22.36,
+      "height": 32.54
+    },
+    {
+      "id": 11,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.8655,
+      "bbox": [
+        2951.66,
+        2235.81,
+        3052.62,
+        2324.36
+      ],
+      "center": [
+        3002.14,
+        2280.08
+      ],
+      "width": 100.96,
+      "height": 88.56
+    },
+    {
+      "id": 12,
+      "class_id": 22,
+      "class_name": "Reboiler",
+      "category": "heat_exchanger",
+      "korean_name": "리보일러",
+      "confidence": 0.8646,
+      "bbox": [
+        2794.75,
+        372.18,
+        3314.47,
+        545.0
+      ],
+      "center": [
+        3054.61,
+        458.59
+      ],
+      "width": 519.72,
+      "height": 172.83
+    },
+    {
+      "id": 13,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.8645,
+      "bbox": [
+        3337.92,
+        47.31,
+        3374.36,
+        88.64
+      ],
+      "center": [
+        3356.14,
+        67.98
+      ],
+      "width": 36.44,
+      "height": 41.33
+    },
+    {
+      "id": 14,
+      "class_id": 29,
+      "class_name": "Valve",
+      "category": "valve",
+      "korean_name": "밸브",
+      "confidence": 0.859,
+      "bbox": [
+        2896.18,
+        711.85,
+        3215.08,
+        1089.2
+      ],
+      "center": [
+        3055.63,
+        900.53
+      ],
+      "width": 318.9,
+      "height": 377.34
+    },
+    {
+      "id": 15,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.8432,
+      "bbox": [
+        487.9,
+        3028.26,
+        524.53,
+        3069.06
+      ],
+      "center": [
+        506.21,
+        3048.66
+      ],
+      "width": 36.63,
+      "height": 40.81
+    },
+    {
+      "id": 16,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.8431,
+      "bbox": [
+        4091.8,
+        3215.12,
+        4194.52,
+        3302.06
+      ],
+      "center": [
+        4143.16,
+        3258.59
+      ],
+      "width": 102.72,
+      "height": 86.95
+    },
+    {
+      "id": 17,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.8379,
+      "bbox": [
+        3917.43,
+        1215.84,
+        3968.0,
+        1336.65
+      ],
+      "center": [
+        3942.72,
+        1276.24
+      ],
+      "width": 50.57,
+      "height": 120.8
+    },
+    {
+      "id": 18,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.8335,
+      "bbox": [
+        4235.13,
+        699.96,
+        4267.01,
+        719.45
+      ],
+      "center": [
+        4251.07,
+        709.7
+      ],
+      "width": 31.88,
+      "height": 19.5
+    },
+    {
+      "id": 19,
+      "class_id": 19,
+      "class_name": "Motor",
+      "category": "equipment",
+      "korean_name": "모터",
+      "confidence": 0.8324,
+      "bbox": [
+        1645.08,
+        920.55,
+        1664.0,
+        957.5
+      ],
+      "center": [
+        1654.54,
+        939.02
+      ],
+      "width": 18.92,
+      "height": 36.95
+    },
+    {
+      "id": 20,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.8291,
+      "bbox": [
+        4133.57,
+        1208.19,
+        4257.28,
+        1280.0
+      ],
+      "center": [
+        4195.42,
+        1244.09
+      ],
+      "width": 123.71,
+      "height": 71.81
+    },
+    {
+      "id": 21,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.8173,
+      "bbox": [
+        3845.34,
+        2057.03,
+        3877.77,
+        2073.96
+      ],
+      "center": [
+        3861.56,
+        2065.5
+      ],
+      "width": 32.43,
+      "height": 16.93
+    },
+    {
+      "id": 22,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.8138,
+      "bbox": [
+        2450.55,
+        644.78,
+        2556.33,
+        729.72
+      ],
+      "center": [
+        2503.44,
+        687.25
+      ],
+      "width": 105.78,
+      "height": 84.93
+    },
+    {
+      "id": 23,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.8077,
+      "bbox": [
+        3947.05,
+        769.13,
+        3968.0,
+        864.05
+      ],
+      "center": [
+        3957.52,
+        816.59
+      ],
+      "width": 20.95,
+      "height": 94.91
+    },
+    {
+      "id": 24,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.8062,
+      "bbox": [
+        2824.85,
+        1536.05,
+        2943.52,
+        1589.7
+      ],
+      "center": [
+        2884.19,
+        1562.88
+      ],
+      "width": 118.67,
+      "height": 53.65
+    },
+    {
+      "id": 25,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.8033,
+      "bbox": [
+        4175.06,
+        2675.44,
+        4191.5,
+        2708.09
+      ],
+      "center": [
+        4183.28,
+        2691.77
+      ],
+      "width": 16.44,
+      "height": 32.65
+    },
+    {
+      "id": 26,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.8015,
+      "bbox": [
+        3523.93,
+        1023.49,
+        3583.92,
+        1148.44
+      ],
+      "center": [
+        3553.92,
+        1085.97
+      ],
+      "width": 59.99,
+      "height": 124.95
+    },
+    {
+      "id": 27,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.7979,
+      "bbox": [
+        248.65,
+        1920,
+        353.39,
+        1992.32
+      ],
+      "center": [
+        301.02,
+        1956.16
+      ],
+      "width": 104.74,
+      "height": 72.32
+    },
+    {
+      "id": 28,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.7942,
+      "bbox": [
+        2688.01,
+        1677.37,
+        2708.73,
+        1775.62
+      ],
+      "center": [
+        2698.37,
+        1726.49
+      ],
+      "width": 20.72,
+      "height": 98.25
+    },
+    {
+      "id": 29,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.7891,
+      "bbox": [
+        1731.7,
+        1245.1,
+        1839.44,
+        1280.0
+      ],
+      "center": [
+        1785.57,
+        1262.55
+      ],
+      "width": 107.74,
+      "height": 34.9
+    },
+    {
+      "id": 30,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.7868,
+      "bbox": [
+        4047,
+        768.21,
+        4077.62,
+        870.8
+      ],
+      "center": [
+        4062.31,
+        819.51
+      ],
+      "width": 30.62,
+      "height": 102.59
+    },
+    {
+      "id": 31,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.7822,
+      "bbox": [
+        3265.49,
+        1353.87,
+        3366.97,
+        1441.31
+      ],
+      "center": [
+        3316.23,
+        1397.59
+      ],
+      "width": 101.48,
+      "height": 87.44
+    },
+    {
+      "id": 32,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.771,
+      "bbox": [
+        3524.31,
+        1265.48,
+        3583.94,
+        1390.91
+      ],
+      "center": [
+        3554.12,
+        1328.2
+      ],
+      "width": 59.63,
+      "height": 125.44
+    },
+    {
+      "id": 33,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.7661,
+      "bbox": [
+        4047.03,
+        2314.41,
+        4089.1,
+        2431.41
+      ],
+      "center": [
+        4068.06,
+        2372.91
+      ],
+      "width": 42.07,
+      "height": 117.0
+    },
+    {
+      "id": 34,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.7638,
+      "bbox": [
+        483.93,
+        2557.84,
+        520.44,
+        2578.1
+      ],
+      "center": [
+        502.18,
+        2567.97
+      ],
+      "width": 36.52,
+      "height": 20.26
+    },
+    {
+      "id": 35,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.762,
+      "bbox": [
+        655.64,
+        653.19,
+        676.14,
+        689.5
+      ],
+      "center": [
+        665.89,
+        671.34
+      ],
+      "width": 20.5,
+      "height": 36.31
+    },
+    {
+      "id": 36,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.744,
+      "bbox": [
+        639.26,
+        650.55,
+        673.28,
+        669.48
+      ],
+      "center": [
+        656.27,
+        660.01
+      ],
+      "width": 34.02,
+      "height": 18.94
+    },
+    {
+      "id": 37,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.74,
+      "bbox": [
+        479.13,
+        2540.05,
+        502.72,
+        2573.53
+      ],
+      "center": [
+        490.92,
+        2556.79
+      ],
+      "width": 23.59,
+      "height": 33.48
+    },
+    {
+      "id": 38,
+      "class_id": 11,
+      "class_name": "Decanter",
+      "category": "tank",
+      "korean_name": "디캔터",
+      "confidence": 0.7261,
+      "bbox": [
+        488.48,
+        3041.02,
+        512.0,
+        3067.43
+      ],
+      "center": [
+        500.24,
+        3054.22
+      ],
+      "width": 23.52,
+      "height": 26.42
+    },
+    {
+      "id": 39,
+      "class_id": 10,
+      "class_name": "Control valve",
+      "category": "valve",
+      "korean_name": "제어 밸브",
+      "confidence": 0.7257,
+      "bbox": [
+        1969.09,
+        1152.02,
+        2014.0,
+        1176.51
+      ],
+      "center": [
+        1991.54,
+        1164.27
+      ],
+      "width": 44.91,
+      "height": 24.49
+    },
+    {
+      "id": 40,
+      "class_id": 31,
+      "class_name": "31",
+      "category": "symbol",
+      "korean_name": "31",
+      "confidence": 0.7159,
+      "bbox": [
+        3001.6,
+        1505.14,
+        3254.57,
+        1770.88
+      ],
+      "center": [
+        3128.09,
+        1638.01
+      ],
+      "width": 252.98,
+      "height": 265.74
+    },
+    {
+      "id": 41,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.7033,
+      "bbox": [
+        3462.72,
+        964.6,
+        3494.82,
+        988.26
+      ],
+      "center": [
+        3478.77,
+        976.43
+      ],
+      "width": 32.09,
+      "height": 23.66
+    },
+    {
+      "id": 42,
+      "class_id": 16,
+      "class_name": "Globe Valve",
+      "category": "valve",
+      "korean_name": "글로브 밸브",
+      "confidence": 0.7006,
+      "bbox": [
+        3780.43,
+        989.81,
+        3820.53,
+        1056.49
+      ],
+      "center": [
+        3800.48,
+        1023.15
+      ],
+      "width": 40.1,
+      "height": 66.68
+    },
+    {
+      "id": 43,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.6867,
+      "bbox": [
+        1928.57,
+        818.94,
+        2049.31,
+        896.0
+      ],
+      "center": [
+        1988.94,
+        857.47
+      ],
+      "width": 120.73,
+      "height": 77.06
+    },
+    {
+      "id": 44,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.6732,
+      "bbox": [
+        831.94,
+        1212.12,
+        895.84,
+        1339.67
+      ],
+      "center": [
+        863.89,
+        1275.9
+      ],
+      "width": 63.9,
+      "height": 127.55
+    },
+    {
+      "id": 45,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.6603,
+      "bbox": [
+        331.34,
+        19.47,
+        347.71,
+        52.47
+      ],
+      "center": [
+        339.53,
+        35.97
+      ],
+      "width": 16.37,
+      "height": 32.99
+    },
+    {
+      "id": 46,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.6486,
+      "bbox": [
+        2578.34,
+        1246.39,
+        2684.64,
+        1280.0
+      ],
+      "center": [
+        2631.49,
+        1263.19
+      ],
+      "width": 106.3,
+      "height": 33.61
+    },
+    {
+      "id": 47,
+      "class_id": 22,
+      "class_name": "Reboiler",
+      "category": "heat_exchanger",
+      "korean_name": "리보일러",
+      "confidence": 0.6461,
+      "bbox": [
+        2710.31,
+        2174.57,
+        2878.28,
+        2646.5
+      ],
+      "center": [
+        2794.29,
+        2410.54
+      ],
+      "width": 167.97,
+      "height": 471.93
+    },
+    {
+      "id": 48,
+      "class_id": 7,
+      "class_name": "Column",
+      "category": "tank",
+      "korean_name": "컬럼",
+      "confidence": 0.6441,
+      "bbox": [
+        3072,
+        839.88,
+        3099.2,
+        896.0
+      ],
+      "center": [
+        3085.6,
+        867.94
+      ],
+      "width": 27.2,
+      "height": 56.12
+    },
+    {
+      "id": 49,
+      "class_id": 22,
+      "class_name": "Reboiler",
+      "category": "heat_exchanger",
+      "korean_name": "리보일러",
+      "confidence": 0.6348,
+      "bbox": [
+        3994.54,
+        220.16,
+        4526.9,
+        388.01
+      ],
+      "center": [
+        4260.72,
+        304.08
+      ],
+      "width": 532.36,
+      "height": 167.85
+    },
+    {
+      "id": 50,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.6329,
+      "bbox": [
+        2823.53,
+        1536,
+        2928.16,
+        1588.83
+      ],
+      "center": [
+        2875.84,
+        1562.42
+      ],
+      "width": 104.62,
+      "height": 52.83
+    },
+    {
+      "id": 51,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.617,
+      "bbox": [
+        3894.31,
+        1789.98,
+        3911.81,
+        1822.68
+      ],
+      "center": [
+        3903.06,
+        1806.33
+      ],
+      "width": 17.5,
+      "height": 32.7
+    },
+    {
+      "id": 52,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.5874,
+      "bbox": [
+        3977.34,
+        291.19,
+        3994.45,
+        323.59
+      ],
+      "center": [
+        3985.89,
+        307.39
+      ],
+      "width": 17.11,
+      "height": 32.4
+    },
+    {
+      "id": 53,
+      "class_id": 12,
+      "class_name": "Exchanger",
+      "category": "heat_exchanger",
+      "korean_name": "열교환기",
+      "confidence": 0.5825,
+      "bbox": [
+        448.35,
+        2040.42,
+        473.96,
+        2048.0
+      ],
+      "center": [
+        461.15,
+        2044.21
+      ],
+      "width": 25.61,
+      "height": 7.58
+    },
+    {
+      "id": 54,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.582,
+      "bbox": [
+        1038.08,
+        1831.27,
+        1056.04,
+        1864.02
+      ],
+      "center": [
+        1047.06,
+        1847.65
+      ],
+      "width": 17.95,
+      "height": 32.76
+    },
+    {
+      "id": 55,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.5775,
+      "bbox": [
+        2491.15,
+        1952.32,
+        2507.62,
+        1985.86
+      ],
+      "center": [
+        2499.39,
+        1969.09
+      ],
+      "width": 16.48,
+      "height": 33.54
+    },
+    {
+      "id": 56,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.5603,
+      "bbox": [
+        2308.36,
+        1468.64,
+        2325.85,
+        1500.75
+      ],
+      "center": [
+        2317.11,
+        1484.69
+      ],
+      "width": 17.5,
+      "height": 32.11
+    },
+    {
+      "id": 57,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.5522,
+      "bbox": [
+        3998.71,
+        479.09,
+        4105.25,
+        512.0
+      ],
+      "center": [
+        4051.98,
+        495.54
+      ],
+      "width": 106.54,
+      "height": 32.91
+    },
+    {
+      "id": 58,
+      "class_id": 22,
+      "class_name": "Reboiler",
+      "category": "heat_exchanger",
+      "korean_name": "리보일러",
+      "confidence": 0.5456,
+      "bbox": [
+        566.03,
+        97.89,
+        753.0,
+        407.15
+      ],
+      "center": [
+        659.52,
+        252.52
+      ],
+      "width": 186.98,
+      "height": 309.26
+    },
+    {
+      "id": 59,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.4912,
+      "bbox": [
+        3883.72,
+        707.57,
+        3900.46,
+        739.32
+      ],
+      "center": [
+        3892.09,
+        723.44
+      ],
+      "width": 16.74,
+      "height": 31.75
+    },
+    {
+      "id": 60,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.4875,
+      "bbox": [
+        498.42,
+        1920,
+        598.44,
+        1942.16
+      ],
+      "center": [
+        548.43,
+        1931.08
+      ],
+      "width": 100.02,
+      "height": 22.16
+    },
+    {
+      "id": 61,
+      "class_id": 22,
+      "class_name": "Reboiler",
+      "category": "heat_exchanger",
+      "korean_name": "리보일러",
+      "confidence": 0.4513,
+      "bbox": [
+        1491.62,
+        372.14,
+        1993.01,
+        542.78
+      ],
+      "center": [
+        1742.32,
+        457.46
+      ],
+      "width": 501.38,
+      "height": 170.63
+    },
+    {
+      "id": 62,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.4481,
+      "bbox": [
+        3462.24,
+        943.68,
+        3495.31,
+        962.68
+      ],
+      "center": [
+        3478.77,
+        953.18
+      ],
+      "width": 33.07,
+      "height": 19.0
+    },
+    {
+      "id": 63,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.4418,
+      "bbox": [
+        264.12,
+        2273.82,
+        280.75,
+        2306.35
+      ],
+      "center": [
+        272.44,
+        2290.09
+      ],
+      "width": 16.63,
+      "height": 32.53
+    },
+    {
+      "id": 64,
+      "class_id": 9,
+      "class_name": "Condenser",
+      "category": "heat_exchanger",
+      "korean_name": "응축기",
+      "confidence": 0.4316,
+      "bbox": [
+        4047.11,
+        1387.76,
+        4090.14,
+        1417.51
+      ],
+      "center": [
+        4068.63,
+        1402.64
+      ],
+      "width": 43.03,
+      "height": 29.75
+    },
+    {
+      "id": 65,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.4234,
+      "bbox": [
+        3701.68,
+        949.49,
+        3718.86,
+        981.12
+      ],
+      "center": [
+        3710.27,
+        965.3
+      ],
+      "width": 17.19,
+      "height": 31.63
+    },
+    {
+      "id": 66,
+      "class_id": 9,
+      "class_name": "Condenser",
+      "category": "heat_exchanger",
+      "korean_name": "응축기",
+      "confidence": 0.4164,
+      "bbox": [
+        1957.65,
+        1425.37,
+        2001.33,
+        1455.7
+      ],
+      "center": [
+        1979.49,
+        1440.54
+      ],
+      "width": 43.68,
+      "height": 30.33
+    },
+    {
+      "id": 67,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.4031,
+      "bbox": [
+        1466.16,
+        444.98,
+        1481.89,
+        476.32
+      ],
+      "center": [
+        1474.02,
+        460.65
+      ],
+      "width": 15.72,
+      "height": 31.34
+    },
+    {
+      "id": 68,
+      "class_id": 16,
+      "class_name": "Globe Valve",
+      "category": "valve",
+      "korean_name": "글로브 밸브",
+      "confidence": 0.3664,
+      "bbox": [
+        1117.0,
+        1591.09,
+        1157.87,
+        1656.73
+      ],
+      "center": [
+        1137.43,
+        1623.91
+      ],
+      "width": 40.87,
+      "height": 65.64
+    },
+    {
+      "id": 69,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.3645,
+      "bbox": [
+        2900.51,
+        1920.02,
+        3004.77,
+        1946.47
+      ],
+      "center": [
+        2952.64,
+        1933.25
+      ],
+      "width": 104.26,
+      "height": 26.45
+    },
+    {
+      "id": 70,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.3576,
+      "bbox": [
+        765.88,
+        1649.77,
+        892.08,
+        1779.59
+      ],
+      "center": [
+        828.98,
+        1714.68
+      ],
+      "width": 126.2,
+      "height": 129.82
+    },
+    {
+      "id": 71,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.3561,
+      "bbox": [
+        1927.04,
+        1191.66,
+        1946.54,
+        1224.62
+      ],
+      "center": [
+        1936.79,
+        1208.14
+      ],
+      "width": 19.5,
+      "height": 32.96
+    },
+    {
+      "id": 72,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.3537,
+      "bbox": [
+        3072.26,
+        2141.37,
+        3173.63,
+        2197.19
+      ],
+      "center": [
+        3122.95,
+        2169.28
+      ],
+      "width": 101.37,
+      "height": 55.82
+    },
+    {
+      "id": 73,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.3382,
+      "bbox": [
+        1915.22,
+        1471.14,
+        1933.76,
+        1504.2
+      ],
+      "center": [
+        1924.49,
+        1487.67
+      ],
+      "width": 18.55,
+      "height": 33.05
+    },
+    {
+      "id": 74,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.3373,
+      "bbox": [
+        2688.0,
+        1274.86,
+        2694.57,
+        1345.44
+      ],
+      "center": [
+        2691.28,
+        1310.15
+      ],
+      "width": 6.57,
+      "height": 70.58
+    },
+    {
+      "id": 75,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.3358,
+      "bbox": [
+        2780.27,
+        444.36,
+        2796.5,
+        476.77
+      ],
+      "center": [
+        2788.39,
+        460.57
+      ],
+      "width": 16.22,
+      "height": 32.4
+    },
+    {
+      "id": 76,
+      "class_id": 28,
+      "class_name": "Separator",
+      "category": "tank",
+      "korean_name": "분리기",
+      "confidence": 0.3333,
+      "bbox": [
+        499.12,
+        1920.0,
+        597.66,
+        1942.21
+      ],
+      "center": [
+        548.39,
+        1931.1
+      ],
+      "width": 98.54,
+      "height": 22.2
+    },
+    {
+      "id": 77,
+      "class_id": 16,
+      "class_name": "Globe Valve",
+      "category": "valve",
+      "korean_name": "글로브 밸브",
+      "confidence": 0.3283,
+      "bbox": [
+        2387.19,
+        1613.05,
+        2427.31,
+        1677.9
+      ],
+      "center": [
+        2407.25,
+        1645.48
+      ],
+      "width": 40.11,
+      "height": 64.85
+    },
+    {
+      "id": 78,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.3262,
+      "bbox": [
+        4269.87,
+        3041.07,
+        4352.0,
+        3167.96
+      ],
+      "center": [
+        4310.93,
+        3104.51
+      ],
+      "width": 82.13,
+      "height": 126.9
+    },
+    {
+      "id": 79,
+      "class_id": 10,
+      "class_name": "Control valve",
+      "category": "valve",
+      "korean_name": "제어 밸브",
+      "confidence": 0.3244,
+      "bbox": [
+        439.99,
+        2039.86,
+        482.57,
+        2069.32
+      ],
+      "center": [
+        461.28,
+        2054.59
+      ],
+      "width": 42.58,
+      "height": 29.46
+    },
+    {
+      "id": 80,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.3195,
+      "bbox": [
+        768.45,
+        24.43,
+        875.99,
+        137.92
+      ],
+      "center": [
+        822.22,
+        81.18
+      ],
+      "width": 107.54,
+      "height": 113.49
+    },
+    {
+      "id": 81,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.3086,
+      "bbox": [
+        2573.32,
+        1152,
+        2685.36,
+        1190.23
+      ],
+      "center": [
+        2629.34,
+        1171.11
+      ],
+      "width": 112.04,
+      "height": 38.23
+    },
+    {
+      "id": 82,
+      "class_id": 9,
+      "class_name": "Condenser",
+      "category": "heat_exchanger",
+      "korean_name": "응축기",
+      "confidence": 0.3085,
+      "bbox": [
+        438.86,
+        2039.63,
+        482.47,
+        2069.44
+      ],
+      "center": [
+        460.66,
+        2054.54
+      ],
+      "width": 43.61,
+      "height": 29.81
+    },
+    {
+      "id": 83,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.2996,
+      "bbox": [
+        3919.75,
+        1207.09,
+        4033.86,
+        1280.0
+      ],
+      "center": [
+        3976.81,
+        1243.55
+      ],
+      "width": 114.11,
+      "height": 72.91
+    },
+    {
+      "id": 84,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.2977,
+      "bbox": [
+        4270.94,
+        3073.31,
+        4352.0,
+        3167.74
+      ],
+      "center": [
+        4311.47,
+        3120.52
+      ],
+      "width": 81.06,
+      "height": 94.42
+    },
+    {
+      "id": 85,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.2923,
+      "bbox": [
+        768,
+        1978.7,
+        789.23,
+        2048.0
+      ],
+      "center": [
+        778.61,
+        2013.35
+      ],
+      "width": 21.23,
+      "height": 69.3
+    },
+    {
+      "id": 86,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.2916,
+      "bbox": [
+        250.38,
+        1920,
+        372.24,
+        1992.41
+      ],
+      "center": [
+        311.31,
+        1956.2
+      ],
+      "width": 121.87,
+      "height": 72.41
+    },
+    {
+      "id": 87,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.2895,
+      "bbox": [
+        3541.24,
+        1263.79,
+        3640.72,
+        1280.0
+      ],
+      "center": [
+        3590.98,
+        1271.9
+      ],
+      "width": 99.49,
+      "height": 16.21
+    },
+    {
+      "id": 88,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.2879,
+      "bbox": [
+        2489.18,
+        902.68,
+        2518.87,
+        922.45
+      ],
+      "center": [
+        2504.03,
+        912.56
+      ],
+      "width": 29.69,
+      "height": 19.76
+    },
+    {
+      "id": 89,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.2874,
+      "bbox": [
+        2956.78,
+        886.69,
+        3026.54,
+        896.0
+      ],
+      "center": [
+        2991.66,
+        891.34
+      ],
+      "width": 69.76,
+      "height": 9.31
+    },
+    {
+      "id": 90,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.2767,
+      "bbox": [
+        1221.04,
+        1227.11,
+        1237.54,
+        1259.29
+      ],
+      "center": [
+        1229.29,
+        1243.2
+      ],
+      "width": 16.5,
+      "height": 32.18
+    },
+    {
+      "id": 91,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.2679,
+      "bbox": [
+        2547.28,
+        656.43,
+        2566.84,
+        691.04
+      ],
+      "center": [
+        2557.06,
+        673.74
+      ],
+      "width": 19.56,
+      "height": 34.62
+    },
+    {
+      "id": 92,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.2667,
+      "bbox": [
+        2436.7,
+        786.02,
+        2525.91,
+        896.0
+      ],
+      "center": [
+        2481.3,
+        841.01
+      ],
+      "width": 89.21,
+      "height": 109.98
+    },
+    {
+      "id": 93,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.2505,
+      "bbox": [
+        2436.76,
+        784.49,
+        2557.93,
+        896.0
+      ],
+      "center": [
+        2497.35,
+        840.24
+      ],
+      "width": 121.17,
+      "height": 111.51
+    },
+    {
+      "id": 94,
+      "class_id": 9,
+      "class_name": "Condenser",
+      "category": "heat_exchanger",
+      "korean_name": "응축기",
+      "confidence": 0.2478,
+      "bbox": [
+        2480.47,
+        704.15,
+        2524.9,
+        735.1
+      ],
+      "center": [
+        2502.69,
+        719.63
+      ],
+      "width": 44.44,
+      "height": 30.95
+    },
+    {
+      "id": 95,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.244,
+      "bbox": [
+        2901.27,
+        1920,
+        3003.19,
+        1945.83
+      ],
+      "center": [
+        2952.23,
+        1932.92
+      ],
+      "width": 101.92,
+      "height": 25.83
+    },
+    {
+      "id": 96,
+      "class_id": 28,
+      "class_name": "Separator",
+      "category": "tank",
+      "korean_name": "분리기",
+      "confidence": 0.2431,
+      "bbox": [
+        3540.82,
+        1263.66,
+        3637.77,
+        1280.0
+      ],
+      "center": [
+        3589.3,
+        1271.83
+      ],
+      "width": 96.95,
+      "height": 16.34
+    },
+    {
+      "id": 97,
+      "class_id": 22,
+      "class_name": "Reboiler",
+      "category": "heat_exchanger",
+      "korean_name": "리보일러",
+      "confidence": 0.2424,
+      "bbox": [
+        636.99,
+        1964.94,
+        806.82,
+        2444.5
+      ],
+      "center": [
+        721.9,
+        2204.72
+      ],
+      "width": 169.83,
+      "height": 479.56
+    },
+    {
+      "id": 98,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.2395,
+      "bbox": [
+        1926.55,
+        1424.89,
+        2029.89,
+        1513.23
+      ],
+      "center": [
+        1978.22,
+        1469.06
+      ],
+      "width": 103.34,
+      "height": 88.34
+    },
+    {
+      "id": 99,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.2377,
+      "bbox": [
+        2109.91,
+        1920,
+        2233.03,
+        2013.93
+      ],
+      "center": [
+        2171.47,
+        1966.96
+      ],
+      "width": 123.12,
+      "height": 93.93
+    },
+    {
+      "id": 100,
+      "class_id": 6,
+      "class_name": "Check valve",
+      "category": "valve",
+      "korean_name": "체크 밸브",
+      "confidence": 0.2307,
+      "bbox": [
+        786.31,
+        2985.67,
+        891.72,
+        3073.84
+      ],
+      "center": [
+        839.01,
+        3029.75
+      ],
+      "width": 105.41,
+      "height": 88.17
+    },
+    {
+      "id": 101,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.2297,
+      "bbox": [
+        1926.45,
+        819.51,
+        2010.35,
+        896.0
+      ],
+      "center": [
+        1968.4,
+        857.75
+      ],
+      "width": 83.9,
+      "height": 76.49
+    },
+    {
+      "id": 102,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.2253,
+      "bbox": [
+        1938.52,
+        1152,
+        2043.62,
+        1235.97
+      ],
+      "center": [
+        1991.07,
+        1193.98
+      ],
+      "width": 105.1,
+      "height": 83.97
+    },
+    {
+      "id": 103,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.221,
+      "bbox": [
+        1307.99,
+        1920,
+        1424.63,
+        2032.86
+      ],
+      "center": [
+        1366.31,
+        1976.43
+      ],
+      "width": 116.65,
+      "height": 112.86
+    },
+    {
+      "id": 104,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.2202,
+      "bbox": [
+        2574.56,
+        1152,
+        2685.59,
+        1189.94
+      ],
+      "center": [
+        2630.07,
+        1170.97
+      ],
+      "width": 111.03,
+      "height": 37.94
+    },
+    {
+      "id": 105,
+      "class_id": 24,
+      "class_name": "Reciprocating pump",
+      "category": "pump",
+      "korean_name": "왕복 펌프",
+      "confidence": 0.2186,
+      "bbox": [
+        3094.69,
+        1558.34,
+        3163.79,
+        1614.58
+      ],
+      "center": [
+        3129.24,
+        1586.46
+      ],
+      "width": 69.1,
+      "height": 56.24
+    },
+    {
+      "id": 106,
+      "class_id": 18,
+      "class_name": "In-line Instrument",
+      "category": "instrument",
+      "korean_name": "인라인 계기",
+      "confidence": 0.2144,
+      "bbox": [
+        1152,
+        1546.95,
+        1158.35,
+        1651.94
+      ],
+      "center": [
+        1155.18,
+        1599.45
+      ],
+      "width": 6.35,
+      "height": 104.99
+    },
+    {
+      "id": 107,
+      "class_id": 28,
+      "class_name": "Separator",
+      "category": "tank",
+      "korean_name": "분리기",
+      "confidence": 0.2135,
+      "bbox": [
+        783.54,
+        1650.21,
+        877.86,
+        1664.0
+      ],
+      "center": [
+        830.7,
+        1657.11
+      ],
+      "width": 94.32,
+      "height": 13.79
+    },
+    {
+      "id": 108,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.2118,
+      "bbox": [
+        882.94,
+        3029.74,
+        902.16,
+        3062.64
+      ],
+      "center": [
+        892.55,
+        3046.19
+      ],
+      "width": 19.21,
+      "height": 32.9
+    },
+    {
+      "id": 109,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.2016,
+      "bbox": [
+        725.0,
+        284.91,
+        741.71,
+        317.79
+      ],
+      "center": [
+        733.36,
+        301.35
+      ],
+      "width": 16.71,
+      "height": 32.89
+    },
+    {
+      "id": 110,
+      "class_id": 7,
+      "class_name": "Column",
+      "category": "tank",
+      "korean_name": "컬럼",
+      "confidence": 0.1981,
+      "bbox": [
+        2978.61,
+        912.28,
+        3020.26,
+        1011.08
+      ],
+      "center": [
+        2999.44,
+        961.68
+      ],
+      "width": 41.65,
+      "height": 98.81
+    },
+    {
+      "id": 111,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.1965,
+      "bbox": [
+        4016.29,
+        1386.43,
+        4117.11,
+        1474.68
+      ],
+      "center": [
+        4066.7,
+        1430.55
+      ],
+      "width": 100.82,
+      "height": 88.26
+    },
+    {
+      "id": 112,
+      "class_id": 11,
+      "class_name": "Decanter",
+      "category": "tank",
+      "korean_name": "디캔터",
+      "confidence": 0.1935,
+      "bbox": [
+        479.34,
+        2540.74,
+        512.0,
+        2577.76
+      ],
+      "center": [
+        495.67,
+        2559.25
+      ],
+      "width": 32.66,
+      "height": 37.02
+    },
+    {
+      "id": 113,
+      "class_id": 29,
+      "class_name": "Valve",
+      "category": "valve",
+      "korean_name": "밸브",
+      "confidence": 0.1882,
+      "bbox": [
+        1581.97,
+        892.52,
+        1873.4,
+        1123.4
+      ],
+      "center": [
+        1727.69,
+        1007.96
+      ],
+      "width": 291.44,
+      "height": 230.87
+    },
+    {
+      "id": 114,
+      "class_id": 27,
+      "class_name": "Round Instrument",
+      "category": "instrument",
+      "korean_name": "원형 계기",
+      "confidence": 0.1859,
+      "bbox": [
+        2900.44,
+        1920.0,
+        3002.74,
+        1945.75
+      ],
+      "center": [
+        2951.59,
+        1932.87
+      ],
+      "width": 102.29,
+      "height": 25.74
+    },
+    {
+      "id": 115,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.1822,
+      "bbox": [
+        3712.95,
+        1536,
+        3805.16,
+        1580.17
+      ],
+      "center": [
+        3759.05,
+        1558.08
+      ],
+      "width": 92.21,
+      "height": 44.17
+    },
+    {
+      "id": 116,
+      "class_id": 8,
+      "class_name": "Compressor",
+      "category": "compressor",
+      "korean_name": "압축기",
+      "confidence": 0.1801,
+      "bbox": [
+        3550.69,
+        1265.47,
+        3584.0,
+        1280.0
+      ],
+      "center": [
+        3567.35,
+        1272.74
+      ],
+      "width": 33.31,
+      "height": 14.53
+    },
+    {
+      "id": 117,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.1799,
+      "bbox": [
+        942.93,
+        2804.54,
+        1070.45,
+        2936.04
+      ],
+      "center": [
+        1006.69,
+        2870.29
+      ],
+      "width": 127.52,
+      "height": 131.5
+    },
+    {
+      "id": 118,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.1736,
+      "bbox": [
+        784.86,
+        1650.72,
+        875.78,
+        1664.0
+      ],
+      "center": [
+        830.32,
+        1657.36
+      ],
+      "width": 90.92,
+      "height": 13.28
+    },
+    {
+      "id": 119,
+      "class_id": 19,
+      "class_name": "Motor",
+      "category": "equipment",
+      "korean_name": "모터",
+      "confidence": 0.1718,
+      "bbox": [
+        1945.56,
+        1536.09,
+        1976.74,
+        1562.03
+      ],
+      "center": [
+        1961.15,
+        1549.06
+      ],
+      "width": 31.18,
+      "height": 25.94
+    },
+    {
+      "id": 120,
+      "class_id": 2,
+      "class_name": "Ball valve",
+      "category": "valve",
+      "korean_name": "볼 밸브",
+      "confidence": 0.1674,
+      "bbox": [
+        2415.62,
+        2023.84,
+        2432.0,
+        2048.0
+      ],
+      "center": [
+        2423.81,
+        2035.92
+      ],
+      "width": 16.38,
+      "height": 24.16
+    },
+    {
+      "id": 121,
+      "class_id": 22,
+      "class_name": "Reboiler",
+      "category": "heat_exchanger",
+      "korean_name": "리보일러",
+      "confidence": 0.1652,
+      "bbox": [
+        1042.86,
+        1664.06,
+        1241.86,
+        2077.5
+      ],
+      "center": [
+        1142.36,
+        1870.78
+      ],
+      "width": 199.0,
+      "height": 413.44
+    },
+    {
+      "id": 122,
+      "class_id": 9,
+      "class_name": "Condenser",
+      "category": "heat_exchanger",
+      "korean_name": "응축기",
+      "confidence": 0.1648,
+      "bbox": [
+        1969.09,
+        1146.28,
+        2012.99,
+        1176.58
+      ],
+      "center": [
+        1991.04,
+        1161.43
+      ],
+      "width": 43.9,
+      "height": 30.3
+    },
+    {
+      "id": 123,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.1644,
+      "bbox": [
+        3957.63,
+        2311.28,
+        4057.44,
+        2432.0
+      ],
+      "center": [
+        4007.53,
+        2371.64
+      ],
+      "width": 99.81,
+      "height": 120.72
+    },
+    {
+      "id": 124,
+      "class_id": 13,
+      "class_name": "Fan",
+      "category": "equipment",
+      "korean_name": "팬",
+      "confidence": 0.1595,
+      "bbox": [
+        408.58,
+        2042.79,
+        510.59,
+        2126.85
+      ],
+      "center": [
+        459.58,
+        2084.82
+      ],
+      "width": 102.0,
+      "height": 84.07
+    },
+    {
+      "id": 125,
+      "class_id": 8,
+      "class_name": "Compressor",
+      "category": "compressor",
+      "korean_name": "압축기",
+      "confidence": 0.1594,
+      "bbox": [
+        1945.23,
+        1536.01,
+        2010.73,
+        1562.67
+      ],
+      "center": [
+        1977.98,
+        1549.34
+      ],
+      "width": 65.5,
+      "height": 26.66
+    },
+    {
+      "id": 126,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.1538,
+      "bbox": [
+        447.74,
+        2040.29,
+        476.17,
+        2048.0
+      ],
+      "center": [
+        461.95,
+        2044.15
+      ],
+      "width": 28.42,
+      "height": 7.71
+    },
+    {
+      "id": 127,
+      "class_id": 6,
+      "class_name": "Check valve",
+      "category": "valve",
+      "korean_name": "체크 밸브",
+      "confidence": 0.1535,
+      "bbox": [
+        1925.49,
+        1447.76,
+        2031.79,
+        1515.11
+      ],
+      "center": [
+        1978.64,
+        1481.44
+      ],
+      "width": 106.3,
+      "height": 67.35
+    },
+    {
+      "id": 128,
+      "class_id": 28,
+      "class_name": "Separator",
+      "category": "tank",
+      "korean_name": "분리기",
+      "confidence": 0.1492,
+      "bbox": [
+        3840.42,
+        1536.0,
+        3890.23,
+        1571.33
+      ],
+      "center": [
+        3865.33,
+        1553.67
+      ],
+      "width": 49.81,
+      "height": 35.33
+    },
+    {
+      "id": 129,
+      "class_id": 26,
+      "class_name": "Regulator",
+      "category": "instrument",
+      "korean_name": "레귤레이터",
+      "confidence": 0.1491,
+      "bbox": [
+        2577.92,
+        1663.06,
+        2707.34,
+        1791.58
+      ],
+      "center": [
+        2642.63,
+        1727.32
+      ],
+      "width": 129.42,
+      "height": 128.52
+    },
+    {
+      "id": 130,
+      "class_id": 28,
+      "class_name": "Separator",
+      "category": "tank",
+      "korean_name": "분리기",
+      "confidence": 0.1471,
+      "bbox": [
+        3998.04,
+        478.41,
+        4103.33,
+        512.0
+      ],
+      "center": [
+        4050.68,
+        495.21
+      ],
+      "width": 105.3,
+      "height": 33.59
+    },
+    {
+      "id": 131,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.1392,
+      "bbox": [
+        783.66,
+        2400.12,
+        800.66,
+        2432.0
+      ],
+      "center": [
+        792.16,
+        2416.06
+      ],
+      "width": 17.0,
+      "height": 31.88
+    },
+    {
+      "id": 132,
+      "class_id": 6,
+      "class_name": "Check valve",
+      "category": "valve",
+      "korean_name": "체크 밸브",
+      "confidence": 0.1342,
+      "bbox": [
+        1937.56,
+        1142.93,
+        2043.89,
+        1235.87
+      ],
+      "center": [
+        1990.72,
+        1189.4
+      ],
+      "width": 106.33,
+      "height": 92.94
+    },
+    {
+      "id": 133,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.1293,
+      "bbox": [
+        3840.11,
+        1536,
+        3890.51,
+        1572.26
+      ],
+      "center": [
+        3865.31,
+        1554.13
+      ],
+      "width": 50.4,
+      "height": 36.26
+    },
+    {
+      "id": 134,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.1282,
+      "bbox": [
+        4047,
+        482.26,
+        4116.91,
+        606.82
+      ],
+      "center": [
+        4081.95,
+        544.54
+      ],
+      "width": 69.91,
+      "height": 124.56
+    },
+    {
+      "id": 135,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.1219,
+      "bbox": [
+        3094.36,
+        1558.05,
+        3164.37,
+        1614.69
+      ],
+      "center": [
+        3129.36,
+        1586.37
+      ],
+      "width": 70.0,
+      "height": 56.64
+    },
+    {
+      "id": 136,
+      "class_id": 9,
+      "class_name": "Condenser",
+      "category": "heat_exchanger",
+      "korean_name": "응축기",
+      "confidence": 0.116,
+      "bbox": [
+        1937.72,
+        1174.95,
+        2043.79,
+        1235.73
+      ],
+      "center": [
+        1990.76,
+        1205.34
+      ],
+      "width": 106.07,
+      "height": 60.77
+    },
+    {
+      "id": 137,
+      "class_id": 23,
+      "class_name": "Reciprocating compressor",
+      "category": "compressor",
+      "korean_name": "왕복 압축기",
+      "confidence": 0.1141,
+      "bbox": [
+        4190.11,
+        3261.07,
+        4207.26,
+        3294.4
+      ],
+      "center": [
+        4198.68,
+        3277.74
+      ],
+      "width": 17.15,
+      "height": 33.33
+    },
+    {
+      "id": 138,
+      "class_id": 9,
+      "class_name": "Condenser",
+      "category": "heat_exchanger",
+      "korean_name": "응축기",
+      "confidence": 0.1131,
+      "bbox": [
+        2951.86,
+        2304,
+        3063.74,
+        2325.46
+      ],
+      "center": [
+        3007.8,
+        2314.73
+      ],
+      "width": 111.88,
+      "height": 21.46
+    },
+    {
+      "id": 139,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.113,
+      "bbox": [
+        2110.07,
+        1562.0,
+        2232.5,
+        1671.47
+      ],
+      "center": [
+        2171.29,
+        1616.73
+      ],
+      "width": 122.44,
+      "height": 109.47
+    },
+    {
+      "id": 140,
+      "class_id": 25,
+      "class_name": "Reducer",
+      "category": "piping",
+      "korean_name": "레듀서",
+      "confidence": 0.1123,
+      "bbox": [
+        768.24,
+        1681.93,
+        874.67,
+        1779.68
+      ],
+      "center": [
+        821.46,
+        1730.81
+      ],
+      "width": 106.43,
+      "height": 97.75
+    },
+    {
+      "id": 141,
+      "class_id": 7,
+      "class_name": "Column",
+      "category": "tank",
+      "korean_name": "컬럼",
+      "confidence": 0.1109,
+      "bbox": [
+        1663.82,
+        949.54,
+        1704.38,
+        1046.63
+      ],
+      "center": [
+        1684.1,
+        998.08
+      ],
+      "width": 40.56,
+      "height": 97.09
+    },
+    {
+      "id": 142,
+      "class_id": 10,
+      "class_name": "Control valve",
+      "category": "valve",
+      "korean_name": "제어 밸브",
+      "confidence": 0.1062,
+      "bbox": [
+        3175.11,
+        1536,
+        3200.0,
+        1552.05
+      ],
+      "center": [
+        3187.55,
+        1544.02
+      ],
+      "width": 24.89,
+      "height": 16.05
+    },
+    {
+      "id": 143,
+      "class_id": 21,
+      "class_name": "Pump",
+      "category": "pump",
+      "korean_name": "펌프",
+      "confidence": 0.1028,
+      "bbox": [
+        1946.56,
+        1536,
+        2010.72,
+        1562.44
+      ],
+      "center": [
+        1978.64,
+        1549.22
+      ],
+      "width": 64.16,
+      "height": 26.44
+    }
+  ],
+  "statistics": {
+    "total_symbols": 144,
+    "by_category": {
+      "piping": 32,
+      "compressor": 41,
+      "tank": 11,
+      "equipment": 11,
+      "heat_exchanger": 15,
+      "valve": 12,
+      "instrument": 19,
+      "symbol": 1,
+      "pump": 2
+    }
+  },
+  "visualized_image_saved": true,
+  "image_saved": true,
+  "image_size": {
+    "width": 4559,
+    "height": 3303
+  },
+  "parameters": {
+    "confidence": 0.25,
+    "slice_height": 512,
+    "slice_width": 512,
+    "overlap_ratio": 0.25,
+    "class_agnostic": false,
+    "detection_method": "SAHI"
+  },
+  "processing_time": 15.124
+}

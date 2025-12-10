@@ -48,7 +48,7 @@ inputs:
 outputs:
   - name: connections
     type: array
-    description: 심볼 간 연결 관계
+    description: 심볼 간 연결 관계 (color_type, pipe_type 포함)
   - name: graph
     type: object
     description: 연결성 그래프
@@ -61,6 +61,12 @@ outputs:
   - name: equipment_list
     type: array
     description: 장비 리스트
+  - name: ocr_instruments
+    type: array
+    description: OCR 검출 계기 태그 (FC, TI, LC, PC 등)
+  - name: statistics
+    type: object
+    description: 분석 통계 (connections_by_color_type, connections_by_pipe_type 포함)
 
 parameters:
   - name: generate_bom
@@ -75,6 +81,10 @@ parameters:
     type: boolean
     default: true
     description: 장비 리스트 생성
+  - name: enable_ocr
+    type: boolean
+    default: true
+    description: OCR 기반 계기 태그 검출 (EasyOCR 사용)
   - name: visualize
     type: boolean
     default: true

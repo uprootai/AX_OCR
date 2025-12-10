@@ -19,7 +19,6 @@ import {
   Maximize2,
   Layers,
   Minus,
-  CircuitBoard,
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
@@ -27,28 +26,7 @@ import {
 } from 'lucide-react';
 import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
-
-// 노드 타입 → 컨테이너 이름 매핑
-const nodeToContainerMap: Record<string, string> = {
-  yolo: 'yolo-api',
-  yolopid: 'yolo-pid-api',
-  edocr2: 'edocr2-v2-api',
-  paddleocr: 'paddleocr-api',
-  tesseract: 'tesseract-api',
-  trocr: 'trocr-api',
-  ocr_ensemble: 'ocr-ensemble-api',
-  suryaocr: 'surya-ocr-api',
-  doctr: 'doctr-api',
-  easyocr: 'easyocr-api',
-  edgnet: 'edgnet-api',
-  linedetector: 'line-detector-api',
-  skinmodel: 'skinmodel-api',
-  pidanalyzer: 'pid-analyzer-api',
-  designchecker: 'design-checker-api',
-  vl: 'vl-api',
-  knowledge: 'knowledge-api',
-  esrgan: 'esrgan-api',
-};
+import { NODE_TO_CONTAINER } from '../../config/apiRegistry';
 
 interface NodeConfig {
   type: string;
@@ -80,8 +58,8 @@ const baseNodeConfigs: NodeConfig[] = [
   // Detection Nodes
   {
     type: 'yolo',
-    label: 'YOLO',
-    description: 'Object detection',
+    label: 'YOLO (통합)',
+    description: '기계도면 + P&ID 심볼 검출',
     icon: Target,
     color: '#10b981',
     category: 'detection',
@@ -94,14 +72,7 @@ const baseNodeConfigs: NodeConfig[] = [
     color: '#0d9488',
     category: 'segmentation',
   },
-  {
-    type: 'yolopid',
-    label: 'YOLO-PID',
-    description: 'P&ID symbol detection',
-    icon: CircuitBoard,
-    color: '#059669',
-    category: 'detection',
-  },
+  // YOLO-PID removed - use YOLO node with model_type=pid_symbol
   // OCR Nodes
   {
     type: 'edocr2',
@@ -306,7 +277,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
     if (!statusFetched) {
       return true;
     }
-    const containerName = nodeToContainerMap[nodeType];
+    const containerName = NODE_TO_CONTAINER[nodeType];
     if (!containerName) return true; // 매핑 없으면 활성화로 간주
     return !stoppedContainers.has(containerName);
   }, [statusFetched, stoppedContainers]);

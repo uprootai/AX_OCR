@@ -17,13 +17,15 @@ class YoloPidExecutor(BaseNodeExecutor):
 
     async def execute(self, inputs: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        YOLO-PID 심볼 검출 실행
+        YOLO-PID 심볼 검출 실행 (SAHI Enhanced)
 
         Parameters:
             - image: base64 인코딩된 이미지 또는 PIL Image
-            - confidence: 신뢰도 임계값 (0.1-1.0)
-            - iou: IoU 임계값 (0.1-1.0)
-            - imgsz: 입력 이미지 크기 (320, 640, 1280)
+            - confidence: 신뢰도 임계값 (0.05-1.0)
+            - slice_height: SAHI 슬라이스 높이 (256, 512, 768, 1024)
+            - slice_width: SAHI 슬라이스 너비 (256, 512, 768, 1024)
+            - overlap_ratio: 슬라이스 오버랩 비율 (0.1-0.5)
+            - class_agnostic: Class-agnostic 모드
             - visualize: 시각화
 
         Returns:
@@ -34,20 +36,24 @@ class YoloPidExecutor(BaseNodeExecutor):
         # 이미지 준비
         file_bytes = prepare_image_for_api(inputs, context)
 
-        # 파라미터 추출
-        confidence = self.parameters.get("confidence", 0.25)
-        iou = self.parameters.get("iou", 0.45)
-        imgsz = self.parameters.get("imgsz", 640)
+        # SAHI 파라미터 추출
+        confidence = self.parameters.get("confidence", 0.10)
+        slice_height = int(self.parameters.get("slice_height", 512))
+        slice_width = int(self.parameters.get("slice_width", 512))
+        overlap_ratio = self.parameters.get("overlap_ratio", 0.25)
+        class_agnostic = self.parameters.get("class_agnostic", False)
         visualize = self.parameters.get("visualize", True)
         filename = self.parameters.get("filename", "pid_image.jpg")
 
-        # API 호출
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        # API 호출 (SAHI 파라미터)
+        async with httpx.AsyncClient(timeout=120.0) as client:
             files = {"file": (filename, file_bytes, "image/jpeg")}
             data = {
                 "confidence": str(confidence),
-                "iou": str(iou),
-                "imgsz": str(imgsz),
+                "slice_height": str(slice_height),
+                "slice_width": str(slice_width),
+                "overlap_ratio": str(overlap_ratio),
+                "class_agnostic": str(class_agnostic).lower(),
                 "visualize": str(visualize).lower()
             }
 
@@ -78,24 +84,30 @@ class YoloPidExecutor(BaseNodeExecutor):
         }
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
-        """파라미터 유효성 검사"""
+        """파라미터 유효성 검사 (SAHI 파라미터)"""
         # confidence 검증
         if "confidence" in self.parameters:
             conf = self.parameters["confidence"]
-            if not isinstance(conf, (int, float)) or not (0.1 <= conf <= 1.0):
-                return False, "confidence는 0.1~1.0 사이의 숫자여야 합니다"
+            if not isinstance(conf, (int, float)) or not (0.05 <= conf <= 1.0):
+                return False, "confidence는 0.05~1.0 사이의 숫자여야 합니다"
 
-        # iou 검증
-        if "iou" in self.parameters:
-            iou = self.parameters["iou"]
-            if not isinstance(iou, (int, float)) or not (0.1 <= iou <= 1.0):
-                return False, "iou는 0.1~1.0 사이의 숫자여야 합니다"
+        # slice_height 검증
+        if "slice_height" in self.parameters:
+            sh = int(self.parameters["slice_height"])
+            if sh not in [256, 512, 768, 1024]:
+                return False, "slice_height는 256, 512, 768, 1024 중 하나여야 합니다"
 
-        # imgsz 검증
-        if "imgsz" in self.parameters:
-            imgsz = self.parameters["imgsz"]
-            if imgsz not in [320, 640, 1280]:
-                return False, "imgsz는 320, 640, 1280 중 하나여야 합니다"
+        # slice_width 검증
+        if "slice_width" in self.parameters:
+            sw = int(self.parameters["slice_width"])
+            if sw not in [256, 512, 768, 1024]:
+                return False, "slice_width는 256, 512, 768, 1024 중 하나여야 합니다"
+
+        # overlap_ratio 검증
+        if "overlap_ratio" in self.parameters:
+            ratio = self.parameters["overlap_ratio"]
+            if not isinstance(ratio, (int, float)) or not (0.1 <= ratio <= 0.5):
+                return False, "overlap_ratio는 0.1~0.5 사이의 숫자여야 합니다"
 
         return True, None
 

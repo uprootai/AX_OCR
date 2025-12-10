@@ -28,3 +28,4 @@ tqdm>=4.66.0
 
 # HTTP Client
 httpx==0.25.0
+sahi>=0.11.0

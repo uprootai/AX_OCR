@@ -1,4 +1,5 @@
-# YOLO Detection API Specification
+# YOLO Detection API Specification (통합)
+# 기계도면 + P&ID 심볼 검출
 # BlueprintFlow 자동 통합을 위한 표준 스펙
 
 apiVersion: v1
@@ -6,23 +7,24 @@ kind: APISpec
 
 metadata:
   id: yolo
-  name: YOLO Detection
-  version: 1.0.0
+  name: YOLO (통합)
+  version: 2.0.0
   port: 5005
-  description: YOLOv11 기반 기계 도면 심볼 검출 API
+  description: 통합 YOLO API - 기계도면(14종) 및 P&ID(60종) 심볼 검출. 모델 선택으로 용도에 맞게 사용.
   author: AX Team
   tags:
     - detection
     - yolo
     - symbol
-    - object-detection
+    - pid
+    - sahi
 
 server:
   endpoint: /api/v1/detect
   method: POST
   contentType: multipart/form-data
-  timeout: 60
-  healthEndpoint: /health
+  timeout: 120
+  healthEndpoint: /api/v1/health
 
 blueprintflow:
   category: detection
@@ -57,23 +59,22 @@ outputs:
 parameters:
   - name: model_type
     type: select
-    default: symbol-detector-v1
+    default: engineering
     options:
-      - symbol-detector-v1
-      - dimension-detector-v1
-      - gdt-detector-v1
-      - text-region-detector-v1
-      - yolo11n-general
-    description: 용도별 특화 모델 선택
+      - engineering
+      - pid_symbol
+      - pid_class_agnostic
+      - pid_class_aware
+    description: "모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), pid_class_agnostic(범용), pid_class_aware(32종)"
     formField: model_type
 
   - name: confidence
     type: number
-    default: 0.5
-    min: 0
+    default: 0.25
+    min: 0.05
     max: 1
     step: 0.05
-    description: 검출 신뢰도 임계값
+    description: 검출 신뢰도 임계값 (P&ID는 0.1 권장)
 
   - name: iou
     type: number
@@ -85,11 +86,40 @@ parameters:
 
   - name: imgsz
     type: number
-    default: 1280
+    default: 640
     min: 320
     max: 1920
     step: 32
     description: 입력 이미지 크기
+
+  - name: use_sahi
+    type: boolean
+    default: false
+    description: SAHI 슬라이싱 활성화 (P&ID 모델은 자동 활성화)
+
+  - name: slice_height
+    type: number
+    default: 512
+    min: 256
+    max: 2048
+    step: 128
+    description: SAHI 슬라이스 높이
+
+  - name: slice_width
+    type: number
+    default: 512
+    min: 256
+    max: 2048
+    step: 128
+    description: SAHI 슬라이스 너비
+
+  - name: overlap_ratio
+    type: number
+    default: 0.25
+    min: 0.1
+    max: 0.5
+    step: 0.05
+    description: SAHI 슬라이스 오버랩 비율
 
   - name: visualize
     type: boolean
@@ -113,52 +143,59 @@ mappings:
 
 i18n:
   ko:
-    label: YOLO 검출
-    description: 기계 도면에서 용접 기호, 베어링, 기어 등 14가지 심볼을 자동으로 검출합니다
+    label: YOLO (통합)
+    description: 기계도면(14종) 및 P&ID(60종) 심볼을 검출합니다. 모델 선택으로 용도에 맞게 사용하세요.
     parameters:
       model_type: 모델 선택
       confidence: 신뢰도 임계값
       iou: NMS IoU 임계값
       imgsz: 이미지 크기
+      use_sahi: SAHI 슬라이싱
+      slice_height: 슬라이스 높이
+      slice_width: 슬라이스 너비
+      overlap_ratio: 오버랩 비율
       visualize: 시각화 생성
       task: 작업 유형
   en:
-    label: YOLO Detection
-    description: Automatically detects 14 types of symbols including welding marks, bearings, and gears
+    label: YOLO (Unified)
+    description: Detects engineering (14 types) and P&ID (60 types) symbols. Select model for your use case.
     parameters:
       model_type: Model Selection
       confidence: Confidence Threshold
       iou: NMS IoU Threshold
       imgsz: Image Size
+      use_sahi: SAHI Slicing
+      slice_height: Slice Height
+      slice_width: Slice Width
+      overlap_ratio: Overlap Ratio
       visualize: Generate Visualization
       task: Task Type
 
 examples:
-  - 도면에서 용접 기호 위치 검출
-  - 치수선 영역 자동 추출
-  - GD&T 기호 식별
+  - 도면 이미지 → YOLO (engineering) → 14가지 기계 심볼 검출
+  - 도면 이미지 → YOLO (pid_symbol) → 60가지 P&ID 심볼 검출
 
 usageTips:
-  - 복잡한 도면은 imgsz를 1920으로 올려보세요
-  - 작은 심볼이 많으면 confidence를 0.3으로 낮춰보세요
-  - 중복 검출이 많으면 iou를 0.6으로 올려보세요
+  - "기계도면: model_type=engineering, confidence=0.25"
+  - "P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)"
+  - 검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 정밀 분석 가능
 
 # 리소스 요구사항
 resources:
   gpu:
-    vram: "~2GB"
-    minVram: 1500
+    vram: "~3GB"
+    minVram: 2000
     recommended: "RTX 3060 이상"
     cudaVersion: "11.8+"
   cpu:
-    ram: "~3GB"
-    minRam: 2048
+    ram: "~4GB"
+    minRam: 3072
     cores: 4
     note: "GPU 대비 10배 느림"
   parameterImpact:
-    - parameter: imgsz
-      impact: "imgsz↑ → VRAM↑"
-      examples: "640:1.5GB, 1280:2.5GB, 1920:4GB"
-    - parameter: task
-      impact: "segment 모드 시 VRAM 1.5배"
-      examples: "detect:2GB, segment:3GB"
+    - parameter: model_type
+      impact: "P&ID 모델 시 SAHI 자동 활성화"
+      examples: "engineering:빠름, pid_symbol:SAHI 사용"
+    - parameter: use_sahi
+      impact: "SAHI 사용 시 처리시간 증가, 정확도 향상"
+      examples: "SAHI 미사용:5초, SAHI:30초"

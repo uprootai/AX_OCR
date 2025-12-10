@@ -241,6 +241,8 @@
     "execute": "Execute",
     "clear": "Clear",
     "executing": "Executing...",
+    "cancel": "Cancel",
+    "cancelTooltip": "Cancel the current workflow execution",
     "saveTooltip": "Save current workflow to local storage",
     "executeTooltip": "Execute workflow and view results",
     "clearTooltip": "Clear all nodes and edges from canvas",

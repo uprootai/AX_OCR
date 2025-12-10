@@ -1,0 +1,88 @@
+# YOLO 모델 레지스트리
+# Dashboard에서 웹으로 관리 가능
+
+models:
+  engineering:
+    file: yolo11n_engineering.pt
+    name: 기계도면 심볼
+    description: 치수선, 중심선, 용접기호 등 14종 검출
+    classes: 14
+    class_names:
+      - dimension_line
+      - center_line
+      - weld_symbol
+      - surface_finish
+      - tolerance_frame
+      - datum_target
+      - section_line
+      - hidden_line
+      - leader_line
+      - extension_line
+      - break_line
+      - cutting_plane
+      - phantom_line
+      - chain_line
+    best_for: 기계 제조 도면, CAD 도면
+    trained_on: 합성 데이터 10,000장
+
+  pid_symbol:
+    file: pid_symbol_detector.pt
+    name: P&ID 심볼 (60종)
+    description: 밸브, 펌프, 계기, 탱크 등 60종 P&ID 심볼 검출. SAHI 슬라이싱 지원.
+    classes: 60
+    class_names:
+      - gate_valve
+      - globe_valve
+      - ball_valve
+      - check_valve
+      - butterfly_valve
+      - control_valve
+      - relief_valve
+      - pump_centrifugal
+      - pump_positive
+      - compressor
+      - blower
+      - heat_exchanger
+      - tank
+      - vessel
+      - reactor
+      - column
+      - filter
+      - strainer
+      - flow_indicator
+      - flow_transmitter
+      - pressure_indicator
+      - pressure_transmitter
+      - temperature_indicator
+      - temperature_transmitter
+      - level_indicator
+      - level_transmitter
+      # ... (60종 전체 목록은 API /api/v1/classes에서 확인)
+    best_for: 배관계장도 (P&ID), 공정 플로우 다이어그램
+    trained_on: P&ID 도면 500장
+    supports_sahi: true
+    recommended_params:
+      confidence: 0.10
+      slice_size: 512
+      overlap_ratio: 0.25
+
+  pid_class_agnostic:
+    file: pid_class_agnostic.pt
+    name: P&ID 범용 (Class-agnostic)
+    description: 클래스 구분 없이 모든 심볼을 단일 클래스로 검출. 빠른 속도, 높은 재현율.
+    classes: 1
+    class_names:
+      - symbol
+    best_for: 심볼 위치만 필요한 경우, 후처리로 분류할 때
+    trained_on: P&ID 도면 500장
+
+  pid_class_aware:
+    file: pid_class_aware.pt
+    name: P&ID 분류 (32종)
+    description: 32종 주요 P&ID 심볼 분류. pid_symbol보다 적은 클래스지만 높은 정확도.
+    classes: 32
+    best_for: 주요 심볼만 검출이 필요한 경우
+    trained_on: P&ID 도면 500장
+
+# 기본 모델 설정
+default_model: engineering

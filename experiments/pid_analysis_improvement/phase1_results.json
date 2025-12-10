@@ -1,0 +1,369 @@
+{
+  "experiment": "confidence_tuning",
+  "best_confidence": 0.05,
+  "all_results": [
+    {
+      "confidence": 0.05,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.209,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    },
+    {
+      "confidence": 0.08,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.065,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    },
+    {
+      "confidence": 0.1,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.396,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    },
+    {
+      "confidence": 0.12,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.375,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    },
+    {
+      "confidence": 0.15,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.412,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    },
+    {
+      "confidence": 0.2,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.15,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    },
+    {
+      "confidence": 0.25,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.182,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    },
+    {
+      "confidence": 0.3,
+      "total_detections": 93,
+      "categories": {
+        "pump": 29,
+        "equipment": 4,
+        "heat_exchanger": 27,
+        "symbol": 9,
+        "tank": 3,
+        "valve": 8,
+        "piping": 9,
+        "instrument": 2,
+        "compressor": 2
+      },
+      "classes": {
+        "Pump": 26,
+        "Fan": 3,
+        "Reboiler": 13,
+        "30": 7,
+        "Exchanger": 9,
+        "Column": 3,
+        "Gate Valve": 4,
+        "Reducer": 9,
+        "Reciprocating pump": 1,
+        "31": 2,
+        "Air-cooled Exchanger": 2,
+        "Condenser": 3,
+        "Check valve": 2,
+        "Regulator": 2,
+        "Compressor": 1,
+        "Centrifugal pump": 2,
+        "Ball valve": 1,
+        "Reciprocating compressor": 1,
+        "Motor": 1,
+        "Valve": 1
+      },
+      "processing_time": 14.157,
+      "metrics": {
+        "precision": 0.968,
+        "recall": 1.0,
+        "f1": 0.984,
+        "detection_ratio": 1.033
+      }
+    }
+  ],
+  "ground_truth": {
+    "total_symbols": 90,
+    "categories": {
+      "tank": 3,
+      "heat_exchanger": 15,
+      "pump": 12,
+      "valve": 15,
+      "instrument": 35,
+      "misc": 10
+    }
+  }
+}

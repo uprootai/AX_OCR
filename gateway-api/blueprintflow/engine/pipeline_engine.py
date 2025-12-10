@@ -8,6 +8,7 @@ import time
 import logging
 import json
 import os
+import orjson  # 고성능 JSON 직렬화
 from typing import Dict, Any, Optional, AsyncGenerator
 
 from ..schemas.workflow import (
@@ -37,6 +38,36 @@ class PipelineEngine:
         self.logger = logging.getLogger(__name__)
         self.result_manager = get_result_manager() if RESULT_SAVING_ENABLED and get_result_manager else None
         self.node_execution_order = 0  # 노드 실행 순서 추적
+        # 실행 중인 워크플로우 추적 (취소용)
+        self._running_executions: Dict[str, asyncio.Event] = {}
+
+    def cancel_execution(self, execution_id: str) -> bool:
+        """
+        워크플로우 실행 취소
+
+        Args:
+            execution_id: 취소할 실행 ID
+
+        Returns:
+            취소 성공 여부
+        """
+        if execution_id in self._running_executions:
+            self.logger.info(f"🛑 워크플로우 실행 취소 요청: {execution_id}")
+            self._running_executions[execution_id].set()
+            return True
+        else:
+            self.logger.warning(f"취소할 실행을 찾을 수 없음: {execution_id}")
+            return False
+
+    def get_running_executions(self) -> list:
+        """현재 실행 중인 워크플로우 목록"""
+        return list(self._running_executions.keys())
+
+    def _is_cancelled(self, execution_id: str) -> bool:
+        """실행이 취소되었는지 확인"""
+        if execution_id in self._running_executions:
+            return self._running_executions[execution_id].is_set()
+        return False
 
     async def execute_workflow(
         self,
@@ -262,6 +293,10 @@ class PipelineEngine:
         execution_mode = (config or {}).get("execution_mode", "sequential")
         self.logger.info(f"[SSE] 워크플로우 실행 시작: {workflow.name} (ID: {execution_id}, 모드: {execution_mode})")
 
+        # 취소 플래그 등록
+        cancel_event = asyncio.Event()
+        self._running_executions[execution_id] = cancel_event
+
         # 결과 저장 세션 초기화
         self.node_execution_order = 0
         session_dir = None
@@ -320,6 +355,17 @@ class PipelineEngine:
                 # 순차 실행: 위상 정렬 순서대로 하나씩 실행
                 self.logger.info("🔄 [SSE] 순차 실행 모드")
                 for node_id in sorted_nodes:
+                    # 취소 확인
+                    if self._is_cancelled(execution_id):
+                        self.logger.info(f"🛑 [SSE] 워크플로우 취소됨 (노드 {node_id} 실행 전)")
+                        yield self._format_sse_event({
+                            "type": "workflow_cancelled",
+                            "execution_id": execution_id,
+                            "cancelled_at_node": node_id,
+                            "message": "Workflow cancelled by user"
+                        })
+                        return
+
                     # 노드 실행 시작 이벤트
                     yield self._format_sse_event({
                         "type": "node_start",
@@ -335,6 +381,17 @@ class PipelineEngine:
                 # 병렬 실행: 병렬 그룹 단위로 실행
                 self.logger.info("⚡ [SSE] 병렬 실행 모드")
                 for group_idx, node_group in enumerate(parallel_groups):
+                    # 취소 확인
+                    if self._is_cancelled(execution_id):
+                        self.logger.info(f"🛑 [SSE] 워크플로우 취소됨 (그룹 {group_idx + 1} 실행 전)")
+                        yield self._format_sse_event({
+                            "type": "workflow_cancelled",
+                            "execution_id": execution_id,
+                            "cancelled_at_group": group_idx + 1,
+                            "message": "Workflow cancelled by user"
+                        })
+                        return
+
                     if len(node_group) > 1:
                         # 병렬 실행
                         tasks = []
@@ -443,6 +500,11 @@ class PipelineEngine:
                 "type": "error",
                 "message": f"실행 엔진 에러: {str(e)}"
             })
+        finally:
+            # 실행 정보 정리
+            if execution_id in self._running_executions:
+                del self._running_executions[execution_id]
+                self.logger.info(f"[SSE] 워크플로우 실행 정보 정리: {execution_id}")
 
     async def _execute_node_with_events(
         self,
@@ -463,7 +525,37 @@ class PipelineEngine:
     ) -> AsyncGenerator[str, None]:
         """단일 노드 실행 및 SSE 이벤트 생성 (순차/병렬 모드 공용)"""
         try:
-            await self._execute_node(node_id, workflow, context)
+            # 하트비트와 함께 노드 실행
+            start_time = time.time()
+            heartbeat_interval = 5  # 5초마다 하트비트
+
+            # 노드 실행을 Task로 시작
+            execute_task = asyncio.create_task(
+                self._execute_node(node_id, workflow, context)
+            )
+
+            # 실행 완료까지 하트비트 전송
+            while not execute_task.done():
+                try:
+                    # 5초 대기 또는 실행 완료
+                    await asyncio.wait_for(
+                        asyncio.shield(execute_task),
+                        timeout=heartbeat_interval
+                    )
+                except asyncio.TimeoutError:
+                    # 타임아웃 = 아직 실행 중 → 하트비트 전송
+                    elapsed = int(time.time() - start_time)
+                    yield self._format_sse_event({
+                        "type": "node_heartbeat",
+                        "node_id": node_id,
+                        "status": "running",
+                        "elapsed_seconds": elapsed,
+                        "message": f"처리 중... ({elapsed}초 경과)"
+                    })
+
+            # Task 완료 후 예외 확인
+            await execute_task
+
             node_status = context.get_node_status(node_id)
 
             # 디버그: output 확인
@@ -515,5 +607,7 @@ class PipelineEngine:
         pass
 
     def _format_sse_event(self, data: Dict[str, Any]) -> str:
-        """SSE 이벤트 포맷 생성"""
-        return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+        """SSE 이벤트 포맷 생성 (orjson으로 최적화)"""
+        # orjson은 bytes 반환, decode 필요
+        json_str = orjson.dumps(data, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
+        return f"data: {json_str}\n\n"

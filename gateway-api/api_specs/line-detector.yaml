@@ -64,6 +64,14 @@ parameters:
     type: boolean
     default: true
     description: 라인 유형 분류 (배관/신호선)
+  - name: classify_colors
+    type: boolean
+    default: true
+    description: 색상 기반 라인 분류 (공정/냉각/증기/신호선 등)
+  - name: classify_styles
+    type: boolean
+    default: true
+    description: 스타일 분류 (실선/점선/점점선)
   - name: find_intersections
     type: boolean
     default: true
@@ -72,6 +80,20 @@ parameters:
     type: boolean
     default: true
     description: 결과 시각화
+  - name: min_length
+    type: number
+    min: 0
+    max: 500
+    default: 0
+    step: 10
+    description: 최소 라인 길이 (픽셀). 짧은 라인 필터링. 0=필터링 안함
+  - name: max_lines
+    type: number
+    min: 0
+    max: 5000
+    default: 0
+    step: 100
+    description: 최대 라인 수 제한. 긴 라인 우선. 0=제한 없음
 
 i18n:
   ko:
@@ -96,3 +118,9 @@ resources:
     - parameter: method
       impact: "combined 방식 시 시간 2배"
       examples: "lsd:빠름, combined:보통"
+    - parameter: min_length
+      impact: "값↑ → 라인 수↓, 처리시간↓"
+      examples: "0:전체, 30:중간, 50:긴 라인만"
+    - parameter: max_lines
+      impact: "값↓ → 라인 수↓, 처리시간↓"
+      examples: "0:제한없음, 500:적당, 200:빠름"

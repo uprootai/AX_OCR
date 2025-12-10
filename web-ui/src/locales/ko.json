@@ -241,6 +241,8 @@
     "execute": "실행",
     "clear": "전체 삭제",
     "executing": "실행 중...",
+    "cancel": "취소",
+    "cancelTooltip": "현재 워크플로우 실행을 취소합니다",
     "saveTooltip": "현재 워크플로우를 로컬 스토리지에 저장합니다",
     "executeTooltip": "워크플로우를 실행하고 결과를 확인합니다",
     "clearTooltip": "캔버스의 모든 노드와 연결을 삭제합니다",

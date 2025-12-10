@@ -124,7 +124,9 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
             if response.status_code != 200:
                 raise Exception(f"PID Analyzer API 에러: {response.status_code} - {response.text}")
 
-            result = response.json()
+            # 대용량 JSON 파싱 최적화: orjson 사용 (기본 json보다 5-10배 빠름)
+            import orjson
+            result = orjson.loads(response.content)
 
         if not result.get("success", False):
             raise Exception(f"PID Analyzer 실패: {result.get('error', 'Unknown error')}")

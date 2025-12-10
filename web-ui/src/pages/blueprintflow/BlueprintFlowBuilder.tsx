@@ -10,6 +10,7 @@ import type { ReactFlowInstance, OnSelectionChangeParams, NodeTypes } from 'reac
 import 'reactflow/dist/style.css';
 
 import { nodeDefinitions } from '../../config/nodeDefinitions';
+import { NODE_TO_CONTAINER, CONTROL_NODES } from '../../config/apiRegistry';
 import { useWorkflowStore, type NodeStatus } from '../../store/workflowStore';
 
 // API response node status type (snake_case from backend)
@@ -113,7 +114,7 @@ import {
 } from '../../components/blueprintflow/nodes';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
-import { Play, Save, Trash2, Upload, X, Bug, Download, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X, Bug, Download, RotateCcw, AlertTriangle, Loader2, StopCircle } from 'lucide-react';
 import { workflowApi } from '../../lib/api';
 import type { SampleFile } from '../../components/upload/SampleFileGrid';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
@@ -122,31 +123,8 @@ import ToleranceVisualization from '../../components/debug/ToleranceVisualizatio
 import SegmentationVisualization from '../../components/debug/SegmentationVisualization';
 import ResultSummaryCard from '../../components/blueprintflow/ResultSummaryCard';
 import PipelineConclusionCard from '../../components/blueprintflow/PipelineConclusionCard';
-
-// Node type to container name mapping (for container status check)
-const NODE_TO_CONTAINER: Record<string, string> = {
-  yolo: 'yolo-api',
-  yolopid: 'yolo-pid-api',
-  edocr2: 'edocr2-v2-api',
-  paddleocr: 'paddleocr-api',
-  tesseract: 'tesseract-api',
-  trocr: 'trocr-api',
-  suryaocr: 'surya-ocr-api',
-  doctr: 'doctr-api',
-  easyocr: 'easyocr-api',
-  ocr_ensemble: 'ocr-ensemble-api',
-  edgnet: 'edgnet-api',
-  linedetector: 'line-detector-api',
-  esrgan: 'esrgan-api',
-  skinmodel: 'skinmodel-api',
-  pidanalyzer: 'pid-analyzer-api',
-  designchecker: 'design-checker-api',
-  knowledge: 'knowledge-api',
-  vl: 'vl-api',
-};
-
-// Control nodes that don't need containers
-const CONTROL_NODES = ['imageinput', 'textinput', 'if', 'loop', 'merge'];
+import DataTableView, { extractArrayData } from '../../components/blueprintflow/DataTableView';
+import VisualizationImage, { extractVisualizationImages } from '../../components/blueprintflow/VisualizationImage';
 
 // Base node type mapping
 const baseNodeTypes = {
@@ -254,6 +232,7 @@ function WorkflowBuilderCanvas() {
     executionId,
     executionMode,
     setExecutionMode,
+    cancelExecution,
   } = useWorkflowStore();
 
   // Track selected node
@@ -662,12 +641,26 @@ function WorkflowBuilderCanvas() {
               <Button
                 onClick={handleExecute}
                 disabled={isExecuting || !uploadedImage}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+                className={`flex items-center gap-2 ${isExecuting ? 'bg-yellow-600 hover:bg-yellow-600 cursor-wait animate-pulse' : 'bg-green-600 hover:bg-green-700'} disabled:bg-gray-400 disabled:cursor-not-allowed`}
                 title={uploadedImage ? t('blueprintflow.executeTooltip') : 'Upload an image first'}
               >
-                <Play className="w-4 h-4" />
+                {isExecuting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
                 {isExecuting ? t('blueprintflow.executing') : t('blueprintflow.execute')}
               </Button>
+              {isExecuting && (
+                <Button
+                  onClick={cancelExecution}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                  title={t('blueprintflow.cancel', 'Cancel execution')}
+                >
+                  <StopCircle className="w-4 h-4" />
+                  {t('blueprintflow.cancel', 'Cancel')}
+                </Button>
+              )}
               <Button
                 onClick={clearWorkflow}
                 variant="outline"
@@ -780,11 +773,15 @@ function WorkflowBuilderCanvas() {
                         }`}>
                           {nodeStatus.status}
                         </span>
-                        {nodeStatus.progress !== undefined && (
+                        {nodeStatus.status === 'running' && nodeStatus.elapsedSeconds !== undefined ? (
+                          <span className="text-xs text-yellow-600 dark:text-yellow-400 font-mono">
+                            {nodeStatus.elapsedSeconds}초 경과
+                          </span>
+                        ) : nodeStatus.progress !== undefined && nodeStatus.progress > 0 ? (
                           <span className="text-xs text-gray-500">
                             {(nodeStatus.progress * 100).toFixed(0)}%
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -1353,6 +1350,49 @@ function WorkflowBuilderCanvas() {
                                               </div>
                                             </div>
                                           )}
+
+                                          {/* Data Table Views - 배열 데이터 테이블 표시 */}
+                                          {output && (() => {
+                                            const arrayData = extractArrayData(output as Record<string, unknown>);
+                                            if (arrayData.length === 0) return null;
+                                            return (
+                                              <div className="mt-3 space-y-3">
+                                                {arrayData.map(({ field, data, title }) => (
+                                                  <DataTableView
+                                                    key={field}
+                                                    data={data}
+                                                    title={title}
+                                                    nodeType={nodeType}
+                                                    exportFilename={`${nodeId}_${field}`}
+                                                    compact={true}
+                                                    pageSize={5}
+                                                  />
+                                                ))}
+                                              </div>
+                                            );
+                                          })()}
+
+                                          {/* Visualization Images - 시각화 이미지 표시 */}
+                                          {output && (() => {
+                                            const visualizations = extractVisualizationImages(output as Record<string, unknown>);
+                                            // image와 visualized_image는 위에서 이미 표시하므로 제외
+                                            const filteredVis = visualizations.filter(
+                                              v => v.field !== 'image' && v.field !== 'visualized_image'
+                                            );
+                                            if (filteredVis.length === 0) return null;
+                                            return (
+                                              <div className="mt-3 space-y-2">
+                                                {filteredVis.map(({ field, base64, title }) => (
+                                                  <VisualizationImage
+                                                    key={field}
+                                                    base64={base64}
+                                                    title={title}
+                                                    maxHeight="200px"
+                                                  />
+                                                ))}
+                                              </div>
+                                            );
+                                          })()}
 
                                           {/* Raw Data Viewer */}
                                           {output && Object.keys(output).length > 0 && (

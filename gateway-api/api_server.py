@@ -79,18 +79,13 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS Configuration
-ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:5174,http://localhost:3000"
-).split(",")
-
+# CORS Configuration (개발 환경: 모든 origin 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
-    allow_headers=["Content-Type", "Authorization", "Accept"],
+    allow_origins=["*"],  # 개발 환경에서 모든 origin 허용 (WSL + Windows 브라우저 지원)
+    allow_credentials=False,  # allow_origins=["*"] 사용 시 False 필요
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include Routers
@@ -2113,6 +2108,43 @@ async def workflow_health():
             "conditional_branching": False,  # Phase 2에서 구현 예정
             "loop_execution": False,  # Phase 2에서 구현 예정
         }
+    }
+
+
+@app.post("/api/v1/workflow/cancel/{execution_id}")
+async def cancel_workflow(execution_id: str):
+    """
+    워크플로우 실행 취소
+
+    실행 중인 워크플로우를 취소합니다.
+    다음 노드 실행 시작 전에 취소가 적용됩니다.
+    """
+    logger.info(f"🛑 워크플로우 취소 요청: {execution_id}")
+    success = blueprint_engine.cancel_execution(execution_id)
+
+    if success:
+        return {
+            "status": "cancelled",
+            "execution_id": execution_id,
+            "message": "Workflow cancellation requested"
+        }
+    else:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Execution not found or already completed: {execution_id}"
+        )
+
+
+@app.get("/api/v1/workflow/running")
+async def get_running_workflows():
+    """
+    실행 중인 워크플로우 목록 조회
+    """
+    running = blueprint_engine.get_running_executions()
+    return {
+        "status": "success",
+        "running_executions": running,
+        "count": len(running)
     }
 
 

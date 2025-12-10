@@ -3,13 +3,21 @@ Container Management Router
 Docker 컨테이너 상태 조회 및 시작/중지 API
 """
 import logging
-from typing import List, Optional
+import time
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/containers", tags=["containers"])
+
+# 컨테이너 상태 캐시 (5초간 유효)
+_container_status_cache: Dict[str, Any] = {
+    "data": None,
+    "timestamp": 0,
+    "ttl": 5  # 5초 캐시
+}
 
 # Docker SDK 동적 로드
 try:
@@ -71,7 +79,15 @@ class ContainerStatusResponse(BaseModel):
 
 @router.get("/status", response_model=ContainerStatusResponse)
 async def list_container_status():
-    """컨테이너 상태만 빠르게 조회 (실행 전 체크용, stats 수집 없음)"""
+    """컨테이너 상태만 빠르게 조회 (실행 전 체크용, stats 수집 없음, 5초 캐시)"""
+    global _container_status_cache
+
+    # 캐시 확인
+    now = time.time()
+    if (_container_status_cache["data"] is not None and
+        now - _container_status_cache["timestamp"] < _container_status_cache["ttl"]):
+        return _container_status_cache["data"]
+
     if not DOCKER_AVAILABLE:
         return ContainerStatusResponse(
             success=False,
@@ -97,10 +113,16 @@ async def list_container_status():
                 status=c.status,
             ))
 
-        return ContainerStatusResponse(
+        response = ContainerStatusResponse(
             success=True,
             containers=sorted(container_list, key=lambda x: x.name)
         )
+
+        # 캐시 저장
+        _container_status_cache["data"] = response
+        _container_status_cache["timestamp"] = now
+
+        return response
 
     except Exception as e:
         logger.error(f"Failed to list container status: {e}")
@@ -193,6 +215,8 @@ async def list_containers():
 @router.post("/{container_name}/start", response_model=ContainerActionResponse)
 async def start_container(container_name: str):
     """컨테이너 시작"""
+    global _container_status_cache
+
     if not DOCKER_AVAILABLE:
         raise HTTPException(status_code=500, detail="Docker SDK not available")
 
@@ -205,6 +229,8 @@ async def start_container(container_name: str):
             )
 
         container.start()
+        # 캐시 무효화
+        _container_status_cache["data"] = None
         return ContainerActionResponse(
             success=True,
             message=f"Container '{container_name}' started successfully"
@@ -219,6 +245,8 @@ async def start_container(container_name: str):
 @router.post("/{container_name}/stop", response_model=ContainerActionResponse)
 async def stop_container(container_name: str):
     """컨테이너 중지"""
+    global _container_status_cache
+
     if not DOCKER_AVAILABLE:
         raise HTTPException(status_code=500, detail="Docker SDK not available")
 
@@ -231,6 +259,8 @@ async def stop_container(container_name: str):
             )
 
         container.stop(timeout=10)
+        # 캐시 무효화
+        _container_status_cache["data"] = None
         return ContainerActionResponse(
             success=True,
             message=f"Container '{container_name}' stopped successfully"
@@ -245,12 +275,16 @@ async def stop_container(container_name: str):
 @router.post("/{container_name}/restart", response_model=ContainerActionResponse)
 async def restart_container(container_name: str):
     """컨테이너 재시작"""
+    global _container_status_cache
+
     if not DOCKER_AVAILABLE:
         raise HTTPException(status_code=500, detail="Docker SDK not available")
 
     try:
         container = docker_client.containers.get(container_name)
         container.restart(timeout=10)
+        # 캐시 무효화
+        _container_status_cache["data"] = None
         return ContainerActionResponse(
             success=True,
             message=f"Container '{container_name}' restarted successfully"

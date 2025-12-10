@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { ADMIN_ENDPOINTS } from '../../config/api';
+import { getHyperparamDefinitions, getDefaultHyperparams, type HyperparamDefinition } from '../../utils/specToHyperparams';
+import { YOLOModelManager } from '../../components/admin/YOLOModelManager';
 
 interface APIInfo {
   id: string;
@@ -45,21 +47,35 @@ interface APIConfig {
   hyperparams: HyperParams;
 }
 
+interface GPUInfo {
+  name: string;
+  total_mb: number;
+  used_mb: number;
+  free_mb: number;
+  utilization: number;
+}
+
+interface ContainerStatus {
+  service: string;
+  container_name: string;
+  running: boolean;
+  gpu_enabled: boolean;
+  gpu_count: number;
+  memory_limit: string | null;
+}
+
 // 하이퍼파라미터 정의
 const HYPERPARAM_DEFINITIONS: Record<string, { label: string; type: 'number' | 'boolean' | 'select' | 'text'; min?: number; max?: number; step?: number; options?: { value: string; label: string }[]; description: string }[]> = {
   yolo: [
     { label: '신뢰도 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '검출 객체의 최소 신뢰도 (0-1)' },
     { label: 'IoU 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '겹치는 박스 제거 기준' },
     { label: '입력 이미지 크기', type: 'select', options: [{ value: '640', label: '640px (빠름)' }, { value: '1280', label: '1280px (균형)' }, { value: '1920', label: '1920px (정밀)' }], description: 'YOLO 입력 크기' },
+    { label: '모델 타입', type: 'select', options: [{ value: 'engineering', label: '기계도면 (14종)' }, { value: 'pid_symbol', label: 'P&ID 심볼 (60종)' }, { value: 'pid_class_agnostic', label: 'P&ID 범용' }, { value: 'pid_class_aware', label: 'P&ID 분류 (32종)' }], description: 'YOLO 모델 선택' },
+    { label: 'SAHI 슬라이싱', type: 'boolean', description: 'SAHI 슬라이싱 (P&ID 모델은 자동 활성화)' },
+    { label: '슬라이스 크기', type: 'select', options: [{ value: '256', label: '256px (최정밀)' }, { value: '512', label: '512px (균형)' }, { value: '768', label: '768px' }, { value: '1024', label: '1024px (빠름)' }], description: 'SAHI 슬라이스 크기' },
     { label: '시각화 생성', type: 'boolean', description: '바운딩 박스 이미지 생성' },
   ],
-  edocr2_v1: [
-    { label: '치수 추출', type: 'boolean', description: '치수 값, 단위, 공차 정보 추출' },
-    { label: 'GD&T 추출', type: 'boolean', description: '기하 공차 기호 인식' },
-    { label: '텍스트 추출', type: 'boolean', description: '도면번호, 제목 등 텍스트 블록 추출' },
-    { label: '시각화 생성', type: 'boolean', description: 'OCR 결과 시각화 이미지 생성' },
-  ],
-  edocr2_v2: [
+  edocr2: [
     { label: '치수 추출', type: 'boolean', description: '치수 값, 단위, 공차 정보 추출' },
     { label: 'GD&T 추출', type: 'boolean', description: '기하 공차 기호 인식' },
     { label: '텍스트 추출', type: 'boolean', description: '도면번호, 제목 등 텍스트 블록 추출' },
@@ -72,11 +88,31 @@ const HYPERPARAM_DEFINITIONS: Record<string, { label: string; type: 'number' | '
     { label: '시각화 생성', type: 'boolean', description: '세그멘테이션 결과 이미지' },
     { label: '그래프 저장', type: 'boolean', description: '노드/엣지 그래프 데이터 저장' },
   ],
+  line_detector: [
+    { label: '최소 라인 길이', type: 'number', min: 10, max: 200, step: 10, description: '최소 라인 픽셀 길이' },
+    { label: '검출 임계값', type: 'number', min: 0.1, max: 1, step: 0.1, description: '라인 검출 감도' },
+    { label: '시각화 생성', type: 'boolean', description: '라인 시각화 이미지 생성' },
+  ],
   paddleocr: [
     { label: '텍스트 검출 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '텍스트 검출 감도' },
     { label: '박스 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '바운딩 박스 신뢰도' },
     { label: '최소 신뢰도', type: 'number', min: 0, max: 1, step: 0.05, description: '인식 결과 필터링' },
     { label: '회전 텍스트 감지', type: 'boolean', description: '텍스트 방향 자동 보정' },
+  ],
+  tesseract: [
+    { label: '언어', type: 'select', options: [{ value: 'kor', label: '한국어' }, { value: 'eng', label: '영어' }, { value: 'kor+eng', label: '한영 혼합' }], description: '인식 언어' },
+    { label: 'PSM 모드', type: 'select', options: [{ value: '3', label: '자동 페이지 분할' }, { value: '6', label: '단일 블록' }, { value: '11', label: '희소 텍스트' }], description: '페이지 분할 모드' },
+    { label: '시각화 생성', type: 'boolean', description: 'OCR 결과 시각화 이미지 생성' },
+  ],
+  trocr: [
+    { label: '모델 크기', type: 'select', options: [{ value: 'base', label: 'Base (빠름)' }, { value: 'large', label: 'Large (정밀)' }], description: 'TrOCR 모델 크기' },
+    { label: '최대 길이', type: 'number', min: 16, max: 128, step: 8, description: '최대 토큰 길이' },
+    { label: '시각화 생성', type: 'boolean', description: 'OCR 결과 시각화 이미지 생성' },
+  ],
+  ocr_ensemble: [
+    { label: '엔진 선택', type: 'select', options: [{ value: 'all', label: '전체 엔진' }, { value: 'fast', label: '빠른 엔진만' }, { value: 'accurate', label: '정밀 엔진만' }], description: '사용할 OCR 엔진 조합' },
+    { label: '투표 방식', type: 'select', options: [{ value: 'weighted', label: '가중 투표' }, { value: 'majority', label: '다수결' }], description: '앙상블 투표 방식' },
+    { label: '시각화 생성', type: 'boolean', description: 'OCR 결과 시각화 이미지 생성' },
   ],
   surya_ocr: [
     { label: '언어', type: 'select', options: [{ value: 'ko', label: '한국어' }, { value: 'en', label: '영어' }, { value: 'ja', label: '일본어' }, { value: 'zh', label: '중국어' }], description: '인식 언어' },
@@ -93,10 +129,28 @@ const HYPERPARAM_DEFINITIONS: Record<string, { label: string; type: 'number' | '
     { label: '최소 신뢰도', type: 'number', min: 0, max: 1, step: 0.05, description: '최소 인식 신뢰도' },
     { label: '단락 분리', type: 'boolean', description: '텍스트를 단락으로 분리' },
   ],
+  esrgan: [
+    { label: '업스케일 배율', type: 'select', options: [{ value: '2', label: '2x' }, { value: '4', label: '4x' }], description: '이미지 업스케일 배율' },
+    { label: '타일 크기', type: 'number', min: 128, max: 512, step: 64, description: '처리 타일 크기 (VRAM 절약)' },
+  ],
   skinmodel: [
     { label: '재질', type: 'select', options: [{ value: 'steel', label: '강철' }, { value: 'aluminum', label: '알루미늄' }, { value: 'titanium', label: '티타늄' }, { value: 'plastic', label: '플라스틱' }], description: '부품 재질' },
     { label: '제조 공정', type: 'select', options: [{ value: 'machining', label: '기계 가공' }, { value: 'casting', label: '주조' }, { value: '3d_printing', label: '3D 프린팅' }, { value: 'forging', label: '단조' }], description: '제조 방식' },
     { label: '상관 길이', type: 'number', min: 1, max: 100, step: 0.5, description: '공간적 상관 길이 (mm)' },
+  ],
+  pid_analyzer: [
+    { label: '연결 거리', type: 'number', min: 10, max: 100, step: 5, description: '심볼-라인 연결 거리 임계값 (px)' },
+    { label: 'BOM 생성', type: 'boolean', description: 'Bill of Materials 생성' },
+    { label: '시각화 생성', type: 'boolean', description: '연결 분석 시각화' },
+  ],
+  design_checker: [
+    { label: '규칙셋', type: 'select', options: [{ value: 'standard', label: '표준 규칙' }, { value: 'strict', label: '엄격 규칙' }, { value: 'custom', label: '사용자 정의' }], description: '적용할 설계 규칙셋' },
+    { label: '경고 포함', type: 'boolean', description: '경고 수준 이슈도 보고' },
+  ],
+  knowledge: [
+    { label: '검색 모드', type: 'select', options: [{ value: 'hybrid', label: '하이브리드 (벡터+그래프)' }, { value: 'vector', label: '벡터 검색만' }, { value: 'graph', label: '그래프 검색만' }], description: 'GraphRAG 검색 모드' },
+    { label: '검색 깊이', type: 'number', min: 1, max: 5, step: 1, description: '그래프 탐색 깊이' },
+    { label: 'Top K', type: 'number', min: 3, max: 20, step: 1, description: '반환할 결과 수' },
   ],
   vl: [
     { label: '모델', type: 'select', options: [{ value: 'qwen-vl', label: 'Qwen-VL' }, { value: 'llava', label: 'LLaVA' }], description: 'Vision-Language 모델 선택' },
@@ -107,30 +161,52 @@ const HYPERPARAM_DEFINITIONS: Record<string, { label: string; type: 'number' | '
 
 // 기본 하이퍼파라미터 값
 const DEFAULT_HYPERPARAMS: Record<string, HyperParams> = {
-  yolo: { conf_threshold: 0.25, iou_threshold: 0.7, imgsz: 1280, visualize: true },
-  edocr2_v1: { extract_dimensions: true, extract_gdt: true, extract_text: true, visualize: false },
-  edocr2_v2: { extract_dimensions: true, extract_gdt: true, extract_text: true, extract_tables: true, language: 'eng', cluster_threshold: 20 },
+  yolo: { conf_threshold: 0.25, iou_threshold: 0.7, imgsz: '1280', model_type: 'engineering', use_sahi: false, slice_size: '512', visualize: true },
+  edocr2: { extract_dimensions: true, extract_gdt: true, extract_text: true, extract_tables: true, language: 'eng', cluster_threshold: 20 },
   edgnet: { num_classes: 3, visualize: true, save_graph: false },
+  line_detector: { min_line_length: 50, detection_threshold: 0.5, visualize: true },
   paddleocr: { det_db_thresh: 0.3, det_db_box_thresh: 0.5, min_confidence: 0.5, use_angle_cls: true },
+  tesseract: { language: 'kor+eng', psm: '3', visualize: false },
+  trocr: { model_size: 'base', max_length: 64, visualize: false },
+  ocr_ensemble: { engines: 'all', voting: 'weighted', visualize: false },
   surya_ocr: { language: 'ko', layout_analysis: true, visualize: false },
   doctr: { det_model: 'db_resnet50', reco_model: 'crnn_vgg16_bn', visualize: false },
   easyocr: { language: 'ko', min_confidence: 0.5, paragraph: true },
+  esrgan: { scale: '4', tile_size: 256 },
   skinmodel: { material: 'steel', manufacturing_process: 'machining', correlation_length: 10.0 },
+  pid_analyzer: { connection_distance: 30, generate_bom: true, visualize: true },
+  design_checker: { ruleset: 'standard', include_warnings: true },
+  knowledge: { search_mode: 'hybrid', search_depth: 2, top_k: 10 },
   vl: { model: 'qwen-vl', max_tokens: 1024, temperature: 0.7 },
 };
 
-// 기본 API 정의 (APIStatusMonitor와 동일)
+// 기본 API 정의 (APIStatusMonitor와 동일 - 19개 서비스)
 const DEFAULT_APIS: APIInfo[] = [
+  // Orchestrator
   { id: 'gateway', name: 'gateway', display_name: 'Gateway API', base_url: 'http://localhost:8000', port: 8000, status: 'healthy', category: 'orchestrator', description: 'API Gateway & Orchestrator', icon: '🚀', color: '#6366f1' },
-  { id: 'yolo', name: 'yolo', display_name: 'YOLOv11', base_url: 'http://localhost:5005', port: 5005, status: 'unknown', category: 'detection', description: '14가지 도면 심볼 검출', icon: '🎯', color: '#ef4444' },
-  { id: 'edocr2_v1', name: 'edocr2_v1', display_name: 'eDOCr v1 (Fast)', base_url: 'http://localhost:5001', port: 5001, status: 'unknown', category: 'ocr', description: '빠른 OCR 처리', icon: '📝', color: '#3b82f6' },
-  { id: 'edocr2_v2', name: 'edocr2_v2', display_name: 'eDOCr v2 (Advanced)', base_url: 'http://localhost:5002', port: 5002, status: 'unknown', category: 'ocr', description: '고급 한국어 치수 인식', icon: '📐', color: '#3b82f6' },
+  // Detection
+  { id: 'yolo', name: 'yolo', display_name: 'YOLO (통합)', base_url: 'http://localhost:5005', port: 5005, status: 'unknown', category: 'detection', description: '기계도면 14종 + P&ID 60종 심볼 검출', icon: '🎯', color: '#ef4444' },
+  // OCR
+  { id: 'edocr2', name: 'edocr2', display_name: 'eDOCr2', base_url: 'http://localhost:5002', port: 5002, status: 'unknown', category: 'ocr', description: '한국어 치수 인식', icon: '📐', color: '#3b82f6' },
   { id: 'paddleocr', name: 'paddleocr', display_name: 'PaddleOCR', base_url: 'http://localhost:5006', port: 5006, status: 'unknown', category: 'ocr', description: '다국어 OCR', icon: '🔤', color: '#3b82f6' },
+  { id: 'tesseract', name: 'tesseract', display_name: 'Tesseract', base_url: 'http://localhost:5008', port: 5008, status: 'unknown', category: 'ocr', description: '문서 OCR', icon: '📄', color: '#3b82f6' },
+  { id: 'trocr', name: 'trocr', display_name: 'TrOCR', base_url: 'http://localhost:5009', port: 5009, status: 'unknown', category: 'ocr', description: '필기체 OCR', icon: '✍️', color: '#3b82f6' },
+  { id: 'ocr_ensemble', name: 'ocr_ensemble', display_name: 'OCR Ensemble', base_url: 'http://localhost:5011', port: 5011, status: 'unknown', category: 'ocr', description: '4엔진 가중 투표', icon: '🗳️', color: '#3b82f6' },
   { id: 'surya_ocr', name: 'surya_ocr', display_name: 'Surya OCR', base_url: 'http://localhost:5013', port: 5013, status: 'unknown', category: 'ocr', description: '90+ 언어, 레이아웃 분석', icon: '🌞', color: '#3b82f6' },
   { id: 'doctr', name: 'doctr', display_name: 'DocTR', base_url: 'http://localhost:5014', port: 5014, status: 'unknown', category: 'ocr', description: '2단계 파이프라인 OCR', icon: '📑', color: '#3b82f6' },
   { id: 'easyocr', name: 'easyocr', display_name: 'EasyOCR', base_url: 'http://localhost:5015', port: 5015, status: 'unknown', category: 'ocr', description: '80+ 언어, CPU 친화적', icon: '👁️', color: '#3b82f6' },
+  // Segmentation
   { id: 'edgnet', name: 'edgnet', display_name: 'EDGNet', base_url: 'http://localhost:5012', port: 5012, status: 'unknown', category: 'segmentation', description: '엣지 기반 세그멘테이션', icon: '🔲', color: '#22c55e' },
+  { id: 'line_detector', name: 'line_detector', display_name: 'Line Detector', base_url: 'http://localhost:5016', port: 5016, status: 'unknown', category: 'segmentation', description: 'P&ID 라인 검출', icon: '📏', color: '#22c55e' },
+  // Preprocessing
+  { id: 'esrgan', name: 'esrgan', display_name: 'ESRGAN', base_url: 'http://localhost:5010', port: 5010, status: 'unknown', category: 'preprocessing', description: '4x 이미지 업스케일링', icon: '🔍', color: '#f59e0b' },
+  // Analysis
   { id: 'skinmodel', name: 'skinmodel', display_name: 'SkinModel', base_url: 'http://localhost:5003', port: 5003, status: 'unknown', category: 'analysis', description: '공차 분석 & 제조성 예측', icon: '📊', color: '#8b5cf6' },
+  { id: 'pid_analyzer', name: 'pid_analyzer', display_name: 'PID Analyzer', base_url: 'http://localhost:5018', port: 5018, status: 'unknown', category: 'analysis', description: 'P&ID 연결 분석, BOM 생성', icon: '🔗', color: '#8b5cf6' },
+  { id: 'design_checker', name: 'design_checker', display_name: 'Design Checker', base_url: 'http://localhost:5019', port: 5019, status: 'unknown', category: 'analysis', description: 'P&ID 설계 규칙 검증', icon: '✅', color: '#8b5cf6' },
+  // Knowledge
+  { id: 'knowledge', name: 'knowledge', display_name: 'Knowledge', base_url: 'http://localhost:5007', port: 5007, status: 'unknown', category: 'knowledge', description: 'Neo4j + GraphRAG', icon: '🧠', color: '#10b981' },
+  // AI
   { id: 'vl', name: 'vl', display_name: 'VL (Vision-Language)', base_url: 'http://localhost:5004', port: 5004, status: 'unknown', category: 'ai', description: 'Vision-Language 멀티모달', icon: '🤖', color: '#06b6d4' },
 ];
 
@@ -149,6 +225,12 @@ export default function APIDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dockerAction, setDockerAction] = useState<string | null>(null);
+  // Dynamic hyperparameter definitions from API spec
+  const [dynamicHyperparamDefs, setDynamicHyperparamDefs] = useState<HyperparamDefinition[]>([]);
+  // GPU information for memory guidance
+  const [gpuInfo, setGpuInfo] = useState<GPUInfo | null>(null);
+  // Actual container status from Docker
+  const [containerStatus, setContainerStatus] = useState<ContainerStatus | null>(null);
 
   // API 정보 로드
   const fetchAPIInfo = useCallback(async () => {
@@ -248,6 +330,46 @@ export default function APIDetail() {
     }
   }, [apiId]);
 
+  // GPU 정보 로드
+  const fetchGPUInfo = useCallback(async () => {
+    try {
+      const response = await axios.get(ADMIN_ENDPOINTS.status, { timeout: 5000 });
+      const gpu = response.data.gpu;
+      if (gpu && gpu.available && gpu.device_name) {
+        setGpuInfo({
+          name: gpu.device_name,
+          total_mb: gpu.total_memory,
+          used_mb: gpu.used_memory,
+          free_mb: gpu.free_memory,
+          utilization: gpu.utilization,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to fetch GPU info:', error);
+    }
+  }, []);
+
+  // 컨테이너 실제 상태 로드
+  const fetchContainerStatus = useCallback(async () => {
+    if (!apiId) return;
+    try {
+      const response = await axios.get(
+        `${ADMIN_ENDPOINTS.status.replace('/status', '')}/container/status/${apiId}`,
+        { timeout: 5000 }
+      );
+      setContainerStatus(response.data);
+      // 실제 컨테이너 상태로 UI 초기화
+      if (response.data) {
+        setConfig(prev => ({
+          ...prev,
+          device: response.data.gpu_enabled ? 'cuda' : 'cpu',
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to fetch container status:', error);
+    }
+  }, [apiId]);
+
   // Docker 제어
   const handleDockerAction = async (action: 'start' | 'stop' | 'restart') => {
     if (!apiId) return;
@@ -277,7 +399,7 @@ export default function APIDetail() {
   };
 
   // 설정 저장
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true);
 
     try {
@@ -314,7 +436,39 @@ export default function APIDetail() {
 
       localStorage.setItem('hyperParameters', JSON.stringify(hyperParams));
 
-      alert('설정이 저장되었습니다.');
+      // GPU/메모리 설정 변경 시 컨테이너 재생성
+      const applyContainerConfig = window.confirm(
+        `설정을 저장하고 컨테이너에 적용하시겠습니까?\n\n` +
+        `• 연산 장치: ${config.device.toUpperCase()}\n` +
+        `• GPU 메모리: ${config.gpu_memory || '제한 없음'}\n\n` +
+        `컨테이너가 재생성되며 5-10초 정도 소요됩니다.`
+      );
+
+      if (applyContainerConfig) {
+        try {
+          const response = await axios.post(
+            `${ADMIN_ENDPOINTS.status.replace('/status', '')}/container/configure/${apiId}`,
+            {
+              device: config.device,
+              memory_limit: config.memory_limit,
+              gpu_memory: config.gpu_memory,
+            }
+          );
+
+          if (response.data.success) {
+            alert(`✅ 설정이 저장되고 컨테이너가 재생성되었습니다.\n\n${response.data.message}`);
+            // 상태 새로고침
+            setTimeout(fetchContainerStatus, 2000);
+          } else {
+            alert(`⚠️ 설정은 저장되었지만 컨테이너 재생성에 실패했습니다.\n\n${response.data.message}`);
+          }
+        } catch (configError) {
+          const errorMessage = configError instanceof Error ? configError.message : 'Unknown error';
+          alert(`⚠️ 설정은 저장되었지만 컨테이너 재생성에 실패했습니다.\n\n${errorMessage}`);
+        }
+      } else {
+        alert('설정이 저장되었습니다. (컨테이너 미적용)');
+      }
     } catch (error) {
       console.error('Failed to save config:', error);
       alert('설정 저장에 실패했습니다.');
@@ -325,7 +479,45 @@ export default function APIDetail() {
 
   useEffect(() => {
     fetchAPIInfo();
-  }, [fetchAPIInfo]);
+    fetchContainerStatus();
+  }, [fetchAPIInfo, fetchContainerStatus]);
+
+  // Fetch GPU info when device is set to cuda
+  useEffect(() => {
+    if (config.device === 'cuda') {
+      fetchGPUInfo();
+    }
+  }, [config.device, fetchGPUInfo]);
+
+  // Load dynamic hyperparameter definitions from API spec
+  useEffect(() => {
+    if (!apiId) return;
+
+    const loadSpecParams = async () => {
+      try {
+        const [defs, defaults] = await Promise.all([
+          getHyperparamDefinitions(apiId),
+          getDefaultHyperparams(apiId),
+        ]);
+
+        if (defs.length > 0) {
+          setDynamicHyperparamDefs(defs);
+          // Update config with spec defaults if no saved values
+          setConfig(prev => ({
+            ...prev,
+            hyperparams: {
+              ...(defaults as HyperParams),
+              ...prev.hyperparams, // Saved values take precedence
+            },
+          }));
+        }
+      } catch (error) {
+        console.warn('Failed to load spec parameters, using fallback:', error);
+      }
+    };
+
+    loadSpecParams();
+  }, [apiId]);
 
   useEffect(() => {
     if (activeTab === 'logs') {
@@ -359,7 +551,19 @@ export default function APIDetail() {
     );
   }
 
-  const hyperparamDefs = HYPERPARAM_DEFINITIONS[apiId || ''] || [];
+  // Use dynamic definitions from spec, fallback to hardcoded
+  const hyperparamDefs = dynamicHyperparamDefs.length > 0
+    ? dynamicHyperparamDefs.map(def => ({
+        label: def.label,
+        type: def.type,
+        min: def.min,
+        max: def.max,
+        step: def.step,
+        options: def.options,
+        description: def.description,
+        key: def.key,
+      }))
+    : (HYPERPARAM_DEFINITIONS[apiId || ''] || []);
 
   return (
     <div className="space-y-6">
@@ -441,6 +645,27 @@ export default function APIDetail() {
                 서비스 설정
               </h3>
 
+              {/* 현재 컨테이너 상태 */}
+              {containerStatus && (
+                <div className="mb-4 p-3 bg-muted/50 rounded border">
+                  <div className="text-sm font-medium mb-2">현재 컨테이너 상태</div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className={`flex items-center gap-1 ${containerStatus.running ? 'text-green-600' : 'text-red-500'}`}>
+                      <span className={`w-2 h-2 rounded-full ${containerStatus.running ? 'bg-green-500' : 'bg-red-500'}`} />
+                      {containerStatus.running ? '실행 중' : '중지됨'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${containerStatus.gpu_enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {containerStatus.gpu_enabled ? 'GPU' : 'CPU'}
+                    </span>
+                    {containerStatus.memory_limit && (
+                      <span className="text-muted-foreground">
+                        메모리: {containerStatus.memory_limit}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 {/* 포트 */}
                 <div>
@@ -481,7 +706,7 @@ export default function APIDetail() {
                 {/* GPU 메모리 */}
                 {config.device === 'cuda' && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">GPU 메모리</label>
+                    <label className="block text-sm font-medium mb-1">GPU 메모리 제한</label>
                     <input
                       type="text"
                       value={config.gpu_memory || ''}
@@ -489,6 +714,42 @@ export default function APIDetail() {
                       placeholder="예: 6g"
                       className="w-full px-3 py-2 border rounded bg-background"
                     />
+                    {/* GPU 정보 표시 */}
+                    {gpuInfo && (
+                      <div className="mt-2 p-3 bg-muted/50 rounded border text-sm">
+                        <div className="font-medium text-primary mb-2">🖥️ {gpuInfo.name}</div>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <div className="text-xs text-muted-foreground">전체</div>
+                            <div className="font-semibold">{(gpuInfo.total_mb / 1024).toFixed(1)}GB</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">사용 중</div>
+                            <div className="font-semibold text-orange-500">{(gpuInfo.used_mb / 1024).toFixed(1)}GB</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">사용 가능</div>
+                            <div className="font-semibold text-green-500">{(gpuInfo.free_mb / 1024).toFixed(1)}GB</div>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          GPU 사용률: {gpuInfo.utilization}% |
+                          권장: {Math.floor(gpuInfo.free_mb / 1024 * 0.8)}GB 이하
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-2 h-2 bg-gray-200 rounded overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"
+                            style={{ width: `${(gpuInfo.used_mb / gpuInfo.total_mb) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {!gpuInfo && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        GPU 정보를 로드할 수 없습니다
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -554,11 +815,14 @@ export default function APIDetail() {
 
                 <div className="grid md:grid-cols-3 gap-4">
                   {hyperparamDefs.map((param, idx) => {
-                    const key = Object.keys(config.hyperparams)[idx] || `param_${idx}`;
-                    const value = Object.values(config.hyperparams)[idx];
+                    // Use param.key if available (dynamic), otherwise fallback to index-based key
+                    const paramKey = (param as { key?: string }).key || Object.keys(config.hyperparams)[idx] || `param_${idx}`;
+                    const value = (param as { key?: string }).key
+                      ? config.hyperparams[paramKey]
+                      : Object.values(config.hyperparams)[idx];
 
                     return (
-                      <div key={idx}>
+                      <div key={paramKey}>
                         <label className="block text-sm font-medium mb-1" title={param.description}>
                           {param.label}
                         </label>
@@ -569,7 +833,7 @@ export default function APIDetail() {
                               checked={value as boolean}
                               onChange={(e) => {
                                 const newHyperparams = { ...config.hyperparams };
-                                newHyperparams[key] = e.target.checked;
+                                newHyperparams[paramKey] = e.target.checked;
                                 setConfig({ ...config, hyperparams: newHyperparams });
                               }}
                               className="w-4 h-4"
@@ -581,7 +845,7 @@ export default function APIDetail() {
                             value={value as string}
                             onChange={(e) => {
                               const newHyperparams = { ...config.hyperparams };
-                              newHyperparams[key] = e.target.value;
+                              newHyperparams[paramKey] = e.target.value;
                               setConfig({ ...config, hyperparams: newHyperparams });
                             }}
                             className="w-full px-3 py-2 border rounded bg-background"
@@ -601,7 +865,7 @@ export default function APIDetail() {
                             step={param.step}
                             onChange={(e) => {
                               const newHyperparams = { ...config.hyperparams };
-                              newHyperparams[key] = param.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                              newHyperparams[paramKey] = param.type === 'number' ? parseFloat(e.target.value) : e.target.value;
                               setConfig({ ...config, hyperparams: newHyperparams });
                             }}
                             className="w-full px-3 py-2 border rounded bg-background"
@@ -634,6 +898,13 @@ export default function APIDetail() {
             </div>
           </div>
         </Card>
+      )}
+
+      {/* YOLO 모델 관리 (yolo API만 표시) */}
+      {activeTab === 'settings' && apiInfo?.id === 'yolo' && (
+        <div className="mt-6">
+          <YOLOModelManager apiBaseUrl={apiInfo.base_url} />
+        </div>
       )}
     </div>
   );

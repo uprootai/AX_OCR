@@ -18,6 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 애플리케이션 코드 복사
 COPY . .
 
+# 모델 파일 확인 (pid_symbol_detector.pt가 있어야 함)
+RUN ls -la *.pt || echo "Warning: No .pt model files found"
+
 # 포트 노출
 EXPOSE 5017
 

@@ -18,9 +18,11 @@
 - 버전 번호 및 날짜 자동 갱신
 - CHANGELOG 생성
 - API 문서 자동 생성
+- **Dashboard 설정 파일 동기화 검사** (신규 API 누락 감지)
 
 **언제 사용하나요?**
 - 새로운 기능 추가 후
+- **새 API 추가 후 (Dashboard 설정 파일 검사)**
 - 버그 수정 후
 - 주요 리팩토링 완료 후
 - 매주 금요일 정기 업데이트
@@ -186,7 +188,25 @@ http://localhost:5173/blueprintflow/builder
 # → 필요 시 파이프라인 조정
 ```
 
-### 4. 릴리스 준비
+### 5. 새 API 추가 완료 후 (필수 체크리스트)
+```bash
+# 1. 코드 생성 확인
+ls models/{api-id}-api/api_server.py
+ls gateway-api/api_specs/{api-id}.yaml
+
+# 2. Dashboard 파일 업데이트 확인 (누락 시 설정 페이지 오류 발생!)
+# → APIStatusMonitor.tsx의 DEFAULT_APIS
+# → APIDetail.tsx의 DEFAULT_APIS, HYPERPARAM_DEFINITIONS, DEFAULT_HYPERPARAMS
+
+# 3. 문서 업데이트
+/skill doc-updater
+# → Dashboard 동기화 검사 포함
+
+# 4. 빌드 & 테스트
+cd web-ui && npm run build && npm run test:run
+```
+
+### 6. 릴리스 준비
 ```bash
 # 1. 코드 품질 최종 점검
 /skill code-janitor --strict
@@ -291,6 +311,6 @@ chmod 644 /home/uproot/ax/poc/.claude/skills/*.md
 
 ---
 
-**마지막 업데이트**: 2025-11-16
-**버전**: 1.0.0
+**마지막 업데이트**: 2025-12-10
+**버전**: 1.1.0
 **작성자**: Claude Code

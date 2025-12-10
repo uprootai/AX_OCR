@@ -1,0 +1,34 @@
+{
+  "workflow_name": "P&ID Analysis Pipeline",
+  "executed_at": "2025-12-10T02:43:52.943341",
+  "execution_time_seconds": 1419.6794893741608,
+  "status": "failed",
+  "total_nodes": 5,
+  "nodes": [
+    {
+      "id": "imageinput_1",
+      "type": "imageinput",
+      "label": null
+    },
+    {
+      "id": "yolopid_1",
+      "type": "yolopid",
+      "label": null
+    },
+    {
+      "id": "linedetector_1",
+      "type": "linedetector",
+      "label": null
+    },
+    {
+      "id": "pidanalyzer_1",
+      "type": "pidanalyzer",
+      "label": null
+    },
+    {
+      "id": "designchecker_1",
+      "type": "designchecker",
+      "label": null
+    }
+  ]
+}

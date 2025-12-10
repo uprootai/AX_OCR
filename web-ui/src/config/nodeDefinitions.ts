@@ -23,6 +23,8 @@ export interface NodeDefinition {
   color: string;
   icon: string;
   description: string;
+  deprecated?: boolean;
+  deprecatedMessage?: string;
   inputs: {
     name: string;
     type: string;
@@ -104,11 +106,11 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   },
   yolo: {
     type: 'yolo',
-    label: 'YOLO Detection',
+    label: 'YOLO (통합)',
     category: 'detection',
     color: '#10b981',
     icon: 'Target',
-    description: '기계 도면에서 용접 기호, 베어링, 기어 등 14가지 심볼을 자동으로 검출합니다. YOLO v11n 모델 기반.',
+    description: '통합 YOLO API - 기계도면(14종) 및 P&ID(60종) 심볼을 검출합니다. 모델 선택으로 용도에 맞게 사용하세요.',
     inputs: [
       {
         name: 'image',
@@ -127,24 +129,23 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'model_type',
         type: 'select',
-        default: 'symbol-detector-v1',
+        default: 'engineering',
         options: [
-          'symbol-detector-v1',
-          'dimension-detector-v1',
-          'gdt-detector-v1',
-          'text-region-detector-v1',
-          'yolo11n-general',
+          'engineering',
+          'pid_symbol',
+          'pid_class_agnostic',
+          'pid_class_aware',
         ],
-        description: '용도별 특화 모델 (심볼 vs 치수 vs GD&T vs 텍스트 영역)',
+        description: '모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), pid_class_agnostic(범용), pid_class_aware(32종)',
       },
       {
         name: 'confidence',
         type: 'number',
-        default: 0.5,
-        min: 0,
+        default: 0.25,
+        min: 0.05,
         max: 1,
         step: 0.05,
-        description: '검출 신뢰도 임계값 (낮을수록 더 많이 검출)',
+        description: '검출 신뢰도 임계값 (P&ID는 0.1 권장)',
       },
       {
         name: 'iou',
@@ -165,6 +166,39 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         description: '입력 이미지 크기 (작음=빠름, 큼=정확)',
       },
       {
+        name: 'use_sahi',
+        type: 'boolean',
+        default: false,
+        description: 'SAHI 슬라이싱 활성화 (P&ID 모델은 자동 활성화)',
+      },
+      {
+        name: 'slice_height',
+        type: 'number',
+        default: 512,
+        min: 256,
+        max: 2048,
+        step: 128,
+        description: 'SAHI 슬라이스 높이 (작을수록 정밀)',
+      },
+      {
+        name: 'slice_width',
+        type: 'number',
+        default: 512,
+        min: 256,
+        max: 2048,
+        step: 128,
+        description: 'SAHI 슬라이스 너비 (작을수록 정밀)',
+      },
+      {
+        name: 'overlap_ratio',
+        type: 'number',
+        default: 0.25,
+        min: 0.1,
+        max: 0.5,
+        step: 0.05,
+        description: 'SAHI 슬라이스 오버랩 비율',
+      },
+      {
         name: 'visualize',
         type: 'boolean',
         default: true,
@@ -179,12 +213,12 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       },
     ],
     examples: [
-      '도면 이미지 → YOLO → 14가지 심볼 자동 검출',
-      '용접 기호, 베어링, 기어 등 기계 요소 인식',
+      '도면 이미지 → YOLO (engineering) → 14가지 기계 심볼 검출',
+      '도면 이미지 → YOLO (pid_symbol) → 60가지 P&ID 심볼 검출',
     ],
     usageTips: [
-      '워크플로우 시작 시 가장 먼저 실행하여 도면의 주요 영역을 파악하세요',
-      'visualize=true로 설정하면 검출된 영역을 시각적으로 확인할 수 있습니다',
+      '기계도면: model_type=engineering, confidence=0.25',
+      'P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)',
       '검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 해당 영역만 정밀 분석할 수 있습니다',
     ],
     recommendedInputs: [
@@ -1407,11 +1441,20 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'min_length',
         type: 'number',
-        default: 30,
-        min: 10,
-        max: 200,
+        default: 0,
+        min: 0,
+        max: 500,
         step: 10,
-        description: '최소 라인 길이 (픽셀)',
+        description: '최소 라인 길이 (픽셀). 짧은 라인 필터링. 0=필터링 안함',
+      },
+      {
+        name: 'max_lines',
+        type: 'number',
+        default: 0,
+        min: 0,
+        max: 5000,
+        step: 100,
+        description: '최대 라인 수 제한. 긴 라인 우선. 0=제한 없음',
       },
       {
         name: 'merge_threshold',
@@ -1427,6 +1470,18 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         type: 'boolean',
         default: true,
         description: '라인 타입 분류 (배관 vs 신호선)',
+      },
+      {
+        name: 'classify_colors',
+        type: 'boolean',
+        default: true,
+        description: '🎨 색상 기반 라인 분류 (공정/냉각/증기/신호선 등)',
+      },
+      {
+        name: 'classify_styles',
+        type: 'boolean',
+        default: true,
+        description: '📐 스타일 분류 (실선/점선/점점선)',
       },
       {
         name: 'detect_intersections',
@@ -1466,11 +1521,13 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   },
   yolopid: {
     type: 'yolopid',
-    label: 'YOLO-PID Symbol Detector',
+    label: '[DEPRECATED] YOLO-PID',
     category: 'detection',
-    color: '#059669',
+    color: '#6b7280',
     icon: 'CircuitBoard',
-    description: 'P&ID 도면 전용 YOLO 심볼 검출기. 밸브, 펌프, 계기, 탱크 등 60종 심볼 인식.',
+    deprecated: true,
+    deprecatedMessage: '통합 YOLO API 사용: YOLO 노드에서 model_type=pid_symbol 선택',
+    description: '⚠️ DEPRECATED - YOLO 노드의 model_type=pid_symbol 사용 권장. P&ID 심볼 검출.',
     inputs: [
       {
         name: 'image',
@@ -1492,45 +1549,42 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     ],
     parameters: [
       {
-        name: 'model_type',
-        type: 'select',
-        default: 'yolov8-pid',
-        options: ['yolov8-pid', 'yolov11-pid'],
-        description: 'P&ID 심볼 검출 모델',
-      },
-      {
         name: 'confidence',
         type: 'number',
-        default: 0.5,
-        min: 0.1,
-        max: 0.9,
+        default: 0.10,
+        min: 0.05,
+        max: 0.50,
         step: 0.05,
-        description: '검출 신뢰도 임계값',
+        description: '신뢰도 임계값 (낮을수록 더 많은 심볼 검출)',
       },
       {
-        name: 'iou',
-        type: 'number',
-        default: 0.45,
-        min: 0.1,
-        max: 0.9,
-        step: 0.05,
-        description: 'NMS IoU 임계값',
-      },
-      {
-        name: 'imgsz',
-        type: 'number',
-        default: 1280,
-        min: 640,
-        max: 1920,
-        step: 320,
-        description: '입력 이미지 크기 (P&ID는 큰 사이즈 권장)',
-      },
-      {
-        name: 'symbol_categories',
+        name: 'slice_height',
         type: 'select',
-        default: 'all',
-        options: ['all', 'valves', 'pumps', 'instruments', 'vessels', 'heat_exchangers', 'piping'],
-        description: '검출할 심볼 카테고리',
+        default: '512',
+        options: ['256', '512', '768', '1024', '4096'],
+        description: 'SAHI 슬라이스 높이 (4096=슬라이스 없음, 가장 빠름)',
+      },
+      {
+        name: 'slice_width',
+        type: 'select',
+        default: '512',
+        options: ['256', '512', '768', '1024', '4096'],
+        description: 'SAHI 슬라이스 너비 (4096=슬라이스 없음)',
+      },
+      {
+        name: 'overlap_ratio',
+        type: 'number',
+        default: 0.25,
+        min: 0.1,
+        max: 0.5,
+        step: 0.05,
+        description: '슬라이스 오버랩 비율 (높을수록 경계 누락↓)',
+      },
+      {
+        name: 'class_agnostic',
+        type: 'boolean',
+        default: false,
+        description: 'Class-agnostic 모드 (true=모든 심볼을 Symbol로, false=32클래스 분류)',
       },
       {
         name: 'visualize',
@@ -1544,9 +1598,10 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       'YOLO-PID + Line Detector → PID Analyzer → 연결 분석',
     ],
     usageTips: [
-      '⭐ P&ID 도면 전용 모델로 일반 YOLO보다 심볼 인식 정확도가 높습니다',
-      '💡 60종의 P&ID 심볼을 인식합니다 (밸브 15종, 펌프 5종, 계기 20종 등)',
-      '💡 imgsz를 1280 이상으로 설정하면 작은 심볼도 정확히 검출됩니다',
+      '⭐ SAHI 기반으로 대형 P&ID 도면에서 작은 심볼도 정확히 검출',
+      '💡 32종의 P&ID 심볼을 분류합니다 (밸브, 펌프, 계기, 열교환기 등)',
+      '💡 슬라이스 크기를 256으로 설정하면 최정밀 검출, 1024는 빠른 검출',
+      '💡 confidence를 낮추면 더 많은 심볼을 검출하지만 오탐 가능성 증가',
       '💡 Line Detector와 함께 사용하여 PID Analyzer로 연결 관계를 분석하세요',
     ],
     recommendedInputs: [
@@ -1621,16 +1676,34 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         description: '심볼-라인 연결 거리 임계값 (픽셀)',
       },
       {
-        name: 'include_tag_numbers',
+        name: 'enable_ocr',
         type: 'boolean',
         default: true,
-        description: 'OCR 결과에서 태그번호 추출 포함',
+        description: '🔤 OCR 기반 계기 태그 검출 (FC, TI, LC, PC 등)',
       },
       {
-        name: 'generate_graph_json',
+        name: 'generate_bom',
         type: 'boolean',
-        default: false,
-        description: '연결 그래프 JSON 출력 (Neo4j 연동용)',
+        default: true,
+        description: '📋 BOM (Bill of Materials) 생성',
+      },
+      {
+        name: 'generate_valve_list',
+        type: 'boolean',
+        default: true,
+        description: '🎛️ 밸브 시그널 리스트 생성',
+      },
+      {
+        name: 'generate_equipment_list',
+        type: 'boolean',
+        default: true,
+        description: '⚙️ 장비 리스트 생성',
+      },
+      {
+        name: 'visualize',
+        type: 'boolean',
+        default: true,
+        description: '📊 연결 그래프 시각화',
       },
     ],
     examples: [
@@ -1645,9 +1718,9 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     ],
     recommendedInputs: [
       {
-        from: 'yolopid',
-        field: 'symbols',
-        reason: '⭐ P&ID 심볼 목록을 입력받아 연결 관계를 분석합니다',
+        from: 'yolo',
+        field: 'detections',
+        reason: '⭐ YOLO (model_type=pid_symbol)로 검출된 심볼의 연결 관계를 분석합니다',
       },
       {
         from: 'linedetector',
@@ -1721,9 +1794,9 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     ],
     recommendedInputs: [
       {
-        from: 'yolopid',
-        field: 'symbols',
-        reason: '검출된 심볼의 규격 준수 여부를 검사합니다',
+        from: 'yolo',
+        field: 'detections',
+        reason: 'YOLO (model_type=pid_symbol)로 검출된 심볼의 규격 준수 여부를 검사합니다',
       },
       {
         from: 'pidanalyzer',

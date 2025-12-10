@@ -22,6 +22,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { checkAllServicesIncludingCustom } from '../../lib/api';
 import { useAPIConfigStore } from '../../store/apiConfigStore';
+import { API_TO_CONTAINER, API_TO_SPEC_ID } from '../../config/apiRegistry';
 
 interface APIInfo {
   id: string;
@@ -80,8 +81,7 @@ const DEFAULT_APIS: APIInfo[] = [
   // Orchestrator
   { id: 'gateway', name: 'gateway', display_name: 'Gateway API', base_url: 'http://localhost:8000', port: 8000, status: 'unknown', category: 'orchestrator', description: 'API Gateway & Orchestrator', icon: '🚀', color: '#6366f1', last_check: null },
   // Detection
-  { id: 'yolo', name: 'yolo', display_name: 'YOLOv11', base_url: 'http://localhost:5005', port: 5005, status: 'unknown', category: 'detection', description: '14가지 도면 심볼 검출', icon: '🎯', color: '#ef4444', last_check: null },
-  { id: 'yolo_pid', name: 'yolo_pid', display_name: 'YOLO-PID', base_url: 'http://localhost:5017', port: 5017, status: 'unknown', category: 'detection', description: 'P&ID 심볼 검출 (60종)', icon: '🔧', color: '#ef4444', last_check: null },
+  { id: 'yolo', name: 'yolo', display_name: 'YOLO (통합)', base_url: 'http://localhost:5005', port: 5005, status: 'unknown', category: 'detection', description: '기계도면 14종 + P&ID 60종 심볼 검출', icon: '🎯', color: '#ef4444', last_check: null },
   // OCR
   { id: 'edocr2', name: 'edocr2', display_name: 'eDOCr2', base_url: 'http://localhost:5002', port: 5002, status: 'unknown', category: 'ocr', description: '한국어 치수 인식', icon: '📐', color: '#3b82f6', last_check: null },
   { id: 'paddleocr', name: 'paddleocr', display_name: 'PaddleOCR', base_url: 'http://localhost:5006', port: 5006, status: 'unknown', category: 'ocr', description: '다국어 OCR', icon: '🔤', color: '#3b82f6', last_check: null },
@@ -143,53 +143,8 @@ export default function APIStatusMonitor() {
     });
   };
 
-  // API ID → Container name mapping
-  const apiToContainerMap: Record<string, string> = {
-    gateway: 'gateway-api',
-    yolo: 'yolo-api',
-    yolo_pid: 'yolo-pid-api',
-    edocr2: 'edocr2-v2-api',
-    paddleocr: 'paddleocr-api',
-    tesseract: 'tesseract-api',
-    trocr: 'trocr-api',
-    ocr_ensemble: 'ocr-ensemble-api',
-    surya_ocr: 'surya-ocr-api',
-    doctr: 'doctr-api',
-    easyocr: 'easyocr-api',
-    edgnet: 'edgnet-api',
-    line_detector: 'line-detector-api',
-    esrgan: 'esrgan-api',
-    skinmodel: 'skinmodel-api',
-    pid_analyzer: 'pid-analyzer-api',
-    design_checker: 'design-checker-api',
-    knowledge: 'knowledge-api',
-    vl: 'vl-api',
-  };
-
-  // API ID → Spec ID mapping (스펙 파일의 ID와 매핑)
-  const apiToSpecIdMap: Record<string, string> = {
-    yolo: 'yolo',
-    yolo_pid: 'yolopid',
-    edocr2: 'edocr2',
-    paddleocr: 'paddleocr',
-    tesseract: 'tesseract',
-    trocr: 'trocr',
-    ocr_ensemble: 'ocr-ensemble',
-    surya_ocr: 'suryaocr',
-    doctr: 'doctr',
-    easyocr: 'easyocr',
-    edgnet: 'edgnet',
-    line_detector: 'linedetector',
-    esrgan: 'esrgan',
-    skinmodel: 'skinmodel',
-    pid_analyzer: 'pidanalyzer',
-    design_checker: 'designchecker',
-    knowledge: 'knowledge',
-    vl: 'vl',
-  };
-
-  // Get spec ID from API ID
-  const getSpecId = (apiId: string): string => apiToSpecIdMap[apiId] || apiId;
+  // Get spec ID from API ID (using centralized registry)
+  const getSpecId = (apiId: string): string => API_TO_SPEC_ID[apiId] || apiId;
 
   // Category action loading state
   const [categoryActionLoading, setCategoryActionLoading] = useState<string | null>(null);
@@ -203,7 +158,7 @@ export default function APIStatusMonitor() {
         const stats: Record<string, ContainerStats> = {};
         for (const container of containerResponse.data.containers) {
           // Map container name to API ID
-          const apiId = Object.entries(apiToContainerMap).find(([, containerName]) => containerName === container.name)?.[0];
+          const apiId = Object.entries(API_TO_CONTAINER).find(([, containerName]) => containerName === container.name)?.[0];
           if (apiId) {
             stats[apiId] = {
               name: container.name,
@@ -293,7 +248,7 @@ export default function APIStatusMonitor() {
     }
 
     for (const api of targetAPIs) {
-      const containerName = apiToContainerMap[api.id];
+      const containerName = API_TO_CONTAINER[api.id];
 
       // 매핑이 없는 경우
       if (!containerName) {

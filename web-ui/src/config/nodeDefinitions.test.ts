@@ -221,7 +221,7 @@ describe('nodeDefinitions', () => {
   describe('P&ID Analysis nodes', () => {
     const pidNodes = {
       linedetector: { category: 'segmentation', label: 'Line Detector', hasImageInput: true },
-      yolopid: { category: 'detection', label: 'YOLO-PID Symbol Detector', hasImageInput: true },
+      yolopid: { category: 'detection', label: 'YOLO-PID (SAHI)', hasImageInput: true },
       pidanalyzer: { category: 'analysis', label: 'P&ID Analyzer', hasImageInput: false },
       designchecker: { category: 'analysis', label: 'Design Checker', hasImageInput: false },
     };

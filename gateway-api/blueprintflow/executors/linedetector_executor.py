@@ -47,17 +47,21 @@ class LineDetectorExecutor(BaseNodeExecutor):
         classify_types = self.parameters.get("classify_types", True)
         find_intersections = self.parameters.get("find_intersections", True)
         visualize = self.parameters.get("visualize", True)
+        min_length = self.parameters.get("min_length", 0)
+        max_lines = self.parameters.get("max_lines", 0)
         filename = self.parameters.get("filename", "pid_image.jpg")
 
         # API 호출
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=30.0)) as client:
             files = {"file": (filename, file_bytes, "image/jpeg")}
             data = {
                 "method": method,
                 "merge_lines": str(merge_lines).lower(),
                 "classify_types": str(classify_types).lower(),
                 "find_intersections": str(find_intersections).lower(),
-                "visualize": str(visualize).lower()
+                "visualize": str(visualize).lower(),
+                "min_length": str(min_length),
+                "max_lines": str(max_lines)
             }
 
             response = await client.post(
@@ -69,7 +73,9 @@ class LineDetectorExecutor(BaseNodeExecutor):
             if response.status_code != 200:
                 raise Exception(f"Line Detector API 에러: {response.status_code} - {response.text}")
 
-            result = response.json()
+            # 대용량 JSON 파싱 최적화: orjson 사용 (기본 json보다 5-10배 빠름)
+            import orjson
+            result = orjson.loads(response.content)
 
         if not result.get("success", False):
             raise Exception(f"Line Detector 실패: {result.get('error', 'Unknown error')}")

@@ -43,6 +43,8 @@ def get_api_registry():
 DOCKER_SERVICE_MAPPING = {
     "gateway": "gateway-api",
     "yolo": "yolo-api",
+    "yolo_pid": "yolo-pid-api",
+    "yolo-pid": "yolo-pid-api",
     "edocr2": "edocr2-api",
     "edocr2-v1": "edocr2-api",
     "edocr2-v2": "edocr2-v2-api",
@@ -53,6 +55,18 @@ DOCKER_SERVICE_MAPPING = {
     "edgnet": "edgnet-api",
     "skinmodel": "skinmodel-api",
     "vl": "vl-api",
+    "line_detector": "line-detector-api",
+    "line-detector": "line-detector-api",
+    "pid_analyzer": "pid-analyzer-api",
+    "pid-analyzer": "pid-analyzer-api",
+    "design_checker": "design-checker-api",
+    "design-checker": "design-checker-api",
+    "tesseract": "tesseract-api",
+    "trocr": "trocr-api",
+    "esrgan": "esrgan-api",
+    "ocr_ensemble": "ocr-ensemble-api",
+    "ocr-ensemble": "ocr-ensemble-api",
+    "knowledge": "knowledge-api",
 }
 
 # 모델 디렉토리 (docker-compose에서 마운트된 경로)
@@ -176,7 +190,8 @@ async def check_api_health(service: dict) -> APIStatus:
     )
 
 def get_gpu_status() -> GPUStatus:
-    """GPU 상태 조회 (nvidia-smi 사용)"""
+    """GPU 상태 조회 (nvidia-smi 사용, 호스트에서 실행 시도)"""
+    # 먼저 직접 nvidia-smi 시도
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu",
@@ -198,7 +213,33 @@ def get_gpu_status() -> GPUStatus:
                     utilization=int(float(parts[4]))
                 )
     except Exception as e:
-        logger.debug(f"GPU status check failed: {e}")
+        logger.debug(f"Direct nvidia-smi failed: {e}")
+
+    # Docker를 통해 GPU 정보 가져오기 시도 (호스트에서 실행)
+    try:
+        result = subprocess.run(
+            ["docker", "run", "--rm", "--gpus", "all", "--entrypoint", "nvidia-smi",
+             "nvidia/cuda:12.0.0-base-ubuntu22.04",
+             "--query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu",
+             "--format=csv,noheader,nounits"],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0:
+            parts = result.stdout.strip().split(", ")
+            if len(parts) >= 5:
+                return GPUStatus(
+                    available=True,
+                    device_name=parts[0],
+                    total_memory=int(float(parts[1])),
+                    used_memory=int(float(parts[2])),
+                    free_memory=int(float(parts[3])),
+                    utilization=int(float(parts[4]))
+                )
+    except Exception as e:
+        logger.debug(f"Docker nvidia-smi failed: {e}")
 
     return GPUStatus(available=False)
 
@@ -506,3 +547,296 @@ async def cleanup_old_results(max_age_days: int = 7, dry_run: bool = False):
         raise HTTPException(status_code=501, detail="Result manager not available")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Container Configuration Endpoints (GPU/Memory 설정)
+# =============================================================================
+
+class ContainerConfigRequest(BaseModel):
+    device: str = "cpu"  # "cpu" or "cuda"
+    memory_limit: Optional[str] = None  # e.g., "4g"
+    gpu_memory: Optional[str] = None  # e.g., "4g" (for GPU memory limit)
+
+
+class ContainerConfigResponse(BaseModel):
+    success: bool
+    message: str
+    service: str
+    device: str
+    recreated: bool
+
+
+# docker-compose 경로 (호스트 경로)
+DOCKER_COMPOSE_DIR = "/home/uproot/ax/poc"
+DOCKER_COMPOSE_OVERRIDE = f"{DOCKER_COMPOSE_DIR}/docker-compose.override.yml"
+
+
+def update_gpu_override(service_name: str, enable_gpu: bool, gpu_memory: Optional[str] = None) -> bool:
+    """
+    docker-compose.override.yml을 사용하여 서비스의 GPU 설정을 오버라이드합니다.
+    원본 docker-compose.yml은 수정하지 않습니다.
+    """
+    import yaml
+
+    try:
+        # 기존 override 파일 읽기 또는 새로 생성
+        override_data = {'version': '3.8', 'services': {}}
+        if os.path.exists(DOCKER_COMPOSE_OVERRIDE):
+            with open(DOCKER_COMPOSE_OVERRIDE, 'r') as f:
+                override_data = yaml.safe_load(f) or {'version': '3.8', 'services': {}}
+                if 'services' not in override_data:
+                    override_data['services'] = {}
+
+        if enable_gpu:
+            # GPU 설정 추가
+            deploy_config = {
+                'deploy': {
+                    'resources': {
+                        'reservations': {
+                            'devices': [{
+                                'driver': 'nvidia',
+                                'count': 1,
+                                'capabilities': ['gpu']
+                            }]
+                        }
+                    }
+                }
+            }
+
+            # GPU 메모리 제한이 있으면 추가
+            if gpu_memory:
+                deploy_config['deploy']['resources']['limits'] = {
+                    'memory': gpu_memory
+                }
+
+            override_data['services'][service_name] = deploy_config
+            logger.info(f"GPU enabled for {service_name} in override file")
+        else:
+            # GPU 설정 제거 (override에서 삭제)
+            if service_name in override_data.get('services', {}):
+                del override_data['services'][service_name]
+            logger.info(f"GPU override removed for {service_name}")
+
+        # override 파일 저장
+        with open(DOCKER_COMPOSE_OVERRIDE, 'w') as f:
+            yaml.dump(override_data, f, default_flow_style=False, allow_unicode=True)
+
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update docker-compose.override.yml: {e}")
+        return False
+
+
+def recreate_container(service_name: str) -> tuple[bool, str]:
+    """
+    Docker 컨테이너를 재생성합니다.
+    docker:24.0-cli 이미지(Docker Compose v2 포함)를 사용하여 컨테이너를 재생성합니다.
+    """
+    container_name = service_name
+
+    try:
+        # 1. 컨테이너 중지 및 삭제
+        subprocess.run(["docker", "stop", container_name], capture_output=True, timeout=30)
+        subprocess.run(["docker", "rm", container_name], capture_output=True, timeout=10)
+
+        # 2. docker:24.0-cli 이미지로 재생성 (Docker Compose v2 내장)
+        compose_result = subprocess.run(
+            [
+                "docker", "run", "--rm",
+                "-v", "/var/run/docker.sock:/var/run/docker.sock",
+                "-v", f"{DOCKER_COMPOSE_DIR}:{DOCKER_COMPOSE_DIR}",
+                "-w", DOCKER_COMPOSE_DIR,
+                "docker:24.0-cli",
+                "compose",
+                "-f", f"{DOCKER_COMPOSE_DIR}/docker-compose.yml",
+                "-f", DOCKER_COMPOSE_OVERRIDE,
+                "up", "-d", service_name
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+
+        if compose_result.returncode == 0:
+            return True, f"Container {container_name} recreated with GPU settings"
+
+        # fallback: docker start 시도
+        logger.warning(f"docker compose failed: {compose_result.stderr}")
+        start_result = subprocess.run(
+            ["docker", "start", container_name],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if start_result.returncode == 0:
+            return True, f"Container started. Run 'docker compose up -d --force-recreate {service_name}' on host to apply GPU settings"
+
+        return False, f"Failed: {compose_result.stderr or 'Unknown error'}"
+
+    except subprocess.TimeoutExpired:
+        return False, "Timeout while recreating container"
+    except Exception as e:
+        return False, str(e)
+
+
+class ContainerStatusResponse(BaseModel):
+    service: str
+    container_name: str
+    running: bool
+    gpu_enabled: bool
+    gpu_count: int
+    memory_limit: Optional[str] = None
+
+
+@admin_router.get("/container/status/{service}", response_model=ContainerStatusResponse)
+async def get_container_status(service: str):
+    """
+    컨테이너의 현재 GPU/메모리 상태를 조회합니다.
+    """
+    service_mapping = {
+        "yolo": "yolo-api",
+        "yolo_pid": "yolo-pid-api",
+        "yolo-pid": "yolo-pid-api",
+        "edocr2": "edocr2-v2-api",
+        "edocr2-v2": "edocr2-v2-api",
+        "paddleocr": "paddleocr-api",
+        "edgnet": "edgnet-api",
+        "skinmodel": "skinmodel-api",
+        "vl": "vl-api",
+        "line_detector": "line-detector-api",
+        "line-detector": "line-detector-api",
+        "pid_analyzer": "pid-analyzer-api",
+        "pid-analyzer": "pid-analyzer-api",
+        "design_checker": "design-checker-api",
+        "design-checker": "design-checker-api",
+        "tesseract": "tesseract-api",
+        "trocr": "trocr-api",
+        "esrgan": "esrgan-api",
+        "ocr_ensemble": "ocr-ensemble-api",
+        "ocr-ensemble": "ocr-ensemble-api",
+        "surya_ocr": "surya-ocr-api",
+        "surya-ocr": "surya-ocr-api",
+        "doctr": "doctr-api",
+        "easyocr": "easyocr-api",
+    }
+
+    container_name = service_mapping.get(service, f"{service}-api")
+
+    try:
+        # docker inspect로 컨테이너 상태 조회
+        result = subprocess.run(
+            ["docker", "inspect", container_name, "--format",
+             '{{json .State.Running}}|||{{json .HostConfig.DeviceRequests}}|||{{json .HostConfig.Memory}}'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        if result.returncode != 0:
+            raise HTTPException(status_code=404, detail=f"Container {container_name} not found")
+
+        parts = result.stdout.strip().split("|||")
+        running = parts[0].strip().lower() == "true"
+
+        # GPU 상태 파싱
+        import json
+        gpu_enabled = False
+        gpu_count = 0
+        try:
+            device_requests = json.loads(parts[1]) if parts[1] != "null" else []
+            if device_requests:
+                gpu_enabled = True
+                gpu_count = len(device_requests)
+        except:
+            pass
+
+        # 메모리 제한 파싱
+        memory_limit = None
+        try:
+            memory_bytes = int(parts[2]) if parts[2] != "0" else 0
+            if memory_bytes > 0:
+                memory_gb = memory_bytes / (1024 ** 3)
+                memory_limit = f"{memory_gb:.1f}g"
+        except:
+            pass
+
+        return ContainerStatusResponse(
+            service=service,
+            container_name=container_name,
+            running=running,
+            gpu_enabled=gpu_enabled,
+            gpu_count=gpu_count,
+            memory_limit=memory_limit
+        )
+
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Timeout while inspecting container")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@admin_router.post("/container/configure/{service}", response_model=ContainerConfigResponse)
+async def configure_container(service: str, config: ContainerConfigRequest):
+    """
+    컨테이너의 GPU/메모리 설정을 변경하고 재생성합니다.
+
+    - service: 서비스 이름 (예: yolo, yolo_pid, edocr2 등)
+    - device: "cpu" 또는 "cuda"
+    - memory_limit: 메모리 제한 (예: "4g")
+    - gpu_memory: GPU 메모리 제한 (예: "4g")
+    """
+    # 서비스 이름을 docker-compose 서비스 이름으로 변환
+    # API ID (yolo_pid) -> docker-compose 서비스 이름 (yolo-pid-api)
+    service_mapping = {
+        "yolo": "yolo-api",
+        "yolo_pid": "yolo-pid-api",
+        "yolo-pid": "yolo-pid-api",
+        "edocr2": "edocr2-v2-api",
+        "edocr2-v2": "edocr2-v2-api",
+        "paddleocr": "paddleocr-api",
+        "edgnet": "edgnet-api",
+        "skinmodel": "skinmodel-api",
+        "vl": "vl-api",
+        "line_detector": "line-detector-api",
+        "line-detector": "line-detector-api",
+        "pid_analyzer": "pid-analyzer-api",
+        "pid-analyzer": "pid-analyzer-api",
+        "design_checker": "design-checker-api",
+        "design-checker": "design-checker-api",
+        "tesseract": "tesseract-api",
+        "trocr": "trocr-api",
+        "esrgan": "esrgan-api",
+        "ocr_ensemble": "ocr-ensemble-api",
+        "ocr-ensemble": "ocr-ensemble-api",
+        "surya_ocr": "surya-ocr-api",
+        "surya-ocr": "surya-ocr-api",
+        "doctr": "doctr-api",
+        "easyocr": "easyocr-api",
+    }
+
+    compose_service_name = service_mapping.get(service, f"{service}-api")
+    enable_gpu = config.device.lower() == "cuda"
+
+    logger.info(f"Configuring {compose_service_name}: device={config.device}, gpu_memory={config.gpu_memory}")
+
+    # 1. docker-compose.override.yml 업데이트
+    if not update_gpu_override(compose_service_name, enable_gpu, config.gpu_memory):
+        raise HTTPException(status_code=500, detail="Failed to update docker-compose.override.yml")
+
+    # 2. 컨테이너 재생성
+    success, message = recreate_container(compose_service_name)
+
+    if not success:
+        raise HTTPException(status_code=500, detail=message)
+
+    return ContainerConfigResponse(
+        success=True,
+        message=message,
+        service=service,
+        device=config.device,
+        recreated=True
+    )

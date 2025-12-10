@@ -32,13 +32,19 @@ class YoloExecutor(BaseNodeExecutor):
         file_bytes = prepare_image_for_api(inputs, context)
 
         # 파라미터 추출
-        confidence = self.parameters.get("confidence", 0.5)
+        confidence = self.parameters.get("confidence", 0.25)
         iou = self.parameters.get("iou", 0.45)
         visualize = self.parameters.get("visualize", True)
         filename = self.parameters.get("filename", "workflow_image.jpg")
-        imgsz = self.parameters.get("imgsz", 1280)
-        model_type = self.parameters.get("model_type", "symbol-detector-v1")
+        imgsz = self.parameters.get("imgsz", 640)
+        model_type = self.parameters.get("model_type", "engineering")
         task = self.parameters.get("task", "detect")
+
+        # SAHI 파라미터 (P&ID 모델은 서버에서 자동 활성화)
+        use_sahi = self.parameters.get("use_sahi", False)
+        slice_height = self.parameters.get("slice_height", 512)
+        slice_width = self.parameters.get("slice_width", 512)
+        overlap_ratio = self.parameters.get("overlap_ratio", 0.25)
 
         # YOLO API 호출
         result = await call_yolo_detect(
@@ -49,7 +55,11 @@ class YoloExecutor(BaseNodeExecutor):
             imgsz=imgsz,
             visualize=visualize,
             model_type=model_type,
-            task=task
+            task=task,
+            use_sahi=use_sahi,
+            slice_height=slice_height,
+            slice_width=slice_width,
+            overlap_ratio=overlap_ratio
         )
 
         return {

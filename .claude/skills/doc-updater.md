@@ -95,6 +95,32 @@ claude skill doc-updater
 - [ ] CHANGELOG 생성
 - [ ] README.md의 Features 섹션 업데이트 (새 기능 추가 시)
 - [ ] API 문서 자동 생성 (FastAPI → OpenAPI JSON)
+- [ ] **Dashboard 설정 동기화 검사** (아래 섹션 참조)
+
+### 6-1. Dashboard 설정 동기화 검사 (신규 API 추가 시)
+
+신규 API 추가 후 Dashboard 설정 파일이 누락되면 "API를 찾을 수 없습니다" 오류가 발생합니다.
+
+**검사 대상 파일**:
+```
+gateway-api/api_specs/*.yaml                      # API 스펙 (기준)
+web-ui/src/components/monitoring/APIStatusMonitor.tsx  # Dashboard 모니터링
+web-ui/src/pages/admin/APIDetail.tsx                   # Dashboard 설정 페이지
+```
+
+**검사 방법**:
+1. `api_specs/` 폴더의 YAML 파일에서 API ID 목록 추출
+2. `APIStatusMonitor.tsx`의 `DEFAULT_APIS` 배열과 비교
+3. `APIDetail.tsx`의 `DEFAULT_APIS`, `HYPERPARAM_DEFINITIONS`, `DEFAULT_HYPERPARAMS`와 비교
+4. 누락된 API가 있으면 경고 출력
+
+**예시 경고**:
+```
+⚠️ Dashboard 동기화 필요:
+- API 'yolo_pid'가 api_specs/yolo-pid.yaml에 정의되었지만:
+  - APIDetail.tsx의 DEFAULT_APIS에 없음
+  - APIDetail.tsx의 HYPERPARAM_DEFINITIONS에 없음
+```
 
 ### 7. 스마트 기능
 

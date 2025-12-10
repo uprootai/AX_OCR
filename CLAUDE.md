@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-09
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-10
 > 모든 문서: <100줄, 모듈식 구조, 계층적 구성
 
 ---
@@ -28,12 +28,15 @@
 
 | 목적 | 파일 경로 |
 |------|----------|
+| **API 레지스트리** | `src/config/apiRegistry.ts` ⭐ 중앙화된 API 정의 |
 | **노드 정의** | `src/config/nodeDefinitions.ts` |
 | **스펙 서비스** | `src/services/specService.ts` |
 | **노드 훅** | `src/hooks/useNodeDefinitions.ts` |
 | **API 클라이언트** | `src/lib/api.ts` |
 | **스토어** | `src/store/workflowStore.ts`, `apiConfigStore.ts` |
 | **BlueprintFlow** | `src/pages/blueprintflow/BlueprintFlowBuilder.tsx` |
+| **Dashboard 모니터링** | `src/components/monitoring/APIStatusMonitor.tsx` |
+| **Dashboard 설정** | `src/pages/admin/APIDetail.tsx` |
 | **테스트** | `src/config/nodeDefinitions.test.ts`, `src/store/apiConfigStore.test.ts` |
 | **번역** | `src/locales/ko.json`, `src/locales/en.json` |
 | **ESLint** | `eslint.config.js` |
@@ -182,11 +185,60 @@ cp docs/papers/TEMPLATE.md docs/papers/XX_[기술명]_[카테고리].md
 
 **참조**: `docs/papers/README.md` - 전체 논문 목록 및 가이드
 
+### 1-2. Dashboard 설정 추가 (새 API 추가 시 필수)
+
+Dashboard에서 새 API의 모니터링 및 설정을 위해 다음 파일을 업데이트해야 합니다:
+
+**1. `web-ui/src/components/monitoring/APIStatusMonitor.tsx`**:
+- `DEFAULT_APIS` 배열에 API 정보 추가
+- `apiToContainerMap`에 컨테이너 매핑 추가
+- `apiToSpecIdMap`에 스펙 ID 매핑 추가
+
+**2. `web-ui/src/pages/admin/APIDetail.tsx`**:
+- `DEFAULT_APIS` 배열에 API 정보 추가
+- `HYPERPARAM_DEFINITIONS`에 하이퍼파라미터 UI 정의 추가
+- `DEFAULT_HYPERPARAMS`에 기본값 추가
+
+**예시** (YOLO-PID 추가):
+```typescript
+// DEFAULT_APIS
+{ id: 'yolo_pid', name: 'yolo_pid', display_name: 'YOLO-PID',
+  base_url: 'http://localhost:5017', port: 5017,
+  status: 'unknown', category: 'detection',
+  description: 'P&ID 심볼 검출', icon: '🔧', color: '#ef4444' }
+
+// HYPERPARAM_DEFINITIONS
+yolo_pid: [
+  { label: '신뢰도', type: 'number', min: 0.05, max: 1, step: 0.05, description: '...' },
+  { label: '슬라이스 크기', type: 'select', options: [...], description: '...' },
+]
+
+// DEFAULT_HYPERPARAMS
+yolo_pid: { confidence: 0.10, slice_height: '512', visualize: true }
+```
+
+### 1-3. 웹에서 컨테이너 GPU/메모리 설정
+
+Dashboard에서 직접 컨테이너 GPU/메모리 설정을 변경하고 적용할 수 있습니다:
+
+1. Dashboard → API 상세 페이지 접속
+2. "현재 컨테이너 상태" 패널에서 실시간 GPU/CPU 상태 확인
+3. 연산 장치를 CPU/CUDA로 변경
+4. GPU 메모리 제한 설정 (예: 4g, 6g)
+5. 저장 버튼 클릭 → 컨테이너 자동 재생성 (5-10초)
+
+**API 엔드포인트**:
+- `GET /admin/container/status/{service}` - 컨테이너 상태 조회
+- `POST /admin/container/configure/{service}` - GPU/메모리 설정 및 재생성
+
+**참고**: 설정은 `docker-compose.override.yml`에 저장되어 원본 docker-compose.yml을 수정하지 않습니다.
+
 ### 2. 기존 방식 (수동)
 
 1. `models/{api-id}-api/api_server.py` 생성
 2. `gateway-api/api_specs/{api-id}.yaml` 생성
 3. docker-compose.yml에 서비스 추가
+4. Dashboard 설정 추가 (위 1-2 참조)
 
 ### 3. 파라미터 수정
 
@@ -358,6 +410,7 @@ resources:
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
+| 10.0 | 2025-12-10 | 웹 기반 컨테이너 GPU/메모리 설정, 실시간 컨테이너 상태 표시 |
 | 9.0 | 2025-12-09 | 동적 리소스 로딩 시스템, 인사이트 아카이브 (benchmarks, lessons-learned) |
 | 8.0 | 2025-12-06 | P&ID 분석 시스템 (YOLO-PID, Line Detector, PID Analyzer, Design Checker) |
 | 7.0 | 2025-12-03 | API 스펙 표준화 시스템, 스캐폴딩 스크립트 |

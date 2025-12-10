@@ -1,11 +1,11 @@
 """
-YOLO P&ID Symbol Detector API Server
-P&ID 심볼 검출 API (밸브, 펌프, 계기 등 50+ 클래스)
+YOLO P&ID Symbol Detector API Server (SAHI Enhanced)
+P&ID 심볼 검출 API - SAHI (Slicing Aided Hyper Inference) 기반
 
 기술:
-- YOLOv8/v11 기반 객체 검출
-- P&ID 전용 심볼 클래스 (ISO 10628, ISA 5.1 표준)
-- 심볼 유형별 분류 (밸브, 펌프, 계기, 탱크 등)
+- YOLOv8 기반 객체 검출
+- SAHI: 대형 이미지 슬라이싱 기반 고해상도 검출
+- Class-agnostic 또는 Class-aware 검출 모드
 
 포트: 5017
 """
@@ -30,89 +30,49 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 API_PORT = int(os.getenv("YOLO_PID_PORT", "5017"))
-MODEL_PATH = os.getenv("YOLO_PID_MODEL", "yolov8n.pt")  # 기본 모델 (P&ID 학습 필요)
+MODEL_PATH = os.getenv("YOLO_PID_MODEL", "pid_symbol_detector.pt")
 
+# SAHI 설정 (최적화됨)
+SAHI_SLICE_HEIGHT = 512  # 작은 심볼 검출 향상
+SAHI_SLICE_WIDTH = 512
+SAHI_OVERLAP_RATIO = 0.25  # 경계 누락 방지
+DEFAULT_CONFIDENCE = 0.10  # 더 많은 심볼 검출
 
 # =====================
-# P&ID Symbol Classes (ISO 10628, ISA 5.1 기반)
+# P&ID Symbol Classes (Stage 2: 32-class model)
 # =====================
 
 PID_SYMBOL_CLASSES = {
-    # Valves (밸브)
-    0: {"name": "gate_valve", "category": "valve", "korean": "게이트 밸브"},
-    1: {"name": "globe_valve", "category": "valve", "korean": "글로브 밸브"},
-    2: {"name": "ball_valve", "category": "valve", "korean": "볼 밸브"},
-    3: {"name": "butterfly_valve", "category": "valve", "korean": "버터플라이 밸브"},
-    4: {"name": "check_valve", "category": "valve", "korean": "체크 밸브"},
-    5: {"name": "needle_valve", "category": "valve", "korean": "니들 밸브"},
-    6: {"name": "plug_valve", "category": "valve", "korean": "플러그 밸브"},
-    7: {"name": "relief_valve", "category": "valve", "korean": "릴리프 밸브"},
-    8: {"name": "safety_valve", "category": "valve", "korean": "안전 밸브"},
-    9: {"name": "control_valve", "category": "valve", "korean": "제어 밸브"},
-    10: {"name": "solenoid_valve", "category": "valve", "korean": "솔레노이드 밸브"},
-    11: {"name": "three_way_valve", "category": "valve", "korean": "3방 밸브"},
-
-    # Pumps (펌프)
-    12: {"name": "centrifugal_pump", "category": "pump", "korean": "원심 펌프"},
-    13: {"name": "positive_displacement_pump", "category": "pump", "korean": "용적식 펌프"},
-    14: {"name": "gear_pump", "category": "pump", "korean": "기어 펌프"},
-    15: {"name": "screw_pump", "category": "pump", "korean": "스크류 펌프"},
-    16: {"name": "diaphragm_pump", "category": "pump", "korean": "다이아프램 펌프"},
-    17: {"name": "vacuum_pump", "category": "pump", "korean": "진공 펌프"},
-
-    # Instruments (계기)
-    18: {"name": "pressure_gauge", "category": "instrument", "korean": "압력계"},
-    19: {"name": "temperature_gauge", "category": "instrument", "korean": "온도계"},
-    20: {"name": "flow_meter", "category": "instrument", "korean": "유량계"},
-    21: {"name": "level_indicator", "category": "instrument", "korean": "레벨 지시기"},
-    22: {"name": "pressure_transmitter", "category": "instrument", "korean": "압력 트랜스미터"},
-    23: {"name": "temperature_transmitter", "category": "instrument", "korean": "온도 트랜스미터"},
-    24: {"name": "flow_transmitter", "category": "instrument", "korean": "유량 트랜스미터"},
-    25: {"name": "level_transmitter", "category": "instrument", "korean": "레벨 트랜스미터"},
-    26: {"name": "controller", "category": "instrument", "korean": "컨트롤러"},
-    27: {"name": "indicator", "category": "instrument", "korean": "인디케이터"},
-    28: {"name": "recorder", "category": "instrument", "korean": "레코더"},
-
-    # Tanks & Vessels (탱크/용기)
-    29: {"name": "horizontal_tank", "category": "tank", "korean": "수평 탱크"},
-    30: {"name": "vertical_tank", "category": "tank", "korean": "수직 탱크"},
-    31: {"name": "pressure_vessel", "category": "tank", "korean": "압력 용기"},
-    32: {"name": "reactor", "category": "tank", "korean": "반응기"},
-    33: {"name": "column", "category": "tank", "korean": "컬럼"},
-    34: {"name": "drum", "category": "tank", "korean": "드럼"},
-
-    # Heat Exchangers (열교환기)
-    35: {"name": "shell_tube_exchanger", "category": "heat_exchanger", "korean": "쉘앤튜브 열교환기"},
-    36: {"name": "plate_exchanger", "category": "heat_exchanger", "korean": "판형 열교환기"},
-    37: {"name": "air_cooler", "category": "heat_exchanger", "korean": "공냉식 냉각기"},
-    38: {"name": "heater", "category": "heat_exchanger", "korean": "히터"},
-    39: {"name": "condenser", "category": "heat_exchanger", "korean": "응축기"},
-    40: {"name": "reboiler", "category": "heat_exchanger", "korean": "리보일러"},
-
-    # Compressors & Blowers (압축기/송풍기)
-    41: {"name": "compressor", "category": "compressor", "korean": "압축기"},
-    42: {"name": "blower", "category": "compressor", "korean": "송풍기"},
-    43: {"name": "fan", "category": "compressor", "korean": "팬"},
-    44: {"name": "turbine", "category": "compressor", "korean": "터빈"},
-
-    # Piping Components (배관 부품)
-    45: {"name": "reducer", "category": "piping", "korean": "레듀서"},
-    46: {"name": "elbow", "category": "piping", "korean": "엘보"},
-    47: {"name": "tee", "category": "piping", "korean": "티"},
-    48: {"name": "flange", "category": "piping", "korean": "플랜지"},
-    49: {"name": "strainer", "category": "piping", "korean": "스트레이너"},
-    50: {"name": "filter", "category": "piping", "korean": "필터"},
-    51: {"name": "trap", "category": "piping", "korean": "트랩"},
-    52: {"name": "orifice", "category": "piping", "korean": "오리피스"},
-
-    # Misc (기타)
-    53: {"name": "motor", "category": "misc", "korean": "모터"},
-    54: {"name": "agitator", "category": "misc", "korean": "교반기"},
-    55: {"name": "nozzle", "category": "misc", "korean": "노즐"},
-    56: {"name": "blind_flange", "category": "misc", "korean": "블라인드 플랜지"},
-    57: {"name": "spectacle_blind", "category": "misc", "korean": "스펙터클 블라인드"},
-    58: {"name": "expansion_joint", "category": "misc", "korean": "신축이음"},
-    59: {"name": "rupture_disc", "category": "misc", "korean": "파열판"},
+    0: {"name": "Agitator", "category": "equipment", "korean": "교반기"},
+    1: {"name": "Air-cooled Exchanger", "category": "heat_exchanger", "korean": "공냉식 열교환기"},
+    2: {"name": "Ball valve", "category": "valve", "korean": "볼 밸브"},
+    3: {"name": "Blind End", "category": "piping", "korean": "블라인드 엔드"},
+    4: {"name": "Centrifugal compressor", "category": "compressor", "korean": "원심 압축기"},
+    5: {"name": "Centrifugal pump", "category": "pump", "korean": "원심 펌프"},
+    6: {"name": "Check valve", "category": "valve", "korean": "체크 밸브"},
+    7: {"name": "Column", "category": "tank", "korean": "컬럼"},
+    8: {"name": "Compressor", "category": "compressor", "korean": "압축기"},
+    9: {"name": "Condenser", "category": "heat_exchanger", "korean": "응축기"},
+    10: {"name": "Control valve", "category": "valve", "korean": "제어 밸브"},
+    11: {"name": "Decanter", "category": "tank", "korean": "디캔터"},
+    12: {"name": "Exchanger", "category": "heat_exchanger", "korean": "열교환기"},
+    13: {"name": "Fan", "category": "equipment", "korean": "팬"},
+    14: {"name": "Flange", "category": "piping", "korean": "플랜지"},
+    15: {"name": "Gate Valve", "category": "valve", "korean": "게이트 밸브"},
+    16: {"name": "Globe Valve", "category": "valve", "korean": "글로브 밸브"},
+    17: {"name": "Hand Valve", "category": "valve", "korean": "핸드 밸브"},
+    18: {"name": "In-line Instrument", "category": "instrument", "korean": "인라인 계기"},
+    19: {"name": "Motor", "category": "equipment", "korean": "모터"},
+    20: {"name": "Off-sheet", "category": "piping", "korean": "오프시트"},
+    21: {"name": "Pump", "category": "pump", "korean": "펌프"},
+    22: {"name": "Reboiler", "category": "heat_exchanger", "korean": "리보일러"},
+    23: {"name": "Reciprocating compressor", "category": "compressor", "korean": "왕복 압축기"},
+    24: {"name": "Reciprocating pump", "category": "pump", "korean": "왕복 펌프"},
+    25: {"name": "Reducer", "category": "piping", "korean": "레듀서"},
+    26: {"name": "Regulator", "category": "instrument", "korean": "레귤레이터"},
+    27: {"name": "Round Instrument", "category": "instrument", "korean": "원형 계기"},
+    28: {"name": "Separator", "category": "tank", "korean": "분리기"},
+    29: {"name": "Valve", "category": "valve", "korean": "밸브"},
 }
 
 CATEGORY_COLORS = {
@@ -123,7 +83,8 @@ CATEGORY_COLORS = {
     "heat_exchanger": (255, 0, 255),  # Magenta
     "compressor": (0, 255, 255), # Yellow
     "piping": (128, 128, 128),   # Gray
-    "misc": (128, 0, 128)        # Purple
+    "equipment": (128, 0, 128),  # Purple
+    "symbol": (255, 128, 0)      # Orange (class-agnostic)
 }
 
 
@@ -160,76 +121,126 @@ class ProcessResponse(BaseModel):
 # Core Functions
 # =====================
 
-# YOLO 모델 (lazy loading)
-yolo_model = None
+# SAHI 모델 (lazy loading)
+sahi_model = None
 
 
-def load_yolo_model():
-    """YOLO 모델 로드 (필요시)"""
-    global yolo_model
-    if yolo_model is None:
+def load_sahi_model(confidence: float = 0.15):
+    """SAHI 모델 로드 (필요시)"""
+    global sahi_model
+
+    try:
+        from sahi import AutoDetectionModel
+
+        # 모델 경로 확인
+        model_path = MODEL_PATH
+        if not os.path.exists(model_path):
+            # Docker 컨테이너 내부 경로
+            model_path = "/app/pid_symbol_detector.pt"
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model not found at {MODEL_PATH} or {model_path}")
+
+        sahi_model = AutoDetectionModel.from_pretrained(
+            model_type="yolov8",
+            model_path=model_path,
+            confidence_threshold=confidence,
+            device="cuda:0" if os.path.exists("/dev/nvidia0") else "cpu"
+        )
+        logger.info(f"Loaded SAHI model from: {model_path}")
+        logger.info(f"Device: {'cuda:0' if os.path.exists('/dev/nvidia0') else 'cpu'}")
+
+    except ImportError:
+        logger.warning("SAHI not installed, falling back to direct YOLO inference")
+        sahi_model = None
+    except Exception as e:
+        logger.error(f"Failed to load SAHI model: {e}")
+        sahi_model = None
+
+    return sahi_model
+
+
+def detect_pid_symbols_sahi(image: np.ndarray, confidence: float = 0.15,
+                             slice_height: int = 1024, slice_width: int = 1024,
+                             overlap_ratio: float = 0.2,
+                             class_agnostic: bool = True) -> List[Dict]:
+    """
+    SAHI 기반 P&ID 심볼 검출
+
+    Args:
+        image: 입력 이미지
+        confidence: 신뢰도 임계값
+        slice_height: 슬라이스 높이
+        slice_width: 슬라이스 너비
+        overlap_ratio: 슬라이스 오버랩 비율
+        class_agnostic: True면 모든 심볼을 "Symbol"로 분류
+    """
+    try:
+        from sahi import AutoDetectionModel
+        from sahi.predict import get_sliced_prediction
+
+        # 모델 로드 (confidence가 변경되면 재로드)
+        global sahi_model
+        if sahi_model is None:
+            load_sahi_model(confidence)
+
+        if sahi_model is None:
+            # SAHI 없이 기본 YOLO 사용
+            return detect_pid_symbols_basic(image, confidence)
+
+        # 임시 파일로 저장 (SAHI는 파일 경로 필요)
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            temp_path = f.name
+            cv2.imwrite(temp_path, image)
+
         try:
-            from ultralytics import YOLO
-            if os.path.exists(MODEL_PATH):
-                yolo_model = YOLO(MODEL_PATH)
-                logger.info(f"Loaded custom P&ID model: {MODEL_PATH}")
+            # SAHI 슬라이싱 추론
+            result = get_sliced_prediction(
+                temp_path,
+                sahi_model,
+                slice_height=slice_height,
+                slice_width=slice_width,
+                overlap_height_ratio=overlap_ratio,
+                overlap_width_ratio=overlap_ratio,
+                perform_standard_pred=True,
+                postprocess_type="NMS",
+                postprocess_match_threshold=0.5
+            )
+        finally:
+            # 임시 파일 삭제
+            os.unlink(temp_path)
+
+        detections = []
+        for i, pred in enumerate(result.object_prediction_list):
+            bbox = pred.bbox.to_xyxy()
+            x1, y1, x2, y2 = bbox
+            conf = pred.score.value
+            cls_id = pred.category.id if pred.category else 0
+            cls_name = pred.category.name if pred.category else "Symbol"
+
+            # Class-agnostic 모드
+            if class_agnostic:
+                cls_name = "Symbol"
+                category = "symbol"
+                korean_name = "심볼"
             else:
-                # 기본 모델 사용 (P&ID 학습 전)
-                yolo_model = YOLO("yolov8n.pt")
-                logger.warning(f"Custom model not found, using default: yolov8n.pt")
-        except Exception as e:
-            logger.error(f"Failed to load YOLO model: {e}")
-            raise
-    return yolo_model
-
-
-def detect_pid_symbols(image: np.ndarray, confidence: float = 0.25,
-                        iou: float = 0.45, imgsz: int = 640) -> List[Dict]:
-    """
-    P&ID 심볼 검출
-
-    Note: 실제 P&ID 심볼 검출을 위해서는 P&ID 데이터셋으로 학습된 모델 필요
-    현재는 기본 YOLO 모델로 시연용
-    """
-    model = load_yolo_model()
-
-    # 추론 실행
-    results = model.predict(
-        image,
-        conf=confidence,
-        iou=iou,
-        imgsz=imgsz,
-        verbose=False
-    )
-
-    detections = []
-    if results and len(results) > 0:
-        result = results[0]
-        boxes = result.boxes
-
-        for i, box in enumerate(boxes):
-            # 바운딩 박스
-            x1, y1, x2, y2 = box.xyxy[0].tolist()
-            conf = float(box.conf[0])
-            cls_id = int(box.cls[0])
-
-            # P&ID 심볼 클래스 매핑 (학습된 모델이면 직접 사용, 아니면 시뮬레이션)
-            if cls_id < len(PID_SYMBOL_CLASSES):
-                symbol_info = PID_SYMBOL_CLASSES[cls_id]
-            else:
-                # 기본 YOLO 클래스를 P&ID 심볼로 임시 매핑
-                symbol_info = {
-                    "name": f"symbol_{cls_id}",
-                    "category": "misc",
-                    "korean": f"심볼 {cls_id}"
-                }
+                # Class-aware 모드: PID_SYMBOL_CLASSES 사용
+                if cls_id < len(PID_SYMBOL_CLASSES):
+                    symbol_info = PID_SYMBOL_CLASSES[cls_id]
+                    cls_name = symbol_info["name"]
+                    category = symbol_info["category"]
+                    korean_name = symbol_info["korean"]
+                else:
+                    category = "symbol"
+                    korean_name = cls_name
 
             detection = {
                 "id": i,
                 "class_id": cls_id,
-                "class_name": symbol_info["name"],
-                "category": symbol_info["category"],
-                "korean_name": symbol_info["korean"],
+                "class_name": cls_name,
+                "category": category,
+                "korean_name": korean_name,
                 "confidence": round(conf, 4),
                 "bbox": [round(x1, 2), round(y1, 2), round(x2, 2), round(y2, 2)],
                 "center": [round((x1 + x2) / 2, 2), round((y1 + y2) / 2, 2)],
@@ -238,7 +249,63 @@ def detect_pid_symbols(image: np.ndarray, confidence: float = 0.25,
             }
             detections.append(detection)
 
-    return detections
+        return detections
+
+    except ImportError:
+        logger.warning("SAHI not available, using basic YOLO detection")
+        return detect_pid_symbols_basic(image, confidence)
+    except Exception as e:
+        logger.error(f"SAHI detection error: {e}")
+        import traceback
+        traceback.print_exc()
+        return detect_pid_symbols_basic(image, confidence)
+
+
+def detect_pid_symbols_basic(image: np.ndarray, confidence: float = 0.25) -> List[Dict]:
+    """기본 YOLO 검출 (SAHI 없이)"""
+    try:
+        from ultralytics import YOLO
+
+        model_path = MODEL_PATH
+        if not os.path.exists(model_path):
+            model_path = "/app/pid_symbol_detector.pt"
+
+        if not os.path.exists(model_path):
+            logger.error(f"Model not found: {model_path}")
+            return []
+
+        model = YOLO(model_path)
+        results = model.predict(image, conf=confidence, verbose=False)
+
+        detections = []
+        if results and len(results) > 0:
+            result = results[0]
+            boxes = result.boxes
+
+            for i, box in enumerate(boxes):
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                conf = float(box.conf[0])
+                cls_id = int(box.cls[0])
+
+                detection = {
+                    "id": i,
+                    "class_id": cls_id,
+                    "class_name": "Symbol",
+                    "category": "symbol",
+                    "korean_name": "심볼",
+                    "confidence": round(conf, 4),
+                    "bbox": [round(x1, 2), round(y1, 2), round(x2, 2), round(y2, 2)],
+                    "center": [round((x1 + x2) / 2, 2), round((y1 + y2) / 2, 2)],
+                    "width": round(x2 - x1, 2),
+                    "height": round(y2 - y1, 2)
+                }
+                detections.append(detection)
+
+        return detections
+
+    except Exception as e:
+        logger.error(f"Basic detection error: {e}")
+        return []
 
 
 def visualize_detections(image: np.ndarray, detections: List[Dict]) -> np.ndarray:
@@ -247,17 +314,17 @@ def visualize_detections(image: np.ndarray, detections: List[Dict]) -> np.ndarra
 
     for det in detections:
         x1, y1, x2, y2 = [int(v) for v in det["bbox"]]
-        category = det.get("category", "misc")
-        color = CATEGORY_COLORS.get(category, (128, 128, 128))
+        category = det.get("category", "symbol")
+        color = CATEGORY_COLORS.get(category, (255, 128, 0))
 
         # 바운딩 박스
         cv2.rectangle(vis, (x1, y1), (x2, y2), color, 2)
 
         # 레이블
-        label = f"{det['korean_name']} ({det['confidence']:.2f})"
+        label = f"{det['class_name']} {det['confidence']:.2f}"
         (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        cv2.rectangle(vis, (x1, y1 - 20), (x1 + w, y1), color, -1)
-        cv2.putText(vis, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        cv2.rectangle(vis, (x1, y1 - 20), (x1 + w + 4, y1), color, -1)
+        cv2.putText(vis, label, (x1 + 2, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     return vis
 
@@ -272,7 +339,7 @@ def get_category_statistics(detections: List[Dict]) -> Dict[str, int]:
     """카테고리별 통계"""
     stats = {}
     for det in detections:
-        cat = det.get("category", "misc")
+        cat = det.get("category", "symbol")
         stats[cat] = stats.get(cat, 0) + 1
     return stats
 
@@ -282,9 +349,9 @@ def get_category_statistics(detections: List[Dict]) -> Dict[str, int]:
 # =====================
 
 app = FastAPI(
-    title="YOLO P&ID Symbol Detector API",
-    description="P&ID 심볼 검출 API (밸브, 펌프, 계기 등 50+ 클래스)",
-    version="1.0.0"
+    title="YOLO P&ID Symbol Detector API (SAHI Enhanced)",
+    description="P&ID 심볼 검출 API - SAHI 기반 대형 이미지 고해상도 검출",
+    version="2.0.0"
 )
 
 # CORS
@@ -307,7 +374,7 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="yolo-pid-api",
-        version="1.0.0",
+        version="2.0.0",
         timestamp=datetime.now().isoformat()
     )
 
@@ -323,10 +390,10 @@ async def get_info():
     """API 정보 (BlueprintFlow 메타데이터)"""
     return {
         "id": "yolo-pid",
-        "name": "YOLO P&ID",
-        "display_name": "P&ID Symbol Detector",
-        "version": "1.0.0",
-        "description": "P&ID 심볼 검출 API (밸브, 펌프, 계기 등 50+ 클래스)",
+        "name": "YOLO P&ID (SAHI)",
+        "display_name": "P&ID Symbol Detector (SAHI Enhanced)",
+        "version": "2.0.0",
+        "description": "P&ID 심볼 검출 API - SAHI 기반 대형 이미지 고해상도 검출",
         "base_url": f"http://localhost:{API_PORT}",
         "endpoint": "/api/v1/process",
         "method": "POST",
@@ -345,13 +412,15 @@ async def get_info():
             {"name": "visualization", "type": "Image", "description": "시각화 이미지"}
         ],
         "parameters": [
-            {"name": "confidence", "type": "number", "min": 0.1, "max": 1.0, "default": 0.25, "description": "신뢰도 임계값"},
-            {"name": "iou", "type": "number", "min": 0.1, "max": 1.0, "default": 0.45, "description": "IoU 임계값"},
-            {"name": "imgsz", "type": "select", "options": [320, 640, 1280], "default": 640, "description": "입력 이미지 크기"},
+            {"name": "confidence", "type": "number", "min": 0.05, "max": 1.0, "default": 0.10, "description": "신뢰도 임계값"},
+            {"name": "slice_height", "type": "number", "min": 256, "max": 2048, "default": 512, "description": "SAHI 슬라이스 높이"},
+            {"name": "slice_width", "type": "number", "min": 256, "max": 2048, "default": 512, "description": "SAHI 슬라이스 너비"},
+            {"name": "overlap_ratio", "type": "number", "min": 0.1, "max": 0.5, "default": 0.25, "description": "슬라이스 오버랩 비율"},
+            {"name": "class_agnostic", "type": "boolean", "default": False, "description": "Class-agnostic 모드 (False=32클래스 분류)"},
             {"name": "visualize", "type": "boolean", "default": True, "description": "결과 시각화"}
         ],
         "symbol_classes": len(PID_SYMBOL_CLASSES),
-        "supported_categories": list(set(s["category"] for s in PID_SYMBOL_CLASSES.values()))
+        "detection_method": "SAHI (Slicing Aided Hyper Inference)"
     }
 
 
@@ -367,9 +436,9 @@ async def get_classes():
             "instrument": "계기",
             "tank": "탱크/용기",
             "heat_exchanger": "열교환기",
-            "compressor": "압축기/송풍기",
+            "compressor": "압축기",
             "piping": "배관 부품",
-            "misc": "기타"
+            "equipment": "장비"
         }
     }
 
@@ -377,21 +446,24 @@ async def get_classes():
 @app.post("/api/v1/process", response_model=ProcessResponse)
 async def process(
     file: UploadFile = File(..., description="P&ID 도면 이미지"),
-    confidence: float = Form(default=0.25, description="신뢰도 임계값 (0.1-1.0)"),
-    iou: float = Form(default=0.45, description="IoU 임계값 (0.1-1.0)"),
-    imgsz: int = Form(default=640, description="입력 이미지 크기"),
+    confidence: float = Form(default=0.10, description="신뢰도 임계값 (0.05-1.0)"),
+    slice_height: int = Form(default=512, description="SAHI 슬라이스 높이"),
+    slice_width: int = Form(default=512, description="SAHI 슬라이스 너비"),
+    overlap_ratio: float = Form(default=0.25, description="슬라이스 오버랩 비율"),
+    class_agnostic: bool = Form(default=False, description="Class-agnostic 모드 (False=32클래스 분류)"),
     visualize: bool = Form(default=True, description="결과 시각화")
 ):
     """
-    P&ID 심볼 검출 메인 엔드포인트
+    P&ID 심볼 검출 메인 엔드포인트 (SAHI Enhanced)
 
-    검출 가능한 심볼:
-    - 밸브 (12종): 게이트, 글로브, 볼, 버터플라이, 체크, 제어밸브 등
-    - 펌프 (6종): 원심, 기어, 다이아프램 등
-    - 계기 (11종): 압력계, 온도계, 유량계, 트랜스미터 등
-    - 탱크 (6종): 수평/수직 탱크, 압력용기, 반응기 등
-    - 열교환기 (6종): 쉘앤튜브, 판형, 공냉기 등
-    - 기타 (19종): 압축기, 배관부품, 모터 등
+    SAHI (Slicing Aided Hyper Inference):
+    - 대형 P&ID 도면을 작은 슬라이스로 분할하여 검출
+    - 슬라이스 결과를 NMS로 병합하여 최종 결과 생성
+    - 작은 심볼도 놓치지 않고 검출
+
+    검출 모드:
+    - class_agnostic=True: 모든 심볼을 "Symbol"로 분류 (추천)
+    - class_agnostic=False: 30개 클래스로 분류 (밸브, 펌프, 계기 등)
     """
     start_time = time.time()
 
@@ -405,9 +477,17 @@ async def process(
             raise HTTPException(status_code=400, detail="Invalid image file")
 
         logger.info(f"Processing P&ID image: {file.filename}, size: {image.shape}")
+        logger.info(f"SAHI params: slice={slice_height}x{slice_width}, overlap={overlap_ratio}, conf={confidence}")
 
-        # 심볼 검출
-        detections = detect_pid_symbols(image, confidence, iou, imgsz)
+        # SAHI 기반 심볼 검출
+        detections = detect_pid_symbols_sahi(
+            image,
+            confidence=confidence,
+            slice_height=slice_height,
+            slice_width=slice_width,
+            overlap_ratio=overlap_ratio,
+            class_agnostic=class_agnostic
+        )
         logger.info(f"Detected {len(detections)} P&ID symbols")
 
         # 카테고리별 통계
@@ -431,8 +511,11 @@ async def process(
             "image_size": {"width": image.shape[1], "height": image.shape[0]},
             "parameters": {
                 "confidence": confidence,
-                "iou": iou,
-                "imgsz": imgsz
+                "slice_height": slice_height,
+                "slice_width": slice_width,
+                "overlap_ratio": overlap_ratio,
+                "class_agnostic": class_agnostic,
+                "detection_method": "SAHI"
             }
         }
 
@@ -459,8 +542,9 @@ async def process(
 # =====================
 
 if __name__ == "__main__":
-    logger.info(f"Starting YOLO P&ID Symbol Detector API on port {API_PORT}")
-    logger.info(f"Supported symbol classes: {len(PID_SYMBOL_CLASSES)}")
+    logger.info(f"Starting YOLO P&ID Symbol Detector API (SAHI Enhanced) on port {API_PORT}")
+    logger.info(f"Model path: {MODEL_PATH}")
+    logger.info(f"SAHI config: slice={SAHI_SLICE_HEIGHT}x{SAHI_SLICE_WIDTH}, overlap={SAHI_OVERLAP_RATIO}")
 
     uvicorn.run(
         app,

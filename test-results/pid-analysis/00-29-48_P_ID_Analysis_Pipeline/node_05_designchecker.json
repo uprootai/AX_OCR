@@ -1,0 +1,28 @@
+{
+  "node_id": "designchecker_1",
+  "node_type": "designchecker",
+  "saved_at": "2025-12-10T00:37:51.203582",
+  "violations": [],
+  "summary": {
+    "total_violations": 10580,
+    "errors": 10296,
+    "warnings": 284,
+    "info": 0,
+    "by_category": {
+      "connectivity": 284,
+      "symbol": 10296
+    },
+    "compliance_score": 0.0
+  },
+  "compliance_score": 0.0,
+  "errors": 10296,
+  "warnings": 284,
+  "info_count": 0,
+  "rules_checked": 20,
+  "checked_at": "2025-12-10T00:37:51.187244",
+  "filters_applied": {
+    "severity_threshold": "warning",
+    "categories": "all"
+  },
+  "processing_time": 0.373
+}

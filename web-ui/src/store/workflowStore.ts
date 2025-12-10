@@ -92,6 +92,8 @@ export interface NodeStatus {
   progress: number;
   error?: string;
   output?: Record<string, unknown>;
+  elapsedSeconds?: number;  // 하트비트: 경과 시간 (초)
+  message?: string;         // 하트비트: 상태 메시지
 }
 
 // Execution mode type
@@ -117,6 +119,9 @@ interface WorkflowState {
   // Real-time node statuses (SSE)
   nodeStatuses: Record<string, NodeStatus>;
   executionId: string | null;
+
+  // AbortController for canceling execution
+  abortController: AbortController | null;
 
   // Uploaded image (persistent across navigation)
   uploadedImage: string | null;
@@ -148,6 +153,7 @@ interface WorkflowState {
   clearNodeStatuses: () => void;
   setUploadedImage: (image: string | null, fileName?: string | null) => void;
   setExecutionMode: (mode: ExecutionMode) => void;
+  cancelExecution: () => Promise<void>;
 }
 
 // Helper to load image from sessionStorage
@@ -193,6 +199,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   executionError: null,
   nodeStatuses: {},
   executionId: null,
+  abortController: null,
   uploadedImage: persistedImage.uploadedImage,
   uploadedFileName: persistedImage.uploadedFileName,
   executionMode: 'sequential', // Default: sequential execution
@@ -425,6 +432,9 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       return;
     }
 
+    // Create AbortController for cancellation
+    const abortController = new AbortController();
+
     try {
       set({
         isExecuting: true,
@@ -432,6 +442,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         executionResult: null,
         nodeStatuses: {},
         executionId: null,
+        abortController,
       });
 
       // Build workflow definition with default parameters merged
@@ -498,6 +509,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestPayload),
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
@@ -596,6 +608,17 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
                 });
                 break;
 
+              case 'node_heartbeat':
+                // 하트비트: 경과 시간 업데이트 (상태는 running 유지)
+                get().updateNodeStatus(event.node_id, {
+                  nodeId: event.node_id,
+                  status: 'running',
+                  progress: 0,
+                  elapsedSeconds: event.elapsed_seconds,
+                  message: event.message,
+                });
+                break;
+
               case 'workflow_complete':
                 set({
                   isExecuting: false,
@@ -619,11 +642,56 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         }
       }
     } catch (error) {
+      // Check if it was cancelled
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('🛑 [SSE] Workflow execution cancelled by user');
+        set({
+          isExecuting: false,
+          executionError: 'Execution cancelled by user',
+          executionResult: null,
+          abortController: null,
+        });
+        return;
+      }
+
       console.error('❌ [SSE] Workflow execution failed:', error);
       set({
         isExecuting: false,
         executionError: error instanceof Error ? error.message : 'Unknown error occurred',
         executionResult: null,
+        abortController: null,
+      });
+    }
+  },
+
+  cancelExecution: async () => {
+    const { abortController, executionId } = get();
+    if (abortController) {
+      console.log('🛑 Cancelling workflow execution...');
+
+      // 1. 프론트엔드 SSE 연결 취소
+      abortController.abort();
+
+      // 2. 백엔드에 취소 요청 (executionId가 있는 경우)
+      if (executionId) {
+        try {
+          const response = await fetch(`http://localhost:8000/api/v1/workflow/cancel/${executionId}`, {
+            method: 'POST',
+          });
+          if (response.ok) {
+            console.log('✅ Backend cancellation confirmed');
+          } else {
+            console.warn('⚠️ Backend cancellation failed:', await response.text());
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to send cancel request to backend:', error);
+        }
+      }
+
+      set({
+        isExecuting: false,
+        executionError: 'Execution cancelled by user',
+        abortController: null,
       });
     }
   },

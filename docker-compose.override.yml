@@ -1,0 +1,11 @@
+services:
+  line-detector-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities:
+            - gpu
+            count: 1
+            driver: nvidia
+  # yolo-pid-api removed - merged into yolo-api
