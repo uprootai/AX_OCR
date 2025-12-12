@@ -60,7 +60,7 @@ parameters:
     description: 문단 단위로 결합
     uiType: checkbox
   - name: batch_size
-    type: integer
+    type: number
     default: 1
     description: 배치 크기
     uiType: number

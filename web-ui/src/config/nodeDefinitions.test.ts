@@ -69,7 +69,7 @@ describe('nodeDefinitions', () => {
   it('should return correct node definition using getNodeDefinition', () => {
     const yoloNode = getNodeDefinition('yolo');
     expect(yoloNode).toBeDefined();
-    expect(yoloNode?.label).toBe('YOLO Detection');
+    expect(yoloNode?.label).toBe('YOLO (통합)');
     expect(yoloNode?.category).toBe('detection');
   });
 
@@ -221,7 +221,7 @@ describe('nodeDefinitions', () => {
   describe('P&ID Analysis nodes', () => {
     const pidNodes = {
       linedetector: { category: 'segmentation', label: 'Line Detector', hasImageInput: true },
-      yolopid: { category: 'detection', label: 'YOLO-PID (SAHI)', hasImageInput: true },
+      yolopid: { category: 'detection', label: '[DEPRECATED] YOLO-PID', hasImageInput: true },
       pidanalyzer: { category: 'analysis', label: 'P&ID Analyzer', hasImageInput: false },
       designchecker: { category: 'analysis', label: 'Design Checker', hasImageInput: false },
     };

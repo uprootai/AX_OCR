@@ -39,6 +39,10 @@
           "maximum": 65535,
           "description": "API 서버 포트"
         },
+        "host": {
+          "type": "string",
+          "description": "Docker 서비스명 (docker-compose 내 서비스 이름)"
+        },
         "description": {
           "type": "string",
           "description": "API 설명"
@@ -158,7 +162,7 @@
           "name": { "type": "string" },
           "type": {
             "type": "string",
-            "enum": ["string", "number", "boolean", "select"]
+            "enum": ["string", "number", "integer", "boolean", "select"]
           },
           "default": {},
           "required": { "type": "boolean", "default": false },
@@ -170,6 +174,11 @@
             "items": { "type": "string" }
           },
           "description": { "type": "string" },
+          "uiType": {
+            "type": "string",
+            "enum": ["text", "number", "checkbox", "select", "slider", "textarea"],
+            "description": "프론트엔드 UI 컴포넌트 타입 (생략 시 type 기반 자동 결정)"
+          },
           "formField": {
             "type": "string",
             "description": "API 요청 시 사용할 필드명 (다르면 매핑)"

@@ -27,6 +27,15 @@ from .spec_loader import (
     load_spec,
     get_spec_parameter
 )
+from .file_validator import (
+    validate_file,
+    validate_image_file,
+    validate_extension,
+    validate_magic_bytes,
+    get_file_info,
+    ALLOWED_EXTENSIONS,
+    ALLOWED_IMAGE_EXTENSIONS
+)
 
 __all__ = [
     # Progress tracking
@@ -53,5 +62,13 @@ __all__ = [
     "add_meta_endpoint",
     "get_api_registry",
     "load_spec",
-    "get_spec_parameter"
+    "get_spec_parameter",
+    # File validation
+    "validate_file",
+    "validate_image_file",
+    "validate_extension",
+    "validate_magic_bytes",
+    "get_file_info",
+    "ALLOWED_EXTENSIONS",
+    "ALLOWED_IMAGE_EXTENSIONS"
 ]

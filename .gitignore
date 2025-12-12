@@ -117,3 +117,6 @@ test_results/
 models/*/training/runs/
 models/*/training/datasets/**/checkpoints/
 
+# Offline model bundles (large files for on-premise deployment)
+offline_models/
+

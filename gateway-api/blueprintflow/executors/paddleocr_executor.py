@@ -51,7 +51,7 @@ class PaddleocrExecutor(BaseNodeExecutor):
         detections = result.get("detections", [])
 
         output = {
-            "text_results": detections,
+            "texts": detections,
             "total_texts": result.get("total_texts", len(detections)),
             "model_used": "PaddleOCR",
             "processing_time": result.get("processing_time", 0),

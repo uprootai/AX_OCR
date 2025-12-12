@@ -1,0 +1,13 @@
+# Grafana 대시보드 프로비저닝
+apiVersion: 1
+
+providers:
+  - name: 'AX POC Dashboards'
+    orgId: 1
+    folder: 'AX POC'
+    folderUid: 'ax-poc'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

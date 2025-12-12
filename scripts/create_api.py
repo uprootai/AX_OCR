@@ -262,6 +262,7 @@ metadata:
   id: {api_id}
   name: {title}
   version: 1.0.0
+  host: {api_id}-api
   port: {port}
   description: {description}
   author: AX Team
@@ -292,7 +293,14 @@ outputs:
     type: object
     description: 처리 결과
 
-parameters: []
+parameters:
+  - name: batch_size
+    type: integer
+    default: 1
+    description: "배치 크기"
+    uiType: number
+    min: 1
+    max: 32
 
 i18n:
   ko:

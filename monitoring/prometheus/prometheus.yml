@@ -1,0 +1,97 @@
+# Prometheus 설정
+# AX POC 모니터링
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus 자체 메트릭
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter - 시스템 메트릭
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # cAdvisor - 컨테이너 메트릭
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Gateway API
+  - job_name: 'gateway-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['gateway-api:8000']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'gateway-api'
+
+  # YOLO API
+  - job_name: 'yolo-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['yolo-api:5005']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'yolo-api'
+
+  # eDOCr2 API
+  - job_name: 'edocr2-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['edocr2-v2-api:5002']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'edocr2-api'
+
+  # PaddleOCR API
+  - job_name: 'paddleocr-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['paddleocr-api:5006']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'paddleocr-api'
+
+  # EasyOCR API
+  - job_name: 'easyocr-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['easyocr-api:5015']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'easyocr-api'
+
+  # Line Detector API
+  - job_name: 'line-detector-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['line-detector-api:5016']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'line-detector-api'
+
+  # PID Analyzer API
+  - job_name: 'pid-analyzer-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['pid-analyzer-api:5018']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'pid-analyzer-api'

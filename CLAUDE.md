@@ -356,6 +356,7 @@ docs/
 ```
 gateway-api/api_specs/
 ├── api_spec_schema.json    # JSON Schema (검증용)
+├── CONVENTIONS.md          # API 스펙 작성 컨벤션
 ├── yolo.yaml               # YOLO Detection
 ├── yolo-pid.yaml           # YOLO-PID Symbol Detection
 ├── edocr2.yaml             # eDOCr2 OCR

@@ -1,0 +1,140 @@
+version: '3.8'
+
+# AX POC 모니터링 스택
+# Prometheus (메트릭 수집) + Grafana (시각화) + Loki (로그 집계)
+#
+# 사용법:
+#   docker-compose -f docker-compose.monitoring.yml up -d
+#
+# 접속:
+#   Grafana: http://localhost:3000 (admin/admin)
+#   Prometheus: http://localhost:9090
+
+services:
+  # =====================
+  # Prometheus - 메트릭 수집
+  # =====================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: ax-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=15d'
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+
+  # =====================
+  # Grafana - 대시보드 시각화
+  # =====================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: ax-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+
+  # =====================
+  # Loki - 로그 집계
+  # =====================
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: ax-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+
+  # =====================
+  # Promtail - 로그 수집기
+  # =====================
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: ax-promtail
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+  # =====================
+  # Node Exporter - 시스템 메트릭
+  # =====================
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: ax-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+
+  # =====================
+  # cAdvisor - 컨테이너 메트릭
+  # =====================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: ax-cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+
+networks:
+  ax_poc_network:
+    external: true
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:

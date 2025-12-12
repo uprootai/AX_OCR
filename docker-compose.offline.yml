@@ -1,0 +1,81 @@
+version: '3.8'
+
+# 오프라인 환경을 위한 Docker Compose 오버라이드
+# 사전 번들링된 모델을 사용하여 인터넷 없이 실행
+#
+# 사용법:
+#   docker-compose -f docker-compose.yml -f docker-compose.offline.yml up -d
+#
+# 모델 번들링:
+#   ./scripts/bundle_models.sh
+
+services:
+  # =====================
+  # YOLO API - 오프라인 모델
+  # =====================
+  yolo-api:
+    volumes:
+      - ./offline_models/yolo:/app/offline_models:ro
+    environment:
+      - YOLO_OFFLINE_MODE=true
+      - YOLO_OFFLINE_MODEL_DIR=/app/offline_models
+
+  # =====================
+  # PaddleOCR API - 오프라인 모델
+  # =====================
+  paddleocr-api:
+    volumes:
+      - ./offline_models/paddleocr:/root/.paddleocr:ro
+    environment:
+      - PADDLEOCR_OFFLINE_MODE=true
+
+  # =====================
+  # TrOCR API - 오프라인 모델
+  # =====================
+  trocr-api:
+    volumes:
+      - ./offline_models/trocr:/app/offline_models:ro
+    environment:
+      - TROCR_OFFLINE_MODE=true
+      - TROCR_OFFLINE_MODEL_DIR=/app/offline_models
+      - TRANSFORMERS_OFFLINE=1
+      - HF_HUB_OFFLINE=1
+
+  # =====================
+  # ESRGAN API - 오프라인 모델
+  # =====================
+  esrgan-api:
+    volumes:
+      - ./offline_models/esrgan:/app/offline_models:ro
+    environment:
+      - ESRGAN_OFFLINE_MODE=true
+      - ESRGAN_MODEL_PATH=/app/offline_models/RealESRGAN_x4plus.pth
+
+  # =====================
+  # EasyOCR API - 오프라인 모델
+  # =====================
+  easyocr-api:
+    volumes:
+      - ./offline_models/easyocr:/root/.EasyOCR:ro
+    environment:
+      - EASYOCR_OFFLINE_MODE=true
+
+  # =====================
+  # Surya OCR API - 오프라인 모델
+  # =====================
+  surya-ocr-api:
+    volumes:
+      - ./offline_models/surya:/root/.cache:ro
+    environment:
+      - SURYA_OFFLINE_MODE=true
+      - TRANSFORMERS_OFFLINE=1
+      - HF_HUB_OFFLINE=1
+
+  # =====================
+  # DocTR API - 오프라인 모델
+  # =====================
+  doctr-api:
+    volumes:
+      - ./offline_models/doctr:/root/.cache:ro
+    environment:
+      - DOCTR_OFFLINE_MODE=true
