@@ -69,7 +69,7 @@
 
 ---
 
-## API 서비스 (19개)
+## API 서비스 (20개)
 
 | 카테고리 | 서비스 | 포트 | 용도 |
 |----------|--------|------|------|
@@ -89,6 +89,7 @@
 | **Analysis** | SkinModel | 5003 | 공차 분석 |
 | **Analysis** | PID Analyzer | 5018 | P&ID 연결 분석, BOM 생성 |
 | **Analysis** | Design Checker | 5019 | P&ID 설계 규칙 검증 |
+| **Analysis** | Blueprint AI BOM | 5020 | 도면 BOM 생성, Human-in-the-Loop |
 | **Knowledge** | Knowledge | 5007 | Neo4j + GraphRAG |
 | **AI** | VL | 5004 | Vision-Language 모델 |
 | **Orchestrator** | Gateway | 8000 | 파이프라인 조정 |
@@ -272,7 +273,7 @@ class TestName:
 
 ## BlueprintFlow
 
-### 노드 타입 (20개)
+### 노드 타입 (21개)
 
 | 카테고리 | 노드 |
 |----------|------|
@@ -281,7 +282,7 @@ class TestName:
 | OCR | eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble |
 | Segmentation | EDGNet, Line Detector |
 | Preprocessing | ESRGAN |
-| Analysis | SkinModel, PID Analyzer, Design Checker |
+| Analysis | SkinModel, PID Analyzer, Design Checker, Blueprint AI BOM |
 | Knowledge | Knowledge |
 | AI | VL |
 | Control | IF, Loop, Merge |
@@ -374,7 +375,8 @@ gateway-api/api_specs/
 ├── ocr-ensemble.yaml       # OCR Ensemble
 ├── suryaocr.yaml           # Surya OCR (90+ 언어)
 ├── doctr.yaml              # DocTR (2단계 파이프라인)
-└── easyocr.yaml            # EasyOCR (80+ 언어)
+├── easyocr.yaml            # EasyOCR (80+ 언어)
+└── blueprint-ai-bom.yaml   # Blueprint AI BOM (Human-in-the-Loop)
 ```
 
 **API 엔드포인트**:

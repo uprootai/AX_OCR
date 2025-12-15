@@ -3,13 +3,10 @@ Generic API Executor
 동적으로 추가된 Custom API를 실행하는 범용 Executor
 """
 from typing import Dict, Any, Optional
-"""
-Generic API Executor
-동적으로 추가된 Custom API를 실행하는 범용 Executor
-"""
-from typing import Dict, Any, Optional
 import httpx
 import logging
+
+from .base_executor import BaseNodeExecutor
 
 logger = logging.getLogger(__name__)
 

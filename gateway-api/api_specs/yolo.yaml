@@ -65,7 +65,8 @@ parameters:
       - pid_symbol
       - pid_class_agnostic
       - pid_class_aware
-    description: "모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), pid_class_agnostic(범용), pid_class_aware(32종)"
+      - bom_detector
+    description: "모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), pid_class_agnostic(범용), pid_class_aware(32종), bom_detector(전기패널 27종/파나시아)"
     formField: model_type
 
   - name: confidence
@@ -88,9 +89,9 @@ parameters:
     type: number
     default: 640
     min: 320
-    max: 1920
+    max: 3520
     step: 32
-    description: 입력 이미지 크기
+    description: 입력 이미지 크기 (bom_detector는 3520 권장)
 
   - name: use_sahi
     type: boolean
@@ -178,6 +179,7 @@ examples:
 usageTips:
   - "기계도면: model_type=engineering, confidence=0.25"
   - "P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)"
+  - "전기패널/파나시아: model_type=bom_detector, confidence=0.40, iou=0.50, imgsz=3520"
   - 검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 정밀 분석 가능
 
 # 리소스 요구사항

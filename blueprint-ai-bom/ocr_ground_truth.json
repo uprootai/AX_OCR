@@ -1,0 +1,148 @@
+{
+  "description": "멀티모달 LLM과 PaddleOCR로 분석한 CAD 심볼 텍스트 정답지",
+  "verified_by": "Claude Vision + PaddleOCR",
+  "date": "2025-01-20",
+  "ground_truth": {
+    "HUB-8PORT": {
+      "judged_by_claude": "8.A",
+      "OCR": "8.A",
+      "image_file": "class_examples/class_01_11_HUB-8PORT_Alt 1. EDS-208A(HUB)_p01.jpg"
+    },
+    "DISCONNECTING_SWITCH": {
+      "judged_by_claude": "8",
+      "OCR": "8",
+      "image_file": "class_examples/class_04_16_DISCONNECTING SWITCH_(SW1)_p01.jpg"
+    },
+    "CPU1513-1PN": {
+      "judged_by_claude": "1513 1PN CP",
+      "OCR": "CP 1513 -IPN",
+      "image_file": "class_examples/class_09_20,32_CPU1513-1PN_6ES7513-1AL01-0AB0) PLC CPU_p01.jpg"
+    },
+    "CPU1214C": {
+      "judged_by_claude": "CPU-1214C (CPU)",
+      "OCR": "CPU-I214C (CPUI)",
+      "image_file": "class_examples/class_10_21_CPU1214C AC-DC-RLY_6ES7214-1BG40-0XB0(PLC CPU)_p01.jpg"
+    },
+    "CM1214_RS422": {
+      "judged_by_claude": "422",
+      "OCR": "422",
+      "image_file": "class_examples/class_11_22_CM1214 RS422-485_6ES7241-1CH32-0XB0(PLC RS422-485)_p01.jpg"
+    },
+    "CM1243-5": {
+      "judged_by_claude": "CM 1243-5",
+      "OCR": "CM 1243 -5",
+      "image_file": "class_examples/class_12_23,37_CM1243-5 PROFIBUS DP_6GK7243-5DX30-0XE0(PLC DP)_p01.jpg"
+    },
+    "SM1232_AO": {
+      "judged_by_claude": "AO-1",
+      "OCR": "AO-I",
+      "image_file": "class_examples/class_17_29_SM1232 AO4 x 14bit_6ES7232-4HD32-0XB0(PLC AO)_p01.jpg"
+    },
+    "SM1221_DI": {
+      "judged_by_claude": "DI-1",
+      "OCR": "DI-1",
+      "image_file": "class_examples/class_18_30_SM1221 DI16 x 24VDC_6ES7221-1BH32-0XB0(PLC DI 1)_p01.jpg"
+    },
+    "SM1222_DO": {
+      "judged_by_claude": "DO-1",
+      "OCR": "DO-1",
+      "image_file": "class_examples/class_19_31_SM1222 DO16 x RLY_6ES7222-1HH32-0XB0(PLC DO 1)_p01.jpg"
+    },
+    "I-I_CONVERTOR": {
+      "judged_by_claude": "PAS 200",
+      "OCR": "PAS 200",
+      "image_file": "class_examples/class_22_38_I-I CONVERTOR_PAS-200(I-I CONVERTER)_p01.jpg"
+    },
+    "TERMINAL_ST4": {
+      "judged_by_claude": "ST4",
+      "OCR": "",
+      "image_file": "class_examples/class_14_26_TERMINAL BLOCK(32A)_ST4_p01.jpg"
+    },
+    "TERMINAL_ST2.5": {
+      "judged_by_claude": "ST2.5",
+      "OCR": "",
+      "image_file": "class_examples/class_15_27_TERMINAL BLOCK(24A)_ST2.5_p01.jpg"
+    },
+    "BREAKER": {
+      "judged_by_claude": "BK63H",
+      "OCR": "",
+      "image_file": "class_examples/class_08_2,3,4,5_CIRCUIT BREAKER_BK63H 2P_p01.jpg"
+    },
+    "TRANSFORMER": {
+      "judged_by_claude": "MST600VA",
+      "OCR": "E 3 + E 3",
+      "image_file": "class_examples/class_24_6_TRANSFORMER_MST600VA.jpg"
+    },
+    "NOISE_FILTER": {
+      "judged_by_claude": "WYFS06T1A",
+      "OCR": "",
+      "image_file": "class_examples/class_25_8_NOISE FILTER_WYFS06T1A (6A)(NF1)_p01.jpg"
+    },
+    "SELECTOR_SWITCH": {
+      "judged_by_claude": "MRS-N2A2",
+      "OCR": "",
+      "image_file": "class_examples/class_23_39_SELECTOR SWITCH_MRS-N2A2(2STAGE)_p01.jpg"
+    },
+    "SM1231_AI": {
+      "judged_by_claude": "AI-1",
+      "OCR": "AI-1",
+      "image_file": "class_examples/class_16_28_SM1231 AI8 x 13bit_6ES7231-4HF32-0XB0(PLC AI)_p01.jpg"
+    },
+    "BUZZER": {
+      "judged_by_claude": "HY-256-2",
+      "OCR": "",
+      "image_file": "class_examples/class_00_10_BUZZER_HY-256-2(AC220V)_p01.jpg"
+    },
+    "PILOT_LAMP": {
+      "judged_by_claude": "MRP-NA0G",
+      "OCR": "",
+      "image_file": "class_examples/class_06_18_PILOT LAMP(GREEN)_MRP-NA0G_p01.jpg"
+    },
+    "SMPS1": {
+      "judged_by_claude": "TRIO-PS",
+      "OCR": "TRIO-PS",
+      "image_file": "class_examples/class_02_13_SWITCHING MODE POWER SUPPLY_TRIO-PS-1AC-24DC-5(SMPS1)_p01.jpg"
+    },
+    "SMPS2": {
+      "judged_by_claude": "TRIO-PS",
+      "OCR": "TRIO-PS",
+      "image_file": "class_examples/class_03_14_SWITCHING MODE POWER SUPPLY_TRIO-PS-1AC-24DC-10(SMPS2)_p01.jpg"
+    },
+    "POWER_OUTLET": {
+      "judged_by_claude": "PO",
+      "OCR": "PO",
+      "image_file": "class_examples/class_05_17_POWER OUTLET(CONCENT)_(PO)_p01.jpg"
+    },
+    "AUXILIARY_RELAY": {
+      "judged_by_claude": "PLC-RSC",
+      "OCR": "PLC-RSC",
+      "image_file": "class_examples/class_07_19_AUXILIARY RELAY(1a1b)_PLC-RSC-230UC-21_p01.jpg"
+    },
+    "GRAPHIC_PANEL": {
+      "judged_by_claude": "GP",
+      "OCR": "GP",
+      "image_file": "class_examples/class_13_24,25_GRAPHIC PANEL_6AV7240-3MC07-0HA0(GP)_p01.jpg"
+    },
+    "BUS_INTERFACE": {
+      "judged_by_claude": "BI",
+      "OCR": "BI",
+      "image_file": "class_examples/class_20_34_BUS INTERFACE_BI(BUS INTERFACE)_p01.jpg"
+    },
+    "VALVE_CONTROL_UNIT": {
+      "judged_by_claude": "EHS-CM3",
+      "OCR": "EHS-CM3",
+      "image_file": "class_examples/class_21_35_VALVE CONTROL UNIT_EHS-CM3_p01.jpg"
+    },
+    "EMERGENCY_BUTTON": {
+      "judged_by_claude": "MRE-NR1R",
+      "OCR": "MRE-NR1R",
+      "image_file": "class_examples/class_26_9,9-1_EMERGENCY BUTTON_MRE-NR1R_p01.jpg"
+    }
+  },
+  "matching_rules": {
+    "exact_match": 1.0,
+    "partial_match_threshold": 0.3,
+    "minimum_characters": 2,
+    "case_sensitive": false
+  }
+}

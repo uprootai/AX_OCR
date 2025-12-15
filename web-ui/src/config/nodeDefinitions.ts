@@ -135,8 +135,9 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
           'pid_symbol',
           'pid_class_agnostic',
           'pid_class_aware',
+          'bom_detector',
         ],
-        description: '모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), pid_class_agnostic(범용), pid_class_aware(32종)',
+        description: '모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), bom_detector(BOM 27종)',
       },
       {
         name: 'confidence',
@@ -161,9 +162,9 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         type: 'number',
         default: 640,
         min: 320,
-        max: 1280,
-        step: 320,
-        description: '입력 이미지 크기 (작음=빠름, 큼=정확)',
+        max: 3520,
+        step: 32,
+        description: '입력 이미지 크기 (bom_detector는 3520 권장)',
       },
       {
         name: 'use_sahi',
@@ -215,10 +216,12 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     examples: [
       '도면 이미지 → YOLO (engineering) → 14가지 기계 심볼 검출',
       '도면 이미지 → YOLO (pid_symbol) → 60가지 P&ID 심볼 검출',
+      '제어판 도면 → YOLO (bom_detector) → 27가지 전장 부품 검출 → BOM 생성',
     ],
     usageTips: [
       '기계도면: model_type=engineering, confidence=0.25',
       'P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)',
+      'BOM: model_type=bom_detector, confidence=0.25 (전기 제어판 부품)',
       '검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 해당 영역만 정밀 분석할 수 있습니다',
     ],
     recommendedInputs: [
@@ -1802,6 +1805,109 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         from: 'pidanalyzer',
         field: 'connections',
         reason: '⭐ 심볼 연결 관계를 분석하여 설계 오류를 검출합니다',
+      },
+    ],
+  },
+  'blueprint-ai-bom': {
+    type: 'blueprint-ai-bom',
+    label: 'Blueprint AI BOM',
+    category: 'analysis',
+    color: '#8b5cf6',
+    icon: 'FileSpreadsheet',
+    description: 'AI 기반 도면 분석 및 BOM 생성. Human-in-the-Loop 검증 UI를 통해 검출 결과를 확인하고 부품 명세서를 생성합니다.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 분석할 도면 이미지',
+      },
+      {
+        name: 'detections',
+        type: 'DetectionResult[]',
+        description: '🎯 사전 검출된 객체 (없으면 내부 YOLO 실행)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'bom_data',
+        type: 'BOMData',
+        description: '📊 생성된 BOM 데이터 (품목별 수량, 단가, 합계)',
+      },
+      {
+        name: 'items',
+        type: 'BOMItem[]',
+        description: '📋 BOM 항목 목록',
+      },
+      {
+        name: 'summary',
+        type: 'BOMSummary',
+        description: '💰 BOM 요약 (총 수량, 소계, 부가세, 합계)',
+      },
+      {
+        name: 'approved_count',
+        type: 'number',
+        description: '✅ 승인된 검출 수',
+      },
+      {
+        name: 'export_url',
+        type: 'string',
+        description: '📥 BOM 다운로드 URL',
+      },
+    ],
+    parameters: [
+      {
+        name: 'confidence',
+        type: 'number',
+        default: 0.7,
+        min: 0.1,
+        max: 1,
+        step: 0.05,
+        description: '검출 신뢰도 임계값',
+      },
+      {
+        name: 'auto_approve_threshold',
+        type: 'number',
+        default: 0.95,
+        min: 0.8,
+        max: 1,
+        step: 0.01,
+        description: '자동 승인 임계값 (이상이면 자동 승인)',
+      },
+      {
+        name: 'export_format',
+        type: 'select',
+        default: 'excel',
+        options: ['excel', 'csv', 'json', 'pdf'],
+        description: '내보내기 형식',
+      },
+      {
+        name: 'skip_verification',
+        type: 'boolean',
+        default: false,
+        description: 'Human-in-the-Loop 검증 건너뛰기',
+      },
+    ],
+    examples: [
+      '도면 이미지 → YOLO 검출 → Blueprint AI BOM → Excel BOM',
+      'YOLO 검출 결과 → Blueprint AI BOM (검증) → BOM 생성',
+    ],
+    usageTips: [
+      '⭐ Human-in-the-Loop: skip_verification=false로 수동 검증',
+      '💡 자동화: skip_verification=true, auto_approve_threshold=0.95',
+      '💡 27개 산업용 부품 클래스 지원 (valve, pipe, pump, bolt 등)',
+      '💡 검증 UI에서 바운딩 박스 수정, 클래스 변경, 승인/반려 가능',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolo',
+        field: 'detections',
+        reason: 'YOLO 검출 결과를 BOM 검증 입력으로 사용합니다',
+      },
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '원본 도면 이미지를 업로드합니다',
       },
     ],
   },

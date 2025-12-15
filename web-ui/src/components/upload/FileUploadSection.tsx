@@ -30,6 +30,34 @@ const DEFAULT_SAMPLES: SampleFile[] = [
     type: 'image'
   },
   {
+    id: 'sample-6',
+    name: 'P&ID Diagram',
+    path: '/samples/sample6_pid_diagram.png',
+    description: 'P&ID 배관계장도 - 심볼/라인 검출',
+    type: 'image'
+  },
+  {
+    id: 'sample-7',
+    name: 'MCP Panel Body (BOM)',
+    path: '/samples/sample7_mcp_panel_body.jpg',
+    description: '전기 제어판 도면 - BOM 부품 검출',
+    type: 'image'
+  },
+  {
+    id: 'sample-8',
+    name: 'Control Panel Blueprint 1',
+    path: '/samples/sample8_blueprint_31.jpg',
+    description: '제어판 도면 - BOM 부품 검출',
+    type: 'image'
+  },
+  {
+    id: 'sample-9',
+    name: 'Control Panel Blueprint 2',
+    path: '/samples/sample9_blueprint_35.jpg',
+    description: '제어판 도면 - BOM 부품 검출',
+    type: 'image'
+  },
+  {
     id: 'sample-3',
     name: 'Intermediate Shaft (PDF)',
     path: '/samples/sample1_interm_shaft.pdf',

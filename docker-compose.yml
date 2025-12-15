@@ -696,6 +696,56 @@ services:
       retries: 3
       start_period: 30s
 
+  # =====================
+  # Blueprint AI BOM (포트 5020)
+  # Human-in-the-Loop 기반 도면 분석 및 BOM 생성
+  # =====================
+  blueprint-ai-bom-backend:
+    build:
+      context: ./blueprint-ai-bom/backend
+      dockerfile: Dockerfile
+    container_name: blueprint-ai-bom-backend
+    ports:
+      - "5020:5020"
+    volumes:
+      - ./blueprint-ai-bom/uploads:/app/uploads
+      - ./blueprint-ai-bom/results:/app/results
+      - ./blueprint-ai-bom/config:/app/config
+      - ./blueprint-ai-bom/models:/app/models:ro
+      - ./blueprint-ai-bom/classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - BOM_PORT=5020
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  blueprint-ai-bom-frontend:
+    build:
+      context: ./blueprint-ai-bom/frontend
+      dockerfile: Dockerfile
+    container_name: blueprint-ai-bom-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - blueprint-ai-bom-backend
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+
 networks:
   ax_poc_network:
     name: ax_poc_network
@@ -721,3 +771,5 @@ volumes:
   surya_models:
   doctr_models:
   easyocr_models:
+  bom_uploads:
+  bom_results:

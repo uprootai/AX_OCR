@@ -41,6 +41,8 @@ from .executors import (
     yolopid_executor,
     pidanalyzer_executor,
     designchecker_executor,
+    # BOM Executor
+    bom_executor,
 )
 
 __all__ = [

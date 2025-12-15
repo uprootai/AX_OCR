@@ -1,0 +1,56 @@
+# Blueprint AI BOM - Docker Compose
+version: '3.8'
+
+services:
+  # Backend API
+  blueprint-ai-bom-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blueprint-ai-bom-backend
+    ports:
+      - "5020:5020"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./config:/app/config
+      - ./models:/app/models:ro
+      - ./classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
+      - ./test_drawings:/app/test_drawings:ro
+      - ./class_examples:/app/class_examples:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - blueprint-network
+      - ax_poc_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend
+  blueprint-ai-bom-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: blueprint-ai-bom-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - blueprint-ai-bom-backend
+    networks:
+      - blueprint-network
+    restart: unless-stopped
+
+networks:
+  blueprint-network:
+    driver: bridge
+  ax_poc_network:
+    external: true
+
+volumes:
+  uploads:
+  results:

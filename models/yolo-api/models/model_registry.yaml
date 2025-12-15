@@ -84,5 +84,41 @@ models:
     best_for: 주요 심볼만 검출이 필요한 경우
     trained_on: P&ID 도면 500장
 
+  bom_detector:
+    file: bom_detector.pt
+    name: BOM 부품 검출 (27종)
+    description: 전기 제어판 부품 검출 - 릴레이, 차단기, PLC, 전원공급장치 등 27종.
+    classes: 27
+    class_names:
+      - buzzer
+      - hub_8port
+      - smps_5a
+      - smps_10a
+      - disconnecting_switch
+      - power_outlet
+      - pilot_lamp_green
+      - auxiliary_relay
+      - circuit_breaker
+      - plc_cpu_1513
+      - plc_cpu_1214c
+      - plc_rs422_485
+      - plc_profibus_dp
+      - graphic_panel
+      - terminal_block_32a
+      - terminal_block_24a
+      - plc_ai
+      - plc_ao
+      - plc_di
+      - plc_do
+      - bus_interface
+      - valve_control_unit
+      - i_i_converter
+      - selector_switch
+      - transformer
+      - noise_filter
+      - emergency_button
+    best_for: 전기 제어판 도면, 회로도, BOM 생성
+    trained_on: 제어판 도면 학습
+
 # 기본 모델 설정
 default_model: engineering

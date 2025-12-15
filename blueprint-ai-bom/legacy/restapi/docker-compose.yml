@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # PaddleOCR API (단독 OCR 서비스)
+  paddleocr-api:
+    build: ./paddleocr
+    container_name: paddleocr-api
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CUDA_VISIBLE_DEVICES=""  # CPU 모드 강제 (안정성)
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ocr-network
+
+networks:
+  ocr-network:
+    driver: bridge

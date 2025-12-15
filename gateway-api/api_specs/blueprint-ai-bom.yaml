@@ -1,0 +1,192 @@
+# Blueprint AI BOM API Specification
+# Human-in-the-Loop 기반 도면 분석 및 BOM 생성
+# BlueprintFlow 통합 스펙
+
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: blueprint-ai-bom
+  name: Blueprint AI BOM
+  version: 3.0.0
+  port: 5020
+  host: blueprint-ai-bom-backend  # Docker 서비스명
+  description: AI 기반 도면 분석 및 BOM 생성. Human-in-the-Loop 검증 UI 제공.
+  author: AX Team
+  tags:
+    - bom
+    - detection
+    - verification
+    - human-in-the-loop
+    - export
+
+server:
+  endpoint: /detection/{session_id}/detect
+  method: POST
+  contentType: application/json
+  timeout: 120
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#8b5cf6"
+  icon: FileSpreadsheet
+  requiresImage: true
+  interactiveMode: true  # Human-in-the-Loop UI 필요
+  uiUrl: "http://localhost:3000"  # Frontend URL
+  recommendedInputs:
+    - from: yolo
+      field: detections
+      reason: YOLO 검출 결과를 BOM 검증 입력으로 사용
+    - from: imageinput
+      field: image
+      reason: 원본 도면 이미지
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 분석할 도면 이미지
+  - name: detections
+    type: DetectionResult[]
+    required: false
+    description: 사전 검출된 객체 (없으면 내부 YOLO 실행)
+
+outputs:
+  - name: bom_data
+    type: BOMData
+    description: 생성된 BOM 데이터 (품목별 수량, 단가, 합계)
+  - name: items
+    type: BOMItem[]
+    description: BOM 항목 목록
+  - name: summary
+    type: BOMSummary
+    description: BOM 요약 (총 수량, 소계, 부가세, 합계)
+  - name: approved_count
+    type: number
+    description: 승인된 검출 수
+  - name: export_url
+    type: string
+    description: BOM 다운로드 URL
+
+parameters:
+  - name: confidence
+    type: number
+    default: 0.7
+    min: 0.1
+    max: 1
+    step: 0.05
+    description: 검출 신뢰도 임계값
+
+  - name: iou_threshold
+    type: number
+    default: 0.45
+    min: 0.1
+    max: 0.9
+    step: 0.05
+    description: NMS IoU 임계값
+
+  - name: auto_approve_threshold
+    type: number
+    default: 0.95
+    min: 0.8
+    max: 1
+    step: 0.01
+    description: 자동 승인 신뢰도 임계값 (이상이면 자동 승인)
+
+  - name: export_format
+    type: select
+    default: excel
+    options:
+      - excel
+      - csv
+      - json
+      - pdf
+    description: 내보내기 형식
+
+  - name: skip_verification
+    type: boolean
+    default: false
+    description: Human-in-the-Loop 검증 건너뛰기 (자동 승인)
+
+mappings:
+  input:
+    image: image
+    detections: detections
+  output:
+    bom_data: bom_data
+    items: bom_data.items
+    summary: bom_data.summary
+    approved_count: approved_count
+    export_url: export_url
+
+i18n:
+  ko:
+    label: Blueprint AI BOM
+    description: AI 기반 도면 분석 및 BOM 생성. 검출 결과를 검증하고 부품 명세서를 생성합니다.
+    parameters:
+      confidence: 신뢰도 임계값
+      iou_threshold: NMS IoU 임계값
+      auto_approve_threshold: 자동 승인 임계값
+      export_format: 내보내기 형식
+      skip_verification: 검증 건너뛰기
+  en:
+    label: Blueprint AI BOM
+    description: AI-based drawing analysis and BOM generation. Verify detections and generate bill of materials.
+    parameters:
+      confidence: Confidence Threshold
+      iou_threshold: NMS IoU Threshold
+      auto_approve_threshold: Auto-approve Threshold
+      export_format: Export Format
+      skip_verification: Skip Verification
+
+examples:
+  - 도면 이미지 → YOLO 검출 → Blueprint AI BOM → Excel BOM
+  - YOLO 검출 결과 → Blueprint AI BOM (검증) → BOM 생성
+
+usageTips:
+  - "Human-in-the-Loop: skip_verification=false로 수동 검증"
+  - "자동화: skip_verification=true, auto_approve_threshold=0.95"
+  - "27개 부품 클래스 지원 (valve, pipe, pump, bolt 등)"
+
+# 지원 클래스 목록
+supportedClasses:
+  - beam
+  - bolt
+  - channel
+  - clamp
+  - elbow
+  - flange
+  - gasket
+  - hbeam
+  - ibeam
+  - nut
+  - pipe
+  - plate
+  - pump
+  - reducer
+  - tank
+  - tee
+  - union
+  - valve
+  - vessel
+  - washer
+  - weldneck
+  - cap
+  - coupling
+  - cross
+  - expansion_joint
+  - filter
+  - strainer
+
+resources:
+  gpu:
+    vram: "~2GB"
+    minVram: 1500
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~3GB"
+    minRam: 2048
+    cores: 4
+    note: "GPU 사용 시 검출 10배 빠름"

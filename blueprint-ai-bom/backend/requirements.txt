@@ -1,0 +1,25 @@
+# FastAPI & Server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Image Processing
+pillow>=10.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0,<2.0.0
+
+# YOLO Detection
+ultralytics>=8.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Export (Excel/PDF)
+openpyxl>=3.1.0
+reportlab>=4.0.0
+
+# Data Handling
+pydantic>=2.0.0
+python-dateutil>=2.8.0
+
+# Utilities
+aiofiles>=23.0.0

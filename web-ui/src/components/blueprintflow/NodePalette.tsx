@@ -23,6 +23,9 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  FileSpreadsheet,
+  ExternalLink,
+  ClipboardList,
 } from 'lucide-react';
 import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
@@ -122,6 +125,14 @@ const baseNodeConfigs: NodeConfig[] = [
     description: 'Design rule validation',
     icon: ShieldCheck,
     color: '#ef4444',
+    category: 'analysis',
+  },
+  {
+    type: 'blueprint-ai-bom',
+    label: 'Blueprint AI BOM',
+    description: 'Human-in-the-Loop BOM 생성',
+    icon: FileSpreadsheet,
+    color: '#8b5cf6',
     category: 'analysis',
   },
   // AI Nodes
@@ -915,6 +926,32 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+          🔗 Quick Links
+        </h3>
+        <div className="space-y-2">
+          <a
+            href="http://localhost:3000"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-2 p-3 rounded-lg border-2 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 hover:shadow-md transition-shadow border-emerald-300 dark:border-emerald-700"
+          >
+            <ClipboardList className="w-5 h-5 mt-0.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                Quick BOM
+                <ExternalLink className="w-3 h-3" />
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                간편 BOM 생성 워크플로우
+              </div>
+            </div>
+          </a>
         </div>
       </div>
         </div>

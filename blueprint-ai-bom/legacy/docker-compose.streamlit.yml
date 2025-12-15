@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  drawing-bom-extractor:
+    build: .
+    container_name: drawing-bom-extractor
+    ports:
+      - "8507:8503"
+    volumes:
+      # 애플리케이션 파일 마운트
+      - ./real_ai_app.py:/app/real_ai_app.py:ro
+      - ./utils:/app/utils:ro
+      - ./test_drawings:/app/test_drawings:ro
+      - ./classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
+      - ./models:/app/models:ro
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./ocr_ground_truth.json:/app/ocr_ground_truth.json:ro
+      - ./class_examples:/app/class_examples:ro
+      - ./.streamlit:/app/.streamlit:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+    restart: unless-stopped
+    # GPU 지원 (선택사항)
+    runtime: nvidia
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8503/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

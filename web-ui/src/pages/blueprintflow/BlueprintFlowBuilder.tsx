@@ -144,7 +144,7 @@ const baseNodeTypes = {
 let nodeId = 0;
 const getId = () => `node_${nodeId++}`;
 
-// BlueprintFlow 샘플 이미지 (이미지 3개)
+// BlueprintFlow 샘플 이미지
 const BLUEPRINT_SAMPLES: SampleFile[] = [
   {
     id: 'sample-1',
@@ -167,6 +167,27 @@ const BLUEPRINT_SAMPLES: SampleFile[] = [
     path: '/samples/sample6_pid_diagram.png',
     description: 'P&ID 공정도 - YOLO-PID, Line Detector, PID Analyzer 분석용',
     type: 'image'
+  },
+  {
+    id: 'sample-7',
+    name: 'MCP Panel Body (BOM)',
+    path: '/samples/sample7_mcp_panel_body.jpg',
+    description: '전기 제어판 도면 - BOM 부품 검출용',
+    type: 'image'
+  },
+  {
+    id: 'sample-8',
+    name: 'Control Panel 1',
+    path: '/samples/sample8_blueprint_31.jpg',
+    description: '제어판 도면 1 - BOM 부품 검출용',
+    type: 'image'
+  },
+  {
+    id: 'sample-9',
+    name: 'Control Panel 2',
+    path: '/samples/sample9_blueprint_35.jpg',
+    description: '제어판 도면 2 - BOM 부품 검출용',
+    type: 'image'
   }
 ];
 
@@ -179,6 +200,7 @@ function WorkflowBuilderCanvas() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
   const [isStatusCollapsed, setIsStatusCollapsed] = useState(false);
+  const [isCheckingContainers, setIsCheckingContainers] = useState(false);
 
   // Container status check modal state
   const [containerWarningModal, setContainerWarningModal] = useState<{
@@ -479,19 +501,27 @@ function WorkflowBuilderCanvas() {
       return;
     }
 
-    // Check container status before execution
-    const stoppedContainers = await checkContainerStatus();
-    if (stoppedContainers.length > 0) {
-      setContainerWarningModal({
-        isOpen: true,
-        stoppedContainers,
-        isStarting: false
-      });
-      return;
-    }
+    // 즉시 버튼 비활성화
+    setIsCheckingContainers(true);
 
-    // Use store's executeWorkflowStream method for real-time updates
-    await executeWorkflowStream(uploadedImage);
+    try {
+      // Check container status before execution
+      const stoppedContainers = await checkContainerStatus();
+      if (stoppedContainers.length > 0) {
+        setContainerWarningModal({
+          isOpen: true,
+          stoppedContainers,
+          isStarting: false
+        });
+        setIsCheckingContainers(false);
+        return;
+      }
+
+      // Use store's executeWorkflowStream method for real-time updates
+      await executeWorkflowStream(uploadedImage);
+    } finally {
+      setIsCheckingContainers(false);
+    }
   };
 
   return (
@@ -640,16 +670,30 @@ function WorkflowBuilderCanvas() {
               </div>
               <Button
                 onClick={handleExecute}
-                disabled={isExecuting || !uploadedImage}
-                className={`flex items-center gap-2 ${isExecuting ? 'bg-yellow-600 hover:bg-yellow-600 cursor-wait animate-pulse' : 'bg-green-600 hover:bg-green-700'} disabled:bg-gray-400 disabled:cursor-not-allowed`}
-                title={uploadedImage ? t('blueprintflow.executeTooltip') : 'Upload an image first'}
+                disabled={isExecuting || isCheckingContainers || !uploadedImage}
+                className={`flex items-center gap-2 ${
+                  isExecuting || isCheckingContainers
+                    ? 'bg-gray-500 hover:bg-gray-500 cursor-not-allowed opacity-70'
+                    : 'bg-green-600 hover:bg-green-700'
+                } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                title={
+                  isCheckingContainers
+                    ? t('blueprintflow.checkingContainers', '컨테이너 확인 중...')
+                    : isExecuting
+                      ? t('blueprintflow.executingTooltip', '실행 중입니다...')
+                      : (uploadedImage ? t('blueprintflow.executeTooltip') : 'Upload an image first')
+                }
               >
-                {isExecuting ? (
+                {isExecuting || isCheckingContainers ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
-                {isExecuting ? t('blueprintflow.executing') : t('blueprintflow.execute')}
+                {isCheckingContainers
+                  ? t('blueprintflow.checkingContainers', '확인 중...')
+                  : isExecuting
+                    ? t('blueprintflow.executing')
+                    : t('blueprintflow.execute')}
               </Button>
               {isExecuting && (
                 <Button
@@ -1390,6 +1434,58 @@ function WorkflowBuilderCanvas() {
                                                     maxHeight="200px"
                                                   />
                                                 ))}
+                                              </div>
+                                            );
+                                          })()}
+
+                                          {/* Interactive Action UI (Blueprint AI BOM 등) */}
+                                          {output && (output as Record<string, unknown>).ui_action && (() => {
+                                            const out = output as Record<string, unknown>;
+                                            const uiAction = out.ui_action as { url?: string; label?: string } | undefined;
+                                            const sessionId = out.session_id as string | undefined;
+                                            const message = out.message as string | undefined;
+                                            return (
+                                              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex-1">
+                                                    <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                                                      🔗 {message || '액션이 필요합니다'}
+                                                    </div>
+                                                    <a
+                                                      href={uiAction?.url || '#'}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+                                                    >
+                                                      <span>🚀</span>
+                                                      {uiAction?.label || '열기'}
+                                                      <span className="text-blue-200">↗</span>
+                                                    </a>
+                                                  </div>
+                                                  {sessionId && (
+                                                    <button
+                                                      onClick={async () => {
+                                                        if (confirm('이 세션을 삭제하시겠습니까?')) {
+                                                          try {
+                                                            await fetch(`http://localhost:5020/sessions/${sessionId}`, { method: 'DELETE' });
+                                                            alert('세션이 삭제되었습니다.');
+                                                          } catch {
+                                                            alert('세션 삭제 실패');
+                                                          }
+                                                        }
+                                                      }}
+                                                      className="ml-3 px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                                                      title="세션 삭제"
+                                                    >
+                                                      🗑️ 세션 닫기
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                {sessionId && (
+                                                  <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                                                    Session: {sessionId}
+                                                  </div>
+                                                )}
                                               </div>
                                             );
                                           })()}
