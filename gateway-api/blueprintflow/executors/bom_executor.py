@@ -38,7 +38,9 @@ class BOMExecutor(BaseNodeExecutor):
         try:
             # 파라미터 추출
             skip_verification = self.parameters.get("skip_verification", False)
-            confidence = self.parameters.get("confidence", 0.7)
+            confidence = self.parameters.get("confidence", 0.40)  # Streamlit 기본값
+            iou = self.parameters.get("iou", 0.50)  # Streamlit 기본값
+            imgsz = self.parameters.get("imgsz", 1024)  # Streamlit 기본값
             auto_approve_threshold = self.parameters.get("auto_approve_threshold", 0.95)
             export_format = self.parameters.get("export_format", "excel")
 
@@ -59,8 +61,8 @@ class BOMExecutor(BaseNodeExecutor):
 
             # 2. 내부 YOLO 검출 실행 (항상 내부 검출 사용 - 더 안정적)
             # 참고: 외부 detections는 현재 지원하지 않음 (bbox 형식 호환성 문제)
-            logger.info(f"세션 {session_id}에 대해 내부 YOLO 검출 실행")
-            await self._run_detection(session_id, confidence)
+            logger.info(f"세션 {session_id}에 대해 내부 YOLO 검출 실행 (confidence={confidence}, iou={iou}, imgsz={imgsz})")
+            await self._run_detection(session_id, confidence, iou, imgsz)
 
             # 3. Human-in-the-Loop 검증 필요 여부 결정
             if not skip_verification:
@@ -104,9 +106,17 @@ class BOMExecutor(BaseNodeExecutor):
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
-        confidence = self.parameters.get("confidence", 0.7)
+        confidence = self.parameters.get("confidence", 0.40)
         if not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1:
             return False, "confidence는 0과 1 사이의 숫자여야 합니다"
+
+        iou = self.parameters.get("iou", 0.50)
+        if not isinstance(iou, (int, float)) or not 0 <= iou <= 1:
+            return False, "iou는 0과 1 사이의 숫자여야 합니다"
+
+        imgsz = self.parameters.get("imgsz", 1024)
+        if not isinstance(imgsz, int) or not 320 <= imgsz <= 4096:
+            return False, "imgsz는 320과 4096 사이의 정수여야 합니다"
 
         auto_approve_threshold = self.parameters.get("auto_approve_threshold", 0.95)
         if not isinstance(auto_approve_threshold, (int, float)) or not 0 <= auto_approve_threshold <= 1:
@@ -140,7 +150,18 @@ class BOMExecutor(BaseNodeExecutor):
             elif isinstance(image_data, str):
                 # Plain base64 string (without data: prefix)
                 try:
-                    file_bytes = base64.b64decode(image_data)
+                    # URL인 경우 (http:// 또는 https://로 시작, 단 /9j/는 JPEG base64이므로 제외)
+                    if image_data.startswith(("http://", "https://")):
+                        logger.info(f"URL 형식 이미지 감지: {image_data[:100]}...")
+                        # URL에서 이미지 다운로드
+                        img_response = await client.get(image_data)
+                        img_response.raise_for_status()
+                        file_bytes = img_response.content
+                    else:
+                        # Base64 디코딩 (/9j/는 JPEG, iVBOR은 PNG)
+                        logger.info(f"Base64 이미지 디코딩 시도 (길이: {len(image_data)}, prefix: {image_data[:10]})")
+                        file_bytes = base64.b64decode(image_data)
+
                     # 이미지 포맷 감지 (JPEG: FF D8 FF, PNG: 89 50 4E 47)
                     if file_bytes[:2] == b'\xff\xd8':
                         ext, mime_type = "jpg", "image/jpeg"
@@ -149,14 +170,18 @@ class BOMExecutor(BaseNodeExecutor):
                     else:
                         ext, mime_type = "png", "image/png"  # 기본값
 
+                    logger.info(f"이미지 포맷: {mime_type}, 크기: {len(file_bytes)} bytes")
+
                     files = {"file": (f"image.{ext}", file_bytes, mime_type)}
                     response = await client.post(
                         f"{self.BASE_URL}/sessions/upload",
                         files=files
                     )
                 except Exception as e:
-                    logger.error(f"Base64 디코딩 실패: {e}")
-                    raise ValueError(f"이미지 데이터를 디코딩할 수 없습니다: {e}")
+                    logger.error(f"이미지 처리 실패: {type(e).__name__}: {e}")
+                    logger.error(f"image_data 타입: {type(image_data)}, 길이: {len(image_data) if isinstance(image_data, str) else 'N/A'}")
+                    logger.error(f"image_data 샘플: {image_data[:200] if isinstance(image_data, str) else str(image_data)[:200]}...")
+                    raise ValueError(f"이미지 데이터를 디코딩할 수 없습니다: {type(e).__name__}: {e}")
             else:
                 # 바이트 데이터인 경우
                 files = {"file": ("image.png", image_data, "image/png")}
@@ -181,12 +206,16 @@ class BOMExecutor(BaseNodeExecutor):
                     }
                 )
 
-    async def _run_detection(self, session_id: str, confidence: float):
-        """검출 실행"""
+    async def _run_detection(self, session_id: str, confidence: float, iou: float, imgsz: int):
+        """검출 실행 (Streamlit과 동일한 파라미터 지원)"""
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(
                 f"{self.BASE_URL}/detection/{session_id}/detect",
-                json={"confidence": confidence}
+                json={
+                    "confidence": confidence,
+                    "iou_threshold": iou,
+                    "imgsz": imgsz
+                }
             )
             response.raise_for_status()
 

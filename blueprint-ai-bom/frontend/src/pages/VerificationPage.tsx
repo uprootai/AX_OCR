@@ -1,11 +1,13 @@
 /**
  * Verification Page - 검증 페이지 (Human-in-the-Loop)
+ * Streamlit DrawingBOMExtractor와 동일한 기능 제공
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import { useSessionStore } from '../store/sessionStore';
+import { ReferencePanel } from '../components/ReferencePanel';
 import type { Detection, VerificationStatus } from '../types';
 
 // 전기 패널 부품 클래스별 색상
@@ -81,11 +83,60 @@ export function VerificationPage() {
     clearError,
   } = useSessionStore();
 
+  // UI 상태
+  const [showReferencePanel, setShowReferencePanel] = useState(false);
+  const [croppedImages, setCroppedImages] = useState<Record<string, string>>({});
+  const imageRef = useRef<HTMLImageElement>(null);
+
   useEffect(() => {
     if (sessionId && !currentSession) {
       loadSession(sessionId);
     }
   }, [sessionId, currentSession, loadSession]);
+
+  // 검출 영역 크롭 이미지 생성
+  const cropDetectionImage = useCallback((detection: Detection, img: HTMLImageElement): string | null => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      const bbox = detection.modified_bbox || detection.bbox;
+      const padding = 10; // 여백 추가
+
+      const x = Math.max(0, bbox.x1 - padding);
+      const y = Math.max(0, bbox.y1 - padding);
+      const width = Math.min(img.naturalWidth - x, bbox.x2 - bbox.x1 + padding * 2);
+      const height = Math.min(img.naturalHeight - y, bbox.y2 - bbox.y1 + padding * 2);
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, x, y, width, height, 0, 0, width, height);
+
+      return canvas.toDataURL('image/jpeg', 0.8);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // 이미지 로드 후 크롭 이미지 생성
+  useEffect(() => {
+    if (!imageData || detections.length === 0) return;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const crops: Record<string, string> = {};
+      detections.forEach(detection => {
+        const cropped = cropDetectionImage(detection, img);
+        if (cropped) {
+          crops[detection.id] = cropped;
+        }
+      });
+      setCroppedImages(crops);
+    };
+    img.src = imageData;
+  }, [imageData, detections, cropDetectionImage]);
 
   const getClassColor = (className: string): string => {
     // 클래스 이름의 접두사로 색상 매칭
@@ -131,6 +182,18 @@ export function VerificationPage() {
           )}
         </div>
         <div className="flex items-center space-x-3">
+          {/* 참조 패널 토글 버튼 */}
+          <button
+            onClick={() => setShowReferencePanel(!showReferencePanel)}
+            className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors ${
+              showReferencePanel
+                ? 'border-primary-500 bg-primary-50 text-primary-600'
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <BookOpen className="w-5 h-5" />
+            <span>심볼 참조</span>
+          </button>
           <button
             onClick={approveAll}
             disabled={isLoading || pendingCount === 0}
@@ -178,100 +241,110 @@ export function VerificationPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Image with Bounding Boxes */}
-        <div className="col-span-2 bg-white rounded-xl shadow-sm border overflow-hidden">
-          {isLoading && !imageData ? (
-            <div className="flex items-center justify-center h-96">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-            </div>
-          ) : imageData ? (
-            <div className="relative">
-              <img
-                src={imageData}
-                alt="도면"
-                className="w-full max-h-[600px] object-contain bg-gray-100"
-              />
-              {/* Bounding Boxes Overlay */}
-              {imageSize && (
-                <svg
-                  className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                  viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  {detections.map((detection) => {
-                    const color = getClassColor(detection.class_name);
-                    const isSelected = detection.id === selectedDetectionId;
-                    const bbox = detection.modified_bbox || detection.bbox;
+      {/* Main Content - 참조 패널 포함 시 레이아웃 변경 */}
+      <div className="flex gap-6">
+        {/* 왼쪽 영역: 이미지 + 검출 목록 */}
+        <div className={`flex-1 grid gap-6 ${showReferencePanel ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          {/* Image with Bounding Boxes */}
+          <div className={`${showReferencePanel ? 'col-span-1' : 'col-span-2'} bg-white rounded-xl shadow-sm border overflow-hidden`}>
+            {isLoading && !imageData ? (
+              <div className="flex items-center justify-center h-96">
+                <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+              </div>
+            ) : imageData ? (
+              <div className="relative">
+                <img
+                  ref={imageRef}
+                  src={imageData}
+                  alt="도면"
+                  className="w-full max-h-[600px] object-contain bg-gray-100"
+                />
+                {/* Bounding Boxes Overlay */}
+                {imageSize && (
+                  <svg
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                    viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    {detections.map((detection) => {
+                      const color = getClassColor(detection.class_name);
+                      const isSelected = detection.id === selectedDetectionId;
+                      const bbox = detection.modified_bbox || detection.bbox;
 
-                    return (
-                      <g key={detection.id}>
-                        <rect
-                          x={bbox.x1}
-                          y={bbox.y1}
-                          width={bbox.x2 - bbox.x1}
-                          height={bbox.y2 - bbox.y1}
-                          fill="none"
-                          stroke={color}
-                          strokeWidth={isSelected ? 4 : 2}
-                          opacity={detection.verification_status === 'rejected' ? 0.3 : 1}
-                        />
-                        <rect
-                          x={bbox.x1}
-                          y={bbox.y1 - 20}
-                          width={80}
-                          height={20}
-                          fill={color}
-                        />
-                        <text
-                          x={bbox.x1 + 4}
-                          y={bbox.y1 - 6}
-                          fill="white"
-                          fontSize="12"
-                          fontWeight="bold"
-                        >
-                          {detection.modified_class_name || detection.class_name}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-96 text-gray-500">
-              <p>이미지를 로드하는 중...</p>
-            </div>
-          )}
-        </div>
-
-        {/* Detection List */}
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-50">
-            <h3 className="font-semibold text-gray-900">검출 목록</h3>
-          </div>
-          <div className="overflow-y-auto max-h-[600px]">
-            {detections.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <p>검출된 객체가 없습니다.</p>
+                      return (
+                        <g key={detection.id}>
+                          <rect
+                            x={bbox.x1}
+                            y={bbox.y1}
+                            width={bbox.x2 - bbox.x1}
+                            height={bbox.y2 - bbox.y1}
+                            fill="none"
+                            stroke={color}
+                            strokeWidth={isSelected ? 4 : 2}
+                            opacity={detection.verification_status === 'rejected' ? 0.3 : 1}
+                          />
+                          <rect
+                            x={bbox.x1}
+                            y={bbox.y1 - 20}
+                            width={80}
+                            height={20}
+                            fill={color}
+                          />
+                          <text
+                            x={bbox.x1 + 4}
+                            y={bbox.y1 - 6}
+                            fill="white"
+                            fontSize="12"
+                            fontWeight="bold"
+                          >
+                            {detection.modified_class_name || detection.class_name}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                )}
               </div>
             ) : (
-              <ul className="divide-y">
-                {detections.map((detection) => (
-                  <DetectionItem
-                    key={detection.id}
-                    detection={detection}
-                    isSelected={detection.id === selectedDetectionId}
-                    color={getClassColor(detection.class_name)}
-                    onSelect={() => selectDetection(detection.id)}
-                    onVerify={(status) => verifyDetection(detection.id, status)}
-                  />
-                ))}
-              </ul>
+              <div className="flex items-center justify-center h-96 text-gray-500">
+                <p>이미지를 로드하는 중...</p>
+              </div>
             )}
           </div>
+
+          {/* Detection List */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="px-4 py-3 border-b bg-gray-50">
+              <h3 className="font-semibold text-gray-900">검출 목록</h3>
+            </div>
+            <div className="overflow-y-auto max-h-[600px]">
+              {detections.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <p>검출된 객체가 없습니다.</p>
+                </div>
+              ) : (
+                <ul className="divide-y">
+                  {detections.map((detection) => (
+                    <DetectionItem
+                      key={detection.id}
+                      detection={detection}
+                      isSelected={detection.id === selectedDetectionId}
+                      color={getClassColor(detection.class_name)}
+                      croppedImage={croppedImages[detection.id]}
+                      onSelect={() => selectDetection(detection.id)}
+                      onVerify={(status) => verifyDetection(detection.id, status)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* 오른쪽: 참조 패널 (Streamlit과 동일) */}
+        {showReferencePanel && (
+          <ReferencePanel onClose={() => setShowReferencePanel(false)} />
+        )}
       </div>
     </div>
   );
@@ -281,11 +354,14 @@ interface DetectionItemProps {
   detection: Detection;
   isSelected: boolean;
   color: string;
+  croppedImage?: string;
   onSelect: () => void;
   onVerify: (status: VerificationStatus) => void;
 }
 
-function DetectionItem({ detection, isSelected, color, onSelect, onVerify }: DetectionItemProps) {
+function DetectionItem({ detection, isSelected, color, croppedImage, onSelect, onVerify }: DetectionItemProps) {
+  const [showImage, setShowImage] = useState(false);
+
   const getStatusIcon = (status: VerificationStatus) => {
     switch (status) {
       case 'approved':
@@ -306,14 +382,39 @@ function DetectionItem({ detection, isSelected, color, onSelect, onVerify }: Det
       }`}
       onClick={onSelect}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: color }}
-          />
-          <div>
-            <p className="font-medium text-gray-900">
+      <div className="flex items-start justify-between">
+        <div className="flex items-start space-x-3">
+          {/* 크롭 이미지 (Streamlit과 동일) */}
+          {croppedImage ? (
+            <div
+              className="relative flex-shrink-0 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowImage(!showImage);
+              }}
+            >
+              <img
+                src={croppedImage}
+                alt={detection.class_name}
+                className="w-12 h-12 object-cover rounded border border-gray-200"
+              />
+              <div
+                className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
+                style={{ backgroundColor: color }}
+              />
+            </div>
+          ) : (
+            <div
+              className="w-12 h-12 rounded border border-gray-200 flex items-center justify-center bg-gray-50"
+            >
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-medium text-gray-900 truncate">
               {detection.modified_class_name || detection.class_name}
             </p>
             <p className="text-sm text-gray-500">
@@ -321,7 +422,7 @@ function DetectionItem({ detection, isSelected, color, onSelect, onVerify }: Det
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-shrink-0">
           {getStatusIcon(detection.verification_status)}
           {detection.verification_status === 'pending' && (
             <div className="flex space-x-1">
@@ -349,6 +450,16 @@ function DetectionItem({ detection, isSelected, color, onSelect, onVerify }: Det
           )}
         </div>
       </div>
+      {/* 확대 이미지 표시 */}
+      {showImage && croppedImage && (
+        <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+          <img
+            src={croppedImage}
+            alt={detection.class_name}
+            className="w-full max-h-32 object-contain rounded"
+          />
+        </div>
+      )}
     </li>
   );
 }

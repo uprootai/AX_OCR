@@ -24,8 +24,6 @@ import {
   ChevronRight,
   AlertCircle,
   FileSpreadsheet,
-  ExternalLink,
-  ClipboardList,
 } from 'lucide-react';
 import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
@@ -37,7 +35,7 @@ interface NodeConfig {
   description: string;
   icon: React.ElementType | string; // 아이콘은 컴포넌트 또는 이모지
   color: string;
-  category: 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
+  category: 'input' | 'bom' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
 }
 
 const baseNodeConfigs: NodeConfig[] = [
@@ -57,6 +55,15 @@ const baseNodeConfigs: NodeConfig[] = [
     icon: Type,
     color: '#8b5cf6',
     category: 'input',
+  },
+  // BOM Nodes (Human-in-the-Loop 워크플로우)
+  {
+    type: 'blueprint-ai-bom',
+    label: 'Blueprint AI BOM',
+    description: 'Human-in-the-Loop BOM 생성',
+    icon: FileSpreadsheet,
+    color: '#8b5cf6',
+    category: 'bom',
   },
   // Detection Nodes
   {
@@ -125,14 +132,6 @@ const baseNodeConfigs: NodeConfig[] = [
     description: 'Design rule validation',
     icon: ShieldCheck,
     color: '#ef4444',
-    category: 'analysis',
-  },
-  {
-    type: 'blueprint-ai-bom',
-    label: 'Blueprint AI BOM',
-    description: 'Human-in-the-Loop BOM 생성',
-    icon: FileSpreadsheet,
-    color: '#8b5cf6',
     category: 'analysis',
   },
   // AI Nodes
@@ -314,6 +313,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
   }, [customAPIs]);
 
   const inputNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'input'), [allNodeConfigs]);
+  const bomNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'bom'), [allNodeConfigs]);
   const detectionNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'detection'), [allNodeConfigs]);
   const ocrNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'ocr'), [allNodeConfigs]);
   const segmentationNodes = useMemo(() => allNodeConfigs.filter((n) => n.category === 'segmentation'), [allNodeConfigs]);
@@ -451,6 +451,61 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
                       </div>
                     </div>
                   )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* BOM Nodes - Human-in-the-Loop 워크플로우 */}
+      {bomNodes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
+            📋 BOM 생성
+          </h3>
+          <div className="space-y-2">
+            {bomNodes.map((node) => {
+              const isEmojiIcon = typeof node.icon === 'string';
+              const Icon = !isEmojiIcon ? (node.icon as React.ElementType) : null;
+              const definition = getNodeDefinition(node.type);
+              const hasRecommendedInputs = definition?.recommendedInputs && definition.recommendedInputs.length > 0;
+              const isActive = isNodeActive(node.type);
+
+              return (
+                <div key={node.type} className="relative group">
+                  <div
+                    draggable={isActive}
+                    onDragStart={(e) => isActive && onNodeDragStart(e, node.type, node.label)}
+                    className={`flex items-start gap-2 p-3 rounded-lg border-2 transition-shadow ${
+                      isActive
+                        ? 'cursor-move bg-white dark:bg-gray-700 hover:shadow-md'
+                        : 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 opacity-50'
+                    }`}
+                    style={{ borderColor: `${node.color}40` }}
+                  >
+                    {isEmojiIcon ? (
+                      <span className="text-xl mt-0.5 flex-shrink-0">{String(node.icon)}</span>
+                    ) : Icon ? (
+                      <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: node.color }} />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm flex items-center gap-2" style={{ color: node.color }}>
+                        {node.label}
+                        {!isActive && (
+                          <span className="text-xs text-red-500" title="컨테이너가 실행 중이 아닙니다">
+                            <AlertCircle className="w-3 h-3" />
+                          </span>
+                        )}
+                        {hasRecommendedInputs && (
+                          <span className="text-xs text-blue-500" title="추천 입력이 있습니다">⭐</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {node.description}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -929,31 +984,6 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
-          🔗 Quick Links
-        </h3>
-        <div className="space-y-2">
-          <a
-            href="http://localhost:3000"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-start gap-2 p-3 rounded-lg border-2 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 hover:shadow-md transition-shadow border-emerald-300 dark:border-emerald-700"
-          >
-            <ClipboardList className="w-5 h-5 mt-0.5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
-                Quick BOM
-                <ExternalLink className="w-3 h-3" />
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                간편 BOM 생성 워크플로우
-              </div>
-            </div>
-          </a>
-        </div>
-      </div>
         </div>
       )}
     </div>

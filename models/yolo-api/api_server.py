@@ -572,11 +572,12 @@ async def detect_objects(
 
         # Post-processing: filter text blocks and remove duplicates
         original_count = len(detections)
-        # P&ID 모델은 텍스트 필터링 건너뛰기
-        if not is_pid_model:
+        # P&ID 모델 또는 bom_detector는 필터링 건너뛰기 (Streamlit과 동일하게)
+        is_bom_model = model_id == 'bom_detector'
+        if not is_pid_model and not is_bom_model:
             detections = selected_service.filter_text_blocks(detections, min_confidence=0.65)
+            detections = selected_service.remove_duplicate_detections(detections, iou_threshold=0.3)
         filtered_count = len(detections)
-        detections = selected_service.remove_duplicate_detections(detections, iou_threshold=0.3)
         final_count = len(detections)
 
         # Generate visualization

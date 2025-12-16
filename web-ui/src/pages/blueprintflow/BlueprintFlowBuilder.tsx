@@ -576,7 +576,10 @@ function WorkflowBuilderCanvas() {
                     <span>또는 샘플 선택</span>
                     <span className="text-xs">▼</span>
                   </Button>
-                  <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 min-w-[280px]">
+                  <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 min-w-[320px] max-h-[400px] overflow-y-auto">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-1 mb-1 border-b border-gray-200 dark:border-gray-700">
+                      샘플 이미지 ({BLUEPRINT_SAMPLES.length}개)
+                    </div>
                     {BLUEPRINT_SAMPLES.map((sample) => (
                       <button
                         key={sample.id}

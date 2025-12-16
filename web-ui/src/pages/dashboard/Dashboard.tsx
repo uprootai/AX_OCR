@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import APIStatusMonitor from '../../components/monitoring/APIStatusMonitor';
 import ContainerManager from '../../components/dashboard/ContainerManager';
@@ -7,8 +7,19 @@ import ExportToBuiltinDialog from '../../components/dashboard/ExportToBuiltinDia
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { TestTube, Activity, FileText, TrendingUp, Plus, RefreshCw, Download, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { TestTube, Activity, FileText, TrendingUp, Plus, RefreshCw, Download, Trash2, ToggleLeft, ToggleRight, ClipboardList, ExternalLink } from 'lucide-react';
 import { useAPIConfigStore, type APIConfig } from '../../store/apiConfigStore';
+
+// BOM 세션 타입
+interface BOMSession {
+  session_id: string;
+  filename: string;
+  status: string;
+  created_at: string;
+  detection_count: number;
+  verified_count: number;
+  bom_generated: boolean;
+}
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -17,6 +28,51 @@ export default function Dashboard() {
   const [selectedAPIForExport, setSelectedAPIForExport] = useState<APIConfig | null>(null);
   const [isAutoDiscovering, setIsAutoDiscovering] = useState(false);
   const { addAPI, customAPIs, removeAPI, toggleAPI } = useAPIConfigStore();
+
+  // BOM 세션 상태
+  const [bomSessions, setBomSessions] = useState<BOMSession[]>([]);
+  const [bomLoading, setBomLoading] = useState(false);
+  const [bomError, setBomError] = useState<string | null>(null);
+
+  // BOM 세션 목록 가져오기
+  const fetchBomSessions = useCallback(async () => {
+    setBomLoading(true);
+    setBomError(null);
+    try {
+      const response = await fetch('http://localhost:5020/sessions');
+      if (response.ok) {
+        const sessions = await response.json();
+        setBomSessions(sessions);
+      } else {
+        setBomError('세션 조회 실패');
+      }
+    } catch (error) {
+      setBomError('BOM 서버에 연결할 수 없습니다');
+      console.error('BOM 세션 조회 실패:', error);
+    } finally {
+      setBomLoading(false);
+    }
+  }, []);
+
+  // BOM 세션 삭제
+  const deleteBomSession = useCallback(async (sessionId: string) => {
+    if (!confirm('이 세션을 삭제하시겠습니까?')) return;
+    try {
+      const response = await fetch(`http://localhost:5020/sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setBomSessions(prev => prev.filter(s => s.session_id !== sessionId));
+      }
+    } catch (error) {
+      console.error('세션 삭제 실패:', error);
+    }
+  }, []);
+
+  // BOM 세션 로드
+  useEffect(() => {
+    fetchBomSessions();
+  }, [fetchBomSessions]);
 
   const handleExportAPI = (api: APIConfig) => {
     setSelectedAPIForExport(api);
@@ -157,6 +213,99 @@ export default function Dashboard() {
 
       {/* Container Manager */}
       <ContainerManager />
+
+      {/* BOM Sessions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5" />
+              BOM 세션 관리
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchBomSessions}
+              disabled={bomLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${bomLoading ? 'animate-spin' : ''}`} />
+              새로고침
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {bomError ? (
+            <div className="text-center py-4 text-muted-foreground">
+              <p className="text-amber-600 dark:text-amber-400">{bomError}</p>
+              <p className="text-sm mt-1">Blueprint AI BOM 서버 (포트 5020)가 실행 중인지 확인하세요.</p>
+            </div>
+          ) : bomLoading ? (
+            <div className="text-center py-4 text-muted-foreground">
+              세션 로딩 중...
+            </div>
+          ) : bomSessions.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              <p>등록된 BOM 세션이 없습니다.</p>
+              <a
+                href="http://localhost:3000"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-blue-600 hover:underline"
+              >
+                BOM 생성 시작하기 <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {bomSessions.map((session) => (
+                <div
+                  key={session.session_id}
+                  className="flex items-center justify-between p-4 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{session.filename}</div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        session.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                        session.status === 'in_progress' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                        'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                      }`}>
+                        {session.status === 'completed' ? '완료' : session.status === 'in_progress' ? '진행중' : session.status}
+                      </span>
+                      <span>검출: {session.detection_count}개</span>
+                      <span>검증: {session.verified_count}개</span>
+                      {session.bom_generated && (
+                        <span className="text-green-600 dark:text-green-400">BOM 생성됨</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {new Date(session.created_at).toLocaleString('ko-KR')}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <a
+                      href={`http://localhost:3000/workflow?session=${session.session_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      열기 <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteBomSession(session.session_id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Add API Dialog */}
       <AddAPIDialog

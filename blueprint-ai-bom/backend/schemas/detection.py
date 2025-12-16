@@ -15,10 +15,11 @@ class VerificationStatus(str, Enum):
 
 
 class DetectionConfig(BaseModel):
-    """검출 설정"""
-    confidence: float = Field(default=0.7, ge=0.05, le=1.0, description="신뢰도 임계값")
-    iou_threshold: float = Field(default=0.45, ge=0.1, le=0.95, description="NMS IOU 임계값")
-    model_id: str = Field(default="yolo_v11n", description="모델 ID")
+    """검출 설정 - 파나시아 모델 최적화 값 (Streamlit과 동일)"""
+    confidence: float = Field(default=0.40, ge=0.05, le=1.0, description="신뢰도 임계값 (파나시아: 0.40)")
+    iou_threshold: float = Field(default=0.50, ge=0.1, le=0.95, description="NMS IOU 임계값 (파나시아: 0.50)")
+    imgsz: int = Field(default=1024, ge=320, le=4096, description="입력 이미지 크기 (Streamlit: 1024)")
+    model_id: str = Field(default="panasia_yolo", description="모델 ID")
     device: Optional[str] = Field(default=None, description="디바이스 (cuda/cpu)")
 
 

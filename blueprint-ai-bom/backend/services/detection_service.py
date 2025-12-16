@@ -74,12 +74,12 @@ class DetectionService:
         26: "EMERGENCY BUTTON",
     }
 
-    # 파나시아 전용 모델 설정
+    # 파나시아 전용 모델 설정 (Streamlit과 동일하게 imgsz=1024)
     MODEL_NAME = "파나시아 YOLOv11N"
     MODEL_SETTINGS = {
         "confidence": 0.40,
         "iou": 0.50,
-        "imgsz": 3520
+        "imgsz": 1024  # Streamlit과 동일
     }
 
     def __init__(self, model_path: Optional[Path] = None, pricing_db_path: Optional[str] = None):
@@ -137,9 +137,11 @@ class DetectionService:
         if config is None:
             config = DetectionConfig()
 
-        # 파나시아 설정 적용 (기본값 사용 시)
+        # 파나시아 설정 적용 (Streamlit과 동일)
         confidence = config.confidence if config.confidence else self.MODEL_SETTINGS["confidence"]
         iou_threshold = config.iou_threshold if config.iou_threshold else self.MODEL_SETTINGS["iou"]
+        # imgsz는 config에서 가져오거나 기본값 1024 사용 (Streamlit과 동일)
+        imgsz = getattr(config, 'imgsz', None) or self.MODEL_SETTINGS["imgsz"]
 
         start_time = time.time()
 
@@ -150,9 +152,6 @@ class DetectionService:
 
         image_height, image_width = image.shape[:2]
 
-        # 이미지 크기에 따른 imgsz 계산 (파나시아 설정)
-        max_dim = max(image_height, image_width)
-        imgsz = min(max_dim, self.MODEL_SETTINGS["imgsz"])
         # 32의 배수로 맞춤
         imgsz = (imgsz // 32) * 32
 

@@ -19,7 +19,7 @@ export interface RecommendedInput {
 export interface NodeDefinition {
   type: string;
   label: string;
-  category: 'input' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
+  category: 'input' | 'bom' | 'detection' | 'ocr' | 'segmentation' | 'preprocessing' | 'analysis' | 'knowledge' | 'ai' | 'control';
   color: string;
   icon: string;
   description: string;
@@ -142,29 +142,29 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'confidence',
         type: 'number',
-        default: 0.25,
+        default: 0.4,
         min: 0.05,
         max: 1,
         step: 0.05,
-        description: '검출 신뢰도 임계값 (P&ID는 0.1 권장)',
+        description: '검출 신뢰도 임계값 (bom_detector: 0.4, P&ID: 0.1, engineering: 0.25)',
       },
       {
         name: 'iou',
         type: 'number',
-        default: 0.45,
+        default: 0.5,
         min: 0,
         max: 1,
         step: 0.05,
-        description: 'NMS IoU 임계값 (겹치는 박스 제거 기준)',
+        description: 'NMS IoU 임계값 (bom_detector: 0.5 권장)',
       },
       {
         name: 'imgsz',
         type: 'number',
-        default: 640,
+        default: 1024,
         min: 320,
         max: 3520,
         step: 32,
-        description: '입력 이미지 크기 (bom_detector는 3520 권장)',
+        description: '입력 이미지 크기 (bom_detector: 1024 권장)',
       },
       {
         name: 'use_sahi',
@@ -221,7 +221,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     usageTips: [
       '기계도면: model_type=engineering, confidence=0.25',
       'P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)',
-      'BOM: model_type=bom_detector, confidence=0.25 (전기 제어판 부품)',
+      'BOM: model_type=bom_detector, confidence=0.4, iou=0.5, imgsz=1024 (Streamlit 동일)',
       '검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 해당 영역만 정밀 분석할 수 있습니다',
     ],
     recommendedInputs: [
@@ -1811,7 +1811,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   'blueprint-ai-bom': {
     type: 'blueprint-ai-bom',
     label: 'Blueprint AI BOM',
-    category: 'analysis',
+    category: 'bom',
     color: '#8b5cf6',
     icon: 'FileSpreadsheet',
     description: 'AI 기반 도면 분석 및 BOM 생성. Human-in-the-Loop 검증 UI를 통해 검출 결과를 확인하고 부품 명세서를 생성합니다.',
@@ -1859,11 +1859,29 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'confidence',
         type: 'number',
-        default: 0.7,
+        default: 0.40,
         min: 0.1,
         max: 1,
         step: 0.05,
-        description: '검출 신뢰도 임계값',
+        description: '검출 신뢰도 임계값 (Streamlit: 0.40)',
+      },
+      {
+        name: 'iou',
+        type: 'number',
+        default: 0.50,
+        min: 0.1,
+        max: 0.95,
+        step: 0.05,
+        description: 'NMS IoU 임계값 (Streamlit: 0.50)',
+      },
+      {
+        name: 'imgsz',
+        type: 'number',
+        default: 1024,
+        min: 320,
+        max: 4096,
+        step: 32,
+        description: '입력 이미지 크기 (Streamlit: 1024)',
       },
       {
         name: 'auto_approve_threshold',

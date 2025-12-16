@@ -490,6 +490,7 @@ async def compare_with_ground_truth(
                 "iou": best_iou,
                 "det_class": det_class,
                 "gt_class": gt_labels[best_gt_idx]["class_name"],
+                "gt_bbox": gt_labels[best_gt_idx]["bbox"],  # GT bbox for frontend cropping
                 "class_match": det_class == gt_labels[best_gt_idx]["class_name"]
             })
 

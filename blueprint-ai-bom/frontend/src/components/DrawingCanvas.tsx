@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
-import { MousePointer2, Square, Trash2, Check, ZoomIn, ZoomOut } from 'lucide-react';
+import { MousePointer2, Square, Trash2, Check } from 'lucide-react';
 
 interface BoundingBox {
   x1: number;
@@ -23,6 +23,8 @@ interface DrawingCanvasProps {
     color?: string;
   }>;
   selectedClass?: string;
+  /** 컨테이너 최대 너비 (예: '66%', '800px') */
+  maxWidth?: string;
 }
 
 export function DrawingCanvas({
@@ -31,6 +33,7 @@ export function DrawingCanvas({
   onBoxDrawn,
   existingBoxes = [],
   selectedClass,
+  maxWidth,
 }: DrawingCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -38,7 +41,6 @@ export function DrawingCanvas({
   const [currentPoint, setCurrentPoint] = useState<{ x: number; y: number } | null>(null);
   const [drawnBox, setDrawnBox] = useState<BoundingBox | null>(null);
   const [drawingMode, setDrawingMode] = useState(true);
-  const [zoomLevel, setZoomLevel] = useState(1.5); // 기본 1.5배 확대
 
 
   // 마우스 좌표를 이미지 좌표로 변환
@@ -142,7 +144,7 @@ export function DrawingCanvas({
   } : null;
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${maxWidth ? 'mx-auto' : ''}`} style={maxWidth ? { maxWidth } : undefined}>
       {/* 툴바 */}
       <div className="flex flex-wrap items-center gap-3 bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
         {/* 그리기 모드 버튼 */}
@@ -167,27 +169,6 @@ export function DrawingCanvas({
           )}
         </button>
 
-        {/* 줌 컨트롤 */}
-        <div className="flex items-center bg-white dark:bg-gray-600 rounded-lg border border-gray-300 dark:border-gray-500">
-          <button
-            onClick={() => setZoomLevel(Math.max(1, zoomLevel - 0.5))}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-500 rounded-l-lg transition-colors"
-            title="축소"
-          >
-            <ZoomOut className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-          </button>
-          <span className="px-3 text-sm font-medium text-gray-700 dark:text-gray-300 border-x border-gray-300 dark:border-gray-500">
-            {zoomLevel}x
-          </span>
-          <button
-            onClick={() => setZoomLevel(Math.min(4, zoomLevel + 0.5))}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-500 rounded-r-lg transition-colors"
-            title="확대"
-          >
-            <ZoomIn className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-          </button>
-        </div>
-
         {selectedClass && (
           <span className="text-sm text-gray-600 dark:text-gray-400">
             선택된 클래스: <strong className="text-primary-600 dark:text-primary-400">{selectedClass}</strong>
@@ -195,43 +176,32 @@ export function DrawingCanvas({
         )}
 
         <div className="flex-1 text-right text-xs text-gray-500 dark:text-gray-400">
-          {drawingMode ? '이미지 위에서 드래그하여 바운딩 박스를 그리세요' : '스크롤하여 이미지를 탐색하세요'}
+          {drawingMode ? '이미지 위에서 드래그하여 바운딩 박스를 그리세요' : '보기 모드'}
         </div>
       </div>
 
-      {/* 캔버스 컨테이너 - 스크롤 가능, 줌 지원 */}
+      {/* 캔버스 컨테이너 */}
       <div
         ref={containerRef}
-        className={`relative bg-gray-100 dark:bg-gray-900 rounded-lg overflow-auto ${
+        className={`relative bg-gray-100 dark:bg-gray-900 rounded-lg ${
           drawingMode ? 'cursor-crosshair' : 'cursor-default'
         }`}
-        style={{ maxHeight: '80vh' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* 이미지 - 줌 레벨에 따라 크기 조절 */}
+        {/* 이미지 - 컨테이너에 꽉 채움 */}
         <img
           src={imageData}
           alt="도면"
-          className="select-none pointer-events-none"
-          style={{
-            display: 'block',
-            width: `${zoomLevel * 100}%`,
-            minWidth: `${zoomLevel * 100}%`,
-          }}
+          className="w-full select-none pointer-events-none"
           draggable={false}
         />
 
         {/* SVG 오버레이 - 이미지와 동일한 크기 */}
         <svg
-          className="absolute top-0 left-0 pointer-events-none"
-          style={{
-            width: `${zoomLevel * 100}%`,
-            height: 'auto',
-            aspectRatio: `${imageSize.width} / ${imageSize.height}`,
-          }}
+          className="absolute top-0 left-0 w-full h-full pointer-events-none"
           viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
           preserveAspectRatio="xMinYMin meet"
         >
@@ -334,8 +304,6 @@ export function DrawingCanvas({
           <p className="text-sm text-blue-700 dark:text-blue-300">
             <strong>사용 방법:</strong> 이미지 위에서 마우스를 클릭한 채로 드래그하여 바운딩 박스를 그리세요.
             그린 후 "추가" 버튼을 클릭하면 수작업 라벨로 추가됩니다.
-            <br />
-            <span className="text-xs opacity-80">줌 버튼으로 이미지를 확대/축소하고, 스크롤로 이동할 수 있습니다. (현재 {zoomLevel}배 확대)</span>
           </p>
         </div>
       )}
