@@ -31,20 +31,21 @@ class YoloExecutor(BaseNodeExecutor):
         # 이미지 준비
         file_bytes = prepare_image_for_api(inputs, context)
 
-        # 파라미터 추출
-        confidence = self.parameters.get("confidence", 0.25)
-        iou = self.parameters.get("iou", 0.45)
-        visualize = self.parameters.get("visualize", True)
-        filename = self.parameters.get("filename", "workflow_image.jpg")
-        imgsz = self.parameters.get("imgsz", 640)
-        model_type = self.parameters.get("model_type", "engineering")
-        task = self.parameters.get("task", "detect")
+        # 파라미터 추출 (기본값은 nodeDefinitions.ts에서 정의됨)
+        # self.parameters는 Frontend에서 전달된 값이므로 기본값 없이 직접 사용
+        confidence = self.parameters["confidence"]
+        iou = self.parameters["iou"]
+        visualize = self.parameters["visualize"]
+        filename = self.parameters.get("filename", "workflow_image.jpg")  # filename만 예외 (UI에 노출 안됨)
+        imgsz = self.parameters["imgsz"]
+        model_type = self.parameters["model_type"]
+        task = self.parameters["task"]
 
-        # SAHI 파라미터 (P&ID 모델은 서버에서 자동 활성화)
-        use_sahi = self.parameters.get("use_sahi", False)
-        slice_height = self.parameters.get("slice_height", 512)
-        slice_width = self.parameters.get("slice_width", 512)
-        overlap_ratio = self.parameters.get("overlap_ratio", 0.25)
+        # SAHI 파라미터
+        use_sahi = self.parameters["use_sahi"]
+        slice_height = self.parameters["slice_height"]
+        slice_width = self.parameters["slice_width"]
+        overlap_ratio = self.parameters["overlap_ratio"]
 
         # YOLO API 호출
         result = await call_yolo_detect(

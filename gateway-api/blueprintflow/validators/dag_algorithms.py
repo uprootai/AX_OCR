@@ -5,8 +5,11 @@ DAG 관련 알고리즘 구현체
 - 위상 정렬 (Kahn's algorithm)
 - 병렬 그룹 찾기 (BFS)
 """
+import logging
 from typing import Dict, List, Set, Tuple
 from collections import defaultdict, deque
+
+logger = logging.getLogger(__name__)
 
 
 def detect_cycle(
@@ -78,19 +81,26 @@ def topological_sort(
         for neighbor in adjacency_list.get(node_id, []):
             in_degree[neighbor] += 1
 
+    logger.info(f"[TopologicalSort] In-degrees: {in_degree}")
+
     # 진입 차수가 0인 노드들로 시작
     queue = deque([node_id for node_id, degree in in_degree.items() if degree == 0])
+    logger.info(f"[TopologicalSort] Initial queue (in_degree=0): {list(queue)}")
     result = []
 
     while queue:
         node = queue.popleft()
         result.append(node)
+        logger.info(f"[TopologicalSort] Processing: {node}, neighbors: {adjacency_list.get(node, [])}")
 
         # 인접 노드의 진입 차수 감소
         for neighbor in adjacency_list.get(node, []):
             in_degree[neighbor] -= 1
             if in_degree[neighbor] == 0:
                 queue.append(neighbor)
+                logger.info(f"[TopologicalSort] Added to queue: {neighbor}")
+
+    logger.info(f"[TopologicalSort] Final result: {result}")
 
     # 모든 노드가 정렬되지 않았다면 순환 참조 존재
     if len(result) != len(nodes):

@@ -49,8 +49,8 @@ inputs:
     description: 분석할 도면 이미지
   - name: detections
     type: DetectionResult[]
-    required: false
-    description: 사전 검출된 객체 (없으면 내부 YOLO 실행)
+    required: true
+    description: YOLO 노드의 검출 결과 (필수 - YOLO 노드 연결 필요)
 
 outputs:
   - name: bom_data
@@ -69,45 +69,8 @@ outputs:
     type: string
     description: BOM 다운로드 URL
 
-parameters:
-  - name: confidence
-    type: number
-    default: 0.7
-    min: 0.1
-    max: 1
-    step: 0.05
-    description: 검출 신뢰도 임계값
-
-  - name: iou_threshold
-    type: number
-    default: 0.45
-    min: 0.1
-    max: 0.9
-    step: 0.05
-    description: NMS IoU 임계값
-
-  - name: auto_approve_threshold
-    type: number
-    default: 0.95
-    min: 0.8
-    max: 1
-    step: 0.01
-    description: 자동 승인 신뢰도 임계값 (이상이면 자동 승인)
-
-  - name: export_format
-    type: select
-    default: excel
-    options:
-      - excel
-      - csv
-      - json
-      - pdf
-    description: 내보내기 형식
-
-  - name: skip_verification
-    type: boolean
-    default: false
-    description: Human-in-the-Loop 검증 건너뛰기 (자동 승인)
+parameters: []
+  # 파라미터 없음 - 세션 생성 후 검증 UI에서 모든 작업 수행
 
 mappings:
   input:
@@ -123,31 +86,18 @@ mappings:
 i18n:
   ko:
     label: Blueprint AI BOM
-    description: AI 기반 도면 분석 및 BOM 생성. 검출 결과를 검증하고 부품 명세서를 생성합니다.
-    parameters:
-      confidence: 신뢰도 임계값
-      iou_threshold: NMS IoU 임계값
-      auto_approve_threshold: 자동 승인 임계값
-      export_format: 내보내기 형식
-      skip_verification: 검증 건너뛰기
+    description: YOLO 검출 결과로 BOM 세션을 생성합니다. 검증 UI에서 확인 후 BOM 생성.
   en:
     label: Blueprint AI BOM
-    description: AI-based drawing analysis and BOM generation. Verify detections and generate bill of materials.
-    parameters:
-      confidence: Confidence Threshold
-      iou_threshold: NMS IoU Threshold
-      auto_approve_threshold: Auto-approve Threshold
-      export_format: Export Format
-      skip_verification: Skip Verification
+    description: Create BOM session from YOLO detections. Review in verification UI then generate BOM.
 
 examples:
-  - 도면 이미지 → YOLO 검출 → Blueprint AI BOM → Excel BOM
-  - YOLO 검출 결과 → Blueprint AI BOM (검증) → BOM 생성
+  - 도면 이미지 → YOLO 검출 → Blueprint AI BOM → 검증 UI → BOM 생성
 
 usageTips:
-  - "Human-in-the-Loop: skip_verification=false로 수동 검증"
-  - "자동화: skip_verification=true, auto_approve_threshold=0.95"
-  - "27개 부품 클래스 지원 (valve, pipe, pump, bolt 등)"
+  - "⭐ YOLO 노드 연결 필수"
+  - "💡 세션 생성 후 검증 UI(localhost:3000)에서 BOM 생성"
+  - "27개 전기 패널 부품 클래스 지원"
 
 # 지원 클래스 목록
 supportedClasses:
@@ -180,13 +130,8 @@ supportedClasses:
   - strainer
 
 resources:
-  gpu:
-    vram: "~2GB"
-    minVram: 1500
-    recommended: "RTX 3060 이상"
-    cudaVersion: "11.8+"
   cpu:
-    ram: "~3GB"
-    minRam: 2048
-    cores: 4
-    note: "GPU 사용 시 검출 10배 빠름"
+    ram: "~512MB"
+    minRam: 256
+    cores: 2
+    note: "세션 관리 및 BOM 생성만 수행 (검출은 YOLO 노드에서)"

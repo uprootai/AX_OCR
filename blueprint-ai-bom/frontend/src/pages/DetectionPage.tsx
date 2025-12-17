@@ -25,8 +25,8 @@ export function DetectionPage() {
   } = useSessionStore();
 
   const [config, setConfig] = useState<Partial<DetectionConfig>>({
-    confidence: 0.7,
-    iou_threshold: 0.45,
+    confidence: 0.4,  // Streamlit과 동일
+    iou_threshold: 0.5,  // Streamlit과 동일
     model_id: 'yolo_v11n',
   });
 

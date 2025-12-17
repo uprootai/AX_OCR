@@ -92,6 +92,12 @@ class BulkVerificationUpdate(BaseModel):
 
 
 class ManualDetection(BaseModel):
-    """수동 검출 추가"""
+    """수동 검출 추가 (YOLO 노드에서 가져온 검출도 이 스키마 사용)"""
     class_name: str
     bbox: BoundingBox
+    confidence: float = 1.0  # YOLO에서 가져올 때 실제 신뢰도 전달, 수동 추가 시 1.0
+
+
+class BulkImportRequest(BaseModel):
+    """일괄 검출 가져오기 요청 (YOLO 노드에서 대량 검출 결과 가져올 때 사용)"""
+    detections: List[ManualDetection]

@@ -713,9 +713,12 @@ services:
       - ./blueprint-ai-bom/config:/app/config
       - ./blueprint-ai-bom/models:/app/models:ro
       - ./blueprint-ai-bom/classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
+      - ./blueprint-ai-bom/test_drawings:/app/test_drawings:ro
+      - ./blueprint-ai-bom/class_examples:/app/class_examples:ro
     environment:
       - PYTHONUNBUFFERED=1
       - BOM_PORT=5020
+      - YOLO_API_URL=http://yolo-api:5005
     networks:
       - ax_poc_network
     restart: unless-stopped

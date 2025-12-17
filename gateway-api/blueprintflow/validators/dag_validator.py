@@ -5,10 +5,13 @@ DAG Validator
 - 고아 노드 검증
 - 타입 호환성 검증
 """
+import logging
 from typing import Dict, List, Set, Tuple
 from collections import defaultdict
 
 from .dag_algorithms import detect_cycle, topological_sort, find_parallel_groups
+
+logger = logging.getLogger(__name__)
 
 
 class DAGValidator:
@@ -24,6 +27,12 @@ class DAGValidator:
         self.edges = edges
         self.adjacency_list = self._build_adjacency_list()
         self.reverse_adjacency_list = self._build_reverse_adjacency_list()
+
+        # Debug logging
+        logger.info(f"[DAGValidator] Nodes: {list(self.nodes.keys())}")
+        logger.info(f"[DAGValidator] Node types: {[(n['id'], n.get('type')) for n in nodes]}")
+        logger.info(f"[DAGValidator] Edges (source -> target): {[(e['source'], '->', e['target']) for e in edges]}")
+        logger.info(f"[DAGValidator] Adjacency list: {self.adjacency_list}")
 
     def _build_adjacency_list(self) -> Dict[str, List[str]]:
         """인접 리스트 생성 (노드 -> [자식 노드들])"""

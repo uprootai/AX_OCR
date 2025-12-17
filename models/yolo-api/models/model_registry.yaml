@@ -86,39 +86,39 @@ models:
 
   bom_detector:
     file: bom_detector.pt
-    name: BOM 부품 검출 (27종)
-    description: 전기 제어판 부품 검출 - 릴레이, 차단기, PLC, 전원공급장치 등 27종.
+    name: 전력 설비 단선도 심볼 (27종)
+    description: 전력 설비 단선도(SLD) 심볼 검출 - 차단기, 변압기, CT, PT, 피뢰기 등 27종.
     classes: 27
     class_names:
-      - buzzer
-      - hub_8port
-      - smps_5a
-      - smps_10a
-      - disconnecting_switch
-      - power_outlet
-      - pilot_lamp_green
-      - auxiliary_relay
-      - circuit_breaker
-      - plc_cpu_1513
-      - plc_cpu_1214c
-      - plc_rs422_485
-      - plc_profibus_dp
-      - graphic_panel
-      - terminal_block_32a
-      - terminal_block_24a
-      - plc_ai
-      - plc_ao
-      - plc_di
-      - plc_do
-      - bus_interface
-      - valve_control_unit
-      - i_i_converter
-      - selector_switch
-      - transformer
-      - noise_filter
-      - emergency_button
-    best_for: 전기 제어판 도면, 회로도, BOM 생성
-    trained_on: 제어판 도면 학습
+      - ARRESTER
+      - CB DS ASSY
+      - CT
+      - CVT
+      - DS ASSY
+      - ES 또는 EST
+      - GIS
+      - LA
+      - LS
+      - MOF
+      - NGR
+      - P.Fuse
+      - PI
+      - PT
+      - SA
+      - SPD
+      - T.C
+      - TR
+      - VT
+      - ㄷ형 분기
+      - 단로기
+      - 전동기
+      - 전력퓨즈
+      - 정류기
+      - 차단기
+      - 축전기
+      - 피뢰기
+    best_for: 전력 설비 단선도, 배전반 도면, BOM 생성
+    trained_on: 전력 설비 단선도 학습
 
 # 기본 모델 설정
 default_model: engineering

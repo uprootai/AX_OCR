@@ -9,6 +9,7 @@ from schemas.detection import (
     VerificationUpdate,
     BulkVerificationUpdate,
     ManualDetection,
+    BulkImportRequest,
 )
 
 
@@ -202,10 +203,11 @@ async def add_manual_detection(session_id: str, detection: ManualDetection):
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
-    # 수동 검출 생성
+    # 수동 검출 생성 (YOLO에서 가져온 검출 포함)
     new_detection = detection_service.add_manual_detection(
         class_name=detection.class_name,
-        bbox=detection.bbox.model_dump()
+        bbox=detection.bbox.model_dump(),
+        confidence=detection.confidence
     )
 
     # 세션에 추가
@@ -226,6 +228,62 @@ async def add_manual_detection(session_id: str, detection: ManualDetection):
         "session_id": session_id,
         "detection": new_detection,
         "message": "수동 검출이 추가되었습니다"
+    }
+
+
+@router.post("/{session_id}/import-bulk")
+async def import_bulk_detections(session_id: str, request: BulkImportRequest):
+    """
+    일괄 검출 가져오기 (YOLO 노드에서 대량 검출 결과 가져올 때 사용)
+
+    기존 /manual API가 하나씩 추가하는 것과 달리,
+    이 API는 한 번의 요청으로 모든 검출 결과를 가져옵니다.
+    """
+    detection_service = get_detection_service()
+    session_service = get_session_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 기존 검출 결과
+    detections = session.get("detections", [])
+    verification_status = session.get("verification_status", {})
+
+    imported_count = 0
+
+    # 모든 검출 결과를 한 번에 처리
+    for det in request.detections:
+        try:
+            new_detection = detection_service.add_manual_detection(
+                class_name=det.class_name,
+                bbox=det.bbox.model_dump(),
+                confidence=det.confidence
+            )
+            detections.append(new_detection)
+            verification_status[new_detection["id"]] = "manual"
+            imported_count += 1
+        except Exception as e:
+            # 개별 검출 실패는 로깅만 하고 계속 진행
+            import logging
+            logging.warning(f"검출 가져오기 실패: {e}")
+            continue
+
+    # 세션 한 번에 업데이트 (DB 쓰기 1회)
+    approved_count = len([s for s in verification_status.values() if s in ("approved", "modified", "manual")])
+
+    session_service.update_session(session_id, {
+        "detections": detections,
+        "detection_count": len(detections),
+        "verification_status": verification_status,
+        "approved_count": approved_count,
+    })
+
+    return {
+        "session_id": session_id,
+        "imported_count": imported_count,
+        "total_count": len(detections),
+        "message": f"{imported_count}개 검출 결과를 가져왔습니다"
     }
 
 

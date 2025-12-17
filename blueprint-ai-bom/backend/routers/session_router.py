@@ -102,6 +102,25 @@ async def get_session(session_id: str, include_image: bool = Query(default=False
     return SessionDetail(**session)
 
 
+@router.patch("/{session_id}")
+async def update_session(session_id: str, updates: dict):
+    """세션 정보 업데이트 (이미지 크기 등)"""
+    service = get_session_service()
+    session = service.get_session(session_id)
+
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 허용된 필드만 업데이트
+    allowed_fields = {"image_width", "image_height", "status"}
+    filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
+
+    if filtered_updates:
+        service.update_session(session_id, filtered_updates)
+
+    return {"status": "updated", "session_id": session_id, "updated_fields": list(filtered_updates.keys())}
+
+
 @router.delete("/{session_id}")
 async def delete_session(session_id: str):
     """세션 삭제"""

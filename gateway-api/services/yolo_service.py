@@ -19,33 +19,36 @@ YOLO_API_URL = os.getenv("YOLO_API_URL", "http://yolo-api:5005")
 async def call_yolo_detect(
     file_bytes: bytes,
     filename: str,
-    conf_threshold: float = 0.25,
-    iou_threshold: float = 0.7,
-    imgsz: int = 640,
-    visualize: bool = True,
-    model_type: str = "engineering",
-    task: str = "detect",
-    use_sahi: bool = False,
-    slice_height: int = 512,
-    slice_width: int = 512,
-    overlap_ratio: float = 0.25
+    conf_threshold: float,
+    iou_threshold: float,
+    imgsz: int,
+    visualize: bool,
+    model_type: str,
+    task: str,
+    use_sahi: bool,
+    slice_height: int,
+    slice_width: int,
+    overlap_ratio: float
 ) -> Dict[str, Any]:
     """
     YOLO API 호출
 
+    NOTE: 기본값은 nodeDefinitions.ts (또는 api_specs/yolo.yaml)에서만 정의.
+    이 함수는 전달받은 값을 그대로 사용.
+
     Args:
         file_bytes: 이미지 파일 바이트
         filename: 파일 이름
-        conf_threshold: 신뢰도 임계값 (기본 0.25)
-        iou_threshold: IoU 임계값 (기본 0.7)
-        imgsz: 이미지 크기 (기본 640)
-        visualize: 시각화 생성 여부 (기본 True)
-        model_type: 모델 타입 (engineering, pid_symbol, pid_class_agnostic, pid_class_aware)
-        task: 작업 종류 (detect/segment, 기본 detect)
-        use_sahi: SAHI 슬라이싱 사용 여부 (pid_* 모델은 자동 활성화)
-        slice_height: SAHI 슬라이스 높이 (기본 512)
-        slice_width: SAHI 슬라이스 너비 (기본 512)
-        overlap_ratio: SAHI 오버랩 비율 (기본 0.25)
+        conf_threshold: 신뢰도 임계값
+        iou_threshold: IoU 임계값
+        imgsz: 이미지 크기
+        visualize: 시각화 생성 여부
+        model_type: 모델 타입 (bom_detector, engineering, pid_symbol 등)
+        task: 작업 종류 (detect/segment)
+        use_sahi: SAHI 슬라이싱 사용 여부
+        slice_height: SAHI 슬라이스 높이
+        slice_width: SAHI 슬라이스 너비
+        overlap_ratio: SAHI 오버랩 비율
 
     Returns:
         YOLO 검출 결과 dict

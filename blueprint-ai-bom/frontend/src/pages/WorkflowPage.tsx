@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   FileSpreadsheet,
   Settings,
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useSessionStore } from '../store/sessionStore';
 import axios from 'axios';
-import { detectionApi, systemApi, groundTruthApi } from '../lib/api';
+import { detectionApi, systemApi, groundTruthApi, blueprintFlowApi } from '../lib/api';
 import type { GPUStatus, GTCompareResponse } from '../lib/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5020';
@@ -40,6 +41,10 @@ import { DrawingCanvas } from '../components/DrawingCanvas';
 const ITEMS_PER_PAGE = 7;
 
 export function WorkflowPage() {
+  // URL Parameters
+  const [searchParams] = useSearchParams();
+  const urlSessionId = searchParams.get('session');
+
   // Store
   const {
     currentSession,
@@ -76,8 +81,8 @@ export function WorkflowPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [gpuStatus, setGpuStatus] = useState<GPUStatus | null>(null);
   const [config, setConfig] = useState<DetectionConfig>({
-    confidence: 0.25,
-    iou_threshold: 0.45,
+    confidence: 0.4,  // Streamlit과 동일 (nodeDefinitions 기준)
+    iou_threshold: 0.5,  // Streamlit과 동일
     model_id: 'yolo',
   });
 
@@ -94,8 +99,26 @@ export function WorkflowPage() {
   const [showManualLabel, setShowManualLabel] = useState(false);
   const [manualLabel, setManualLabel] = useState({ class_name: '' });
 
+  // Edit mode for detections
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingClassName, setEditingClassName] = useState<string>('');
+
   // Cache clearing
   const [isClearingCache, setIsClearingCache] = useState(false);
+
+  // Fetch YOLO defaults from BlueprintFlow API
+  useEffect(() => {
+    const fetchYOLODefaults = async () => {
+      const defaults = await blueprintFlowApi.getYOLODefaults();
+      setConfig(prev => ({
+        ...prev,
+        confidence: defaults.confidence,
+        iou_threshold: defaults.iou,
+      }));
+      console.log('📊 BlueprintFlow YOLO defaults loaded:', defaults);
+    };
+    fetchYOLODefaults();
+  }, []);
 
   // Dark mode effect
   useEffect(() => {
@@ -117,6 +140,13 @@ export function WorkflowPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load session from URL parameter
+  useEffect(() => {
+    if (urlSessionId && (!currentSession || currentSession.session_id !== urlSessionId)) {
+      loadSession(urlSessionId);
+    }
+  }, [urlSessionId, currentSession, loadSession]);
+
   // Auto-load GT when detections are available
   useEffect(() => {
     const autoLoadGT = async () => {
@@ -130,12 +160,15 @@ export function WorkflowPage() {
           class_name: d.class_name,
           bbox: d.bbox,
         }));
+        // class_agnostic 모드로 GT 비교 (클래스 무관하게 위치만으로 매칭)
+        // 이렇게 하면 모델 클래스와 GT 클래스가 달라도 위치 기반으로 매칭 가능
         const result = await groundTruthApi.compare(
           currentSession.filename,
           detectionsForCompare,
           imageSize.width,
           imageSize.height,
-          0.5
+          0.3,  // IoU threshold
+          { classAgnostic: true }  // 위치 기반 매칭 활성화
         );
         if (result.has_ground_truth) {
           setGtCompareResult(result);
@@ -529,7 +562,26 @@ export function WorkflowPage() {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-gray-900 dark:text-white">{detection.class_name}</span>
+              {editingId === detection.id ? (
+                // Edit mode: show class dropdown
+                <select
+                  value={editingClassName}
+                  onChange={(e) => setEditingClassName(e.target.value)}
+                  className="px-2 py-1 text-sm border border-orange-300 dark:border-orange-600 rounded bg-white dark:bg-gray-800 focus:ring-2 focus:ring-orange-500"
+                  autoFocus
+                >
+                  {availableClasses.map(cls => (
+                    <option key={cls} value={cls}>{cls}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {detection.modified_class_name || detection.class_name}
+                  {detection.modified_class_name && detection.modified_class_name !== detection.class_name && (
+                    <span className="ml-1 text-xs text-orange-500">(수정됨)</span>
+                  )}
+                </span>
+              )}
               <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded">
                 {(detection.confidence * 100).toFixed(1)}%
               </span>
@@ -551,28 +603,79 @@ export function WorkflowPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => handleVerify(detection.id, 'approved')}
-              className={`p-2 rounded-lg transition-colors ${
-                detection.verification_status === 'approved'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-green-100 hover:text-green-600'
-              }`}
-              title="승인"
-            >
-              <Check className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleVerify(detection.id, 'rejected')}
-              className={`p-2 rounded-lg transition-colors ${
-                detection.verification_status === 'rejected'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 hover:text-red-600'
-              }`}
-              title="거부"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {editingId === detection.id ? (
+              // Edit mode actions
+              <>
+                <button
+                  onClick={() => {
+                    // Save edited class name
+                    if (editingClassName && editingClassName !== detection.class_name) {
+                      verifyDetection(detection.id, 'approved', editingClassName);
+                    }
+                    setEditingId(null);
+                    setEditingClassName('');
+                  }}
+                  className="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm flex items-center gap-1"
+                  title="수정 완료"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>완료</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingId(null);
+                    setEditingClassName('');
+                  }}
+                  className="px-3 py-1.5 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 text-sm"
+                  title="취소"
+                >
+                  취소
+                </button>
+              </>
+            ) : (
+              // Normal actions
+              <>
+                <button
+                  onClick={() => handleVerify(detection.id, 'approved')}
+                  disabled={editingId !== null}
+                  className={`p-2 rounded-lg transition-colors ${
+                    detection.verification_status === 'approved'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-green-100 hover:text-green-600'
+                  } disabled:opacity-50`}
+                  title="승인"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleVerify(detection.id, 'rejected')}
+                  disabled={editingId !== null}
+                  className={`p-2 rounded-lg transition-colors ${
+                    detection.verification_status === 'rejected'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 hover:text-red-600'
+                  } disabled:opacity-50`}
+                  title="거부"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingId(detection.id);
+                    setEditingClassName(detection.modified_class_name || detection.class_name);
+                  }}
+                  disabled={editingId !== null}
+                  className={`p-2 rounded-lg transition-colors ${
+                    detection.verification_status === 'modified'
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-orange-100 hover:text-orange-600'
+                  } disabled:opacity-50`}
+                  title="수정"
+                >
+                  <span className="text-sm">✏️</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -640,56 +743,174 @@ export function WorkflowPage() {
           {/* Section 1: AI 검출 결과 */}
           {detections.length > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🔍 AI 검출 결과</h2>
+              {/* Title with inline metrics (Streamlit style) */}
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                🔍 AI 검출 결과
+                {gtCompareResult && (
+                  <span className="text-base font-normal ml-2">
+                    📊 파나시아 YOLOv11N - {stats.total}개 검출
+                    (F1: {gtCompareResult.metrics.f1_score.toFixed(1)}%,
+                    정밀도: {gtCompareResult.metrics.precision.toFixed(1)}%,
+                    재현율: {gtCompareResult.metrics.recall.toFixed(1)}%)
+                  </span>
+                )}
+              </h2>
+
+              {/* GT 로드 상태 (Streamlit style) */}
+              {gtCompareResult && (
+                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
+                  <p className="text-green-800 dark:text-green-200">
+                    ✅ Ground Truth 로드됨: {gtCompareResult.gt_count}개 라벨
+                  </p>
+                </div>
+              )}
+
+              {/* GT vs Prediction Side by Side (Streamlit style) */}
+              {imageData && imageSize && gtCompareResult && (
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  {/* Left: Ground Truth (Green boxes) */}
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <canvas
+                      ref={(canvas) => {
+                        if (!canvas || !imageData || !imageSize) return;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) return;
+
+                        const img = new Image();
+                        img.onload = () => {
+                          // Scale to fit
+                          const scale = Math.min(canvas.parentElement!.clientWidth / img.width, 400 / img.height);
+                          canvas.width = img.width * scale;
+                          canvas.height = img.height * scale;
+                          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                          // Collect all GT boxes from tp_matches and fn_labels
+                          const allGtBoxes: Array<{ bbox: { x1: number; y1: number; x2: number; y2: number }; class_name: string }> = [];
+
+                          // GT boxes from matched detections
+                          gtCompareResult.tp_matches.forEach(match => {
+                            allGtBoxes.push({ bbox: match.gt_bbox, class_name: match.gt_class });
+                          });
+
+                          // GT boxes from unmatched (FN) labels
+                          gtCompareResult.fn_labels.forEach(label => {
+                            allGtBoxes.push({ bbox: label.bbox, class_name: label.class_name });
+                          });
+
+                          // Draw GT boxes (GREEN, thick)
+                          ctx.strokeStyle = '#22c55e';
+                          ctx.lineWidth = 3;
+                          ctx.font = 'bold 12px sans-serif';
+                          allGtBoxes.forEach((gt, idx) => {
+                            const x1 = gt.bbox.x1 * scale;
+                            const y1 = gt.bbox.y1 * scale;
+                            const w = (gt.bbox.x2 - gt.bbox.x1) * scale;
+                            const h = (gt.bbox.y2 - gt.bbox.y1) * scale;
+                            ctx.strokeRect(x1, y1, w, h);
+                            // Label
+                            ctx.fillStyle = '#22c55e';
+                            ctx.fillRect(x1, y1 - 16, 30, 16);
+                            ctx.fillStyle = '#fff';
+                            ctx.fillText(`GT${idx + 1}`, x1 + 2, y1 - 4);
+                          });
+                        };
+                        img.src = imageData;
+                      }}
+                      className="w-full"
+                    />
+                    <p className="text-center py-2 text-sm font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30">
+                      🟢 Ground Truth ({gtCompareResult.gt_count}개)
+                    </p>
+                  </div>
+
+                  {/* Right: Predictions (RED boxes) */}
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <canvas
+                      ref={(canvas) => {
+                        if (!canvas || !imageData || !imageSize) return;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) return;
+
+                        const img = new Image();
+                        img.onload = () => {
+                          // Scale to fit
+                          const scale = Math.min(canvas.parentElement!.clientWidth / img.width, 400 / img.height);
+                          canvas.width = img.width * scale;
+                          canvas.height = img.height * scale;
+                          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                          // Draw Detection boxes (RED, thick)
+                          ctx.strokeStyle = '#ef4444';
+                          ctx.lineWidth = 3;
+                          ctx.font = 'bold 12px sans-serif';
+                          detections.forEach((det, idx) => {
+                            const x1 = det.bbox.x1 * scale;
+                            const y1 = det.bbox.y1 * scale;
+                            const w = (det.bbox.x2 - det.bbox.x1) * scale;
+                            const h = (det.bbox.y2 - det.bbox.y1) * scale;
+                            ctx.strokeRect(x1, y1, w, h);
+                            // Label
+                            ctx.fillStyle = '#ef4444';
+                            ctx.fillRect(x1, y1 - 16, 20, 16);
+                            ctx.fillStyle = '#fff';
+                            ctx.fillText(`${idx + 1}`, x1 + 4, y1 - 4);
+                          });
+                        };
+                        img.src = imageData;
+                      }}
+                      className="w-full"
+                    />
+                    <p className="text-center py-2 text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30">
+                      🔴 검출 결과 ({detections.length}개)
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Stats Grid */}
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-                  <p className="text-sm text-gray-500">전체</p>
+                  <p className="text-sm text-gray-500">총 검출 수</p>
                 </div>
-                <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-                  <p className="text-sm text-gray-500">승인</p>
+                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {detections.length > 0 ? (detections.reduce((sum, d) => sum + d.confidence, 0) / detections.length).toFixed(3) : '0.000'}
+                  </p>
+                  <p className="text-sm text-gray-500">평균 신뢰도</p>
                 </div>
-                <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-                  <p className="text-sm text-gray-500">거부</p>
-                </div>
-                <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-                  <p className="text-sm text-gray-500">대기</p>
-                </div>
+                {gtCompareResult ? (
+                  <>
+                    <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-green-600">{gtCompareResult.metrics.precision.toFixed(1)}%</p>
+                      <p className="text-sm text-gray-500">Precision</p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-purple-600">{gtCompareResult.metrics.recall.toFixed(1)}%</p>
+                      <p className="text-sm text-gray-500">Recall</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+                      <p className="text-sm text-gray-500">승인</p>
+                    </div>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                      <p className="text-sm text-gray-500">대기</p>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* GT Metrics */}
+              {/* F1 Score highlight (Streamlit style) */}
               {gtCompareResult && (
-                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 mb-4">
-                  <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">📊 Ground Truth 비교</h3>
-                  <div className="grid grid-cols-6 gap-4 text-center text-sm">
-                    <div>
-                      <p className="font-bold text-green-600">{gtCompareResult.metrics.tp}</p>
-                      <p className="text-gray-500">TP</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-red-600">{gtCompareResult.metrics.fp}</p>
-                      <p className="text-gray-500">FP</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-orange-600">{gtCompareResult.metrics.fn}</p>
-                      <p className="text-gray-500">FN</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-blue-600">{(gtCompareResult.metrics.precision * 100).toFixed(1)}%</p>
-                      <p className="text-gray-500">Precision</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-blue-600">{(gtCompareResult.metrics.recall * 100).toFixed(1)}%</p>
-                      <p className="text-gray-500">Recall</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-purple-600">{(gtCompareResult.metrics.f1_score * 100).toFixed(1)}%</p>
-                      <p className="text-gray-500">F1</p>
-                    </div>
-                  </div>
+                <div className="bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700 rounded-lg p-3">
+                  <p className="text-green-800 dark:text-green-200 font-medium">
+                    🎯 F1 Score: {gtCompareResult.metrics.f1_score.toFixed(1)}%
+                    (TP:{gtCompareResult.metrics.tp}, FP:{gtCompareResult.metrics.fp}, FN:{gtCompareResult.metrics.fn})
+                  </p>
                 </div>
               )}
             </section>
@@ -768,12 +989,10 @@ export function WorkflowPage() {
                       imageSize={imageSize}
                       selectedClass={manualLabel.class_name}
                       maxWidth="66%"
-                      existingBoxes={detections.map(d => ({
+                      existingBoxes={detections.map((d, i) => ({
                         bbox: d.bbox,
-                        label: `${detections.indexOf(d) + 1}`,
-                        color: d.verification_status === 'approved' ? '#22c55e' :
-                               d.verification_status === 'manual' ? '#a855f7' :
-                               d.verification_status === 'rejected' ? '#ef4444' : '#eab308'
+                        label: `${i + 1}`,
+                        color: '#ef4444'  // Red - single color for all detections
                       }))}
                       onBoxDrawn={(box) => {
                         if (manualLabel.class_name && currentSession) {
@@ -850,7 +1069,118 @@ export function WorkflowPage() {
             </section>
           )}
 
-          {/* Section 5: BOM 생성 */}
+          {/* Section 5: 최종 검증 결과 이미지 */}
+          {imageData && imageSize && (stats.approved > 0 || stats.rejected > 0) && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🖼️ 최종 검증 결과 이미지</h2>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center border border-green-200 dark:border-green-800">
+                  <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+                  <p className="text-sm text-gray-500">✅ 승인됨</p>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 text-center border border-orange-200 dark:border-orange-800">
+                  <p className="text-2xl font-bold text-orange-600">
+                    {detections.filter(d => d.modified_class_name && d.modified_class_name !== d.class_name).length}
+                  </p>
+                  <p className="text-sm text-gray-500">✏️ 수정됨</p>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center border border-purple-200 dark:border-purple-800">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {detections.filter(d => d.verification_status === 'manual').length}
+                  </p>
+                  <p className="text-sm text-gray-500">🎨 수작업</p>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center gap-4 mb-4 text-sm">
+                <span className="flex items-center gap-1">
+                  <span className="w-4 h-4 bg-green-500 rounded"></span> 승인
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-4 h-4 bg-orange-500 rounded"></span> 수정
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-4 h-4 bg-purple-500 rounded"></span> 수작업
+                </span>
+              </div>
+
+              {/* Final Image with Bounding Boxes */}
+              <div className="relative border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                <canvas
+                  ref={(canvas) => {
+                    if (!canvas || !imageData || !imageSize) return;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+
+                    const img = new Image();
+                    img.onload = () => {
+                      // Scale to fit container (max 800px width)
+                      const maxWidth = 800;
+                      const scale = Math.min(1, maxWidth / imageSize.width);
+                      canvas.width = imageSize.width * scale;
+                      canvas.height = imageSize.height * scale;
+
+                      // Draw image
+                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                      // Draw bounding boxes for approved/modified/manual detections
+                      const finalDetections = detections.filter(d =>
+                        d.verification_status === 'approved' ||
+                        d.verification_status === 'modified' ||
+                        d.verification_status === 'manual'
+                      );
+
+                      finalDetections.forEach((detection, idx) => {
+                        const { x1, y1, x2, y2 } = detection.bbox;
+                        const sx1 = x1 * scale;
+                        const sy1 = y1 * scale;
+                        const sx2 = x2 * scale;
+                        const sy2 = y2 * scale;
+
+                        // Color based on status
+                        let color = '#22c55e'; // green - approved
+                        if (detection.modified_class_name && detection.modified_class_name !== detection.class_name) {
+                          color = '#f97316'; // orange - modified
+                        } else if (detection.verification_status === 'manual') {
+                          color = '#a855f7'; // purple - manual
+                        }
+
+                        // Draw rectangle
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+
+                        // Draw label background
+                        const label = `${idx + 1}`;
+                        ctx.font = 'bold 12px sans-serif';
+                        const textWidth = ctx.measureText(label).width;
+                        ctx.fillStyle = color;
+                        ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
+
+                        // Draw label text
+                        ctx.fillStyle = 'white';
+                        ctx.fillText(label, sx1 + 4, sy1 - 5);
+                      });
+                    };
+                    img.src = imageData;
+                  }}
+                  className="max-w-full"
+                />
+                <p className="text-center text-sm text-gray-500 mt-2 pb-2">
+                  최종 선정된 부품: 총 {detections.filter(d =>
+                    d.verification_status === 'approved' ||
+                    d.verification_status === 'modified' ||
+                    d.verification_status === 'manual'
+                  ).length}개
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* Section 6: BOM 생성 */}
           {detections.length > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">

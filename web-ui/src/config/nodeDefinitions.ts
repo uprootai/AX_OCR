@@ -129,15 +129,15 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'model_type',
         type: 'select',
-        default: 'engineering',
+        default: 'bom_detector',
         options: [
+          'bom_detector',
           'engineering',
           'pid_symbol',
           'pid_class_agnostic',
           'pid_class_aware',
-          'bom_detector',
         ],
-        description: '모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), bom_detector(BOM 27종)',
+        description: '모델 선택: bom_detector(전력설비 27종), engineering(기계도면 14종), pid_symbol(P&ID 60종)',
       },
       {
         name: 'confidence',
@@ -216,12 +216,12 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     examples: [
       '도면 이미지 → YOLO (engineering) → 14가지 기계 심볼 검출',
       '도면 이미지 → YOLO (pid_symbol) → 60가지 P&ID 심볼 검출',
-      '제어판 도면 → YOLO (bom_detector) → 27가지 전장 부품 검출 → BOM 생성',
+      '전력 설비 도면 → YOLO (bom_detector) → 27가지 전력 설비 심볼 검출 → BOM 생성',
     ],
     usageTips: [
       '기계도면: model_type=engineering, confidence=0.25',
       'P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)',
-      'BOM: model_type=bom_detector, confidence=0.4, iou=0.5, imgsz=1024 (Streamlit 동일)',
+      '전력 설비: model_type=bom_detector, confidence=0.4, iou=0.5, imgsz=1024',
       '검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 해당 영역만 정밀 분석할 수 있습니다',
     ],
     recommendedInputs: [
@@ -1824,8 +1824,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
       {
         name: 'detections',
         type: 'DetectionResult[]',
-        description: '🎯 사전 검출된 객체 (없으면 내부 YOLO 실행)',
-        optional: true,
+        description: '🎯 YOLO 노드의 검출 결과 (필수 - YOLO 노드 연결 필요)',
       },
     ],
     outputs: [
@@ -1855,66 +1854,13 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         description: '📥 BOM 다운로드 URL',
       },
     ],
-    parameters: [
-      {
-        name: 'confidence',
-        type: 'number',
-        default: 0.40,
-        min: 0.1,
-        max: 1,
-        step: 0.05,
-        description: '검출 신뢰도 임계값 (Streamlit: 0.40)',
-      },
-      {
-        name: 'iou',
-        type: 'number',
-        default: 0.50,
-        min: 0.1,
-        max: 0.95,
-        step: 0.05,
-        description: 'NMS IoU 임계값 (Streamlit: 0.50)',
-      },
-      {
-        name: 'imgsz',
-        type: 'number',
-        default: 1024,
-        min: 320,
-        max: 4096,
-        step: 32,
-        description: '입력 이미지 크기 (Streamlit: 1024)',
-      },
-      {
-        name: 'auto_approve_threshold',
-        type: 'number',
-        default: 0.95,
-        min: 0.8,
-        max: 1,
-        step: 0.01,
-        description: '자동 승인 임계값 (이상이면 자동 승인)',
-      },
-      {
-        name: 'export_format',
-        type: 'select',
-        default: 'excel',
-        options: ['excel', 'csv', 'json', 'pdf'],
-        description: '내보내기 형식',
-      },
-      {
-        name: 'skip_verification',
-        type: 'boolean',
-        default: false,
-        description: 'Human-in-the-Loop 검증 건너뛰기',
-      },
-    ],
+    parameters: [],
     examples: [
-      '도면 이미지 → YOLO 검출 → Blueprint AI BOM → Excel BOM',
-      'YOLO 검출 결과 → Blueprint AI BOM (검증) → BOM 생성',
+      '도면 이미지 → YOLO 검출 → Blueprint AI BOM → 검증 UI',
     ],
     usageTips: [
-      '⭐ Human-in-the-Loop: skip_verification=false로 수동 검증',
-      '💡 자동화: skip_verification=true, auto_approve_threshold=0.95',
-      '💡 27개 산업용 부품 클래스 지원 (valve, pipe, pump, bolt 등)',
-      '💡 검증 UI에서 바운딩 박스 수정, 클래스 변경, 승인/반려 가능',
+      '⭐ YOLO 노드 연결 필수',
+      '💡 세션 생성 후 검증 UI(localhost:3000)에서 BOM 생성',
     ],
     recommendedInputs: [
       {

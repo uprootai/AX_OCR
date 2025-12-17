@@ -499,7 +499,8 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       };
 
       console.log('🚀 [SSE] Executing workflow:', workflowDefinition.name);
-      console.log('📋 [SSE] Workflow definition:', workflowDefinition);
+      console.log('📋 [SSE] Nodes:', workflowDefinition.nodes.map(n => `${n.id} (${n.type})`));
+      console.log('🔗 [SSE] Edges (source -> target):', workflowDefinition.edges.map(e => `${e.source} -> ${e.target}`));
       console.log('⚙️ [SSE] Execution mode:', executionMode);
 
       // Use EventSource for SSE

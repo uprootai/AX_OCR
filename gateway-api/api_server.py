@@ -336,42 +336,8 @@ async def call_edocr2_ocr(
         raise HTTPException(status_code=500, detail=f"eDOCr2 error: {str(e)}")
 
 
-async def call_yolo_detect(file_bytes: bytes, filename: str, conf_threshold: float = 0.25, iou_threshold: float = 0.7, imgsz: int = 1280, visualize: bool = True) -> Dict[str, Any]:
-    """YOLO API 호출"""
-    try:
-        # 파일 확장자에서 content-type 결정
-        import mimetypes
-        content_type = mimetypes.guess_type(filename)[0] or "image/png"
-        logger.info(f"Calling YOLO API for {filename} (content-type: {content_type}, conf={conf_threshold}, iou={iou_threshold}, imgsz={imgsz}, visualize={visualize})")
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            files = {"file": (filename, file_bytes, content_type)}
-            data = {
-                "conf_threshold": conf_threshold,
-                "iou_threshold": iou_threshold,
-                "imgsz": imgsz,
-                "visualize": visualize
-            }
-
-            response = await client.post(
-                f"{YOLO_API_URL}/api/v1/detect",
-                files=files,
-                data=data
-            )
-
-            logger.info(f"YOLO API status: {response.status_code}")
-            if response.status_code == 200:
-                yolo_response = response.json()
-                logger.info(f"YOLO API response keys: {yolo_response.keys()}")
-                logger.info(f"YOLO total_detections: {yolo_response.get('total_detections', 'NOT FOUND')}")
-                logger.info(f"YOLO detections count: {len(yolo_response.get('detections', []))}")
-                return yolo_response
-            else:
-                raise HTTPException(status_code=response.status_code, detail=f"YOLO failed: {response.text}")
-
-    except Exception as e:
-        logger.error(f"YOLO API call failed: {e}")
-        raise HTTPException(status_code=500, detail=f"YOLO error: {str(e)}")
+# NOTE: call_yolo_detect는 services/yolo_service.py에서 import됨
+# 레거시 엔드포인트(/api/v1/process)에서 호출 시 모든 파라미터를 명시적으로 전달해야 함
 
 
 def calculate_bbox_iou(bbox1: Dict[str, int], bbox2: Dict[str, int]) -> float:
@@ -1156,7 +1122,20 @@ async def process_drawing(
             # Step 1: YOLO 객체 검출
             logger.info("Step 1: YOLO detection")
             tracker.update("yolo", "running", "Step 1: YOLO 객체 검출 중...")
-            yolo_result = await call_yolo_detect(image_bytes, image_filename, conf_threshold=yolo_conf_threshold, iou_threshold=yolo_iou_threshold, imgsz=yolo_imgsz, visualize=yolo_visualize)
+            yolo_result = await call_yolo_detect(
+                file_bytes=image_bytes,
+                filename=image_filename,
+                conf_threshold=yolo_conf_threshold,
+                iou_threshold=yolo_iou_threshold,
+                imgsz=yolo_imgsz,
+                visualize=yolo_visualize,
+                model_type="engineering",  # 레거시 파이프라인은 engineering 모델 사용
+                task="detect",
+                use_sahi=False,
+                slice_height=512,
+                slice_width=512,
+                overlap_ratio=0.25
+            )
             result["yolo_results"] = yolo_result
 
             detections_count = yolo_result.get("total_detections", 0) if yolo_result else 0
@@ -1303,7 +1282,20 @@ async def process_drawing(
             tracker.update("parallel", "running", "Step 1: 3-way 병렬 처리 시작 (YOLO + eDOCr + EDGNet)")
             tasks = []
 
-            tasks.append(call_yolo_detect(image_bytes, image_filename, conf_threshold=yolo_conf_threshold, iou_threshold=yolo_iou_threshold, imgsz=yolo_imgsz, visualize=yolo_visualize))
+            tasks.append(call_yolo_detect(
+                file_bytes=image_bytes,
+                filename=image_filename,
+                conf_threshold=yolo_conf_threshold,
+                iou_threshold=yolo_iou_threshold,
+                imgsz=yolo_imgsz,
+                visualize=yolo_visualize,
+                model_type="engineering",  # 레거시 파이프라인은 engineering 모델 사용
+                task="detect",
+                use_sahi=False,
+                slice_height=512,
+                slice_width=512,
+                overlap_ratio=0.25
+            ))
 
             if use_ocr:
                 tasks.append(call_edocr2_ocr(

@@ -59,7 +59,7 @@ outputs:
 parameters:
   - name: model_type
     type: select
-    default: engineering
+    default: bom_detector
     options:
       - engineering
       - pid_symbol
@@ -71,23 +71,23 @@ parameters:
 
   - name: confidence
     type: number
-    default: 0.25
+    default: 0.4  # Streamlit 동일 (bom_detector 기준)
     min: 0.05
     max: 1
     step: 0.05
-    description: 검출 신뢰도 임계값 (P&ID는 0.1 권장)
+    description: "검출 신뢰도 임계값 (bom_detector: 0.4, P&ID: 0.1, engineering: 0.25)"
 
   - name: iou
     type: number
-    default: 0.45
+    default: 0.5  # Streamlit 동일
     min: 0
     max: 1
     step: 0.05
-    description: NMS IoU 임계값
+    description: "NMS IoU 임계값 (bom_detector: 0.5 권장)"
 
   - name: imgsz
     type: number
-    default: 640
+    default: 1024
     min: 320
     max: 3520
     step: 32

@@ -6,7 +6,7 @@ import ReactFlow, {
   MiniMap,
   ReactFlowProvider,
 } from 'reactflow';
-import type { ReactFlowInstance, OnSelectionChangeParams, NodeTypes } from 'reactflow';
+import type { ReactFlowInstance, OnSelectionChangeParams, NodeTypes, Connection } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { nodeDefinitions } from '../../config/nodeDefinitions';
@@ -268,6 +268,38 @@ function WorkflowBuilderCanvas() {
     },
     []
   );
+
+  // Validate connection direction (must be from source handle to target handle)
+  const isValidConnection = useCallback((connection: Connection) => {
+    // In ReactFlow, valid connections should go from source handle to target handle
+    // The handle types are already enforced by ReactFlow's internal logic
+    // Log connection attempts for debugging
+    console.log('🔗 Connection attempt:', {
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle,
+    });
+
+    // Prevent self-connections
+    if (connection.source === connection.target) {
+      console.warn('⚠️ Self-connection not allowed');
+      return false;
+    }
+
+    return true;
+  }, []);
+
+  // Custom onConnect with debugging
+  const handleConnect = useCallback((connection: Connection) => {
+    console.log('✅ Edge created:', {
+      source: connection.source,
+      sourceHandle: connection.sourceHandle,
+      target: connection.target,
+      targetHandle: connection.targetHandle,
+    });
+    onConnect(connection);
+  }, [onConnect]);
 
   // Download execution result as JSON
   const handleDownloadJSON = useCallback(() => {
@@ -1553,7 +1585,8 @@ function WorkflowBuilderCanvas() {
             edges={edges.filter((e) => e && e.id)}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
+            onConnect={handleConnect}
+            isValidConnection={isValidConnection}
             onNodesDelete={onNodesDelete}
             onEdgesDelete={onEdgesDelete}
             onSelectionChange={onSelectionChange}

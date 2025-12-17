@@ -5,7 +5,9 @@ Human-in-the-Loop 기반 BOM 생성 노드 실행기
 
 import logging
 import httpx
-from typing import Dict, Any, Optional
+from io import BytesIO
+from typing import Dict, Any, Optional, Tuple
+from PIL import Image
 from .base_executor import BaseNodeExecutor
 from .executor_registry import ExecutorRegistry
 
@@ -26,26 +28,22 @@ class BOMExecutor(BaseNodeExecutor):
 
     async def execute(self, inputs: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
         """
-        BOM 생성 실행
+        BOM 세션 생성 및 검증 UI 열기
+
+        이 노드는 자체적으로 검출을 수행하지 않습니다.
+        반드시 YOLO 노드에서 detections를 받아야 합니다.
+        세션 생성 후 검증 UI URL을 반환합니다.
 
         Args:
-            inputs: 입력 데이터 (image, detections)
+            inputs: 입력 데이터 (image, detections - 둘 다 필수)
             context: 실행 컨텍스트
 
         Returns:
-            BOM 데이터 또는 검증 UI URL
+            검증 UI URL
         """
         try:
-            # 파라미터 추출
-            skip_verification = self.parameters.get("skip_verification", False)
-            confidence = self.parameters.get("confidence", 0.40)  # Streamlit 기본값
-            iou = self.parameters.get("iou", 0.50)  # Streamlit 기본값
-            imgsz = self.parameters.get("imgsz", 1024)  # Streamlit 기본값
-            auto_approve_threshold = self.parameters.get("auto_approve_threshold", 0.95)
-            export_format = self.parameters.get("export_format", "excel")
 
-            # 1. 세션 생성 및 이미지 업로드
-            # 여러 가능한 이미지 키 지원 (image, visualized_image, segmented_image 등)
+            # 1. 이미지 확인 (필수)
             image_data = (
                 inputs.get("image") or
                 inputs.get("visualized_image") or
@@ -56,48 +54,39 @@ class BOMExecutor(BaseNodeExecutor):
                 available_keys = list(inputs.keys())
                 raise ValueError(f"이미지 입력이 필요합니다. 사용 가능한 키: {available_keys}")
 
-            session_id = await self._create_session(image_data)
-            logger.info(f"세션 생성됨: {session_id}")
+            # 2. detections 확인 (필수 - YOLO 노드에서 받아야 함)
+            external_detections = inputs.get("detections")
+            if not external_detections or len(external_detections) == 0:
+                raise ValueError(
+                    "detections 입력이 필요합니다. YOLO 노드를 연결하세요. "
+                    "Blueprint AI BOM 노드는 자체 검출을 수행하지 않습니다."
+                )
 
-            # 2. 내부 YOLO 검출 실행 (항상 내부 검출 사용 - 더 안정적)
-            # 참고: 외부 detections는 현재 지원하지 않음 (bbox 형식 호환성 문제)
-            logger.info(f"세션 {session_id}에 대해 내부 YOLO 검출 실행 (confidence={confidence}, iou={iou}, imgsz={imgsz})")
-            await self._run_detection(session_id, confidence, iou, imgsz)
+            # 3. 세션 생성 (이미지 크기 자동 추출 및 업데이트)
+            session_id, image_width, image_height = await self._create_session(image_data)
+            logger.info(f"세션 생성됨: {session_id} (이미지 크기: {image_width}x{image_height})")
 
-            # 3. Human-in-the-Loop 검증 필요 여부 결정
-            if not skip_verification:
-                # 검증 UI URL 반환
-                verification_url = f"{self.FRONTEND_URL}/verification?session={session_id}"
-                return {
-                    "status": "pending_verification",
-                    "session_id": session_id,
-                    "verification_url": verification_url,
-                    "message": "검증이 필요합니다. UI에서 검출 결과를 확인하세요.",
-                    "interactive": True,
-                    "ui_action": {
-                        "type": "open_url",
-                        "url": verification_url,
-                        "label": "검증 UI 열기"
-                    }
-                }
+            # 4. YOLO 노드의 검출 결과 가져오기
+            logger.info(f"YOLO detections 가져오기: {len(external_detections)}개")
+            await self._import_detections_v2(session_id, external_detections)
 
-            # 4. 자동 모드: 신뢰도 기반 자동 승인
-            await self._auto_approve(session_id, auto_approve_threshold)
-
-            # 5. BOM 생성
-            bom_data = await self._generate_bom(session_id)
-
-            # 6. 내보내기 URL 생성
-            export_url = f"{self.BASE_URL}/bom/{session_id}/download?format={export_format}"
-
+            # 5. 검증 UI URL 반환 (항상 Human-in-the-Loop)
+            # WorkflowPage 사용 - GT 비교, Precision, Recall, F1 Score 표시
+            verification_url = f"{self.FRONTEND_URL}/workflow?session={session_id}"
             return {
-                "status": "completed",
+                "status": "pending_verification",
                 "session_id": session_id,
-                "bom_data": bom_data,
-                "items": bom_data.get("items", []),
-                "summary": bom_data.get("summary", {}),
-                "approved_count": bom_data.get("approved_count", 0),
-                "export_url": export_url
+                "verification_url": verification_url,
+                "detection_count": len(external_detections),
+                "image_width": image_width,
+                "image_height": image_height,
+                "message": "검증 UI에서 검출 결과를 확인하고 BOM을 생성하세요.",
+                "interactive": True,
+                "ui_action": {
+                    "type": "open_url",
+                    "url": verification_url,
+                    "label": "검증 UI 열기"
+                }
             }
 
         except Exception as e:
@@ -105,33 +94,18 @@ class BOMExecutor(BaseNodeExecutor):
             raise
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
-        """파라미터 유효성 검사"""
-        confidence = self.parameters.get("confidence", 0.40)
-        if not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1:
-            return False, "confidence는 0과 1 사이의 숫자여야 합니다"
-
-        iou = self.parameters.get("iou", 0.50)
-        if not isinstance(iou, (int, float)) or not 0 <= iou <= 1:
-            return False, "iou는 0과 1 사이의 숫자여야 합니다"
-
-        imgsz = self.parameters.get("imgsz", 1024)
-        if not isinstance(imgsz, int) or not 320 <= imgsz <= 4096:
-            return False, "imgsz는 320과 4096 사이의 정수여야 합니다"
-
-        auto_approve_threshold = self.parameters.get("auto_approve_threshold", 0.95)
-        if not isinstance(auto_approve_threshold, (int, float)) or not 0 <= auto_approve_threshold <= 1:
-            return False, "auto_approve_threshold는 0과 1 사이의 숫자여야 합니다"
-
-        export_format = self.parameters.get("export_format", "excel")
-        valid_formats = ["excel", "csv", "json", "pdf"]
-        if export_format not in valid_formats:
-            return False, f"export_format은 {valid_formats} 중 하나여야 합니다"
-
+        """파라미터 유효성 검사 - 파라미터 없음"""
         return True, None
 
-    async def _create_session(self, image_data: Any) -> str:
-        """세션 생성 및 이미지 업로드"""
+    async def _create_session(self, image_data: Any) -> Tuple[str, int, int]:
+        """세션 생성 및 이미지 업로드
+
+        Returns:
+            Tuple[str, int, int]: (session_id, image_width, image_height)
+        """
         import base64
+
+        file_bytes = None
 
         async with httpx.AsyncClient(timeout=60) as client:
             # Data URL 형식 (data:image/png;base64,...)
@@ -184,6 +158,7 @@ class BOMExecutor(BaseNodeExecutor):
                     raise ValueError(f"이미지 데이터를 디코딩할 수 없습니다: {type(e).__name__}: {e}")
             else:
                 # 바이트 데이터인 경우
+                file_bytes = image_data
                 files = {"file": ("image.png", image_data, "image/png")}
                 response = await client.post(
                     f"{self.BASE_URL}/sessions/upload",
@@ -192,10 +167,32 @@ class BOMExecutor(BaseNodeExecutor):
 
             response.raise_for_status()
             result = response.json()
-            return result["session_id"]
+            session_id = result["session_id"]
+
+            # 이미지 크기 추출 (PIL 사용)
+            image_width, image_height = 0, 0
+            if file_bytes:
+                try:
+                    img = Image.open(BytesIO(file_bytes))
+                    image_width, image_height = img.size
+                    logger.info(f"이미지 크기 추출: {image_width}x{image_height}")
+
+                    # 세션에 이미지 크기 업데이트
+                    patch_response = await client.patch(
+                        f"{self.BASE_URL}/sessions/{session_id}",
+                        json={"image_width": image_width, "image_height": image_height}
+                    )
+                    if patch_response.status_code == 200:
+                        logger.info(f"세션 이미지 크기 업데이트 완료: {session_id}")
+                    else:
+                        logger.warning(f"세션 이미지 크기 업데이트 실패: {patch_response.status_code}")
+                except Exception as e:
+                    logger.warning(f"이미지 크기 추출 실패: {e}")
+
+            return session_id, image_width, image_height
 
     async def _import_detections(self, session_id: str, detections: list):
-        """외부 검출 결과 가져오기"""
+        """외부 검출 결과 가져오기 (레거시)"""
         async with httpx.AsyncClient(timeout=60) as client:
             for detection in detections:
                 await client.post(
@@ -206,57 +203,86 @@ class BOMExecutor(BaseNodeExecutor):
                     }
                 )
 
-    async def _run_detection(self, session_id: str, confidence: float, iou: float, imgsz: int):
-        """검출 실행 (Streamlit과 동일한 파라미터 지원)"""
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/detection/{session_id}/detect",
-                json={
-                    "confidence": confidence,
-                    "iou_threshold": iou,
-                    "imgsz": imgsz
-                }
-            )
-            response.raise_for_status()
+    async def _import_detections_v2(self, session_id: str, detections: list):
+        """YOLO 노드의 검출 결과를 Blueprint AI BOM 세션에 가져오기 (Bulk API 사용)
 
-    async def _auto_approve(self, session_id: str, threshold: float):
-        """신뢰도 기반 자동 승인"""
-        async with httpx.AsyncClient(timeout=60) as client:
-            # 검출 결과 조회
-            response = await client.get(
-                f"{self.BASE_URL}/detection/{session_id}/detections"
-            )
-            response.raise_for_status()
-            data = response.json()
+        YOLO 노드의 출력 형식 (두 가지 가능):
+        1. {x1, y1, x2, y2} - 코너 좌표
+        2. {x, y, width, height} - 중심점/크기 또는 좌상단/크기
 
-            # 신뢰도가 임계값 이상인 것만 승인
-            updates = []
-            for detection in data.get("detections", []):
-                if detection.get("confidence", 0) >= threshold:
-                    updates.append({
-                        "detection_id": detection["id"],
-                        "status": "approved"
-                    })
+        기존 방식: 50개 검출 → 50번 HTTP 요청 (~150ms)
+        Bulk 방식: 50개 검출 → 1번 HTTP 요청 (~3ms)
+        """
+        # 1. 모든 검출 결과를 먼저 변환
+        bulk_detections = []
+
+        for det in detections:
+            try:
+                class_name = det.get("class_name", "unknown")
+                confidence = det.get("confidence", 1.0)
+                bbox = det.get("bbox", {})
+
+                # bbox 형식 정규화
+                if isinstance(bbox, dict):
+                    if "width" in bbox and "height" in bbox:
+                        x = bbox.get("x", 0)
+                        y = bbox.get("y", 0)
+                        w = bbox.get("width", 0)
+                        h = bbox.get("height", 0)
+                        bbox_data = {
+                            "x1": int(x),
+                            "y1": int(y),
+                            "x2": int(x + w),
+                            "y2": int(y + h)
+                        }
+                    else:
+                        bbox_data = {
+                            "x1": int(bbox.get("x1", 0)),
+                            "y1": int(bbox.get("y1", 0)),
+                            "x2": int(bbox.get("x2", 0)),
+                            "y2": int(bbox.get("y2", 0))
+                        }
+                elif isinstance(bbox, list) and len(bbox) == 4:
+                    bbox_data = {
+                        "x1": int(bbox[0]),
+                        "y1": int(bbox[1]),
+                        "x2": int(bbox[2]),
+                        "y2": int(bbox[3])
+                    }
                 else:
-                    updates.append({
-                        "detection_id": detection["id"],
-                        "status": "rejected"
-                    })
+                    logger.warning(f"알 수 없는 bbox 형식: {bbox}")
+                    continue
 
-            if updates:
-                await client.put(
-                    f"{self.BASE_URL}/detection/{session_id}/verify/bulk",
-                    json={"updates": updates}
+                # bbox 유효성 검사
+                if bbox_data["x2"] <= bbox_data["x1"] or bbox_data["y2"] <= bbox_data["y1"]:
+                    logger.warning(f"유효하지 않은 bbox (크기 0 이하): {bbox_data}")
+                    continue
+
+                bulk_detections.append({
+                    "class_name": class_name,
+                    "bbox": bbox_data,
+                    "confidence": confidence
+                })
+
+            except Exception as e:
+                logger.warning(f"검출 변환 중 오류: {e}")
+                continue
+
+        # 2. Bulk API로 한 번에 전송
+        if bulk_detections:
+            async with httpx.AsyncClient(timeout=120) as client:
+                response = await client.post(
+                    f"{self.BASE_URL}/detection/{session_id}/import-bulk",
+                    json={"detections": bulk_detections}
                 )
 
-    async def _generate_bom(self, session_id: str) -> Dict[str, Any]:
-        """BOM 생성"""
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/bom/{session_id}/generate"
-            )
-            response.raise_for_status()
-            return response.json()
+                if response.status_code == 200:
+                    result = response.json()
+                    logger.info(f"Bulk import 완료: {result.get('imported_count', 0)}/{len(bulk_detections)}개")
+                else:
+                    logger.error(f"Bulk import 실패: {response.status_code} - {response.text}")
+        else:
+            logger.warning("가져올 검출 결과가 없습니다")
 
 
 # 실행기 등록

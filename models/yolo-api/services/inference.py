@@ -1,13 +1,13 @@
 """
 YOLO Inference Service
 """
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pathlib import Path
 import torch
 from ultralytics import YOLO
 
 from models.schemas import Detection
-from utils.helpers import CLASS_NAMES
+from utils.helpers import CLASS_NAMES  # fallback for legacy models
 
 
 class YOLOInferenceService:
@@ -23,6 +23,7 @@ class YOLOInferenceService:
         self.model_path = model_path
         self.model: Optional[YOLO] = None
         self.device: str = "cpu"
+        self.class_names: Dict[int, str] = {}  # Model-specific class names
 
     def load_model(self):
         """Load YOLO model and detect device"""
@@ -43,6 +44,14 @@ class YOLOInferenceService:
         else:
             print(f"📥 Loading model from {self.model_path}")
             self.model = YOLO(self.model_path)
+
+        # Extract class names from model (모델에 내장된 클래스 이름 사용)
+        if self.model is not None and hasattr(self.model, 'names'):
+            self.class_names = self.model.names
+            print(f"📋 Model classes ({len(self.class_names)}): {list(self.class_names.values())[:5]}...")
+        else:
+            self.class_names = CLASS_NAMES  # fallback
+            print(f"⚠️  Using fallback CLASS_NAMES")
 
         print(f"✅ Model loaded successfully on {self.device}")
 
@@ -109,7 +118,8 @@ class YOLOInferenceService:
         for box in boxes:
             cls_id = int(box.cls[0])
             confidence = float(box.conf[0])
-            class_name = CLASS_NAMES.get(cls_id, 'unknown')
+            # Use model's class names (모델에서 추출한 클래스 이름 사용)
+            class_name = self.class_names.get(cls_id, f'class_{cls_id}')
 
             # Bounding box (xyxy format)
             x1, y1, x2, y2 = box.xyxy[0].tolist()

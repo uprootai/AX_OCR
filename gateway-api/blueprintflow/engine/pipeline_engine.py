@@ -227,6 +227,7 @@ class PipelineEngine:
             raise ValueError(f"노드를 찾을 수 없습니다: {node_id}")
 
         self.logger.info(f"노드 실행 시작: {node.id} ({node.type})")
+        self.logger.info(f"노드 파라미터: {node.parameters}")  # 디버깅용
         context.set_node_status(node.id, "running", progress=0.0)
 
         try:

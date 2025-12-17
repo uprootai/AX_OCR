@@ -100,12 +100,19 @@ async def list_container_status():
         container_list = []
 
         for c in containers:
-            # poc_ 또는 api 관련 컨테이너만 필터링
-            image_name = c.image.tags[0] if c.image.tags else c.image.short_id
+            # poc_ 또는 api 관련 컨테이너만 필터링 (컨테이너 이름 기반)
+            # 이미지 정보 접근 시 오류 발생할 수 있으므로 컨테이너 이름으로만 필터링
+            try:
+                image_name = c.image.tags[0] if c.image.tags else ""
+            except Exception:
+                image_name = ""
+
             if not ('poc' in image_name.lower() or
                     'api' in c.name.lower() or
                     'web-ui' in c.name.lower() or
-                    'neo4j' in c.name.lower()):
+                    'neo4j' in c.name.lower() or
+                    'gateway' in c.name.lower() or
+                    'blueprint' in c.name.lower()):
                 continue
 
             container_list.append(ContainerStatusInfo(

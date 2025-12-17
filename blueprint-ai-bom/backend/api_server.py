@@ -419,7 +419,9 @@ async def compare_with_ground_truth(
     detections: list[dict],
     img_width: int = 1000,
     img_height: int = 1000,
-    iou_threshold: float = 0.5
+    iou_threshold: float = 0.3,
+    model_type: str = None,
+    class_agnostic: bool = False
 ):
     """검출 결과와 Ground Truth 비교 (TP/FP/FN 계산)
 
@@ -428,7 +430,9 @@ async def compare_with_ground_truth(
         detections: 검출 결과 리스트 [{class_name, bbox: {x1,y1,x2,y2}}]
         img_width: 이미지 너비
         img_height: 이미지 높이
-        iou_threshold: IoU 임계값 (기본 0.5)
+        iou_threshold: IoU 임계값 (기본 0.3)
+        model_type: 모델 타입 (bom_detector 등) - 해당 클래스 파일 사용
+        class_agnostic: True면 클래스 무관하게 위치(IoU)만으로 매칭
     """
     # Load GT
     base_name = Path(filename).stem
@@ -437,11 +441,27 @@ async def compare_with_ground_truth(
     if not label_file.exists():
         return {
             "error": "GT 라벨 파일을 찾을 수 없습니다",
-            "has_ground_truth": False
+            "has_ground_truth": False,
+            "filename": filename,
+            "searched_label": str(label_file)
         }
 
-    classes = load_gt_classes()
+    # 모델 타입에 따른 클래스 파일 선택
+    if model_type:
+        model_classes_file = GT_LABELS_DIR / f"classes_{model_type}.txt"
+        if model_classes_file.exists():
+            with open(model_classes_file, "r", encoding="utf-8") as f:
+                classes = [line.strip() for line in f if line.strip()]
+        else:
+            classes = load_gt_classes()
+    else:
+        classes = load_gt_classes()
+
     gt_labels = parse_yolo_label(label_file, img_width, img_height, classes)
+
+    # Debug logging
+    print(f"🔍 GT Compare: class_agnostic={class_agnostic}, model_type={model_type}")
+    print(f"   filename={filename}, gt_count={len(gt_labels)}, det_count={len(detections)}")
 
     def calculate_iou(box1: dict, box2: dict) -> float:
         """IoU 계산"""
@@ -477,9 +497,22 @@ async def compare_with_ground_truth(
                 continue
 
             iou = calculate_iou(det_bbox, gt["bbox"])
-            if iou > best_iou and iou >= iou_threshold:
-                best_iou = iou
-                best_gt_idx = j
+            gt_class = gt.get("class_name", "")
+
+            # class_agnostic 모드: 위치(IoU)만으로 매칭 (클래스 무시)
+            # 일반 모드: 클래스 매칭 + IoU threshold 조건
+            if class_agnostic:
+                # 위치만 확인
+                if iou > best_iou and iou >= iou_threshold:
+                    best_iou = iou
+                    best_gt_idx = j
+                    if iou > 0.5:
+                        print(f"   ✅ Match found: det[{i}] <-> gt[{j}], IoU={iou:.3f}")
+            else:
+                # 클래스도 일치해야 함
+                if det_class == gt_class and iou > best_iou and iou >= iou_threshold:
+                    best_iou = iou
+                    best_gt_idx = j
 
         if best_gt_idx >= 0:
             matched_gt.add(best_gt_idx)
