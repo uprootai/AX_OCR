@@ -63,7 +63,15 @@ class YoloExecutor(BaseNodeExecutor):
             overlap_ratio=overlap_ratio
         )
 
+        # 원본 이미지를 패스스루 (Blueprint AI BOM 등 후속 노드에서 필요)
+        import base64
+        original_image = inputs.get("image", "")
+        if not original_image and file_bytes:
+            # file_bytes가 있으면 base64로 인코딩
+            original_image = base64.b64encode(file_bytes).decode("utf-8")
+
         return {
+            "image": original_image,  # 원본 이미지 패스스루
             "detections": result.get("detections", []),
             "total_detections": result.get("total_detections", 0),
             "visualized_image": result.get("visualized_image", ""),

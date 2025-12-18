@@ -207,24 +207,29 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
-  // Approve all pending
+  // Approve all (manual 제외 - 수작업 라벨은 그대로 유지)
   approveAll: async () => {
     const { currentSession, detections } = get();
     if (!currentSession) return;
 
-    const pendingDetections = detections.filter((d) => d.verification_status === 'pending');
-    if (pendingDetections.length === 0) return;
+    // approved와 manual이 아닌 모든 검출을 승인 대상으로
+    const targetDetections = detections.filter(
+      (d) => d.verification_status !== 'approved' && d.verification_status !== 'manual'
+    );
+    if (targetDetections.length === 0) return;
 
     set({ isLoading: true, error: null });
     try {
       await detectionApi.bulkVerify(
         currentSession.session_id,
-        pendingDetections.map((d) => ({ detection_id: d.id, status: 'approved' as VerificationStatus }))
+        targetDetections.map((d) => ({ detection_id: d.id, status: 'approved' as VerificationStatus }))
       );
 
       set((state) => ({
         detections: state.detections.map((d) =>
-          d.verification_status === 'pending' ? { ...d, verification_status: 'approved' as VerificationStatus } : d
+          d.verification_status !== 'approved' && d.verification_status !== 'manual'
+            ? { ...d, verification_status: 'approved' as VerificationStatus }
+            : d
         ),
         isLoading: false,
       }));
@@ -234,24 +239,29 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     }
   },
 
-  // Reject all pending
+  // Reject all (manual 제외 - 수작업 라벨은 그대로 유지)
   rejectAll: async () => {
     const { currentSession, detections } = get();
     if (!currentSession) return;
 
-    const pendingDetections = detections.filter((d) => d.verification_status === 'pending');
-    if (pendingDetections.length === 0) return;
+    // rejected와 manual이 아닌 모든 검출을 거부 대상으로
+    const targetDetections = detections.filter(
+      (d) => d.verification_status !== 'rejected' && d.verification_status !== 'manual'
+    );
+    if (targetDetections.length === 0) return;
 
     set({ isLoading: true, error: null });
     try {
       await detectionApi.bulkVerify(
         currentSession.session_id,
-        pendingDetections.map((d) => ({ detection_id: d.id, status: 'rejected' as VerificationStatus }))
+        targetDetections.map((d) => ({ detection_id: d.id, status: 'rejected' as VerificationStatus }))
       );
 
       set((state) => ({
         detections: state.detections.map((d) =>
-          d.verification_status === 'pending' ? { ...d, verification_status: 'rejected' as VerificationStatus } : d
+          d.verification_status !== 'rejected' && d.verification_status !== 'manual'
+            ? { ...d, verification_status: 'rejected' as VerificationStatus }
+            : d
         ),
         isLoading: false,
       }));

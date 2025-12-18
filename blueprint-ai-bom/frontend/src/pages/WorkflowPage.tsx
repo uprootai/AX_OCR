@@ -58,7 +58,9 @@ export function WorkflowPage() {
     loadSessions,
     loadSession,
     deleteSession,
+    runDetection,
     verifyDetection,
+    deleteDetection,
     approveAll,
     rejectAll,
     generateBOM,
@@ -416,6 +418,24 @@ export function WorkflowPage() {
                     className="w-full accent-primary-600"
                   />
                 </div>
+                {/* 검출 실행 버튼 */}
+                <button
+                  onClick={() => runDetection(config)}
+                  disabled={isLoading || !currentSession}
+                  className="w-full mt-3 flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>검출 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Settings className="w-4 h-4" />
+                      <span>검출 실행</span>
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>
@@ -674,6 +694,21 @@ export function WorkflowPage() {
                 >
                   <span className="text-sm">✏️</span>
                 </button>
+                {/* 삭제 버튼 - 수작업 라벨만 삭제 가능 */}
+                {detection.verification_status === 'manual' && (
+                  <button
+                    onClick={() => {
+                      if (confirm('이 수작업 라벨을 삭제하시겠습니까?')) {
+                        deleteDetection(detection.id);
+                      }
+                    }}
+                    disabled={editingId !== null}
+                    className="p-2 rounded-lg transition-colors bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
+                    title="삭제"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -924,15 +959,31 @@ export function WorkflowPage() {
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => approveAll()}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
-                    전체 승인
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>처리 중...</span>
+                      </>
+                    ) : (
+                      <span>전체 승인</span>
+                    )}
                   </button>
                   <button
                     onClick={() => rejectAll()}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
-                    전체 거부
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>처리 중...</span>
+                      </>
+                    ) : (
+                      <span>전체 거부</span>
+                    )}
                   </button>
                 </div>
               </div>
@@ -988,12 +1039,22 @@ export function WorkflowPage() {
                       imageData={imageData}
                       imageSize={imageSize}
                       selectedClass={manualLabel.class_name}
-                      maxWidth="66%"
-                      existingBoxes={detections.map((d, i) => ({
-                        bbox: d.bbox,
-                        label: `${i + 1}`,
-                        color: '#ef4444'  // Red - single color for all detections
-                      }))}
+                      maxWidth="100%"
+                      existingBoxes={
+                        // 승인/수정/수작업 라벨만 표시 (pending, rejected 제외)
+                        detections
+                          .filter(d =>
+                            d.verification_status === 'approved' ||
+                            d.verification_status === 'modified' ||
+                            d.verification_status === 'manual'
+                          )
+                          .map(d => ({
+                            bbox: d.bbox,
+                            label: d.modified_class_name || d.class_name,
+                            color: d.verification_status === 'manual' ? '#a855f7' :
+                                   d.verification_status === 'modified' ? '#f97316' : '#22c55e'
+                          }))
+                      }
                       onBoxDrawn={(box) => {
                         if (manualLabel.class_name && currentSession) {
                           detectionApi.addManual(currentSession.session_id, {

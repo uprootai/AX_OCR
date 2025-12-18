@@ -199,11 +199,11 @@ export function DrawingCanvas({
           draggable={false}
         />
 
-        {/* SVG 오버레이 - 이미지와 동일한 크기 */}
+        {/* SVG 오버레이 - 이미지와 동일한 크기 (비율 무시하고 늘림) */}
         <svg
           className="absolute top-0 left-0 w-full h-full pointer-events-none"
           viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
-          preserveAspectRatio="xMinYMin meet"
+          preserveAspectRatio="none"
         >
           {/* 기존 박스들 */}
           {existingBoxes.map((box, idx) => (
@@ -214,16 +214,16 @@ export function DrawingCanvas({
                 width={box.bbox.x2 - box.bbox.x1}
                 height={box.bbox.y2 - box.bbox.y1}
                 fill={box.color || '#22c55e'}
-                fillOpacity={0.15}
+                fillOpacity={0.25}
                 stroke={box.color || '#22c55e'}
-                strokeWidth={2}
+                strokeWidth={4}
               />
               {box.label && (
                 <text
                   x={box.bbox.x1 + 4}
-                  y={box.bbox.y1 - 4}
+                  y={box.bbox.y1 - 8}
                   fill={box.color || '#22c55e'}
-                  fontSize="12"
+                  fontSize="16"
                   fontWeight="bold"
                 >
                   {box.label}

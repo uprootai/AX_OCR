@@ -44,15 +44,29 @@ class BOMExecutor(BaseNodeExecutor):
         try:
 
             # 1. 이미지 확인 (필수)
-            image_data = (
-                inputs.get("image") or
-                inputs.get("visualized_image") or
-                inputs.get("segmented_image") or
-                inputs.get("upscaled_image")
-            )
-            if not image_data:
+            # 원본 이미지: 수작업 라벨 추가용 (깨끗한 이미지)
+            # visualized_image: AI 검출 결과 비교용 (YOLO 결과 시각화)
+            original_image = inputs.get("image")
+            visualized_image = inputs.get("visualized_image")
+
+            # 원본 이미지가 없으면 다른 소스에서 시도
+            if not original_image:
+                original_image = (
+                    inputs.get("upscaled_image") or
+                    inputs.get("segmented_image")
+                )
+
+            # 최소한 하나의 이미지는 필요
+            if not original_image and not visualized_image:
                 available_keys = list(inputs.keys())
                 raise ValueError(f"이미지 입력이 필요합니다. 사용 가능한 키: {available_keys}")
+
+            # 원본 이미지가 없으면 visualized_image를 원본으로 사용 (경고)
+            if not original_image and visualized_image:
+                logger.warning("원본 이미지(image)가 없어 visualized_image를 사용합니다. 수작업 라벨 추가 시 바운딩박스가 보일 수 있습니다.")
+                original_image = visualized_image
+
+            image_data = original_image
 
             # 2. detections 확인 (필수 - YOLO 노드에서 받아야 함)
             external_detections = inputs.get("detections")
