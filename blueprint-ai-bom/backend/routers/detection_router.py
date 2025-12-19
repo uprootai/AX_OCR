@@ -238,6 +238,10 @@ async def import_bulk_detections(session_id: str, request: BulkImportRequest):
 
     기존 /manual API가 하나씩 추가하는 것과 달리,
     이 API는 한 번의 요청으로 모든 검출 결과를 가져옵니다.
+
+    initial_status 파라미터:
+    - pending: YOLO 검출 결과 (기본값) - 바운딩박스 표시 안됨, 사용자가 승인/거부 필요
+    - manual: 수작업 라벨 - 바운딩박스 바로 표시
     """
     detection_service = get_detection_service()
     session_service = get_session_service()
@@ -251,6 +255,8 @@ async def import_bulk_detections(session_id: str, request: BulkImportRequest):
     verification_status = session.get("verification_status", {})
 
     imported_count = 0
+    # 요청에서 지정한 초기 상태 사용 (기본값: pending)
+    initial_status_value = request.initial_status.value
 
     # 모든 검출 결과를 한 번에 처리
     for det in request.detections:
@@ -260,8 +266,12 @@ async def import_bulk_detections(session_id: str, request: BulkImportRequest):
                 bbox=det.bbox.model_dump(),
                 confidence=det.confidence
             )
+            # 초기 상태에 따라 verification_status 설정
+            new_detection["verification_status"] = initial_status_value
+            if initial_status_value != "manual":
+                new_detection["model_id"] = "yolo"  # YOLO 검출임을 표시
             detections.append(new_detection)
-            verification_status[new_detection["id"]] = "manual"
+            verification_status[new_detection["id"]] = initial_status_value
             imported_count += 1
         except Exception as e:
             # 개별 검출 실패는 로깅만 하고 계속 진행
@@ -283,7 +293,8 @@ async def import_bulk_detections(session_id: str, request: BulkImportRequest):
         "session_id": session_id,
         "imported_count": imported_count,
         "total_count": len(detections),
-        "message": f"{imported_count}개 검출 결과를 가져왔습니다"
+        "initial_status": initial_status_value,
+        "message": f"{imported_count}개 검출 결과를 가져왔습니다 (상태: {initial_status_value})"
     }
 
 

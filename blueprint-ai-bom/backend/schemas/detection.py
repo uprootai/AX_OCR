@@ -101,3 +101,7 @@ class ManualDetection(BaseModel):
 class BulkImportRequest(BaseModel):
     """일괄 검출 가져오기 요청 (YOLO 노드에서 대량 검출 결과 가져올 때 사용)"""
     detections: List[ManualDetection]
+    initial_status: VerificationStatus = Field(
+        default=VerificationStatus.PENDING,
+        description="가져온 검출의 초기 상태 (YOLO: pending, 수작업: manual)"
+    )

@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [bomSessions, setBomSessions] = useState<BOMSession[]>([]);
   const [bomLoading, setBomLoading] = useState(false);
   const [bomError, setBomError] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   // BOM 세션 목록 가져오기
   const fetchBomSessions = useCallback(async () => {
@@ -57,15 +58,22 @@ export default function Dashboard() {
   // BOM 세션 삭제
   const deleteBomSession = useCallback(async (sessionId: string) => {
     if (!confirm('이 세션을 삭제하시겠습니까?')) return;
+
+    setDeletingSessionId(sessionId);
     try {
       const response = await fetch(`http://localhost:5020/sessions/${sessionId}`, {
         method: 'DELETE',
       });
       if (response.ok) {
         setBomSessions(prev => prev.filter(s => s.session_id !== sessionId));
+      } else {
+        alert('세션 삭제에 실패했습니다.');
       }
     } catch (error) {
       console.error('세션 삭제 실패:', error);
+      alert('세션 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingSessionId(null);
     }
   }, []);
 
@@ -295,9 +303,14 @@ export default function Dashboard() {
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteBomSession(session.session_id)}
-                      className="text-destructive hover:text-destructive"
+                      disabled={deletingSessionId === session.session_id}
+                      className="text-destructive hover:text-destructive disabled:opacity-50"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {deletingSessionId === session.session_id ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </div>

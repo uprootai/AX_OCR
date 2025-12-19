@@ -21,6 +21,7 @@ import {
   Sun,
   Cpu,
   RefreshCw,
+  CheckCircle,
 } from 'lucide-react';
 import { useSessionStore } from '../store/sessionStore';
 import axios from 'axios';
@@ -108,6 +109,12 @@ export function WorkflowPage() {
   // Cache clearing
   const [isClearingCache, setIsClearingCache] = useState(false);
 
+  // Verification finalized state (검증 완료 버튼 클릭 시 true)
+  const [verificationFinalized, setVerificationFinalized] = useState(false);
+
+  // Image modal state (이미지 확대 모달)
+  const [showImageModal, setShowImageModal] = useState(false);
+
   // Fetch YOLO defaults from BlueprintFlow API
   useEffect(() => {
     const fetchYOLODefaults = async () => {
@@ -148,6 +155,11 @@ export function WorkflowPage() {
       loadSession(urlSessionId);
     }
   }, [urlSessionId, currentSession, loadSession]);
+
+  // Reset verificationFinalized when session changes
+  useEffect(() => {
+    setVerificationFinalized(false);
+  }, [currentSession?.session_id]);
 
   // Auto-load GT when detections are available
   useEffect(() => {
@@ -1055,18 +1067,78 @@ export function WorkflowPage() {
                                    d.verification_status === 'modified' ? '#f97316' : '#22c55e'
                           }))
                       }
-                      onBoxDrawn={(box) => {
-                        if (manualLabel.class_name && currentSession) {
-                          detectionApi.addManual(currentSession.session_id, {
+                      onBoxDrawn={async (box) => {
+                        if (!manualLabel.class_name) {
+                          alert('클래스를 먼저 선택해주세요!');
+                          return;
+                        }
+                        if (!currentSession) return;
+
+                        try {
+                          console.log('Adding manual detection:', manualLabel.class_name, box);
+                          const result = await detectionApi.addManual(currentSession.session_id, {
                             class_name: manualLabel.class_name,
                             bbox: box,
-                          }).then(() => {
-                            loadSession(currentSession.session_id);
                           });
+                          console.log('Manual detection added:', result);
+
+                          // 세션 다시 로드하여 UI 업데이트
+                          await loadSession(currentSession.session_id);
+                          console.log('Session reloaded, detections updated');
+                        } catch (error) {
+                          console.error('Failed to add manual detection:', error);
+                          alert('수작업 라벨 추가 실패: ' + (error instanceof Error ? error.message : '알 수 없는 오류'));
                         }
                       }}
                     />
                   </div>
+
+                  {/* 추가된 수작업 라벨 목록 */}
+                  {detections.filter(d => d.verification_status === 'manual').length > 0 && (
+                    <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <h4 className="font-semibold text-purple-700 dark:text-purple-300 mb-2">
+                        🎨 수작업 라벨 목록 ({detections.filter(d => d.verification_status === 'manual').length}개)
+                      </h4>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {detections
+                          .filter(d => d.verification_status === 'manual')
+                          .map((d, idx) => (
+                            <div
+                              key={d.id}
+                              className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-purple-100 dark:border-purple-700"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <span className="w-6 h-6 flex items-center justify-center bg-purple-500 text-white text-xs rounded-full">
+                                  {idx + 1}
+                                </span>
+                                <div>
+                                  <span className="font-medium text-gray-900 dark:text-white">
+                                    {d.class_name}
+                                  </span>
+                                  <span className="ml-2 text-xs text-gray-500">
+                                    ({Math.round(d.bbox.x1)}, {Math.round(d.bbox.y1)}) - ({Math.round(d.bbox.x2)}, {Math.round(d.bbox.y2)})
+                                  </span>
+                                  <span className="ml-2 text-xs text-gray-400">
+                                    {Math.round(d.bbox.x2 - d.bbox.x1)}×{Math.round(d.bbox.y2 - d.bbox.y1)}px
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`"${d.class_name}" 수작업 라벨을 삭제하시겠습니까?`)) {
+                                    deleteDetection(d.id);
+                                  }
+                                }}
+                                className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                                title="삭제"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1127,11 +1199,61 @@ export function WorkflowPage() {
                   <DetectionRow key={detection.id} detection={detection} index={index} />
                 ))}
               </div>
+
+              {/* 검증 완료 버튼 */}
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <p>현재 검증 현황:
+                      승인 <span className="font-bold text-green-600">{stats.approved}</span>개 /
+                      거부 <span className="font-bold text-red-600">{stats.rejected}</span>개 /
+                      수작업 <span className="font-bold text-purple-600">{stats.manual}</span>개 /
+                      대기 <span className="font-bold text-gray-500">{stats.pending}</span>개
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      BOM에 포함될 항목: <span className="font-bold text-primary-600">{stats.approved + stats.manual}</span>개
+                      (승인 + 수작업)
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const finalCount = stats.approved + stats.manual;
+                      if (finalCount === 0) {
+                        alert('BOM에 포함할 항목이 없습니다.\n검출 결과를 승인하거나 수작업 라벨을 추가해주세요.');
+                        return;
+                      }
+                      setVerificationFinalized(true);
+                    }}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                      verificationFinalized
+                        ? 'bg-green-100 text-green-700 border-2 border-green-500'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {verificationFinalized ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        <span>검증 완료됨</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        <span>검증 완료</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {verificationFinalized && (
+                  <p className="mt-2 text-sm text-green-600 dark:text-green-400">
+                    ✓ 검증이 완료되었습니다. 아래에서 최종 결과를 확인하고 BOM을 생성하세요.
+                  </p>
+                )}
+              </div>
             </section>
           )}
 
-          {/* Section 5: 최종 검증 결과 이미지 */}
-          {imageData && imageSize && (stats.approved > 0 || stats.rejected > 0) && (
+          {/* Section 5: 최종 검증 결과 이미지 (검증 완료 후에만 표시) */}
+          {verificationFinalized && imageData && imageSize && (stats.approved + stats.manual) > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🖼️ 최종 검증 결과 이미지</h2>
 
@@ -1168,8 +1290,177 @@ export function WorkflowPage() {
                 </span>
               </div>
 
-              {/* Final Image with Bounding Boxes */}
-              <div className="relative border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+              {/* 2-Column Layout: Image + BOM List */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: Final Image with Bounding Boxes */}
+                <div className="lg:col-span-2">
+                  <div
+                    className="relative border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
+                    onClick={() => setShowImageModal(true)}
+                    title="클릭하여 확대"
+                  >
+                    <canvas
+                      ref={(canvas) => {
+                        if (!canvas || !imageData || !imageSize) return;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) return;
+
+                        const img = new Image();
+                        img.onload = () => {
+                          // Scale to fit container (max 600px width for side-by-side layout)
+                          const maxWidth = 600;
+                          const scale = Math.min(1, maxWidth / imageSize.width);
+                          canvas.width = imageSize.width * scale;
+                          canvas.height = imageSize.height * scale;
+
+                          // Draw image
+                          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                          // Draw bounding boxes for approved/modified/manual detections
+                          const finalDetections = detections.filter(d =>
+                            d.verification_status === 'approved' ||
+                            d.verification_status === 'modified' ||
+                            d.verification_status === 'manual'
+                          );
+
+                          finalDetections.forEach((detection, idx) => {
+                            const { x1, y1, x2, y2 } = detection.bbox;
+                            const sx1 = x1 * scale;
+                            const sy1 = y1 * scale;
+                            const sx2 = x2 * scale;
+                            const sy2 = y2 * scale;
+
+                            // Color based on status
+                            let color = '#22c55e'; // green - approved
+                            if (detection.modified_class_name && detection.modified_class_name !== detection.class_name) {
+                              color = '#f97316'; // orange - modified
+                            } else if (detection.verification_status === 'manual') {
+                              color = '#a855f7'; // purple - manual
+                            }
+
+                            // Draw rectangle
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+
+                            // Draw label background
+                            const label = `${idx + 1}`;
+                            ctx.font = 'bold 12px sans-serif';
+                            const textWidth = ctx.measureText(label).width;
+                            ctx.fillStyle = color;
+                            ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
+
+                            // Draw label text
+                            ctx.fillStyle = 'white';
+                            ctx.fillText(label, sx1 + 4, sy1 - 5);
+                          });
+                        };
+                        img.src = imageData;
+                      }}
+                      className="max-w-full"
+                    />
+                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                      🔍 클릭하여 확대
+                    </div>
+                  </div>
+                  <p className="text-center text-sm text-gray-500 mt-2">
+                    최종 선정된 부품: 총 {detections.filter(d =>
+                      d.verification_status === 'approved' ||
+                      d.verification_status === 'modified' ||
+                      d.verification_status === 'manual'
+                    ).length}개
+                  </p>
+                </div>
+
+                {/* Right: BOM List */}
+                <div className="lg:col-span-1">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-full">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-3">📋 BOM 심볼 리스트</h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {(() => {
+                        const finalDetections = detections.filter(d =>
+                          d.verification_status === 'approved' ||
+                          d.verification_status === 'modified' ||
+                          d.verification_status === 'manual'
+                        );
+
+                        // Group by class name
+                        const grouped = finalDetections.reduce((acc, d) => {
+                          const className = d.modified_class_name || d.class_name;
+                          if (!acc[className]) {
+                            acc[className] = { count: 0, items: [] };
+                          }
+                          acc[className].count++;
+                          acc[className].items.push(d);
+                          return acc;
+                        }, {} as Record<string, { count: number; items: typeof finalDetections }>);
+
+                        const sortedClasses = Object.entries(grouped).sort((a, b) => b[1].count - a[1].count);
+
+                        return sortedClasses.map(([className, data], idx) => (
+                          <div
+                            key={className}
+                            className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <span className="w-6 h-6 flex items-center justify-center bg-primary-500 text-white text-xs rounded-full font-bold">
+                                {idx + 1}
+                              </span>
+                              <span className="font-medium text-gray-900 dark:text-white text-sm">{className}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-lg font-bold text-primary-600">{data.count}</span>
+                              <span className="text-xs text-gray-500">개</span>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">총 품목 수</span>
+                        <span className="text-xl font-bold text-primary-600">
+                          {(() => {
+                            const finalDetections = detections.filter(d =>
+                              d.verification_status === 'approved' ||
+                              d.verification_status === 'modified' ||
+                              d.verification_status === 'manual'
+                            );
+                            const grouped = new Set(finalDetections.map(d => d.modified_class_name || d.class_name));
+                            return grouped.size;
+                          })()}종
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">총 수량</span>
+                        <span className="text-xl font-bold text-green-600">
+                          {detections.filter(d =>
+                            d.verification_status === 'approved' ||
+                            d.verification_status === 'modified' ||
+                            d.verification_status === 'manual'
+                          ).length}개
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Image Modal */}
+          {showImageModal && imageData && imageSize && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+              onClick={() => setShowImageModal(false)}
+            >
+              <div className="relative max-w-[95vw] max-h-[95vh]" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setShowImageModal(false)}
+                  className="absolute -top-10 right-0 text-white hover:text-gray-300 text-xl"
+                >
+                  ✕ 닫기
+                </button>
                 <canvas
                   ref={(canvas) => {
                     if (!canvas || !imageData || !imageSize) return;
@@ -1178,16 +1469,20 @@ export function WorkflowPage() {
 
                     const img = new Image();
                     img.onload = () => {
-                      // Scale to fit container (max 800px width)
-                      const maxWidth = 800;
-                      const scale = Math.min(1, maxWidth / imageSize.width);
+                      // Full size with max viewport constraints
+                      const maxWidth = window.innerWidth * 0.9;
+                      const maxHeight = window.innerHeight * 0.85;
+                      const scaleW = maxWidth / imageSize.width;
+                      const scaleH = maxHeight / imageSize.height;
+                      const scale = Math.min(1, scaleW, scaleH);
+
                       canvas.width = imageSize.width * scale;
                       canvas.height = imageSize.height * scale;
 
                       // Draw image
                       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                      // Draw bounding boxes for approved/modified/manual detections
+                      // Draw bounding boxes
                       const finalDetections = detections.filter(d =>
                         d.verification_status === 'approved' ||
                         d.verification_status === 'modified' ||
@@ -1201,48 +1496,38 @@ export function WorkflowPage() {
                         const sx2 = x2 * scale;
                         const sy2 = y2 * scale;
 
-                        // Color based on status
-                        let color = '#22c55e'; // green - approved
+                        let color = '#22c55e';
                         if (detection.modified_class_name && detection.modified_class_name !== detection.class_name) {
-                          color = '#f97316'; // orange - modified
+                          color = '#f97316';
                         } else if (detection.verification_status === 'manual') {
-                          color = '#a855f7'; // purple - manual
+                          color = '#a855f7';
                         }
 
-                        // Draw rectangle
                         ctx.strokeStyle = color;
-                        ctx.lineWidth = 2;
+                        ctx.lineWidth = 3;
                         ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
 
-                        // Draw label background
-                        const label = `${idx + 1}`;
-                        ctx.font = 'bold 12px sans-serif';
+                        // Label with class name
+                        const className = detection.modified_class_name || detection.class_name;
+                        const label = `${idx + 1}. ${className}`;
+                        ctx.font = 'bold 14px sans-serif';
                         const textWidth = ctx.measureText(label).width;
                         ctx.fillStyle = color;
-                        ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
-
-                        // Draw label text
+                        ctx.fillRect(sx1, sy1 - 22, textWidth + 10, 22);
                         ctx.fillStyle = 'white';
-                        ctx.fillText(label, sx1 + 4, sy1 - 5);
+                        ctx.fillText(label, sx1 + 5, sy1 - 6);
                       });
                     };
                     img.src = imageData;
                   }}
-                  className="max-w-full"
+                  className="rounded-lg shadow-2xl"
                 />
-                <p className="text-center text-sm text-gray-500 mt-2 pb-2">
-                  최종 선정된 부품: 총 {detections.filter(d =>
-                    d.verification_status === 'approved' ||
-                    d.verification_status === 'modified' ||
-                    d.verification_status === 'manual'
-                  ).length}개
-                </p>
               </div>
-            </section>
+            </div>
           )}
 
-          {/* Section 6: BOM 생성 */}
-          {detections.length > 0 && (
+          {/* Section 6: BOM 생성 (검증 완료 후에만 표시) */}
+          {verificationFinalized && detections.length > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 BOM 생성 및 내보내기</h2>
@@ -1339,8 +1624,83 @@ export function WorkflowPage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>BOM을 생성하려면 위의 "BOM 생성" 버튼을 클릭하세요.</p>
+                <div>
+                  {/* BOM 생성 전 미리보기 */}
+                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      💡 아래 승인된 검출 결과를 기반으로 BOM이 생성됩니다. "BOM 생성" 버튼을 클릭하세요.
+                    </p>
+                  </div>
+
+                  {/* 미리보기 테이블 - 승인된 검출 결과를 클래스별로 그룹화 */}
+                  {(() => {
+                    const approvedDetections = detections.filter(d =>
+                      d.verification_status === 'approved' ||
+                      d.verification_status === 'modified' ||
+                      d.verification_status === 'manual'
+                    );
+
+                    // 클래스별로 그룹화
+                    const grouped = approvedDetections.reduce((acc, d) => {
+                      const className = d.modified_class_name || d.class_name;
+                      if (!acc[className]) {
+                        acc[className] = { count: 0, items: [] };
+                      }
+                      acc[className].count++;
+                      acc[className].items.push(d);
+                      return acc;
+                    }, {} as Record<string, { count: number; items: typeof approvedDetections }>);
+
+                    const sortedClasses = Object.entries(grouped).sort((a, b) => b[1].count - a[1].count);
+
+                    return (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                              <th className="px-4 py-2 text-left">#</th>
+                              <th className="px-4 py-2 text-left">품목명 (클래스)</th>
+                              <th className="px-4 py-2 text-center">수량</th>
+                              <th className="px-4 py-2 text-center">상태</th>
+                              <th className="px-4 py-2 text-left">검출 ID</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedClasses.map(([className, data], idx) => (
+                              <tr key={className} className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="px-4 py-2">{idx + 1}</td>
+                                <td className="px-4 py-2 font-medium">{className}</td>
+                                <td className="px-4 py-2 text-center font-bold text-primary-600">{data.count}</td>
+                                <td className="px-4 py-2 text-center">
+                                  <div className="flex justify-center space-x-1">
+                                    {data.items.some(i => i.verification_status === 'approved') && (
+                                      <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">승인</span>
+                                    )}
+                                    {data.items.some(i => i.verification_status === 'modified') && (
+                                      <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">수정</span>
+                                    )}
+                                    {data.items.some(i => i.verification_status === 'manual') && (
+                                      <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded">수작업</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2 text-xs text-gray-500">
+                                  {data.items.map(i => i.id.slice(0, 6)).join(', ')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-gray-50 dark:bg-gray-700 font-bold">
+                            <tr>
+                              <td colSpan={2} className="px-4 py-2">합계</td>
+                              <td className="px-4 py-2 text-center">{approvedDetections.length}</td>
+                              <td colSpan={2} className="px-4 py-2"></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </section>
