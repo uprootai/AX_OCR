@@ -4,11 +4,21 @@ Segmentation Service
 EDGNet API 호출 및 세그멘테이션 처리
 """
 import os
+import json
+import asyncio
 import logging
 import mimetypes
 from typing import Dict, Any
 import httpx
 from fastapi import HTTPException
+
+
+async def parse_json_async(response: httpx.Response) -> Dict[str, Any]:
+    """비동기 JSON 파싱 (이벤트 루프 블로킹 방지)"""
+    response_bytes = response.content
+    return await asyncio.to_thread(
+        lambda: json.loads(response_bytes.decode('utf-8'))
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +86,7 @@ async def call_edgnet_segment(
 
             logger.info(f"EDGNet API status: {response.status_code}")
             if response.status_code == 200:
-                edgnet_response = response.json()
+                edgnet_response = await parse_json_async(response)
                 logger.info(f"EDGNet response keys: {edgnet_response.keys()}")
                 logger.info(f"EDGNet components count: {len(edgnet_response.get('components', []))}")
                 logger.info(f"EDGNet nodes count: {edgnet_response.get('graph', {}).get('node_count', 0)}")

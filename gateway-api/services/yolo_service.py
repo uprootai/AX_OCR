@@ -4,6 +4,8 @@ YOLO Detection Service
 YOLO API 호출 및 검출 결과 처리
 """
 import os
+import json
+import asyncio
 import logging
 import mimetypes
 from typing import Dict, Any
@@ -86,7 +88,12 @@ async def call_yolo_detect(
 
             logger.info(f"YOLO API status: {response.status_code}")
             if response.status_code == 200:
-                yolo_response = response.json()
+                # 비동기 JSON 파싱 (큰 응답에서 이벤트 루프 블로킹 방지)
+                # response.content는 이미 읽어온 bytes이므로 블로킹 없음
+                response_bytes = response.content
+                yolo_response = await asyncio.to_thread(
+                    lambda: json.loads(response_bytes.decode('utf-8'))
+                )
                 logger.info(f"YOLO API response keys: {yolo_response.keys()}")
                 logger.info(f"YOLO total_detections: {yolo_response.get('total_detections', 'NOT FOUND')}")
                 logger.info(f"YOLO detections count: {len(yolo_response.get('detections', []))}")

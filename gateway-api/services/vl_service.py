@@ -4,11 +4,21 @@ Vision Language Service
 VL API 호출 및 멀티모달 분석 결과 처리
 """
 import os
+import json
+import asyncio
 import logging
 import mimetypes
 from typing import Dict, Any, Optional
 import httpx
 from fastapi import HTTPException
+
+
+async def parse_json_async(response: httpx.Response) -> Dict[str, Any]:
+    """비동기 JSON 파싱 (이벤트 루프 블로킹 방지)"""
+    response_bytes = response.content
+    return await asyncio.to_thread(
+        lambda: json.loads(response_bytes.decode('utf-8'))
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +73,7 @@ async def call_vl_api(
 
             logger.info(f"VL API status: {response.status_code}")
             if response.status_code == 200:
-                vl_response = response.json()
+                vl_response = await parse_json_async(response)
                 logger.info(f"VL API response keys: {vl_response.keys()}")
                 return vl_response
             else:

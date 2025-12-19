@@ -1,7 +1,7 @@
 # .todos - 작업 추적 디렉토리
 
 > AX POC 프로젝트의 작업 기록 및 미완료 작업 관리
-> **최종 업데이트**: 2025-12-14
+> **최종 업데이트**: 2025-12-18
 
 ---
 
@@ -9,6 +9,7 @@
 
 | 파일 | 설명 | 상태 |
 |------|------|------|
+| [2025-12-18_codebase_cleanup_analysis.md](./2025-12-18_codebase_cleanup_analysis.md) | **코드베이스 정리 분석 (레거시, 중복, 대용량 파일)** | **신규** |
 | [2025-12-14_export_architecture.md](./2025-12-14_export_architecture.md) | **Export 가능한 납품 아키텍처** | **핵심** |
 | [2025-12-14_integration_strategy.md](./2025-12-14_integration_strategy.md) | **AX POC + DrawingBOMExtractor 통합 전략** | **핵심** |
 | [2025-12-14_project_structure.md](./2025-12-14_project_structure.md) | 프로젝트 전체 구조 정리 | 참조용 |

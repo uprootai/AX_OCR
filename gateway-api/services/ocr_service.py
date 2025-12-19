@@ -4,12 +4,21 @@ OCR Service
 eDOCr2 및 PaddleOCR API 호출
 """
 import os
+import json
 import logging
 import mimetypes
 import asyncio
 from typing import Dict, Any
 import httpx
 from fastapi import HTTPException
+
+
+async def parse_json_async(response: httpx.Response) -> Dict[str, Any]:
+    """비동기 JSON 파싱 (이벤트 루프 블로킹 방지)"""
+    response_bytes = response.content
+    return await asyncio.to_thread(
+        lambda: json.loads(response_bytes.decode('utf-8'))
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +97,10 @@ async def call_edocr2_ocr(
                 v1_response, v2_response = await asyncio.gather(v1_task, v2_task, return_exceptions=True)
 
                 # Merge results with weighted average (v1: 0.4, v2: 0.6)
-                v1_data = v1_response.json().get('data', {}) if hasattr(v1_response, 'json') else {}
-                v2_data = v2_response.json().get('data', {}) if hasattr(v2_response, 'json') else {}
+                v1_json = await parse_json_async(v1_response) if hasattr(v1_response, 'content') else {}
+                v2_json = await parse_json_async(v2_response) if hasattr(v2_response, 'content') else {}
+                v1_data = v1_json.get('data', {}) if isinstance(v1_json, dict) else {}
+                v2_data = v2_json.get('data', {}) if isinstance(v2_json, dict) else {}
 
                 # Simple merge: prefer v2, but include v1 results
                 merged_data = {
@@ -124,7 +135,7 @@ async def call_edocr2_ocr(
 
                 logger.info(f"eDOCr2 {version} API status: {response.status_code}")
                 if response.status_code == 200:
-                    edocr_response = response.json()
+                    edocr_response = await parse_json_async(response)
                     edocr_data = edocr_response.get('data', {})
                     dimensions_count = len(edocr_data.get('dimensions', []))
                     gdt_count = len(edocr_data.get('gdt', []))
@@ -191,7 +202,7 @@ async def call_paddleocr(
             )
 
             if response.status_code == 200:
-                ocr_response = response.json()
+                ocr_response = await parse_json_async(response)
                 logger.info(f"PaddleOCR detected {ocr_response.get('total_texts', 0)} texts")
                 return ocr_response
             else:

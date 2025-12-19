@@ -4,10 +4,20 @@ Tolerance Service
 Skin Model API 호출 및 공차 예측 처리
 """
 import os
+import json
+import asyncio
 import logging
 from typing import Dict, Any, List
 import httpx
 from fastapi import HTTPException
+
+
+async def parse_json_async(response: httpx.Response) -> Dict[str, Any]:
+    """비동기 JSON 파싱 (이벤트 루프 블로킹 방지)"""
+    response_bytes = response.content
+    return await asyncio.to_thread(
+        lambda: json.loads(response_bytes.decode('utf-8'))
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +121,7 @@ async def call_skinmodel_tolerance(
             logger.info(f"Skin Model API status: {response.status_code}")
 
             if response.status_code == 200:
-                skinmodel_response = response.json()
+                skinmodel_response = await parse_json_async(response)
                 logger.info(f"Skin Model response keys: {skinmodel_response.keys()}")
                 if 'data' in skinmodel_response and 'manufacturability' in skinmodel_response['data']:
                     manu_data = skinmodel_response['data']['manufacturability']
