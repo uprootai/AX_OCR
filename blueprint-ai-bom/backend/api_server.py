@@ -24,6 +24,7 @@ from routers.analysis_router import router as analysis_router_api, set_analysis_
 from routers.verification_router import router as verification_router_api, set_verification_services
 from routers.classification_router import router as classification_router_api, set_classification_services
 from routers.relation_router import router as relation_router_api, set_relation_services
+from routers.feedback_router import router as feedback_router_api, set_feedback_services
 from schemas.session import SessionCreate, SessionResponse
 from services.session_service import SessionService
 from services.detection_service import DetectionService
@@ -51,7 +52,7 @@ CONFIG_DIR.mkdir(exist_ok=True)
 app = FastAPI(
     title="Blueprint AI BOM API",
     description="AI 기반 도면 분석 및 BOM 생성 솔루션",
-    version="7.0.0",  # Phase 7: GD&T 파싱
+    version="8.0.0",  # Phase 8: 피드백 루프 파이프라인
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -94,6 +95,7 @@ set_gdt_parser(gdt_parser)  # Phase 7: GD&T 파싱
 set_verification_services(session_service)  # v3: Active Learning 검증
 set_classification_services(session_service)  # v4: VLM 분류
 set_relation_services(session_service, line_detector_service)  # Phase 2: 치수선 기반 관계
+set_feedback_services(session_service)  # Phase 8: 피드백 루프
 
 # 라우터 등록 (prefix 없이 - 라우터 내부에 이미 prefix 있음)
 app.include_router(session_router_api, tags=["Session"])
@@ -103,6 +105,7 @@ app.include_router(analysis_router_api, tags=["Analysis"])  # v2: 분석 옵션 
 app.include_router(verification_router_api, tags=["Verification"])  # v3: Active Learning
 app.include_router(classification_router_api, tags=["Classification"])  # v4: VLM 분류
 app.include_router(relation_router_api, tags=["Relations"])  # Phase 2: 치수선 기반 관계
+app.include_router(feedback_router_api, tags=["Feedback"])  # Phase 8: 피드백 루프
 
 
 @app.get("/")
@@ -110,7 +113,7 @@ async def root():
     """API 상태 확인"""
     return {
         "name": "Blueprint AI BOM API",
-        "version": "7.0.0",
+        "version": "8.0.0",
         "status": "running",
         "timestamp": datetime.now().isoformat()
     }

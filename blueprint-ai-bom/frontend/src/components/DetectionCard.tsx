@@ -84,6 +84,7 @@ export function DetectionCard({
   // 크롭된 이미지 생성 (useEffect로 side effect 처리)
   useEffect(() => {
     if (!imageData || !imageSize) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 조건부 early return, 필수적인 초기화
       setCroppedSrc(null);
       return;
     }
@@ -139,6 +140,7 @@ export function DetectionCard({
   // GT 크롭된 이미지 생성
   useEffect(() => {
     if (!imageData || !imageSize || !gtBbox) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 조건부 early return, 필수적인 초기화
       setGtCroppedSrc(null);
       return;
     }

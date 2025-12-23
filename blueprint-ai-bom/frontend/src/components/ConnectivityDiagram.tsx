@@ -134,6 +134,7 @@ function getControlPoint(
 
 export function ConnectivityDiagram({
   data,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   detections: _detections,  // Reserved for future use (e.g., detection-based filtering)
   imageSize,
   containerSize,
@@ -147,6 +148,7 @@ export function ConnectivityDiagram({
   const [hoveredSymbolId, setHoveredSymbolId] = useState<string | null>(null);
 
   // 노드 위치 계산
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- 옵셔널 체이닝 사용으로 인한 의존성 차이
   const scaledNodes = useMemo(() => {
     if (!data?.nodes) return {};
 
@@ -163,6 +165,7 @@ export function ConnectivityDiagram({
   }, [data?.nodes, imageSize, containerSize]);
 
   // 연결 라인 계산
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- 옵셔널 체이닝 사용으로 인한 의존성 차이
   const connectionLines = useMemo(() => {
     if (!data?.connections) return [];
 

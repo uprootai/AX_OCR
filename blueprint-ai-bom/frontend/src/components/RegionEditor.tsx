@@ -161,7 +161,8 @@ export default function RegionEditor({
   showLabels = true,
 }: RegionEditorProps) {
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null);
-  const [_editingRegionId, _setEditingRegionId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_editingRegionId, _setEditingRegionId] = useState<string | null>(null);  // Reserved for future inline editing
 
   // 통계 계산
   const statistics = useMemo(() => {

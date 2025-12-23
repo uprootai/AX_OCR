@@ -45,7 +45,8 @@ import { VerificationQueue } from '../components/VerificationQueue';
 import { DrawingClassifier } from '../components/DrawingClassifier';
 import { RelationList } from '../components/RelationList';
 import { RelationOverlay } from '../components/RelationOverlay';
-import { InfoTooltip, FEATURE_TOOLTIPS } from '../components/Tooltip';
+import { InfoTooltip } from '../components/Tooltip';
+import { FEATURE_TOOLTIPS } from '../components/tooltipContent';
 import GDTEditor from '../components/GDTEditor';
 import type { FeatureControlFrame, DatumFeature, GDTSummary } from '../components/GDTEditor';
 import type { DimensionRelation, RelationStatistics } from '../types';
@@ -251,7 +252,7 @@ export function WorkflowPage() {
     localStorage.setItem('darkMode', String(darkMode));
   }, [darkMode]);
 
-  // Load initial data
+  // Load initial data (컴포넌트 마운트 시 1회만 실행)
   useEffect(() => {
     loadSessions();
     loadClasses();
@@ -259,6 +260,7 @@ export function WorkflowPage() {
     loadSystemStatus();
     const interval = setInterval(loadSystemStatus, 30000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load session from URL parameter
@@ -333,7 +335,7 @@ export function WorkflowPage() {
     fetchGDT();
   }, [currentSession?.session_id]);
 
-  // Auto-load GT when detections are available
+  // Auto-load GT when detections are available (의도적으로 session_id, imageSize, detections.length만 의존)
   useEffect(() => {
     const autoLoadGT = async () => {
       if (!currentSession || !imageSize || detections.length === 0) return;
@@ -366,6 +368,7 @@ export function WorkflowPage() {
       }
     };
     autoLoadGT();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSession?.session_id, imageSize, detections.length]);
 
   // Load functions
@@ -1040,6 +1043,7 @@ export function WorkflowPage() {
           cropImage(gtBbox)?.then(src => src && setGtCroppedSrc(src));
         }
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [imageData, imageSize, detection.bbox, gtBbox]);
 
     return (

@@ -1,0 +1,63 @@
+# Blueprint AI BOM - On-Premises Docker Compose
+# 독립 실행 가능한 온프레미스 배포용 설정
+#
+# 사용법:
+#   docker-compose -f docker-compose.onprem.yml up -d --build
+#
+# 접속 URL:
+#   Frontend: http://localhost:3000
+#   Backend API: http://localhost:5020
+
+services:
+  # Backend API
+  blueprint-ai-bom-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blueprint-ai-bom-backend
+    ports:
+      - "${BACKEND_PORT:-5020}:5020"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./config:/app/config
+      - ./models:/app/models:ro
+      - ./classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
+      - ./test_drawings:/app/test_drawings:ro
+      - ./class_examples:/app/class_examples:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - YOLO_API_URL=${YOLO_API_URL:-http://yolo-api:5005}
+      - EDOCR2_API_URL=${EDOCR2_API_URL:-http://edocr2-api:5002}
+    restart: unless-stopped
+    networks:
+      - blueprint-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend
+  blueprint-ai-bom-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: blueprint-ai-bom-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      blueprint-ai-bom-backend:
+        condition: service_healthy
+    networks:
+      - blueprint-network
+    restart: unless-stopped
+
+networks:
+  blueprint-network:
+    driver: bridge
+
+volumes:
+  uploads:
+  results:
