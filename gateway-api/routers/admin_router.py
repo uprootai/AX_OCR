@@ -43,8 +43,6 @@ def get_api_registry():
 DOCKER_SERVICE_MAPPING = {
     "gateway": "gateway-api",
     "yolo": "yolo-api",
-    "yolo_pid": "yolo-pid-api",
-    "yolo-pid": "yolo-pid-api",
     "edocr2": "edocr2-api",
     "edocr2-v1": "edocr2-api",
     "edocr2-v2": "edocr2-v2-api",
@@ -67,6 +65,9 @@ DOCKER_SERVICE_MAPPING = {
     "ocr_ensemble": "ocr-ensemble-api",
     "ocr-ensemble": "ocr-ensemble-api",
     "knowledge": "knowledge-api",
+    "blueprint-ai-bom": "blueprint-ai-bom-backend",
+    "blueprint-ai-bom-backend": "blueprint-ai-bom-backend",
+    "blueprint-ai-bom-frontend": "blueprint-ai-bom-frontend",
 }
 
 # 모델 디렉토리 (docker-compose에서 마운트된 경로)
@@ -697,8 +698,6 @@ async def get_container_status(service: str):
     """
     service_mapping = {
         "yolo": "yolo-api",
-        "yolo_pid": "yolo-pid-api",
-        "yolo-pid": "yolo-pid-api",
         "edocr2": "edocr2-v2-api",
         "edocr2-v2": "edocr2-v2-api",
         "paddleocr": "paddleocr-api",
@@ -720,6 +719,10 @@ async def get_container_status(service: str):
         "surya-ocr": "surya-ocr-api",
         "doctr": "doctr-api",
         "easyocr": "easyocr-api",
+        "gateway": "gateway-api",
+        "blueprint-ai-bom": "blueprint-ai-bom-backend",
+        "blueprint-ai-bom-backend": "blueprint-ai-bom-backend",
+        "blueprint-ai-bom-frontend": "blueprint-ai-bom-frontend",
     }
 
     container_name = service_mapping.get(service, f"{service}-api")
@@ -784,17 +787,14 @@ async def configure_container(service: str, config: ContainerConfigRequest):
     """
     컨테이너의 GPU/메모리 설정을 변경하고 재생성합니다.
 
-    - service: 서비스 이름 (예: yolo, yolo_pid, edocr2 등)
+    - service: 서비스 이름 (예: yolo, edocr2 등)
     - device: "cpu" 또는 "cuda"
     - memory_limit: 메모리 제한 (예: "4g")
     - gpu_memory: GPU 메모리 제한 (예: "4g")
     """
     # 서비스 이름을 docker-compose 서비스 이름으로 변환
-    # API ID (yolo_pid) -> docker-compose 서비스 이름 (yolo-pid-api)
     service_mapping = {
         "yolo": "yolo-api",
-        "yolo_pid": "yolo-pid-api",
-        "yolo-pid": "yolo-pid-api",
         "edocr2": "edocr2-v2-api",
         "edocr2-v2": "edocr2-v2-api",
         "paddleocr": "paddleocr-api",

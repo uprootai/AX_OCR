@@ -617,43 +617,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # =====================
-  # [DEPRECATED] YOLO-PID API (포트 5017)
-  # ❌ 통합 YOLO API (5005)로 대체됨
-  # 모델 선택: model_type=pid_symbol 사용
-  # =====================
-  # yolo-pid-api:
-  #   build:
-  #     context: ./models/yolo-pid-api
-  #     dockerfile: Dockerfile
-  #   container_name: yolo-pid-api
-  #   ports:
-  #     - "5017:5017"
-  #   volumes:
-  #     - ./models/yolo-pid-api:/app/model_dir:ro
-  #     - ./models/yolo-pid-api/uploads:/tmp/yolo-pid/uploads
-  #     - ./models/yolo-pid-api/results:/tmp/yolo-pid/results
-  #   environment:
-  #     - YOLO_PID_PORT=5017
-  #     - YOLO_PID_MODEL=/app/model_dir/pid_symbol_detector.pt
-  #     - PYTHONUNBUFFERED=1
-  #   networks:
-  #     - ax_poc_network
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: 1
-  #             capabilities: [gpu]
-  #   healthcheck:
-  #     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5017/health')"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 60s
-
   # PID Analyzer API (포트 5018)
   # 심볼 연결 분석, BOM 생성
   pid-analyzer-api:
