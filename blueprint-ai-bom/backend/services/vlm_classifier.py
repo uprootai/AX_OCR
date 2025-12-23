@@ -8,11 +8,14 @@ Vision-Language Model을 활용한 도면 타입 분류
 import os
 import base64
 import json
+import logging
 import httpx
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class DrawingType(str, Enum):
@@ -118,6 +121,10 @@ CLASSIFICATION_PROMPT = """당신은 기계 도면 분석 전문가입니다. �
 class VLMClassifier:
     """VLM 기반 도면 분류기"""
 
+    # 외부 API 엔드포인트 (환경변수로 오버라이드 가능)
+    OPENAI_API_URL = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions")
+    ANTHROPIC_API_URL = os.getenv("ANTHROPIC_API_URL", "https://api.anthropic.com/v1/messages")
+
     def __init__(
         self,
         local_vl_url: Optional[str] = None,
@@ -187,7 +194,7 @@ class VLMClassifier:
 
             except Exception as e:
                 last_error = str(e)
-                print(f"[VLMClassifier] {p} 실패: {e}")
+                logger.warning(f"[VLMClassifier] {p} 실패: {e}")
                 continue
 
         return self._fallback_result(f"모든 프로바이더 실패: {last_error}")
@@ -199,17 +206,17 @@ class VLMClassifier:
             try:
                 health = await client.get(f"{self.local_vl_url}/api/v1/health")
                 if health.status_code != 200:
-                    print(f"[VLMClassifier] Local VL API health check failed: {health.status_code}")
+                    logger.warning(f"[VLMClassifier] Local VL API health check failed: {health.status_code}")
                     return None
             except Exception as e:
-                print(f"[VLMClassifier] Local VL API health check error: {e}")
+                logger.warning(f"[VLMClassifier] Local VL API health check error: {e}")
                 return None
 
             # Base64를 바이너리로 디코딩
             try:
                 image_bytes = base64.b64decode(image_base64)
             except Exception as e:
-                print(f"[VLMClassifier] Failed to decode base64 image: {e}")
+                logger.error(f"[VLMClassifier] Failed to decode base64 image: {e}")
                 return None
 
             # 분류 요청 (multipart/form-data)
@@ -230,7 +237,7 @@ class VLMClassifier:
             )
 
             if response.status_code != 200:
-                print(f"[VLMClassifier] Local VL API error: {response.status_code} - {response.text}")
+                logger.error(f"[VLMClassifier] Local VL API error: {response.status_code} - {response.text}")
                 return None
 
             result = response.json()
@@ -238,7 +245,7 @@ class VLMClassifier:
             raw_response = result.get("answer") or result.get("caption") or result.get("response") or ""
 
             if not raw_response:
-                print(f"[VLMClassifier] VL API returned empty response: {result}")
+                logger.warning(f"[VLMClassifier] VL API returned empty response: {result}")
                 return None
 
             # BLIP 모델은 단순 캡션만 반환하므로 기본 분류 시도
@@ -248,7 +255,7 @@ class VLMClassifier:
         """OpenAI GPT-4V 사용"""
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
+                self.OPENAI_API_URL,
                 headers={
                     "Authorization": f"Bearer {self.openai_api_key}",
                     "Content-Type": "application/json"
@@ -286,7 +293,7 @@ class VLMClassifier:
         """Anthropic Claude Vision 사용"""
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(
-                "https://api.anthropic.com/v1/messages",
+                self.ANTHROPIC_API_URL,
                 headers={
                     "x-api-key": self.anthropic_api_key,
                     "Content-Type": "application/json",
@@ -362,7 +369,7 @@ class VLMClassifier:
             )
 
         except Exception as e:
-            print(f"[VLMClassifier] 응답 파싱 실패: {e}")
+            logger.error(f"[VLMClassifier] 응답 파싱 실패: {e}")
             return self._fallback_result(f"응답 파싱 실패: {e}")
 
     def _parse_blip_response(self, caption: str, provider: str) -> ClassificationResult:

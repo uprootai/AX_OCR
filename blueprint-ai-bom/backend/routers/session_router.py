@@ -3,6 +3,7 @@
 import os
 import uuid
 import base64
+import logging
 import aiofiles
 from pathlib import Path
 from typing import List, Optional
@@ -10,6 +11,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Query
 
 from schemas.session import SessionResponse, SessionDetail, SessionStatus
 from schemas.classification import DrawingType
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -76,12 +79,24 @@ async def upload_image(
         content = await file.read()
         await f.write(content)
 
-    # 세션 생성 (drawing_type 포함)
+    # 이미지 크기 추출
+    from PIL import Image
+    try:
+        with Image.open(file_path) as img:
+            image_width, image_height = img.size
+        logger.info(f"[Session] Image size extracted: {image_width}x{image_height}")
+    except Exception as e:
+        logger.warning(f"[Session] Failed to extract image size: {e}")
+        image_width, image_height = None, None
+
+    # 세션 생성 (drawing_type 및 이미지 크기 포함)
     session = service.create_session(
         session_id=session_id,
         filename=file.filename,
         file_path=str(file_path),
-        drawing_type=dt.value
+        drawing_type=dt.value,
+        image_width=image_width,
+        image_height=image_height
     )
 
     return SessionResponse(**session)

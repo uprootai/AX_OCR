@@ -43,6 +43,10 @@ class SessionResponse(BaseModel):
     bom_generated: bool = False
     error_message: Optional[str] = None
 
+    # 이미지 정보
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+
     # 도면 분류 정보
     drawing_type: DrawingType = DrawingType.AUTO
     drawing_type_source: str = "builder"  # builder, vlm, manual

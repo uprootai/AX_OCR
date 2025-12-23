@@ -27,9 +27,9 @@ import {
 import { useSessionStore } from '../store/sessionStore';
 import axios from 'axios';
 import { detectionApi, systemApi, groundTruthApi, blueprintFlowApi } from '../lib/api';
+import logger from '../lib/logger';
+import { API_BASE_URL } from '../lib/constants';
 import type { GPUStatus, GTCompareResponse } from '../lib/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5020';
 
 interface ClassExample {
   class_name: string;
@@ -46,6 +46,8 @@ import { DrawingClassifier } from '../components/DrawingClassifier';
 import { RelationList } from '../components/RelationList';
 import { RelationOverlay } from '../components/RelationOverlay';
 import { InfoTooltip, FEATURE_TOOLTIPS } from '../components/Tooltip';
+import GDTEditor from '../components/GDTEditor';
+import type { FeatureControlFrame, DatumFeature, GDTSummary } from '../components/GDTEditor';
 import type { DimensionRelation, RelationStatistics } from '../types';
 
 // Dimension types
@@ -209,6 +211,14 @@ export function WorkflowPage() {
   const [showRelations, setShowRelations] = useState(true);
   const [isExtractingRelations, setIsExtractingRelations] = useState(false);
 
+  // Phase 7: GD&T state (기하공차 파싱)
+  const [fcfList, setFcfList] = useState<FeatureControlFrame[]>([]);
+  const [gdtDatums, setGdtDatums] = useState<DatumFeature[]>([]);
+  const [gdtSummary, setGdtSummary] = useState<GDTSummary | null>(null);
+  const [showGDT, setShowGDT] = useState(true);
+  const [isParsingGDT, setIsParsingGDT] = useState(false);
+  const [selectedFCFId, setSelectedFCFId] = useState<string | null>(null);
+  const [selectedDatumId, setSelectedDatumId] = useState<string | null>(null);
 
   // Derive links from dimensions for IntegratedOverlay
   const links = useMemo(() => {
@@ -226,7 +236,7 @@ export function WorkflowPage() {
         confidence: defaults.confidence,
         iou_threshold: defaults.iou,
       }));
-      console.log('📊 BlueprintFlow YOLO defaults loaded:', defaults);
+      logger.log('📊 BlueprintFlow YOLO defaults loaded:', defaults);
     };
     fetchYOLODefaults();
   }, []);
@@ -272,7 +282,7 @@ export function WorkflowPage() {
           setDimensions(data.dimensions || []);
           setDimensionStats(data.stats || null);
         } catch (err) {
-          console.error('Failed to auto-load dimensions:', err);
+          logger.error('Failed to auto-load dimensions:', err);
         }
       }
     };
@@ -291,13 +301,36 @@ export function WorkflowPage() {
           setRelationStats(statsRes.data || null);
         } catch (err) {
           // Relations might not exist yet, that's ok
-          console.log('No relations found:', err);
+          logger.log('No relations found:', err);
           setRelations([]);
           setRelationStats(null);
         }
       }
     };
     fetchRelations();
+  }, [currentSession?.session_id]);
+
+  // Auto-load GD&T when session changes (Phase 7)
+  useEffect(() => {
+    const fetchGDT = async () => {
+      if (currentSession?.session_id) {
+        try {
+          const { data } = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}`);
+          setFcfList(data.fcf_list || []);
+          setGdtDatums(data.datums || []);
+          // Fetch summary
+          const summaryRes = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/summary`);
+          setGdtSummary(summaryRes.data || null);
+        } catch (err) {
+          // GD&T might not exist yet, that's ok
+          logger.log('No GD&T found:', err);
+          setFcfList([]);
+          setGdtDatums([]);
+          setGdtSummary(null);
+        }
+      }
+    };
+    fetchGDT();
   }, [currentSession?.session_id]);
 
   // Auto-load GT when detections are available
@@ -341,7 +374,7 @@ export function WorkflowPage() {
       const { classes } = await detectionApi.getClasses();
       setAvailableClasses(classes);
     } catch (err) {
-      console.error('Failed to load classes:', err);
+      logger.error('Failed to load classes:', err);
     }
   };
 
@@ -352,7 +385,7 @@ export function WorkflowPage() {
       );
       setClassExamples(data.examples || []);
     } catch (err) {
-      console.error('Failed to load class examples:', err);
+      logger.error('Failed to load class examples:', err);
     }
   };
 
@@ -361,7 +394,7 @@ export function WorkflowPage() {
       const gpu = await systemApi.getGPUStatus();
       setGpuStatus(gpu);
     } catch (err) {
-      console.error('Failed to load system status:', err);
+      logger.error('Failed to load system status:', err);
     }
   };
 
@@ -371,7 +404,7 @@ export function WorkflowPage() {
     try {
       await verifyDetection(detectionId, status);
     } catch (err) {
-      console.error('Verification failed:', err);
+      logger.error('Verification failed:', err);
     }
   };
 
@@ -380,7 +413,7 @@ export function WorkflowPage() {
     try {
       await generateBOM();
     } catch (err) {
-      console.error('BOM generation failed:', err);
+      logger.error('BOM generation failed:', err);
     }
   };
 
@@ -389,7 +422,7 @@ export function WorkflowPage() {
     try {
       await systemApi.clearCache(cacheType);
     } catch (err) {
-      console.error('Cache clear failed:', err);
+      logger.error('Cache clear failed:', err);
     } finally {
       setIsClearingCache(false);
     }
@@ -413,7 +446,7 @@ export function WorkflowPage() {
       setDimensions(data.dimensions || []);
       setDimensionStats(data.stats || null);
     } catch (err) {
-      console.error('Failed to load dimensions:', err);
+      logger.error('Failed to load dimensions:', err);
     }
   };
 
@@ -459,12 +492,12 @@ export function WorkflowPage() {
             unlinked_count: data.relations.length,
           });
         }
-        console.log(`✅ 관계 추출 완료: ${data.relations.length}개`);
+        logger.log(`✅ 관계 추출 완료: ${data.relations.length}개`);
       }
 
-      console.log('분석 완료:', data);
+      logger.log('분석 완료:', data);
     } catch (err) {
-      console.error('Analysis failed:', err);
+      logger.error('Analysis failed:', err);
     } finally {
       setIsRunningAnalysis(false);
     }
@@ -486,7 +519,7 @@ export function WorkflowPage() {
       // 통계 업데이트
       await loadDimensions(currentSession.session_id);
     } catch (err) {
-      console.error('Dimension verification failed:', err);
+      logger.error('Dimension verification failed:', err);
     }
   };
 
@@ -504,7 +537,7 @@ export function WorkflowPage() {
         d.id === id ? { ...d, modified_value: newValue, verification_status: 'modified' } : d
       ));
     } catch (err) {
-      console.error('Dimension edit failed:', err);
+      logger.error('Dimension edit failed:', err);
     }
   };
 
@@ -520,7 +553,7 @@ export function WorkflowPage() {
       // 통계 업데이트
       await loadDimensions(currentSession.session_id);
     } catch (err) {
-      console.error('Dimension delete failed:', err);
+      logger.error('Dimension delete failed:', err);
     }
   };
 
@@ -540,13 +573,13 @@ export function WorkflowPage() {
       // 통계 업데이트
       await loadDimensions(currentSession.session_id);
     } catch (err) {
-      console.error('Bulk approve failed:', err);
+      logger.error('Bulk approve failed:', err);
     }
   };
 
   const handleAnalysisOptionsChange = (options: AnalysisOptionsData) => {
     // 분석 옵션이 변경되면 콘솔에 로깅 (추후 활용)
-    console.log('Analysis options changed:', options);
+    logger.log('Analysis options changed:', options);
   };
 
   // 선 검출 핸들러
@@ -558,9 +591,9 @@ export function WorkflowPage() {
       const { data } = await axios.post(`${API_BASE_URL}/analysis/lines/${currentSession.session_id}`);
       setLines(data.lines || []);
       setIntersections(data.intersections || []);
-      console.log('선 검출 완료:', data.lines?.length, '개 선');
+      logger.log('선 검출 완료:', data.lines?.length, '개 선');
     } catch (err) {
-      console.error('Line detection failed:', err);
+      logger.error('Line detection failed:', err);
     } finally {
       setIsRunningLineDetection(false);
     }
@@ -572,12 +605,12 @@ export function WorkflowPage() {
 
     try {
       const { data } = await axios.post(`${API_BASE_URL}/analysis/lines/${currentSession.session_id}/link-dimensions`);
-      console.log('치수-심볼 연결 완료:', data);
+      logger.log('치수-심볼 연결 완료:', data);
 
       // 치수 목록 다시 로드
       await loadDimensions(currentSession.session_id);
     } catch (err) {
-      console.error('Link dimensions failed:', err);
+      logger.error('Link dimensions failed:', err);
     }
   };
 
@@ -590,9 +623,9 @@ export function WorkflowPage() {
       const { data } = await axios.post(`${API_BASE_URL}/relations/extract/${currentSession.session_id}?use_lines=true`);
       setRelations(data.relations || []);
       setRelationStats(data.statistics || null);
-      console.log(`✅ 관계 추출 완료: ${data.relations?.length}개`);
+      logger.log(`✅ 관계 추출 완료: ${data.relations?.length}개`);
     } catch (err) {
-      console.error('Relation extraction failed:', err);
+      logger.error('Relation extraction failed:', err);
     } finally {
       setIsExtractingRelations(false);
     }
@@ -604,7 +637,7 @@ export function WorkflowPage() {
 
     try {
       await axios.post(`${API_BASE_URL}/relations/${currentSession.session_id}/link/${dimensionId}/${targetId}`);
-      console.log(`✅ 수동 연결: ${dimensionId} → ${targetId}`);
+      logger.log(`✅ 수동 연결: ${dimensionId} → ${targetId}`);
 
       // 관계 목록 다시 로드
       const { data } = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}`);
@@ -614,7 +647,7 @@ export function WorkflowPage() {
       const statsRes = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}/statistics`);
       setRelationStats(statsRes.data || null);
     } catch (err) {
-      console.error('Manual link failed:', err);
+      logger.error('Manual link failed:', err);
     }
   };
 
@@ -624,7 +657,7 @@ export function WorkflowPage() {
 
     try {
       await axios.delete(`${API_BASE_URL}/relations/${currentSession.session_id}/${relationId}`);
-      console.log(`🗑️ 관계 삭제: ${relationId}`);
+      logger.log(`🗑️ 관계 삭제: ${relationId}`);
 
       // 관계 목록 다시 로드
       const { data } = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}`);
@@ -634,7 +667,85 @@ export function WorkflowPage() {
       const statsRes = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}/statistics`);
       setRelationStats(statsRes.data || null);
     } catch (err) {
-      console.error('Delete relation failed:', err);
+      logger.error('Delete relation failed:', err);
+    }
+  };
+
+  // Phase 7: GD&T 파싱 핸들러
+  const handleParseGDT = async () => {
+    if (!currentSession) return;
+
+    setIsParsingGDT(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/parse`);
+      setFcfList(data.fcf_list || []);
+      setGdtDatums(data.datums || []);
+      logger.log(`✅ GD&T 파싱 완료: FCF ${data.total_fcf}개, 데이텀 ${data.total_datums}개`);
+
+      // 요약 업데이트
+      const summaryRes = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/summary`);
+      setGdtSummary(summaryRes.data || null);
+    } catch (err) {
+      logger.error('GD&T parsing failed:', err);
+    } finally {
+      setIsParsingGDT(false);
+    }
+  };
+
+  // Phase 7: FCF 업데이트 핸들러
+  const handleFCFUpdate = async (fcfId: string, updates: Partial<FeatureControlFrame>) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.put(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/fcf/${fcfId}`, updates);
+      logger.log(`✅ FCF 업데이트: ${fcfId}`);
+
+      // FCF 목록 다시 로드
+      const { data } = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}`);
+      setFcfList(data.fcf_list || []);
+      setGdtDatums(data.datums || []);
+    } catch (err) {
+      logger.error('FCF update failed:', err);
+    }
+  };
+
+  // Phase 7: FCF 삭제 핸들러
+  const handleFCFDelete = async (fcfId: string) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/fcf/${fcfId}`);
+      logger.log(`🗑️ FCF 삭제: ${fcfId}`);
+
+      // FCF 목록 다시 로드
+      const { data } = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}`);
+      setFcfList(data.fcf_list || []);
+
+      // 요약 업데이트
+      const summaryRes = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/summary`);
+      setGdtSummary(summaryRes.data || null);
+    } catch (err) {
+      logger.error('FCF delete failed:', err);
+    }
+  };
+
+  // Phase 7: 데이텀 삭제 핸들러
+  const handleDatumDelete = async (datumId: string) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/datum/${datumId}`);
+      logger.log(`🗑️ 데이텀 삭제: ${datumId}`);
+
+      // GD&T 목록 다시 로드
+      const { data } = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}`);
+      setGdtDatums(data.datums || []);
+
+      // 요약 업데이트
+      const summaryRes = await axios.get(`${API_BASE_URL}/analysis/gdt/${currentSession.session_id}/summary`);
+      setGdtSummary(summaryRes.data || null);
+    } catch (err) {
+      logger.error('Datum delete failed:', err);
     }
   };
 
@@ -1258,10 +1369,10 @@ export function WorkflowPage() {
                     suggested_preset: result.suggested_preset,
                     provider: result.provider
                   });
-                  console.log('Classification complete:', result);
+                  logger.log('Classification complete:', result);
                 }}
                 onPresetApply={(presetName) => {
-                  console.log('Preset applied:', presetName);
+                  logger.log('Preset applied:', presetName);
                   // 분석 옵션 패널 열기
                   setShowAnalysisOptions(true);
                 }}
@@ -1618,18 +1729,18 @@ export function WorkflowPage() {
                         if (!currentSession) return;
 
                         try {
-                          console.log('Adding manual detection:', manualLabel.class_name, box);
+                          logger.log('Adding manual detection:', manualLabel.class_name, box);
                           const result = await detectionApi.addManual(currentSession.session_id, {
                             class_name: manualLabel.class_name,
                             bbox: box,
                           });
-                          console.log('Manual detection added:', result);
+                          logger.log('Manual detection added:', result);
 
                           // 세션 다시 로드하여 UI 업데이트
                           await loadSession(currentSession.session_id);
-                          console.log('Session reloaded, detections updated');
+                          logger.log('Session reloaded, detections updated');
                         } catch (error) {
-                          console.error('Failed to add manual detection:', error);
+                          logger.error('Failed to add manual detection:', error);
                           alert('수작업 라벨 추가 실패: ' + (error instanceof Error ? error.message : '알 수 없는 오류'));
                         }
                       }}
@@ -1855,7 +1966,7 @@ export function WorkflowPage() {
                   sessionId={currentSession.session_id}
                   itemType="dimension"
                   onVerify={(itemId, action) => {
-                    console.log(`Verified ${itemId}: ${action}`);
+                    logger.log(`Verified ${itemId}: ${action}`);
                     // 치수 목록 새로고침
                     axios.get(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}`)
                       .then(({ data }) => {
@@ -2095,6 +2206,118 @@ export function WorkflowPage() {
                 selectedDimensionId={selectedDimensionId}
                 isLoading={isExtractingRelations}
               />
+            </section>
+          )}
+
+          {/* Section 4.8: Phase 7 - GD&T 기하공차 (이미지가 있을 때 표시) */}
+          {currentSession && imageData && imageSize && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  &#128208; GD&T 기하공차
+                  <InfoTooltip content="기하 공차 (Geometric Dimensioning and Tolerancing): 직진도, 평면도, 위치도 등 14가지 기하 특성을 파싱합니다." position="right" />
+                  {fcfList.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full">
+                      FCF {fcfList.length}개
+                    </span>
+                  )}
+                  {gdtDatums.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
+                      데이텀 {gdtDatums.length}개
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center gap-2">
+                  {/* 토글 버튼 */}
+                  <button
+                    onClick={() => setShowGDT(!showGDT)}
+                    className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                      showGDT
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                    }`}
+                  >
+                    {showGDT ? 'GD&T 표시' : 'GD&T 숨김'}
+                  </button>
+                  {/* 파싱 버튼 */}
+                  <button
+                    onClick={handleParseGDT}
+                    disabled={isParsingGDT}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isParsingGDT ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        파싱 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3 h-3" />
+                        GD&T 파싱
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* GD&T 요약 통계 */}
+              {gdtSummary && (fcfList.length > 0 || gdtDatums.length > 0) && (
+                <div className="grid grid-cols-4 gap-3 mb-4">
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center">
+                    <p className="text-lg font-bold text-purple-600">{gdtSummary.total_fcf}</p>
+                    <p className="text-xs text-gray-500">FCF</p>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 text-center">
+                    <p className="text-lg font-bold text-amber-600">{gdtSummary.total_datums}</p>
+                    <p className="text-xs text-gray-500">데이텀</p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                    <p className="text-lg font-bold text-green-600">{gdtSummary.verified_fcf}</p>
+                    <p className="text-xs text-gray-500">검증됨</p>
+                  </div>
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 text-center">
+                    <p className="text-lg font-bold text-yellow-600">{gdtSummary.pending_fcf}</p>
+                    <p className="text-xs text-gray-500">대기중</p>
+                  </div>
+                </div>
+              )}
+
+              {/* GD&T 에디터 */}
+              {showGDT && (fcfList.length > 0 || gdtDatums.length > 0) && (
+                <div className="relative border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700" style={{ height: 400 }}>
+                  <img
+                    src={imageData}
+                    alt="Blueprint with GD&T"
+                    className="w-full h-full object-contain"
+                  />
+                  <GDTEditor
+                    sessionId={currentSession.session_id}
+                    fcfList={fcfList}
+                    datums={gdtDatums}
+                    imageSize={imageSize}
+                    containerSize={{ width: 600, height: 400 }}
+                    selectedFCFId={selectedFCFId}
+                    selectedDatumId={selectedDatumId}
+                    onFCFSelect={setSelectedFCFId}
+                    onDatumSelect={setSelectedDatumId}
+                    onFCFUpdate={handleFCFUpdate}
+                    onFCFDelete={handleFCFDelete}
+                    onDatumDelete={handleDatumDelete}
+                    onParse={handleParseGDT}
+                    isProcessing={isParsingGDT}
+                    showLabels={true}
+                  />
+                </div>
+              )}
+
+              {/* 빈 상태 */}
+              {fcfList.length === 0 && gdtDatums.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">&#128208;</div>
+                  <p>GD&T 파싱을 실행하여 기하공차를 분석하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">직진도, 평면도, 위치도 등 14가지 기하 특성을 검출합니다</p>
+                </div>
+              )}
             </section>
           )}
 
@@ -2483,7 +2706,7 @@ export function WorkflowPage() {
 
                   <div className="mt-4 flex justify-end">
                     <a
-                      href={`http://localhost:5020/bom/${currentSession?.session_id}/download?format=${exportFormat}`}
+                      href={`${API_BASE_URL}/bom/${currentSession?.session_id}/download?format=${exportFormat}`}
                       className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                       download
                     >

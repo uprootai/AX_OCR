@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any, List
 
 from schemas.session import SessionStatus, SessionResponse, SessionDetail
 from schemas.classification import DrawingType
+from schemas.typed_dicts import SessionData, DetectionDict, BBoxDict
 
 
 class SessionService:
@@ -16,14 +17,16 @@ class SessionService:
     def __init__(self, upload_dir: Path, results_dir: Path):
         self.upload_dir = upload_dir
         self.results_dir = results_dir
-        self.sessions: Dict[str, Dict[str, Any]] = {}
+        self.sessions: Dict[str, SessionData] = {}
 
     def create_session(
         self,
         session_id: str,
         filename: str,
         file_path: str,
-        drawing_type: str = "auto"  # 빌더에서 설정한 도면 타입
+        drawing_type: str = "auto",  # 빌더에서 설정한 도면 타입
+        image_width: int = None,
+        image_height: int = None
     ) -> Dict[str, Any]:
         """새 세션 생성"""
         now = datetime.now()
@@ -49,8 +52,8 @@ class SessionService:
             "rejected_count": 0,
             "bom_data": None,
             "bom_generated": False,
-            "image_width": None,
-            "image_height": None,
+            "image_width": image_width,
+            "image_height": image_height,
             "error_message": None,
             # 도면 분류 정보
             "drawing_type": dt.value,
@@ -112,7 +115,7 @@ class SessionService:
     def set_detections(
         self,
         session_id: str,
-        detections: List[Dict[str, Any]],
+        detections: List[DetectionDict],
         image_width: int,
         image_height: int
     ) -> Optional[Dict[str, Any]]:
@@ -133,7 +136,7 @@ class SessionService:
         detection_id: str,
         status: str,
         modified_class_name: Optional[str] = None,
-        modified_bbox: Optional[Dict] = None
+        modified_bbox: Optional[BBoxDict] = None
     ) -> Optional[Dict[str, Any]]:
         """검증 상태 업데이트"""
         session = self.get_session(session_id)

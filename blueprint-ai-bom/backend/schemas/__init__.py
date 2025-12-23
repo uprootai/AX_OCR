@@ -9,6 +9,8 @@ Pydantic 모델 정의
 - BOM: BOM 항목 및 내보내기
 - Classification: VLM 기반 도면 분류 (Phase 4)
 - Relation: 치수선 기반 관계 추출 (Phase 2)
+- Region: 영역 분할 (Phase 5)
+- GDT: 기하공차 파싱 (Phase 7)
 """
 
 from .session import SessionStatus, SessionCreate, SessionResponse, SessionDetail
@@ -78,6 +80,62 @@ from .relation import (
     BulkRelationUpdateRequest,
     RelationStatistics,
 )
+from .region import (
+    RegionType as SegmentRegionType,  # 기존 classification.RegionType과 구분
+    ProcessingStrategy,
+    REGION_STRATEGY_MAP,
+    Region,
+    RegionSegmentationConfig,
+    RegionSegmentationRequest,
+    RegionSegmentationResult,
+    RegionUpdate,
+    BulkRegionUpdate,
+    ManualRegion,
+    RegionProcessingResult,
+    TitleBlockData,
+    TableCell,
+    ParsedTable,
+    RegionListResponse,
+)
+from .gdt import (
+    GeometricCharacteristic,
+    MaterialCondition,
+    GDTCategory,
+    CHARACTERISTIC_CATEGORY_MAP,
+    CHARACTERISTIC_SYMBOLS,
+    CHARACTERISTIC_LABELS,
+    DatumReference,
+    ToleranceZone,
+    FeatureControlFrame,
+    DatumFeature,
+    GDTParsingConfig,
+    GDTParsingRequest,
+    GDTParsingResult,
+    FCFUpdate,
+    BulkFCFUpdate,
+    ManualFCF,
+    ManualDatum,
+    GDTListResponse,
+    GDTSummary,
+)
+from .typed_dicts import (
+    PricingInfo,
+    BBoxDict,
+    DetectionDict,
+    DimensionDict,
+    SymbolDict,
+    LineDict,
+    RelationDict,
+    SessionMetadata,
+    SessionData,
+    BOMItemDict,
+    BOMSummaryDict,
+    HealthResponse,
+    ErrorResponse,
+    SuccessResponse,
+    StatisticsDict,
+    VerificationStatsDict,
+)
 
 __all__ = [
     # Session
@@ -144,4 +202,57 @@ __all__ = [
     "RelationUpdateRequest",
     "BulkRelationUpdateRequest",
     "RelationStatistics",
+    # Region (Phase 5)
+    "SegmentRegionType",
+    "ProcessingStrategy",
+    "REGION_STRATEGY_MAP",
+    "Region",
+    "RegionSegmentationConfig",
+    "RegionSegmentationRequest",
+    "RegionSegmentationResult",
+    "RegionUpdate",
+    "BulkRegionUpdate",
+    "ManualRegion",
+    "RegionProcessingResult",
+    "TitleBlockData",
+    "TableCell",
+    "ParsedTable",
+    "RegionListResponse",
+    # GDT (Phase 7)
+    "GeometricCharacteristic",
+    "MaterialCondition",
+    "GDTCategory",
+    "CHARACTERISTIC_CATEGORY_MAP",
+    "CHARACTERISTIC_SYMBOLS",
+    "CHARACTERISTIC_LABELS",
+    "DatumReference",
+    "ToleranceZone",
+    "FeatureControlFrame",
+    "DatumFeature",
+    "GDTParsingConfig",
+    "GDTParsingRequest",
+    "GDTParsingResult",
+    "FCFUpdate",
+    "BulkFCFUpdate",
+    "ManualFCF",
+    "ManualDatum",
+    "GDTListResponse",
+    "GDTSummary",
+    # TypedDict (타입 안전성)
+    "PricingInfo",
+    "BBoxDict",
+    "DetectionDict",
+    "DimensionDict",
+    "SymbolDict",
+    "LineDict",
+    "RelationDict",
+    "SessionMetadata",
+    "SessionData",
+    "BOMItemDict",
+    "BOMSummaryDict",
+    "HealthResponse",
+    "ErrorResponse",
+    "SuccessResponse",
+    "StatisticsDict",
+    "VerificationStatsDict",
 ]

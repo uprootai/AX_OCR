@@ -5,14 +5,20 @@ BlueprintFlow Builder와 동일한 모델과 파라미터를 사용합니다.
 """
 
 import uuid
+import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+
+from schemas.typed_dicts import PricingInfo, BBoxDict, DetectionDict
 import json
 import os
 import httpx
 import mimetypes
 
 from schemas.detection import DetectionConfig, Detection, BoundingBox, VerificationStatus
+from services.utils.pricing_utils import load_pricing_db, get_pricing_info
+
+logger = logging.getLogger(__name__)
 
 
 # yolo-api 주소 (Docker 네트워크 내부)
@@ -95,31 +101,12 @@ class DetectionService:
 
     def __init__(self, model_path: Optional[Path] = None, pricing_db_path: Optional[str] = None):
         # yolo-api 호출 방식으로 변경 - 로컬 모델 로드 불필요
-        self.pricing_db = {}
-        self._load_pricing_db(pricing_db_path or "/app/classes_info_with_pricing.json")
-        print(f"✅ DetectionService 초기화 완료 (yolo-api: {YOLO_API_URL})")
+        self.pricing_db = load_pricing_db(pricing_db_path or "/app/classes_info_with_pricing.json")
+        logger.info(f"DetectionService 초기화 완료 (yolo-api: {YOLO_API_URL})")
 
-    def _load_pricing_db(self, pricing_db_path: str):
-        """가격 데이터베이스 로드"""
-        if os.path.exists(pricing_db_path):
-            try:
-                with open(pricing_db_path, 'r', encoding='utf-8') as f:
-                    self.pricing_db = json.load(f)
-                print(f"✅ 가격 DB 로드 성공: {len(self.pricing_db)} 항목")
-            except Exception as e:
-                print(f"❌ 가격 DB 로드 실패: {e}")
-        else:
-            print(f"⚠️ 가격 DB 파일 없음: {pricing_db_path}")
-
-    def get_pricing_info(self, class_name: str) -> Dict[str, Any]:
+    def get_pricing_info(self, class_name: str) -> PricingInfo:
         """클래스별 가격 정보 조회"""
-        return self.pricing_db.get(class_name, {
-            "모델명": "N/A",
-            "비고": "",
-            "단가": 0,
-            "공급업체": "미정",
-            "리드타임": 0
-        })
+        return get_pricing_info(self.pricing_db, class_name)
 
     def detect(
         self,
@@ -152,7 +139,7 @@ class DetectionService:
 
         image_height, image_width = image.shape[:2]
 
-        print(f"🔧 yolo-api 호출: model={model_type}, conf={confidence}, iou={iou_threshold}, imgsz={imgsz}")
+        logger.debug(f"yolo-api 호출: model={model_type}, conf={confidence}, iou={iou_threshold}, imgsz={imgsz}")
 
         detections = []
 
@@ -189,7 +176,7 @@ class DetectionService:
                 yolo_response = response.json()
                 raw_detections = yolo_response.get("detections", [])
 
-                print(f"✅ yolo-api 응답: {len(raw_detections)}개 검출")
+                logger.info(f"yolo-api 응답: {len(raw_detections)}개 검출")
 
                 # yolo-api 응답을 우리 형식으로 변환
                 for det in raw_detections:
@@ -228,14 +215,14 @@ class DetectionService:
                     }
                     detections.append(detection)
             else:
-                print(f"❌ yolo-api 오류: {response.status_code} - {response.text}")
+                logger.error(f"yolo-api 오류: {response.status_code} - {response.text}")
                 raise Exception(f"yolo-api failed: {response.text}")
 
         except httpx.ConnectError as e:
-            print(f"❌ yolo-api 연결 실패: {e}")
+            logger.error(f"yolo-api 연결 실패: {e}")
             raise Exception(f"Cannot connect to yolo-api at {YOLO_API_URL}")
         except Exception as e:
-            print(f"❌ 검출 오류: {e}")
+            logger.error(f"검출 오류: {e}")
             raise
 
         processing_time = (time.time() - start_time) * 1000  # ms
@@ -292,6 +279,6 @@ class DetectionService:
         """클래스 ID-이름 매핑"""
         return self.CLASS_MAPPING.copy()
 
-    def get_all_pricing(self) -> Dict[str, Any]:
+    def get_all_pricing(self) -> Dict[str, PricingInfo]:
         """전체 가격 데이터베이스"""
         return self.pricing_db.copy()

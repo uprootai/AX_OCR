@@ -2,22 +2,23 @@
 
 > **AI 기반 도면 분석 및 BOM 생성 솔루션**
 > AX POC BlueprintFlow에서 Export되는 납품용 독립 실행 모듈
+> **최종 업데이트**: 2025-12-23
 
 ---
 
 ## 개요
 
 ```
-도면 업로드 → YOLO 검출 → Human-in-the-Loop 검증 → BOM 생성 → Excel/PDF 출력
+도면 업로드 → YOLO 검출 → OCR 치수 인식 → GD&T 분석 → Human-in-the-Loop 검증 → BOM 생성
 ```
 
 | 항목 | 값 |
 |------|-----|
-| **상태** | ✅ 구현 완료 (85%) |
-| **프론트엔드** | http://localhost:3000 |
+| **상태** | ✅ 구현 완료 (v5.0) |
+| **프론트엔드** | http://localhost:3001 |
 | **백엔드** | http://localhost:5020 |
 | **검출 클래스** | 27개 산업용 전장 부품 |
-| **출력 형식** | Excel, CSV, JSON (PDF 예정) |
+| **출력 형식** | Excel, CSV, JSON, PDF |
 
 ---
 
@@ -28,7 +29,7 @@
 docker-compose up -d
 
 # 또는 개발 모드
-cd backend && python api_server.py
+cd backend && uvicorn api_server:app --port 5020
 cd frontend && npm run dev
 ```
 
@@ -38,149 +39,212 @@ cd frontend && npm run dev
 
 ```
 blueprint-ai-bom/
-├── backend/                    # FastAPI 백엔드
-│   ├── api_server.py           # 메인 서버
+├── backend/                      # FastAPI 백엔드
+│   ├── api_server.py             # 메인 서버
 │   ├── requirements.txt
 │   ├── Dockerfile
-│   ├── schemas/                # Pydantic 모델
+│   ├── schemas/                  # Pydantic 모델 (11개)
 │   │   ├── session.py
 │   │   ├── detection.py
-│   │   └── bom.py
-│   ├── services/               # 비즈니스 로직
+│   │   ├── bom.py
+│   │   ├── dimension.py
+│   │   ├── gdt.py                # GD&T 파싱
+│   │   ├── region.py             # 영역 분할
+│   │   ├── relation.py           # 치수-심볼 관계
+│   │   └── typed_dicts.py        # TypedDict 정의
+│   ├── services/                 # 비즈니스 로직 (12개)
 │   │   ├── session_service.py
 │   │   ├── detection_service.py
-│   │   └── bom_service.py
-│   ├── routers/                # API 엔드포인트
+│   │   ├── bom_service.py
+│   │   ├── dimension_service.py
+│   │   ├── dimension_relation_service.py
+│   │   ├── gdt_parser.py         # GD&T 파서
+│   │   ├── region_segmenter.py   # 영역 분할
+│   │   ├── line_detector_service.py
+│   │   ├── connectivity_analyzer.py
+│   │   ├── vlm_classifier.py     # VLM 분류
+│   │   ├── active_learning_service.py  # 검증 큐
+│   │   └── utils/pricing_utils.py
+│   ├── routers/                  # API 엔드포인트 (7개)
 │   │   ├── session_router.py
 │   │   ├── detection_router.py
-│   │   └── bom_router.py
-│   └── tests/                  # 테스트 (15개)
+│   │   ├── bom_router.py
+│   │   ├── analysis_router.py
+│   │   ├── relation_router.py
+│   │   ├── classification_router.py
+│   │   └── verification_router.py  # Active Learning
+│   └── tests/                    # 단위 테스트 (27개)
 │
-├── frontend/                   # React + TypeScript
+├── frontend/                     # React 19 + TypeScript
 │   ├── src/
-│   │   ├── App.tsx
-│   │   ├── types/              # 타입 정의
-│   │   ├── lib/api.ts          # API 클라이언트
-│   │   ├── store/              # Zustand 스토어
-│   │   ├── components/layout/  # 레이아웃
-│   │   └── pages/              # 페이지 컴포넌트
-│   │       ├── HomePage.tsx
-│   │       ├── DetectionPage.tsx
-│   │       ├── VerificationPage.tsx
-│   │       └── BOMPage.tsx
+│   │   ├── pages/               # 페이지 (5개)
+│   │   │   ├── HomePage.tsx
+│   │   │   ├── DetectionPage.tsx
+│   │   │   ├── VerificationPage.tsx
+│   │   │   ├── WorkflowPage.tsx  # 메인 워크플로우
+│   │   │   └── BOMPage.tsx
+│   │   ├── components/          # 컴포넌트 (20+개)
+│   │   │   ├── VerificationQueue.tsx  # Active Learning UI
+│   │   │   ├── DrawingCanvas.tsx
+│   │   │   ├── DetectionCard.tsx
+│   │   │   ├── DimensionList.tsx
+│   │   │   ├── GDTEditor.tsx
+│   │   │   ├── RegionEditor.tsx
+│   │   │   ├── RelationOverlay.tsx
+│   │   │   └── ...
+│   │   ├── lib/api.ts           # API 클라이언트
+│   │   └── store/               # Zustand 스토어
 │   ├── Dockerfile
 │   └── nginx.conf
 │
-├── legacy/                     # 레거시 Streamlit (삭제 예정)
-├── models/                     # YOLO 모델 (symlink)
+├── scripts/                      # 유틸리티 스크립트
+│   └── export/
+│       └── export_package.py     # 납품 패키지 생성
+│
+├── docs/                         # 문서
+│   ├── deployment/              # 배포 가이드
+│   ├── features/                # 기능 문서
+│   └── migration/               # 마이그레이션 가이드
+│
 ├── docker-compose.yml
 └── README.md
 ```
 
 ---
 
-## 구현 상태
+## 핵심 기능
 
-### ✅ 완료 (Day 1-11, 13)
+### 1. AI 심볼 검출 (YOLO v11)
+- 27개 전장 부품 클래스 자동 검출
+- 신뢰도 기반 필터링 (기본 0.4)
+- GPU/CPU 자동 감지
 
-| 영역 | 구현 내용 |
-|------|----------|
-| **Backend** | FastAPI, Services, Routers, 15개 테스트 통과 |
-| **Frontend** | React 19 + TypeScript + Tailwind CSS v4 |
-| **이미지 뷰어** | SVG 기반 바운딩 박스 오버레이 |
-| **검증 UI** | 승인/반려/수정, 일괄 처리 |
-| **BOM 페이지** | 테이블, 요약, Excel/CSV/JSON 내보내기 |
-| **Docker** | docker-compose, Dockerfile (frontend + backend) |
+### 2. OCR 치수 인식 (eDOCr2)
+- 한국어 치수 텍스트 인식
+- mm, cm, inch 등 단위 파싱
+- 공차 표기 인식 (±0.1mm)
 
-### 🔄 진행 중 (Day 12)
+### 3. GD&T 분석
+- 기하공차 파싱 (⌀, ⊥, ∥, ⊙, ⌖)
+- 데이텀 검출 (A, B, C)
+- 공차값 추출
 
-| 작업 | 설명 |
-|------|------|
-| BlueprintFlow 연동 | AX POC 프로젝트와 통합 |
-| 템플릿 Import/Export | 워크플로우 템플릿 지원 |
+### 4. Active Learning 검증 큐
+| 우선순위 | 조건 | 설명 |
+|---------|------|------|
+| CRITICAL | 신뢰도 < 0.7 | 즉시 확인 필요 |
+| HIGH | 심볼 연결 없음 | 연결 확인 필요 |
+| MEDIUM | 신뢰도 0.7-0.9 | 검토 권장 |
+| LOW | 신뢰도 ≥ 0.9 | 자동 승인 후보 |
 
-### ⏳ 대기 중
+### 5. Human-in-the-Loop 검증
+- 바운딩 박스 수정 (이동, 크기 조절)
+- 클래스 변경
+- 승인/반려/수정 워크플로우
+- 일괄 승인 기능
 
-| 작업 | 설명 |
-|------|------|
-| 레거시 정리 | Streamlit 코드 삭제 (사용자 확인 후) |
-| PDF 내보내기 | BOM PDF 출력 기능 |
+### 6. BOM 생성 및 내보내기
+- 검증된 검출 결과 집계
+- 가격 정보 자동 매칭
+- Excel/CSV/JSON/PDF 내보내기
+
+---
+
+## API 엔드포인트
+
+### 세션 관리
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| POST | `/sessions/upload` | 이미지 업로드 |
+| GET | `/sessions` | 세션 목록 |
+| GET | `/sessions/{id}` | 세션 상세 |
+| DELETE | `/sessions/{id}` | 세션 삭제 |
+
+### 분석
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| POST | `/analysis/detect/{id}` | YOLO 검출 |
+| POST | `/analysis/ocr/{id}` | OCR 인식 |
+| POST | `/analysis/full/{id}` | 전체 분석 |
+
+### 검증 (Active Learning)
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/verification/queue/{id}` | 검증 큐 조회 |
+| GET | `/verification/stats/{id}` | 검증 통계 |
+| POST | `/verification/verify/{id}` | 단일 항목 검증 |
+| POST | `/verification/auto-approve/{id}` | 자동 승인 |
+| POST | `/verification/bulk-approve/{id}` | 일괄 승인 |
+
+### BOM
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| POST | `/bom/generate/{id}` | BOM 생성 |
+| GET | `/bom/export/{id}/{format}` | 내보내기 (excel/csv/json/pdf) |
 
 ---
 
 ## 27개 검출 클래스
 
-| 카테고리 | 클래스 | 예시 모델 | 단가 |
-|----------|--------|----------|------|
-| 차단기 | CIRCUIT_BREAKER | BK63H 2P | 45,000원 |
-| 변압기 | TRANSFORMER | MST600VA | 180,000원 |
-| 스위치 | DISCONNECT_SWITCH | SW1 | 28,000원 |
-| 버튼 | EMERGENCY_BUTTON | MRE-NR1R | 12,000원 |
-| PLC CPU | PLC_CPU | 6ES7513-1AL01-0AB0 | 850,000원 |
-| 터미널 | TERMINAL_BLOCK | ST4, ST2.5 | 8,500~12,000원 |
-| 전원 | SWITCHING_POWER_SUPPLY | TRIO-PS-1AC-24DC | 85,000~120,000원 |
-| DI 모듈 | PLC_DI | 6ES7221-1BH32-0XB0 | 150,000원 |
-| DO 모듈 | PLC_DO | 6ES7222-1HH32-0XB0 | 180,000원 |
-| AI 모듈 | PLC_AI | 6ES7234-4HE32-0XB0 | 280,000원 |
-| AO 모듈 | PLC_AO | 6ES7232-4HD32-0XB0 | 320,000원 |
-| 네트워크 | ETHERNET_SWITCH | EDS-208A | 95,000원 |
-| HMI | HMI_PANEL | 6AV7240 | 480,000원 |
-| 기타 | BUZZER, PILOT_LAMP, RELAY 등 | - | - |
+| ID | 클래스명 | 한글명 |
+|----|---------|--------|
+| 0 | ARRESTER | 피뢰기 |
+| 1 | BUS | 모선 |
+| 2 | CT | 변류기 |
+| 3 | DS | 단로기 |
+| 4 | ES | 접지개폐기 |
+| 5 | GCB | 가스차단기 |
+| 6 | GPT | 접지형계기용변압기 |
+| 7 | GS | 가스구간개폐기 |
+| 8 | LBS | 부하개폐기 |
+| 9 | MOF | 계기용변성기 |
+| 10 | OCB | 유입차단기 |
+| 11 | PT | 계기용변압기 |
+| 12 | RECLOSER | 리클로저 |
+| 13 | SC | 직렬콘덴서 |
+| 14 | SHUNT_REACTOR | 분로리액터 |
+| 15 | SS | 정류기 |
+| 16 | TC | 탭절환기 |
+| 17 | TR | 변압기 |
+| 18 | TVSS | 서지흡수기 |
+| 19 | VCB | 진공차단기 |
+| 20 | 고장점표시기 | 고장점표시기 |
+| 21 | 단로기_1P | 단로기(1P) |
+| 22 | 부하개폐기_1P | 부하개폐기(1P) |
+| 23 | 접지 | 접지 |
+| 24 | 차단기 | 차단기 |
+| 25 | 퓨즈 | 퓨즈 |
+| 26 | 피뢰기 | 피뢰기 |
 
 ---
 
-## 개발 환경
-
-### 레거시 (Streamlit - 참조용)
+## 테스트
 
 ```bash
-cd blueprint-ai-bom
-pip install -r requirements.txt
-streamlit run real_ai_app.py --server.port 8503
-```
+# 백엔드 테스트 (27개)
+cd backend
+python -m pytest tests/ -v
 
-### 목표 (React + FastAPI)
-
-```bash
-# 백엔드
-cd blueprint-ai-bom/backend
-pip install -r requirements.txt
-uvicorn api_server:app --port 5020
-
-# 프론트엔드
-cd blueprint-ai-bom/frontend
-npm install
-npm run dev
-```
-
----
-
-## Docker (납품용)
-
-```bash
-docker compose up -d
-# http://localhost 접속
+# 프론트엔드 빌드
+cd frontend
+npm run build
 ```
 
 ---
 
-## 핵심 기능
+## 납품 패키지 생성
 
-### 1. AI 심볼 검출
-- YOLOv11 모델 기반 27개 클래스 자동 검출
-- 신뢰도 기반 필터링
-- GPU/CPU 자동 감지
+```bash
+python scripts/export/export_package.py --customer "고객명" --output ./export
+```
 
-### 2. Human-in-the-Loop 검증
-- 바운딩 박스 수정 (이동, 크기 조절)
-- 클래스 변경
-- 승인/반려 워크플로우
-- 수동 추가
-
-### 3. BOM 생성
-- 검증된 검출 결과 집계
-- 가격 정보 자동 매칭
-- Excel/PDF 내보내기
+생성 내용:
+- `config/` - 설정 파일
+- `frontend/` - React 빌드
+- `backend/` - FastAPI 서버
+- `docker/` - Docker Compose 설정
+- `scripts/` - 설치/시작/중지 스크립트
+- `docs/` - 설치 및 사용 매뉴얼
 
 ---
 
@@ -188,22 +252,11 @@ docker compose up -d
 
 | 항목 | 값 |
 |------|-----|
-| 검출 정확도 | 96% (YOLOv11 Nano) |
+| 검출 정확도 | 96% (YOLOv11) |
 | 처리 속도 (GPU) | ~2-3초/페이지 |
 | 처리 속도 (CPU) | ~8-10초/페이지 |
-| 지원 해상도 | 최대 4K |
-| 모델 크기 | 5.3MB (Nano) ~ 131MB (Large) |
-
----
-
-## 관련 문서
-
-| 문서 | 위치 |
-|------|------|
-| 통합 전략 | `../.todos/2025-12-14_integration_strategy.md` |
-| Export 아키텍처 | `../.todos/2025-12-14_export_architecture.md` |
-| AX POC 가이드 | `../CLAUDE.md` |
-| 레거시 문서 | `./docs/` |
+| 단위 테스트 | 27개 통과 |
+| 프론트엔드 빌드 | 451 kB |
 
 ---
 
@@ -211,10 +264,23 @@ docker compose up -d
 
 | 버전 | 날짜 | 변경 내용 |
 |------|------|----------|
-| v3.0 | 2025-12-14 | AX POC 통합, React 전환 시작 |
+| v5.0 | 2025-12-23 | Active Learning 검증 큐, TypedDict 타입 안전성 |
+| v4.0 | 2025-12-19 | GD&T 파서, 영역 분할, 치수-심볼 관계 |
+| v3.0 | 2025-12-14 | AX POC 통합, React 전환 완료 |
 | v2.0 | 2025-09-30 | 모듈러 아키텍처 (Streamlit) |
-| v1.0 | 2025-09-01 | 초기 버전 (모놀리식) |
+| v1.0 | 2025-09-01 | 초기 버전 |
 
 ---
 
-**Powered by AX POC BlueprintFlow + YOLOv11**
+## 관련 문서
+
+| 문서 | 위치 |
+|------|------|
+| 기능 문서 | `docs/features/` |
+| 배포 가이드 | `docs/deployment/` |
+| AX POC 가이드 | `../CLAUDE.md` |
+| 작업 추적 | `../.todos/README.md` |
+
+---
+
+**Powered by AX POC BlueprintFlow + YOLOv11 + eDOCr2**

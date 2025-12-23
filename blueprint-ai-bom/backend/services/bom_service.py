@@ -2,12 +2,17 @@
 
 import json
 import os
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from collections import defaultdict
 
 from schemas.bom import BOMItem, BOMData, BOMSummary, ExportFormat
+from schemas.typed_dicts import PricingInfo, DetectionDict, DimensionDict, RelationDict
+from services.utils.pricing_utils import load_pricing_db, get_pricing_info as _get_pricing_info
+
+logger = logging.getLogger(__name__)
 
 
 class BOMService:
@@ -16,37 +21,24 @@ class BOMService:
     def __init__(self, output_dir: Path, pricing_db_path: Optional[str] = None):
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.pricing_db = {}
-        self._load_pricing_db(pricing_db_path or "/app/classes_info_with_pricing.json")
+        self.pricing_db = load_pricing_db(pricing_db_path or "/app/classes_info_with_pricing.json")
 
-    def _load_pricing_db(self, pricing_db_path: str):
-        """가격 데이터베이스 로드"""
-        if os.path.exists(pricing_db_path):
-            try:
-                with open(pricing_db_path, 'r', encoding='utf-8') as f:
-                    self.pricing_db = json.load(f)
-                print(f"✅ BOM 가격 DB 로드 성공: {len(self.pricing_db)} 항목")
-            except Exception as e:
-                print(f"❌ BOM 가격 DB 로드 실패: {e}")
-        else:
-            print(f"⚠️ BOM 가격 DB 파일 없음: {pricing_db_path}")
-
-    def get_pricing_info(self, class_name: str) -> Dict[str, Any]:
+    def get_pricing_info(self, class_name: str) -> PricingInfo:
         """클래스별 가격 정보 조회"""
-        return self.pricing_db.get(class_name, {
-            "모델명": "N/A",
-            "비고": "",
-            "단가": 10000,  # 기본값
-            "공급업체": "미정",
-            "리드타임": 14  # 기본 2주
-        })
+        # BOM 서비스는 기본값이 약간 다름 (단가 10000, 리드타임 14)
+        info = dict(_get_pricing_info(self.pricing_db, class_name))
+        if info.get("단가") == 0:
+            info["단가"] = 10000
+        if info.get("리드타임") == 0:
+            info["리드타임"] = 14
+        return info  # type: ignore[return-value]
 
     def generate_bom(
         self,
         session_id: str,
-        detections: List[Dict[str, Any]],
-        dimensions: Optional[List[Dict[str, Any]]] = None,
-        links: Optional[List[Dict[str, Any]]] = None,
+        detections: List[DetectionDict],
+        dimensions: Optional[List[DimensionDict]] = None,
+        links: Optional[List[RelationDict]] = None,
         filename: Optional[str] = None,
         model_id: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -365,9 +357,9 @@ class BOMService:
                     break
 
             if not font_registered:
-                print("경고: 한글 폰트를 찾을 수 없습니다. 기본 폰트를 사용합니다.")
+                logger.warning("한글 폰트를 찾을 수 없습니다. 기본 폰트를 사용합니다.")
         except Exception as e:
-            print(f"폰트 등록 실패: {e}")
+            logger.error(f"폰트 등록 실패: {e}")
 
         doc = SimpleDocTemplate(
             str(output_path),

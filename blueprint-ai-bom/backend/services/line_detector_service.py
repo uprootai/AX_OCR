@@ -28,7 +28,7 @@ class LineDetectorService:
 
     def __init__(self, api_url: str = LINE_DETECTOR_API):
         self.api_url = api_url
-        print(f"✅ LineDetectorService 초기화 완료 (line-detector-api: {self.api_url})")
+        logger.info(f"LineDetectorService 초기화 완료 (line-detector-api: {self.api_url})")
 
     def detect_lines(
         self,
@@ -419,5 +419,6 @@ class LineDetectorService:
         try:
             response = requests.get(f"{self.api_url}/health", timeout=5)
             return response.status_code == 200
-        except:
+        except Exception as e:
+            logger.debug(f"Line Detector API health check failed: {e}")
             return False

@@ -16,6 +16,8 @@ from enum import Enum
 
 import numpy as np
 
+from schemas.typed_dicts import DimensionDict, SymbolDict, LineDict, RelationDict, BBoxDict
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +48,7 @@ class DimensionRelation:
     dimension_id: str
     target_type: str  # 'symbol', 'edge', 'region'
     target_id: Optional[str]
-    target_bbox: Optional[Dict[str, float]]
+    target_bbox: Optional[BBoxDict]
     relation_type: str  # 'distance', 'diameter', 'radius', 'angle'
     method: RelationMethod
     confidence: float
@@ -68,15 +70,15 @@ class DimensionRelationService:
     ARROW_SEARCH_RADIUS = 50          # 화살표 탐색 반경
 
     def __init__(self):
-        print("✅ DimensionRelationService 초기화 완료 (치수선 기반 관계 추출)")
+        logger.info("DimensionRelationService 초기화 완료 (치수선 기반 관계 추출)")
 
     def extract_relations(
         self,
-        dimensions: List[Dict[str, Any]],
-        symbols: List[Dict[str, Any]],
-        lines: Optional[List[Dict[str, Any]]] = None,
+        dimensions: List[DimensionDict],
+        symbols: List[SymbolDict],
+        lines: Optional[List[LineDict]] = None,
         image: Optional[np.ndarray] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[RelationDict]:
         """
         치수와 객체 간의 관계 추출
 
@@ -637,12 +639,11 @@ class DimensionRelationService:
             else:
                 low_confidence += 1
 
-        print(f"\n📊 치수 관계 추출 통계:")
-        print(f"  총 관계: {total}개")
-        print(f"  - 치수선 기반: {by_method['dimension_line']}개 ({by_method['dimension_line']/total*100:.1f}%)")
-        print(f"  - 연장선 기반: {by_method['extension_line']}개 ({by_method['extension_line']/total*100:.1f}%)")
-        print(f"  - 근접성 기반: {by_method['proximity']}개 ({by_method['proximity']/total*100:.1f}%)")
-        print(f"  신뢰도: 높음 {high_confidence} / 중간 {medium_confidence} / 낮음 {low_confidence}")
+        logger.info(f"치수 관계 추출 통계: 총 {total}개 관계")
+        logger.debug(f"  - 치수선 기반: {by_method['dimension_line']}개 ({by_method['dimension_line']/total*100:.1f}%)")
+        logger.debug(f"  - 연장선 기반: {by_method['extension_line']}개 ({by_method['extension_line']/total*100:.1f}%)")
+        logger.debug(f"  - 근접성 기반: {by_method['proximity']}개 ({by_method['proximity']/total*100:.1f}%)")
+        logger.debug(f"  신뢰도: 높음 {high_confidence} / 중간 {medium_confidence} / 낮음 {low_confidence}")
 
     # ==================== 고급 기능 ====================
 

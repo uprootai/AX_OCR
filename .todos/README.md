@@ -1,151 +1,143 @@
 # .todos - 작업 추적 디렉토리
 
 > AX POC 프로젝트의 작업 기록 및 미완료 작업 관리
-> **최종 업데이트**: 2025-12-18
+> **최종 업데이트**: 2025-12-23
 
 ---
 
-## 파일 목록
+## 현재 상태 요약
 
-| 파일 | 설명 | 상태 |
+### 완료된 작업 (2025-12-23)
+
+| 작업 | 상태 | 비고 |
 |------|------|------|
-| [2025-12-18_codebase_cleanup_analysis.md](./2025-12-18_codebase_cleanup_analysis.md) | **코드베이스 정리 분석 (레거시, 중복, 대용량 파일)** | **신규** |
-| [2025-12-14_export_architecture.md](./2025-12-14_export_architecture.md) | **Export 가능한 납품 아키텍처** | **핵심** |
-| [2025-12-14_integration_strategy.md](./2025-12-14_integration_strategy.md) | **AX POC + DrawingBOMExtractor 통합 전략** | **핵심** |
-| [2025-12-14_project_structure.md](./2025-12-14_project_structure.md) | 프로젝트 전체 구조 정리 | 참조용 |
-| [2025-12-10_pending_tasks.md](./2025-12-10_pending_tasks.md) | 기능 확장 작업 (비용 산정, 견적서) | 대기중 |
-| [2025-12-06_techcross_meeting_analysis.md](./2025-12-06_techcross_meeting_analysis.md) | Techcross 미팅 후속 작업 (P&ID 고도화) | 대기중 |
+| Blueprint AI BOM v2 통합 | ✅ 완료 | Phase 1-7 모두 완료 |
+| GD&T 파서 (Phase 7) | ✅ 완료 | 데이텀 검출 수정 완료 |
+| 이미지 크기 저장 | ✅ 완료 | 세션 업로드 시 자동 추출 |
+| Implementation Guide | ✅ 완료 | 파일 삭제됨 (구현 완료) |
+| TypedDict 타입 변환 | ✅ 완료 | 16개 타입 정의, 5개 서비스 적용 |
+| Export 스크립트 | ✅ 완료 | 납품 패키지 자동 생성 |
+| 단위 테스트 추가 | ✅ 완료 | 27개 테스트 통과 |
+| Active Learning 검증 큐 | ✅ 완료 | 백엔드 + API + 프론트엔드 UI |
 
 ---
 
-## 프로젝트 통합 개요
+## 남은 파일 및 진행 계획
 
-### 현재 상황
+### 1. `2025-12-19_blueprint_ai_bom_expansion_proposal.md`
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        두 개의 프로젝트                          │
-├────────────────────────────┬────────────────────────────────────┤
-│     AX POC                 │     DrawingBOMExtractor            │
-│     /home/uproot/ax/poc    │     /home/uproot/panasia/          │
-│                            │     DrawingBOMExtractor            │
-├────────────────────────────┼────────────────────────────────────┤
-│ - React 19 + FastAPI       │ - Streamlit (성능 문제)            │
-│ - 19개 AI 마이크로서비스   │ - YOLO 27클래스 검출              │
-│ - BlueprintFlow 빌더       │ - Human-in-the-Loop UI            │
-│ - 확장성, 모듈성 우수      │ - BOM 생성 + Excel/PDF 출력       │
-└────────────────────────────┴────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    통합 목표 (온프레미스 납품)                    │
-├─────────────────────────────────────────────────────────────────┤
-│  BlueprintFlow에서 워크플로우 템플릿 생성                        │
-│           ↓                                                      │
-│  React 기반 검증 UI (Streamlit 대체)                            │
-│           ↓                                                      │
-│  BOM 생성 + 견적서 출력                                          │
-│           ↓                                                      │
-│  온프레미스 Docker 패키지로 고객 납품                            │
-└─────────────────────────────────────────────────────────────────┘
-```
+**상태**: 기획 검토 단계 | **우선순위**: 중간
 
-### 통합 전략 (권장: Option A)
+| 항목 | 내용 | 진행 상태 |
+|------|------|----------|
+| VLM 자동 분류 | GPT-4V/Claude로 도면 타입 자동 분류 | 📋 검토 중 |
+| GNN 기반 관계 분석 | 그래프 신경망으로 부품 관계 학습 | 📋 연구 단계 |
+| Active Learning | 저신뢰 검출 우선 검증 큐 | ✅ 완료 |
+| 피드백 루프 | 검증 → 모델 재학습 파이프라인 | 📋 향후 계획 |
 
-**Streamlit → React 완전 재작성**
-
-| Phase | 작업 | 기간 |
-|-------|------|------|
-| 1 | BOM API 마이크로서비스화 | 3일 |
-| 2 | React 검증 UI 구현 | 7일 |
-| 3 | BlueprintFlow 연동 | 3일 |
-| 4 | 온프레미스 패키징 | 2일 |
-| - | 테스트 및 버그 수정 | 3일 |
-| **합계** | | **18일** |
-
-상세 내용: `2025-12-14_integration_strategy.md` 참조
+**다음 단계**:
+1. VLM API 비용 분석 (GPT-4V vs Claude 3.5)
+2. 파일럿 테스트 (10개 도면)
+3. ROI 검토 후 구현 결정
 
 ---
 
-## 미완료 작업 전체 요약
+### 2. `2025-12-14_export_architecture.md`
 
-### 높은 우선순위 (필수)
+**상태**: 핵심 구현 완료 | **우선순위**: 중간
 
-| 작업 | 기간 | 출처 |
-|------|------|------|
-| React 검증 UI (Human-in-the-Loop) | 7일 | 통합 전략 + Techcross |
-| BOM API 마이크로서비스화 | 3일 | 통합 전략 |
+| 항목 | 내용 | 진행 상태 |
+|------|------|----------|
+| Export 스크립트 | `scripts/export/export_package.py` | ✅ 완료 |
+| 템플릿 Export | 워크플로우 + 설정 패키징 | ✅ 완료 |
+| Docker 설정 생성 | docker-compose.yml 자동 생성 | ✅ 완료 |
+| 설치/시작 스크립트 | install.sh, start.sh, stop.sh | ✅ 완료 |
+| 문서 자동 생성 | INSTALL.md, USER_MANUAL.md | ✅ 완료 |
+| 프론트엔드 모듈 분리 | builder/runtime/verification 분리 | 📋 향후 |
 
-### 중간 우선순위 (권장)
-
-| 작업 | 기간 | 출처 |
-|------|------|------|
-| Knowledge Engine 확장 (KR 규정, ISO) | 3~4일 | Techcross |
-| 공정 규칙 엔진 | 2~3일 | 기능 확장 |
-| 재질 데이터베이스 | 1~2일 | 기능 확장 |
-| 공차 등급 테이블 | 1일 | 기능 확장 |
-| BlueprintFlow 연동 | 3일 | 통합 전략 |
-
-### 낮은 우선순위 (선택)
-
-| 작업 | 기간 | 출처 |
-|------|------|------|
-| 피드백 루프 (재학습) | 4~5일 | Techcross |
-| 배관 사이징 계산기 | 3~4일 | Techcross |
-| 유사 부품 기반 견적 | 2일 | 기능 확장 |
-| Excel 견적서 템플릿 | 2일 | 기능 확장 |
-| 온프레미스 패키징 | 2일 | 통합 전략 |
+**사용법**:
+```bash
+python scripts/export/export_package.py --customer "고객명" --output ./export
+```
 
 ---
 
-## 총 예상 작업량
+### 3. `2025-12-14_integration_strategy.md`
 
-| 구분 | 작업량 |
-|------|--------|
-| 통합 작업 (필수) | 18일 |
-| Techcross 요구사항 | 10~13일 |
-| 기능 확장 | 8~10일 |
-| **총합 (중복 제외)** | **약 30~35일** |
+**상태**: 대부분 완료 | **우선순위**: 낮음
+
+| 항목 | 내용 | 진행 상태 |
+|------|------|----------|
+| React 재작성 | Streamlit → React 마이그레이션 | ✅ 완료 |
+| BOM Verification UI | 검증 페이지 구현 | ✅ 완료 |
+| 성능 최적화 | Virtual DOM, 코드 스플리팅 | ✅ 완료 |
+
+**남은 작업**: 없음 (참조용으로 보관)
 
 ---
 
-## 작업 순서 권장
+## 향후 작업 우선순위
 
+### 🔴 높음 (다음 스프린트)
+
+1. **MCP Panel 도면 대량 테스트** - 다양한 검출 케이스 검증
+2. **프론트엔드 UI 안정화** - 버그 수정 및 UX 개선
+3. **GD&T 검출 정확도 개선** - 더 많은 데이텀 패턴 추가
+
+### 🟡 중간 (2주 이내)
+
+1. **온프레미스 패키징 테스트** - 실제 고객사 환경 검증
+2. **VLM 파일럿 테스트** - expansion_proposal 검증
+
+### 🟢 낮음 (향후 검토)
+
+1. **GNN 기반 관계 분석** - 연구 단계
+2. **피드백 루프** - 모델 재학습 파이프라인 (Active Learning 로그 활용)
+3. **VLM 자동 분류** - GPT-4V/Claude 비용 분석 후 결정
+
+---
+
+## 서비스 상태 (2025-12-23)
+
+| 서비스 | 포트 | 상태 |
+|--------|------|------|
+| Blueprint AI BOM Backend | 5020 | ✅ healthy |
+| Blueprint AI BOM Frontend | 3001 | ✅ running |
+| YOLO | 5005 | ✅ GPU |
+| eDOCr2 | 5002 | ✅ healthy |
+| Gateway | 8000 | ✅ running |
+
+---
+
+## Active Learning 검증 큐 (구현 완료)
+
+### 우선순위 분류
+| 우선순위 | 조건 | 설명 |
+|---------|------|------|
+| CRITICAL | 신뢰도 < 0.7 | 즉시 확인 필요 (빨간색) |
+| HIGH | 심볼 연결 없음 | 연결 확인 필요 (주황색) |
+| MEDIUM | 신뢰도 0.7-0.9 | 검토 권장 (노란색) |
+| LOW | 신뢰도 ≥ 0.9 | 자동 승인 후보 (초록색) |
+
+### API 엔드포인트
 ```
-1주차: 통합 준비
-├── BOM API 마이크로서비스화 (3일)
-└── 재질 DB + 공차 등급 테이블 (2일)
-
-2주차: React UI 개발
-└── 검증 UI 구현 (7일)
-    ├── 이미지 뷰어 + 바운딩 박스
-    ├── 승인/반려 워크플로우
-    └── 클래스 편집
-
-3주차: 통합 및 확장
-├── BlueprintFlow 연동 (3일)
-├── 공정 규칙 엔진 (2일)
-└── 온프레미스 패키징 (2일)
-
-4주차: 고급 기능 (선택)
-├── Knowledge Engine 확장 (3일)
-└── 피드백 루프 / 배관 계산기 (4일)
+GET  /verification/queue/{session_id}        # 검증 큐 조회
+GET  /verification/stats/{session_id}        # 검증 통계
+POST /verification/verify/{session_id}       # 단일 항목 검증
+POST /verification/bulk-approve/{session_id} # 일괄 승인
+POST /verification/auto-approve/{session_id} # 자동 승인 (≥0.9)
+GET  /verification/training-data             # 재학습 데이터
 ```
+
+### 관련 파일
+- `backend/services/active_learning_service.py`
+- `backend/routers/verification_router.py`
+- `frontend/src/components/VerificationQueue.tsx`
 
 ---
 
 ## 파일 관리 규칙
 
-1. 새 작업 파일: `YYYY-MM-DD_작업명.md` 형식
-2. 완료된 작업은 `completed/` 폴더로 이동
-3. 각 파일에 우선순위와 예상 작업량 명시
-4. 관련 문서 간 상호 참조 링크 유지
-
----
-
-## 관련 프로젝트
-
-| 프로젝트 | 위치 | 역할 |
-|----------|------|------|
-| AX POC | `/home/uproot/ax/poc/` | 메인 시스템 (통합 대상) |
-| DrawingBOMExtractor | `/home/uproot/panasia/DrawingBOMExtractor/` | BOM 추출 (마이그레이션 대상) |
+1. 완료된 구현 가이드는 삭제 (코드에 반영됨)
+2. 향후 계획 문서는 유지
+3. 작업 전 README 업데이트

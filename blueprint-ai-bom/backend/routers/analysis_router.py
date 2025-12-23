@@ -25,6 +25,32 @@ from schemas.dimension import (
     BulkDimensionVerificationUpdate,
 )
 from schemas.session import SessionStatus
+from schemas.region import (
+    Region,
+    RegionSegmentationConfig,
+    RegionSegmentationRequest,
+    RegionSegmentationResult,
+    RegionUpdate,
+    BulkRegionUpdate,
+    ManualRegion,
+    RegionProcessingResult,
+    RegionListResponse,
+)
+from schemas.gdt import (
+    GeometricCharacteristic,
+    MaterialCondition,
+    GDTCategory,
+    FeatureControlFrame,
+    DatumFeature,
+    GDTParsingConfig,
+    GDTParsingResult,
+    FCFUpdate,
+    BulkFCFUpdate,
+    ManualFCF,
+    ManualDatum,
+    GDTListResponse,
+    GDTSummary,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
@@ -34,18 +60,33 @@ _dimension_service = None
 _detection_service = None
 _session_service = None
 _relation_service = None
+_region_segmenter = None
+_gdt_parser = None
 
 # 세션별 옵션 캐시 (메모리)
 _session_options: Dict[str, AnalysisOptions] = {}
 
 
-def set_analysis_services(dimension_service, detection_service, session_service, relation_service=None):
+def set_analysis_services(dimension_service, detection_service, session_service, relation_service=None, region_segmenter=None):
     """서비스 인스턴스 설정 (api_server.py에서 호출)"""
-    global _dimension_service, _detection_service, _session_service, _relation_service
+    global _dimension_service, _detection_service, _session_service, _relation_service, _region_segmenter
     _dimension_service = dimension_service
     _detection_service = detection_service
     _session_service = session_service
     _relation_service = relation_service
+    _region_segmenter = region_segmenter
+
+
+def set_region_segmenter(region_segmenter):
+    """영역 분할 서비스 설정"""
+    global _region_segmenter
+    _region_segmenter = region_segmenter
+
+
+def set_gdt_parser(gdt_parser):
+    """GD&T 파서 서비스 설정"""
+    global _gdt_parser
+    _gdt_parser = gdt_parser
 
 
 def get_relation_service():
@@ -70,6 +111,18 @@ def get_session_service():
     if _session_service is None:
         raise HTTPException(status_code=500, detail="Session service not initialized")
     return _session_service
+
+
+def get_region_segmenter():
+    if _region_segmenter is None:
+        raise HTTPException(status_code=500, detail="Region segmenter not initialized")
+    return _region_segmenter
+
+
+def get_gdt_parser():
+    if _gdt_parser is None:
+        raise HTTPException(status_code=500, detail="GDT parser not initialized")
+    return _gdt_parser
 
 
 # ==================== 프리셋 API ====================
@@ -824,3 +877,743 @@ async def check_line_detector_health() -> Dict[str, Any]:
             "service": "line-detector",
             "error": str(e),
         }
+
+
+# ==================== 연결성 분석 API ====================
+
+# 연결성 분석 서비스 전역 변수
+_connectivity_analyzer = None
+
+
+def set_connectivity_analyzer(analyzer):
+    """연결성 분석 서비스 설정 (api_server.py에서 호출)"""
+    global _connectivity_analyzer
+    _connectivity_analyzer = analyzer
+
+
+def get_connectivity_analyzer():
+    if _connectivity_analyzer is None:
+        raise HTTPException(status_code=500, detail="Connectivity analyzer not initialized")
+    return _connectivity_analyzer
+
+
+@router.post("/connectivity/{session_id}")
+async def analyze_connectivity(session_id: str) -> Dict[str, Any]:
+    """
+    심볼 연결성 분석
+
+    심볼 검출 결과와 선 검출 결과를 기반으로
+    심볼 간의 연결 관계를 분석합니다.
+    """
+    session_service = get_session_service()
+    analyzer = get_connectivity_analyzer()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    detections = session.get("detections", [])
+    if not detections:
+        return {
+            "session_id": session_id,
+            "nodes": {},
+            "connections": [],
+            "statistics": {"total_symbols": 0},
+            "message": "심볼이 없습니다. 먼저 심볼 검출을 실행하세요."
+        }
+
+    # 선 검출 결과 (있는 경우)
+    lines = session.get("lines", [])
+    intersections = session.get("intersections", [])
+
+    # 연결성 분석 실행
+    result = analyzer.analyze(
+        symbols=detections,
+        lines=lines if lines else None,
+        intersections=intersections if intersections else None,
+    )
+
+    # 세션에 저장
+    session_service.update_session(session_id, {
+        "connectivity_graph": result,
+        "connectivity_analyzed": True,
+    })
+
+    logger.info(
+        f"연결성 분석 완료: {result['statistics']['total_symbols']}개 심볼, "
+        f"{result['statistics']['total_connections']}개 연결"
+    )
+
+    return {
+        "session_id": session_id,
+        **result,
+    }
+
+
+@router.get("/connectivity/{session_id}")
+async def get_connectivity(session_id: str) -> Dict[str, Any]:
+    """세션의 연결성 분석 결과 조회"""
+    session_service = get_session_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    graph = session.get("connectivity_graph", {})
+    if not graph:
+        return {
+            "session_id": session_id,
+            "analyzed": False,
+            "message": "연결성 분석이 수행되지 않았습니다. POST /analysis/connectivity/{session_id}를 호출하세요."
+        }
+
+    return {
+        "session_id": session_id,
+        "analyzed": True,
+        **graph,
+    }
+
+
+@router.get("/connectivity/{session_id}/path")
+async def find_connection_path(
+    session_id: str,
+    source_id: str,
+    target_id: str,
+) -> Dict[str, Any]:
+    """
+    두 심볼 사이의 연결 경로 찾기
+
+    Args:
+        session_id: 세션 ID
+        source_id: 시작 심볼 ID
+        target_id: 목표 심볼 ID
+    """
+    session_service = get_session_service()
+    analyzer = get_connectivity_analyzer()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    graph = session.get("connectivity_graph", {})
+    if not graph:
+        raise HTTPException(
+            status_code=400,
+            detail="연결성 분석이 수행되지 않았습니다"
+        )
+
+    path = analyzer.find_path(graph, source_id, target_id)
+
+    if path is None:
+        return {
+            "session_id": session_id,
+            "source_id": source_id,
+            "target_id": target_id,
+            "path": None,
+            "connected": False,
+            "message": "연결 경로를 찾을 수 없습니다"
+        }
+
+    return {
+        "session_id": session_id,
+        "source_id": source_id,
+        "target_id": target_id,
+        "path": path,
+        "path_length": len(path),
+        "connected": True,
+    }
+
+
+@router.get("/connectivity/{session_id}/component/{symbol_id}")
+async def get_connected_component(
+    session_id: str,
+    symbol_id: str,
+) -> Dict[str, Any]:
+    """
+    심볼이 속한 연결 컴포넌트 조회
+
+    Args:
+        session_id: 세션 ID
+        symbol_id: 심볼 ID
+    """
+    session_service = get_session_service()
+    analyzer = get_connectivity_analyzer()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    graph = session.get("connectivity_graph", {})
+    if not graph:
+        raise HTTPException(
+            status_code=400,
+            detail="연결성 분석이 수행되지 않았습니다"
+        )
+
+    component = analyzer.get_connected_component(graph, symbol_id)
+
+    return {
+        "session_id": session_id,
+        "symbol_id": symbol_id,
+        "component": component,
+        "size": len(component),
+    }
+
+
+# ==================== 영역 분할 API (Phase 5) ====================
+
+@router.post("/regions/{session_id}/segment", response_model=RegionSegmentationResult)
+async def segment_regions(
+    session_id: str,
+    config: Optional[RegionSegmentationConfig] = None,
+    use_vlm: bool = False,
+) -> RegionSegmentationResult:
+    """
+    도면 영역 분할 실행
+
+    도면을 다음 영역으로 분할:
+    - 표제란 (Title Block): 메타데이터 추출
+    - 메인 뷰 (Main View): YOLO + OCR 적용
+    - BOM 테이블: 테이블 파싱
+    - 범례 (Legend): 심볼 매칭
+    - 노트/주석 영역: OCR 적용
+
+    Args:
+        session_id: 세션 ID
+        config: 분할 설정 (선택)
+        use_vlm: VLM 영역 검출 활성화 (Phase 4 연동)
+    """
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    image_path = session.get("file_path")
+    if not image_path:
+        raise HTTPException(status_code=400, detail="이미지 파일이 없습니다")
+
+    try:
+        result = await segmenter.segment(
+            session_id=session_id,
+            image_path=image_path,
+            config=config,
+            use_vlm=use_vlm,
+        )
+
+        # 세션에 영역 정보 저장
+        session_service.update_session(session_id, {
+            "regions": [r.model_dump() for r in result.regions],
+            "region_stats": result.region_stats,
+        })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"영역 분할 실패: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/regions/{session_id}", response_model=RegionListResponse)
+async def get_regions(session_id: str) -> RegionListResponse:
+    """세션의 영역 목록 조회"""
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    regions = segmenter.get_regions(session_id)
+
+    return RegionListResponse(
+        session_id=session_id,
+        regions=regions,
+        total=len(regions),
+    )
+
+
+@router.get("/regions/{session_id}/{region_id}", response_model=Region)
+async def get_region(session_id: str, region_id: str) -> Region:
+    """특정 영역 조회"""
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    region = segmenter.get_region(session_id, region_id)
+    if not region:
+        raise HTTPException(status_code=404, detail="영역을 찾을 수 없습니다")
+
+    return region
+
+
+@router.put("/regions/{session_id}/{region_id}", response_model=Region)
+async def update_region(
+    session_id: str,
+    region_id: str,
+    update: RegionUpdate,
+) -> Region:
+    """영역 업데이트"""
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # region_id 설정
+    update.region_id = region_id
+
+    updated = segmenter.update_region(session_id, update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="영역을 찾을 수 없습니다")
+
+    return updated
+
+
+@router.put("/regions/{session_id}/bulk", response_model=List[Region])
+async def bulk_update_regions(
+    session_id: str,
+    bulk_update: BulkRegionUpdate,
+) -> List[Region]:
+    """일괄 영역 업데이트"""
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    results = []
+    for update in bulk_update.updates:
+        updated = segmenter.update_region(session_id, update)
+        if updated:
+            results.append(updated)
+
+    return results
+
+
+@router.post("/regions/{session_id}/add", response_model=Region)
+async def add_manual_region(
+    session_id: str,
+    manual_region: ManualRegion,
+) -> Region:
+    """수동 영역 추가"""
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 이미지 크기 가져오기 (없으면 파일에서 로드)
+    image_width = session.get("image_width")
+    image_height = session.get("image_height")
+
+    if not image_width or not image_height:
+        # 파일에서 이미지 크기 로드
+        from PIL import Image
+        file_path = session.get("file_path")
+        if file_path:
+            try:
+                with Image.open(file_path) as img:
+                    image_width, image_height = img.size
+                    # 세션에 저장
+                    session_service.update_session(session_id, {
+                        "image_width": image_width,
+                        "image_height": image_height,
+                    })
+            except Exception:
+                # 기본값 사용
+                image_width = 1000
+                image_height = 1000
+        else:
+            image_width = 1000
+            image_height = 1000
+
+    region = segmenter.add_region(
+        session_id=session_id,
+        manual_region=manual_region,
+        image_width=image_width,
+        image_height=image_height,
+    )
+
+    return region
+
+
+@router.delete("/regions/{session_id}/{region_id}")
+async def delete_region(session_id: str, region_id: str) -> Dict[str, Any]:
+    """영역 삭제"""
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    deleted = segmenter.delete_region(session_id, region_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="영역을 찾을 수 없습니다")
+
+    return {"deleted": True, "region_id": region_id}
+
+
+@router.post("/regions/{session_id}/{region_id}/process", response_model=RegionProcessingResult)
+async def process_region(
+    session_id: str,
+    region_id: str,
+) -> RegionProcessingResult:
+    """
+    단일 영역 처리
+
+    영역 타입과 처리 전략에 따라 적절한 처리 수행:
+    - YOLO_OCR: YOLO 검출 + OCR
+    - OCR_ONLY: OCR만 적용
+    - TABLE_PARSE: 테이블 파싱
+    - METADATA_EXTRACT: 메타데이터 추출 (표제란)
+    - SYMBOL_MATCH: 심볼 매칭 (범례)
+    """
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    image_path = session.get("file_path")
+    if not image_path:
+        raise HTTPException(status_code=400, detail="이미지 파일이 없습니다")
+
+    result = await segmenter.process_region(session_id, region_id, image_path)
+    if not result:
+        raise HTTPException(status_code=404, detail="영역을 찾을 수 없습니다")
+
+    return result
+
+
+@router.post("/regions/{session_id}/process-all")
+async def process_all_regions(session_id: str) -> Dict[str, Any]:
+    """모든 영역 처리"""
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    image_path = session.get("file_path")
+    if not image_path:
+        raise HTTPException(status_code=400, detail="이미지 파일이 없습니다")
+
+    regions = segmenter.get_regions(session_id)
+    results = []
+    success_count = 0
+    error_count = 0
+
+    for region in regions:
+        result = await segmenter.process_region(session_id, region.id, image_path)
+        if result:
+            results.append(result.model_dump())
+            if result.success:
+                success_count += 1
+            else:
+                error_count += 1
+
+    return {
+        "session_id": session_id,
+        "total_regions": len(regions),
+        "processed": success_count + error_count,
+        "success": success_count,
+        "errors": error_count,
+        "results": results,
+    }
+
+
+# ==================== GD&T 파싱 API (Phase 7) ====================
+
+@router.post("/gdt/{session_id}/parse", response_model=GDTParsingResult)
+async def parse_gdt(
+    session_id: str,
+    config: Optional[GDTParsingConfig] = None,
+) -> GDTParsingResult:
+    """
+    GD&T (기하공차) 파싱 실행
+
+    도면에서 다음 요소를 검출:
+    - Feature Control Frame (FCF): 기하공차 프레임
+    - 14가지 기하 특성 (직진도, 평면도, 원통도 등)
+    - 데이텀 참조 (A, B, C 등)
+    - 재료 조건 수정자 (MMC, LMC, RFS)
+
+    Args:
+        session_id: 세션 ID
+        config: GD&T 파싱 설정 (선택)
+    """
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    image_path = session.get("file_path")
+    if not image_path:
+        raise HTTPException(status_code=400, detail="이미지 파일이 없습니다")
+
+    # 기존 OCR 결과 가져오기 (있으면 재사용, 없으면 새로 실행)
+    ocr_results = session.get("ocr_results")  # None이면 OCR 새로 실행
+
+    try:
+        result = await gdt_parser.parse(
+            session_id=session_id,
+            image_path=image_path,
+            config=config,
+            ocr_results=ocr_results,
+        )
+
+        # 세션에 GD&T 정보 저장
+        session_service.update_session(session_id, {
+            "gdt_fcf_list": [fcf.model_dump() for fcf in result.fcf_list],
+            "gdt_datums": [d.model_dump() for d in result.datums],
+            "gdt_fcf_count": result.total_fcf,
+            "gdt_datum_count": result.total_datums,
+        })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"GD&T 파싱 실패: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/gdt/{session_id}", response_model=GDTListResponse)
+async def get_gdt(session_id: str) -> GDTListResponse:
+    """세션의 GD&T 결과 조회"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    fcf_list = gdt_parser.get_fcf_list(session_id)
+    datums = gdt_parser.get_datums(session_id)
+
+    return GDTListResponse(
+        session_id=session_id,
+        fcf_list=fcf_list,
+        datums=datums,
+        total_fcf=len(fcf_list),
+        total_datums=len(datums),
+    )
+
+
+@router.get("/gdt/{session_id}/fcf/{fcf_id}", response_model=FeatureControlFrame)
+async def get_fcf(session_id: str, fcf_id: str) -> FeatureControlFrame:
+    """특정 FCF 조회"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    fcf = gdt_parser.get_fcf(session_id, fcf_id)
+    if not fcf:
+        raise HTTPException(status_code=404, detail="FCF를 찾을 수 없습니다")
+
+    return fcf
+
+
+@router.put("/gdt/{session_id}/fcf/{fcf_id}", response_model=FeatureControlFrame)
+async def update_fcf(
+    session_id: str,
+    fcf_id: str,
+    update: FCFUpdate,
+) -> FeatureControlFrame:
+    """FCF 업데이트"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # fcf_id 설정
+    update.fcf_id = fcf_id
+
+    updated = gdt_parser.update_fcf(session_id, update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="FCF를 찾을 수 없습니다")
+
+    return updated
+
+
+@router.put("/gdt/{session_id}/fcf/bulk")
+async def bulk_update_fcf(
+    session_id: str,
+    bulk_update: BulkFCFUpdate,
+) -> Dict[str, Any]:
+    """일괄 FCF 업데이트"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    results = []
+    for update in bulk_update.updates:
+        updated = gdt_parser.update_fcf(session_id, update)
+        results.append({
+            "fcf_id": update.fcf_id,
+            "updated": updated is not None,
+        })
+
+    return {
+        "session_id": session_id,
+        "results": results,
+        "updated_count": sum(1 for r in results if r["updated"]),
+    }
+
+
+@router.post("/gdt/{session_id}/fcf/add", response_model=FeatureControlFrame)
+async def add_manual_fcf(
+    session_id: str,
+    manual_fcf: ManualFCF,
+) -> FeatureControlFrame:
+    """수동 FCF 추가"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 이미지 크기 가져오기 (없으면 파일에서 로드)
+    image_width = session.get("image_width")
+    image_height = session.get("image_height")
+
+    if not image_width or not image_height:
+        from PIL import Image
+        file_path = session.get("file_path")
+        if file_path:
+            try:
+                with Image.open(file_path) as img:
+                    image_width, image_height = img.size
+                    session_service.update_session(session_id, {
+                        "image_width": image_width,
+                        "image_height": image_height,
+                    })
+            except Exception:
+                image_width = 1000
+                image_height = 1000
+        else:
+            image_width = 1000
+            image_height = 1000
+
+    fcf = gdt_parser.add_fcf(
+        session_id=session_id,
+        manual_fcf=manual_fcf,
+        image_width=image_width,
+        image_height=image_height,
+    )
+
+    return fcf
+
+
+@router.delete("/gdt/{session_id}/fcf/{fcf_id}")
+async def delete_fcf(session_id: str, fcf_id: str) -> Dict[str, Any]:
+    """FCF 삭제"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    deleted = gdt_parser.delete_fcf(session_id, fcf_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="FCF를 찾을 수 없습니다")
+
+    return {"deleted": True, "fcf_id": fcf_id}
+
+
+@router.post("/gdt/{session_id}/datum/add", response_model=DatumFeature)
+async def add_manual_datum(
+    session_id: str,
+    manual_datum: ManualDatum,
+) -> DatumFeature:
+    """수동 데이텀 추가"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 이미지 크기 가져오기 (없으면 파일에서 로드)
+    image_width = session.get("image_width")
+    image_height = session.get("image_height")
+
+    if not image_width or not image_height:
+        from PIL import Image
+        file_path = session.get("file_path")
+        if file_path:
+            try:
+                with Image.open(file_path) as img:
+                    image_width, image_height = img.size
+                    session_service.update_session(session_id, {
+                        "image_width": image_width,
+                        "image_height": image_height,
+                    })
+            except Exception:
+                image_width = 1000
+                image_height = 1000
+        else:
+            image_width = 1000
+            image_height = 1000
+
+    datum = gdt_parser.add_datum(
+        session_id=session_id,
+        manual_datum=manual_datum,
+        image_width=image_width,
+        image_height=image_height,
+    )
+
+    return datum
+
+
+@router.delete("/gdt/{session_id}/datum/{datum_id}")
+async def delete_datum(session_id: str, datum_id: str) -> Dict[str, Any]:
+    """데이텀 삭제"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    deleted = gdt_parser.delete_datum(session_id, datum_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="데이텀을 찾을 수 없습니다")
+
+    return {"deleted": True, "datum_id": datum_id}
+
+
+@router.get("/gdt/{session_id}/summary", response_model=GDTSummary)
+async def get_gdt_summary(session_id: str) -> GDTSummary:
+    """GD&T 요약 정보 조회"""
+    session_service = get_session_service()
+    gdt_parser = get_gdt_parser()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    summary = gdt_parser.get_summary(session_id)
+    return summary

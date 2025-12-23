@@ -6,9 +6,12 @@ AI 기반 도면 분석 및 BOM 생성 API
 
 import os
 import uuid
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from routers.session_router import router as session_router_api, set_session_service
 from routers.detection_router import router as detection_router_api, set_detection_service
 from routers.bom_router import router as bom_router_api, set_bom_service
-from routers.analysis_router import router as analysis_router_api, set_analysis_services, set_line_detector_service
+from routers.analysis_router import router as analysis_router_api, set_analysis_services, set_line_detector_service, set_connectivity_analyzer, set_region_segmenter, set_gdt_parser
 from routers.verification_router import router as verification_router_api, set_verification_services
 from routers.classification_router import router as classification_router_api, set_classification_services
 from routers.relation_router import router as relation_router_api, set_relation_services
@@ -28,6 +31,9 @@ from services.bom_service import BOMService
 from services.dimension_service import DimensionService
 from services.line_detector_service import LineDetectorService
 from services.dimension_relation_service import DimensionRelationService
+from services.connectivity_analyzer import ConnectivityAnalyzer  # Phase 6: P&ID 연결 분석
+from services.region_segmenter import RegionSegmenter  # Phase 5: 영역 분할
+from services.gdt_parser import GDTParser  # Phase 7: GD&T 파싱
 
 # 기본 경로 설정 (Docker에서는 /app 기준)
 BASE_DIR = Path(__file__).parent
@@ -45,7 +51,7 @@ CONFIG_DIR.mkdir(exist_ok=True)
 app = FastAPI(
     title="Blueprint AI BOM API",
     description="AI 기반 도면 분석 및 BOM 생성 솔루션",
-    version="5.0.0",  # Phase 2: 치수선 기반 관계 추출
+    version="7.0.0",  # Phase 7: GD&T 파싱
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -72,6 +78,9 @@ bom_service = BOMService(output_dir=RESULTS_DIR)
 dimension_service = DimensionService()  # v2: 치수 OCR 서비스
 line_detector_service = LineDetectorService()  # v2: 선 검출 서비스
 relation_service = DimensionRelationService()  # Phase 2: 치수선 기반 관계 추출
+connectivity_analyzer = ConnectivityAnalyzer()  # Phase 6: P&ID 연결 분석
+region_segmenter = RegionSegmenter()  # Phase 5: 영역 분할
+gdt_parser = GDTParser()  # Phase 7: GD&T 파싱
 
 # 라우터에 서비스 주입
 set_session_service(session_service, UPLOAD_DIR)
@@ -79,6 +88,9 @@ set_detection_service(detection_service, session_service)
 set_bom_service(bom_service, session_service)
 set_analysis_services(dimension_service, detection_service, session_service, relation_service)  # Phase 2 추가
 set_line_detector_service(line_detector_service)  # v2: 선 검출 서비스
+set_connectivity_analyzer(connectivity_analyzer)  # Phase 6: P&ID 연결 분석
+set_region_segmenter(region_segmenter)  # Phase 5: 영역 분할
+set_gdt_parser(gdt_parser)  # Phase 7: GD&T 파싱
 set_verification_services(session_service)  # v3: Active Learning 검증
 set_classification_services(session_service)  # v4: VLM 분류
 set_relation_services(session_service, line_detector_service)  # Phase 2: 치수선 기반 관계
@@ -98,7 +110,7 @@ async def root():
     """API 상태 확인"""
     return {
         "name": "Blueprint AI BOM API",
-        "version": "5.0.0",
+        "version": "7.0.0",
         "status": "running",
         "timestamp": datetime.now().isoformat()
     }
@@ -172,7 +184,7 @@ async def get_system_info():
         "pricing_count": pricing_count,
         "session_count": session_count,
         "model_name": "YOLO v11",
-        "version": "5.0.0"
+        "version": "7.0.0"
     }
 
 
@@ -479,8 +491,8 @@ async def compare_with_ground_truth(
     gt_labels = parse_yolo_label(label_file, img_width, img_height, classes)
 
     # Debug logging
-    print(f"🔍 GT Compare: class_agnostic={class_agnostic}, model_type={model_type}")
-    print(f"   filename={filename}, gt_count={len(gt_labels)}, det_count={len(detections)}")
+    logger.debug(f"GT Compare: class_agnostic={class_agnostic}, model_type={model_type}")
+    logger.debug(f"  filename={filename}, gt_count={len(gt_labels)}, det_count={len(detections)}")
 
     def calculate_iou(box1: dict, box2: dict) -> float:
         """IoU 계산"""
@@ -526,7 +538,7 @@ async def compare_with_ground_truth(
                     best_iou = iou
                     best_gt_idx = j
                     if iou > 0.5:
-                        print(f"   ✅ Match found: det[{i}] <-> gt[{j}], IoU={iou:.3f}")
+                        logger.debug(f"  Match found: det[{i}] <-> gt[{j}], IoU={iou:.3f}")
             else:
                 # 클래스도 일치해야 함
                 if det_class == gt_class and iou > best_iou and iou >= iou_threshold:
@@ -702,7 +714,7 @@ async def get_class_examples():
                 "filename": filename
             })
         except Exception as e:
-            print(f"Error loading example {file_path}: {e}")
+            logger.warning(f"Error loading example {file_path}: {e}")
             continue
 
     return {"examples": examples, "count": len(examples)}
@@ -731,7 +743,7 @@ async def cleanup_old_sessions(max_age_hours: int = 24):
                 session_service.delete_session(session["session_id"])
                 cleaned_count += 1
         except Exception as e:
-            print(f"Error cleaning session {session.get('session_id')}: {e}")
+            logger.warning(f"Error cleaning session {session.get('session_id')}: {e}")
             error_count += 1
 
     return {

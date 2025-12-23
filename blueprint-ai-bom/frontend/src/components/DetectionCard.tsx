@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { Check, X, Edit2, Save, RotateCcw } from 'lucide-react';
+import logger from '../lib/logger';
 import type { Detection, VerificationStatus } from '../types';
 
 interface DetectionCardProps {
@@ -122,7 +123,7 @@ export function DetectionCard({
         const dataUrl = canvas.toDataURL('image/png');
         setCroppedSrc(dataUrl);
       } catch (e) {
-        console.error('Failed to crop image:', e);
+        logger.error('Failed to crop image:', e);
         setCroppedSrc(null);
       }
     }
@@ -175,7 +176,7 @@ export function DetectionCard({
         const dataUrl = canvas.toDataURL('image/png');
         setGtCroppedSrc(dataUrl);
       } catch (e) {
-        console.error('Failed to crop GT image:', e);
+        logger.error('Failed to crop GT image:', e);
         setGtCroppedSrc(null);
       }
     }

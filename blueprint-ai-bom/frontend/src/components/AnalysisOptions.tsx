@@ -8,6 +8,8 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import logger from '../lib/logger';
+import { API_BASE_URL } from '../lib/constants';
 import {
   Settings,
   Zap,
@@ -44,8 +46,6 @@ interface AnalysisOptionsProps {
   compact?: boolean;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5020';
-
 export function AnalysisOptions({
   sessionId,
   onOptionsChange,
@@ -75,7 +75,7 @@ export function AnalysisOptions({
         const { data } = await axios.get(`${API_BASE_URL}/analysis/presets`);
         setPresets(data.presets || []);
       } catch (error) {
-        console.error('Failed to load presets:', error);
+        logger.error('Failed to load presets:', error);
         // 기본 프리셋 사용
         setPresets([
           { id: 'electrical', name: '전력 설비 단선도', description: '전기 심볼 검출', icon: '⚡' },
@@ -99,7 +99,7 @@ export function AnalysisOptions({
         setOptions(data);
         setSelectedPreset(data.preset);
       } catch (error) {
-        console.error('Failed to load options:', error);
+        logger.error('Failed to load options:', error);
       }
     };
 
@@ -119,7 +119,7 @@ export function AnalysisOptions({
       setSelectedPreset(presetId);
       onOptionsChange?.(data);
     } catch (error) {
-      console.error('Failed to apply preset:', error);
+      logger.error('Failed to apply preset:', error);
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +139,7 @@ export function AnalysisOptions({
       });
       onOptionsChange?.(newOptions);
     } catch (error) {
-      console.error('Failed to update option:', error);
+      logger.error('Failed to update option:', error);
     }
   };
 

@@ -6,6 +6,8 @@
  */
 
 import { useState, useCallback } from 'react';
+import logger from '../lib/logger';
+import { API_BASE_URL } from '../lib/constants';
 import {
   Brain,
   Wand2,
@@ -130,7 +132,7 @@ export function DrawingClassifier({
   imageBase64,
   onClassificationComplete,
   onPresetApply,
-  apiBaseUrl = 'http://localhost:5020'
+  apiBaseUrl = API_BASE_URL
 }: DrawingClassifierProps) {
   const [classification, setClassification] = useState<ClassificationResult | null>(null);
   const [preset, setPreset] = useState<PresetConfig | null>(null);
@@ -193,7 +195,7 @@ export function DrawingClassifier({
 
       onPresetApply?.(classification.suggested_preset);
     } catch (err) {
-      console.error('Preset apply error:', err);
+      logger.error('Preset apply error:', err);
     }
   }, [sessionId, classification, apiBaseUrl, onPresetApply]);
 

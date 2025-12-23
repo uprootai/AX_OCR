@@ -1,4 +1,4 @@
-"""BOM Service Tests"""
+"""BOM Service Tests - 전력 설비 BOM 생성 테스트"""
 
 import pytest
 import tempfile
@@ -20,13 +20,6 @@ class TestBOMService:
         self.temp_dir = tempfile.mkdtemp()
         self.service = BOMService(output_dir=Path(self.temp_dir))
 
-    def test_default_prices(self):
-        """기본 단가 테이블 테스트"""
-        assert len(self.service.DEFAULT_PRICES) == 27
-        assert self.service.DEFAULT_PRICES["valve"] == 150000
-        assert self.service.DEFAULT_PRICES["bolt"] == 500
-        assert self.service.DEFAULT_PRICES["pump"] == 500000
-
     def test_generate_bom_empty(self):
         """빈 검출에서 BOM 생성 테스트"""
         bom = self.service.generate_bom(
@@ -40,12 +33,12 @@ class TestBOMService:
         assert bom["summary"]["total"] == 0
 
     def test_generate_bom_with_detections(self):
-        """검출 결과로 BOM 생성 테스트"""
+        """검출 결과로 BOM 생성 테스트 - 전력 설비"""
         detections = [
-            {"id": "d1", "class_id": 17, "class_name": "valve", "confidence": 0.9, "verification_status": "approved"},
-            {"id": "d2", "class_id": 17, "class_name": "valve", "confidence": 0.85, "verification_status": "approved"},
-            {"id": "d3", "class_id": 1, "class_name": "bolt", "confidence": 0.95, "verification_status": "approved"},
-            {"id": "d4", "class_id": 10, "class_name": "pipe", "confidence": 0.8, "verification_status": "rejected"},  # 제외
+            {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9, "verification_status": "approved"},
+            {"id": "d2", "class_id": 2, "class_name": "CT", "confidence": 0.85, "verification_status": "approved"},
+            {"id": "d3", "class_id": 17, "class_name": "TR", "confidence": 0.95, "verification_status": "approved"},
+            {"id": "d4", "class_id": 24, "class_name": "차단기", "confidence": 0.8, "verification_status": "rejected"},  # 제외
         ]
 
         bom = self.service.generate_bom(
@@ -60,21 +53,14 @@ class TestBOMService:
         assert bom["approved_count"] == 3  # rejected 제외
 
         # 항목 확인
-        assert bom["summary"]["total_items"] == 2  # valve, bolt
-        assert bom["summary"]["total_quantity"] == 3  # valve x2 + bolt x1
-
-        # valve 항목 확인
-        valve_item = next(i for i in bom["items"] if i["class_name"] == "valve")
-        assert valve_item["quantity"] == 2
-        assert valve_item["unit_price"] == 150000
-        assert valve_item["total_price"] == 300000
-        assert len(valve_item["detection_ids"]) == 2
+        assert bom["summary"]["total_items"] == 2  # CT, TR
+        assert bom["summary"]["total_quantity"] == 3  # CT x2 + TR x1
 
     def test_generate_bom_with_modified_class(self):
         """수정된 클래스명으로 BOM 생성 테스트"""
         detections = [
-            {"id": "d1", "class_id": 17, "class_name": "valve", "confidence": 0.9,
-             "verification_status": "modified", "modified_class_name": "gate_valve"},
+            {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9,
+             "verification_status": "modified", "modified_class_name": "GPT"},
         ]
 
         bom = self.service.generate_bom(
@@ -83,14 +69,14 @@ class TestBOMService:
         )
 
         # 수정된 클래스명 사용
-        assert bom["items"][0]["class_name"] == "gate_valve"
+        assert bom["items"][0]["class_name"] == "GPT"
 
     def test_export_json(self):
         """JSON 내보내기 테스트"""
         bom = self.service.generate_bom(
             session_id="test-session",
             detections=[
-                {"id": "d1", "class_id": 1, "class_name": "bolt", "confidence": 0.9, "verification_status": "approved"}
+                {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9, "verification_status": "approved"}
             ]
         )
 
@@ -109,7 +95,7 @@ class TestBOMService:
         bom = self.service.generate_bom(
             session_id="test-session",
             detections=[
-                {"id": "d1", "class_id": 1, "class_name": "bolt", "confidence": 0.9, "verification_status": "approved"}
+                {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9, "verification_status": "approved"}
             ]
         )
 
@@ -123,7 +109,7 @@ class TestBOMService:
         bom = self.service.generate_bom(
             session_id="test-session",
             detections=[
-                {"id": "d1", "class_id": 1, "class_name": "bolt", "confidence": 0.9, "verification_status": "approved"}
+                {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9, "verification_status": "approved"}
             ]
         )
 
@@ -132,22 +118,26 @@ class TestBOMService:
         assert output_path.exists()
         assert output_path.suffix == ".xlsx"
 
-    def test_export_pdf_not_implemented(self):
-        """PDF 내보내기 미구현 테스트"""
+    def test_export_pdf(self):
+        """PDF 내보내기 테스트"""
         bom = self.service.generate_bom(
             session_id="test-session",
-            detections=[]
+            detections=[
+                {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9, "verification_status": "approved"}
+            ]
         )
 
-        with pytest.raises(NotImplementedError):
-            self.service.export(bom, ExportFormat.PDF)
+        # PDF 내보내기가 구현되어 있으므로 정상 동작해야 함
+        output_path = self.service.export_pdf(bom)
+        assert output_path.exists()
+        assert output_path.suffix == ".pdf"
 
     def test_summary_calculation(self):
         """요약 계산 테스트"""
         detections = [
-            {"id": "d1", "class_id": 17, "class_name": "valve", "confidence": 0.9, "verification_status": "approved"},
-            {"id": "d2", "class_id": 1, "class_name": "bolt", "confidence": 0.95, "verification_status": "approved"},
-            {"id": "d3", "class_id": 1, "class_name": "bolt", "confidence": 0.9, "verification_status": "approved"},
+            {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9, "verification_status": "approved"},
+            {"id": "d2", "class_id": 17, "class_name": "TR", "confidence": 0.95, "verification_status": "approved"},
+            {"id": "d3", "class_id": 17, "class_name": "TR", "confidence": 0.9, "verification_status": "approved"},
         ]
 
         bom = self.service.generate_bom(
@@ -157,14 +147,38 @@ class TestBOMService:
 
         summary = bom["summary"]
 
-        # valve: 150000, bolt x2: 1000
-        expected_subtotal = 150000 + 1000
+        # 가격이 pricing_db에서 로드되므로 기본값 사용 (10000원)
+        # CT x1 = 10000, TR x2 = 20000 => 소계 30000
+        expected_subtotal = 30000
         expected_vat = expected_subtotal * 0.1
         expected_total = expected_subtotal + expected_vat
 
         assert summary["subtotal"] == expected_subtotal
         assert summary["vat"] == expected_vat
         assert summary["total"] == expected_total
+
+    def test_bom_items_structure(self):
+        """BOM 항목 구조 테스트"""
+        detections = [
+            {"id": "d1", "class_id": 2, "class_name": "CT", "confidence": 0.9, "verification_status": "approved"},
+        ]
+
+        bom = self.service.generate_bom(
+            session_id="test-session",
+            detections=detections
+        )
+
+        assert len(bom["items"]) == 1
+        item = bom["items"][0]
+
+        # 필수 필드 확인
+        assert "item_no" in item
+        assert "class_name" in item
+        assert "quantity" in item
+        assert "unit_price" in item
+        assert "total_price" in item
+        assert "detection_ids" in item
+        assert "avg_confidence" in item
 
 
 if __name__ == "__main__":

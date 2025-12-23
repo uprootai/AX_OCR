@@ -35,7 +35,7 @@ class DimensionService:
 
     def __init__(self, api_url: str = EDOCR2_API_URL):
         self.api_url = api_url
-        print(f"✅ DimensionService 초기화 완료 (edocr2-api: {self.api_url})")
+        logger.info(f"DimensionService 초기화 완료 (edocr2-api: {self.api_url})")
 
     def extract_dimensions(
         self,
@@ -64,7 +64,7 @@ class DimensionService:
         image_height, image_width = image.shape[:2]
         dimensions = []
 
-        print(f"🔧 edocr2-api 호출: image={Path(image_path).name}, conf={confidence_threshold}")
+        logger.debug(f"edocr2-api 호출: image={Path(image_path).name}, conf={confidence_threshold}")
 
         try:
             with open(image_path, 'rb') as f:
@@ -92,7 +92,7 @@ class DimensionService:
                 data = result.get("data", {})
                 raw_detections = data.get("dimensions", [])
 
-                print(f"✅ edocr2-api 응답: {len(raw_detections)}개 치수 검출")
+                logger.info(f"edocr2-api 응답: {len(raw_detections)}개 치수 검출")
 
                 # 응답 파싱
                 for idx, det in enumerate(raw_detections):
@@ -100,14 +100,14 @@ class DimensionService:
                     if dimension and dimension.confidence >= confidence_threshold:
                         dimensions.append(dimension)
             else:
-                print(f"❌ edocr2-api 오류: {response.status_code} - {response.text}")
+                logger.error(f"edocr2-api 오류: {response.status_code} - {response.text}")
                 raise Exception(f"edocr2-api failed: {response.text}")
 
         except httpx.ConnectError as e:
-            print(f"❌ edocr2-api 연결 실패: {e}")
+            logger.error(f"edocr2-api 연결 실패: {e}")
             raise Exception(f"Cannot connect to edocr2-api at {self.api_url}")
         except Exception as e:
-            print(f"❌ 치수 추출 오류: {e}")
+            logger.error(f"치수 추출 오류: {e}")
             raise
 
         processing_time = (time.time() - start_time) * 1000  # ms

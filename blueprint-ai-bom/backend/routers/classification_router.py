@@ -5,9 +5,12 @@ Phase 4: Vision-Language Model을 활용한 도면 자동 분류
 - 영역 자동 검출 (표제란, 메인 뷰, BOM 등)
 - 추천 프리셋 제공
 """
+import logging
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Optional, Dict, Any, List
 import base64
+
+logger = logging.getLogger(__name__)
 
 from schemas.classification import (
     ClassificationRequest,
@@ -101,7 +104,7 @@ async def classify_drawing(request: ClassificationRequest) -> ClassificationWith
                 }
             })
         except Exception as e:
-            print(f"[Classification] 세션 저장 실패: {e}")
+            logger.warning(f"[Classification] 세션 저장 실패: {e}")
 
     # 응답 생성
     classification_schema = ClassificationResultSchema(

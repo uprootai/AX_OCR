@@ -9,6 +9,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import logger from '../lib/logger';
+import { API_BASE_URL } from '../lib/constants';
 import {
   AlertTriangle,
   AlertCircle,
@@ -99,7 +101,7 @@ export function VerificationQueue({
   onVerify,
   onAutoApprove,
   onItemSelect,
-  apiBaseUrl = 'http://localhost:5020',
+  apiBaseUrl = API_BASE_URL,
 }: VerificationQueueProps) {
   const [queue, setQueue] = useState<VerificationItem[]>([]);
   const [stats, setStats] = useState<VerificationStats | null>(null);
@@ -162,7 +164,7 @@ export function VerificationQueue({
       // 큐 새로고침
       await loadQueue();
     } catch (err) {
-      console.error('Verification error:', err);
+      logger.error('Verification error:', err);
     } finally {
       setVerifyingId(null);
     }
@@ -182,12 +184,12 @@ export function VerificationQueue({
       }
 
       const result = await response.json();
-      console.log('Auto-approve result:', result);
+      logger.log('Auto-approve result:', result);
 
       onAutoApprove?.();
       await loadQueue();
     } catch (err) {
-      console.error('Auto-approve error:', err);
+      logger.error('Auto-approve error:', err);
     } finally {
       setAutoApproving(false);
     }

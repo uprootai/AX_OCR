@@ -6,6 +6,8 @@
 import { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import axios from 'axios';
+import logger from '../lib/logger';
+import { API_BASE_URL } from '../lib/constants';
 
 interface ClassExample {
   class_name: string;
@@ -16,8 +18,6 @@ interface ClassExample {
 interface ReferencePanelProps {
   onClose: () => void;
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5020';
 
 export function ReferencePanel({ onClose }: ReferencePanelProps) {
   const [examples, setExamples] = useState<ClassExample[]>([]);
@@ -37,7 +37,7 @@ export function ReferencePanel({ onClose }: ReferencePanelProps) {
         );
         setExamples(data.examples || []);
       } catch (err) {
-        console.error('Failed to load class examples:', err);
+        logger.error('Failed to load class examples:', err);
         setError('참조 이미지를 불러오는데 실패했습니다.');
       } finally {
         setIsLoading(false);
