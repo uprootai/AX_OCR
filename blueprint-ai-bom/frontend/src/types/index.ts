@@ -14,6 +14,23 @@ export type SessionStatus =
   | 'completed'
   | 'error';
 
+// Drawing Types (빌더에서 설정 - 2025-12-22 세분화)
+export type DrawingType =
+  // 주요 타입 (빌더 동기화)
+  | 'dimension'          // 치수 도면 (shaft, 플랜지) - OCR만 사용
+  | 'electrical_panel'   // 전기 제어판 (MCP Panel) - YOLO 14클래스
+  | 'pid'                // P&ID (배관계장도) - YOLO-PID 60클래스
+  | 'assembly'           // 조립도 - YOLO + eDOCr2
+  | 'dimension_bom'      // 치수 + BOM - OCR + 수동 라벨링
+  // 레거시 타입 (하위 호환)
+  | 'auto'               // VLM 자동 분류
+  | 'mechanical'         // (deprecated) → dimension 또는 electrical_panel
+  | 'mechanical_part'    // (deprecated) → dimension
+  | 'electrical'         // (deprecated) → electrical_panel
+  | 'electrical_circuit' // 전기 회로도 (지원 제한적)
+  | 'architectural'      // 건축 도면 (지원 제한적)
+  | 'unknown';           // VLM 분류 실패
+
 export interface Session {
   session_id: string;
   filename: string;
@@ -25,6 +42,11 @@ export interface Session {
   verified_count: number;
   bom_generated: boolean;
   error_message?: string;
+
+  // 도면 분류 정보 (빌더에서 설정)
+  drawing_type?: DrawingType;
+  drawing_type_source?: 'builder' | 'vlm' | 'manual' | 'pending';
+  drawing_type_confidence?: number;
 }
 
 export interface SessionDetail extends Session {
@@ -93,6 +115,8 @@ export interface BOMItem {
   lead_time?: string;
   supplier?: string;
   remarks?: string;
+  dimensions?: string[];
+  linked_dimension_ids?: string[];
 }
 
 export interface BOMSummary {
@@ -144,6 +168,42 @@ export interface BOMExportResponse {
   file_path: string;
   file_size: number;
   created_at: string;
+}
+
+// Relation Types (Phase 2)
+export type RelationMethod = 'dimension_line' | 'extension_line' | 'proximity' | 'manual';
+export type RelationType = 'distance' | 'diameter' | 'radius' | 'angle' | 'tolerance' | 'surface_finish' | 'unknown';
+
+export interface DimensionRelation {
+  id: string;
+  dimension_id: string;
+  target_type: 'symbol' | 'edge' | 'region' | 'none';
+  target_id: string | null;
+  target_bbox: BoundingBox | null;
+  relation_type: RelationType;
+  method: RelationMethod;
+  confidence: number;
+  direction: 'horizontal' | 'vertical' | null;
+  notes: string | null;
+}
+
+export interface RelationStatistics {
+  total: number;
+  by_method: Record<string, number>;
+  by_confidence: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+  linked_count: number;
+  unlinked_count: number;
+}
+
+export interface RelationExtractionResult {
+  session_id: string;
+  relations: DimensionRelation[];
+  statistics: RelationStatistics;
+  processing_time_ms: number;
 }
 
 // UI Types

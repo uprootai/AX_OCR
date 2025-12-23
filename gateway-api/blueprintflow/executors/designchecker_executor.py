@@ -141,7 +141,7 @@ class DesignCheckerExecutor(BaseNodeExecutor):
         data = result.get("data", {})
         summary = data.get("summary", {})
 
-        return {
+        output = {
             "violations": data.get("violations", []),
             "summary": summary,
             "compliance_score": summary.get("compliance_score", 0),
@@ -153,6 +153,16 @@ class DesignCheckerExecutor(BaseNodeExecutor):
             "filters_applied": data.get("filters_applied", {}),
             "processing_time": result.get("processing_time", 0)
         }
+
+        # 이미지 패스스루 (후속 노드에서 필요)
+        if inputs.get("image"):
+            output["image"] = inputs["image"]
+
+        # drawing_type 패스스루 (BOM 세션 생성에 필요)
+        if inputs.get("drawing_type"):
+            output["drawing_type"] = inputs["drawing_type"]
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""

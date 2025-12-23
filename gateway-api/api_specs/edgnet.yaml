@@ -19,7 +19,7 @@ server:
   method: POST
   contentType: multipart/form-data
   timeout: 90
-  healthEndpoint: /health
+  healthEndpoint: /api/v1/health
 
 blueprintflow:
   category: segmentation

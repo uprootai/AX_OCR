@@ -70,7 +70,7 @@ class YoloExecutor(BaseNodeExecutor):
             # file_bytes가 있으면 base64로 인코딩
             original_image = base64.b64encode(file_bytes).decode("utf-8")
 
-        return {
+        output = {
             "image": original_image,  # 원본 이미지 패스스루
             "detections": result.get("detections", []),
             "total_detections": result.get("total_detections", 0),
@@ -78,6 +78,12 @@ class YoloExecutor(BaseNodeExecutor):
             "model_used": result.get("model", "yolov11n"),
             "processing_time": result.get("processing_time", 0),
         }
+
+        # drawing_type 패스스루 (BOM 세션 생성에 필요)
+        if inputs.get("drawing_type"):
+            output["drawing_type"] = inputs["drawing_type"]
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""

@@ -3,16 +3,25 @@
  * BlueprintFlow 노드 정의를 위한 타입 인터페이스
  */
 
+export interface SelectOption {
+  value: string;
+  label: string;
+  description?: string;  // 개별 옵션 툴팁
+  icon?: string;         // 옵션별 아이콘 (이모지 또는 lucide 아이콘명)
+  disabled?: boolean;    // 옵션 비활성화 (Phase 2 기능 등)
+}
+
 export interface NodeParameter {
   name: string;
-  type: 'number' | 'string' | 'boolean' | 'select' | 'textarea';
-  default: string | number | boolean;
+  type: 'number' | 'string' | 'boolean' | 'select' | 'textarea' | 'multiselect';
+  default: string | number | boolean | string[];  // multiselect는 string[] 기본값
   min?: number;
   max?: number;
   step?: number;
-  options?: string[];
+  options?: string[] | SelectOption[];  // 단순 문자열 또는 상세 옵션 객체
   description: string;
   placeholder?: string;
+  tooltip?: string;  // 파라미터 전체에 대한 상세 툴팁
 }
 
 export interface RecommendedInput {

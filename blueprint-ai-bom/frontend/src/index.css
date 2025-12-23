@@ -68,3 +68,19 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   --color-primary-800: #1e40af;
   --color-primary-900: #1e3a8a;
 }
+
+/* Tooltip animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out forwards;
+}

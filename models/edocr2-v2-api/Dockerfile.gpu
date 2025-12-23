@@ -1,0 +1,77 @@
+# GPU-enabled eDOCr2 API
+# TensorFlow 2.15.0 requires CUDA 12.x + cuDNN 8.9
+FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
+
+LABEL maintainer="Uproot AI Team"
+LABEL description="eDOCr2 API - Engineering Drawing OCR Service (GPU)"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Seoul
+
+# Set working directory
+WORKDIR /app
+
+# Install Python 3.10 and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    tesseract-ocr-nor \
+    tesseract-ocr-swe \
+    poppler-utils \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlinks for python
+RUN ln -sf /usr/bin/python3.10 /usr/bin/python && \
+    ln -sf /usr/bin/python3.10 /usr/bin/python3
+
+# Upgrade pip
+RUN python -m pip install --upgrade pip
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies (TensorFlow will use GPU automatically)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy eDOCr2 source code (included in image for reliability)
+COPY edocr2_src/ ./edocr2/
+
+# Copy eDOCr2 models to /models directory
+COPY edocr2_src/models/ /models/
+
+# Copy application code
+COPY api_server.py .
+COPY gpu_preprocessing.py .
+COPY models/ ./models/
+COPY services/ ./services/
+COPY utils/ ./utils/
+
+# Create directories
+RUN mkdir -p /tmp/edocr2/uploads /tmp/edocr2/results
+
+# Environment variables for TensorFlow GPU
+ENV TF_CPP_MIN_LOG_LEVEL=2
+ENV TF_FORCE_GPU_ALLOW_GROWTH=true
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Expose port (5002 for v2 API)
+EXPOSE 5002
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5002/api/v2/health || exit 1
+
+# Run API server
+CMD ["python", "api_server.py"]

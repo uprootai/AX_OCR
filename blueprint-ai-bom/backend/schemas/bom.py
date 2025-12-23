@@ -27,6 +27,8 @@ class BOMItem(BaseModel):
     detection_ids: List[str] = Field(default=[], description="검출 ID 목록")
     lead_time: Optional[str] = Field(default=None, description="납기")
     remarks: Optional[str] = Field(default=None, description="비고")
+    dimensions: List[str] = Field(default=[], description="연결된 치수 정보")
+    linked_dimension_ids: List[str] = Field(default=[], description="연결된 치수 ID 목록")
 
 
 class BOMSummary(BaseModel):

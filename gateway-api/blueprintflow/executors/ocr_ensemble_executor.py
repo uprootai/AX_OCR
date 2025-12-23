@@ -86,18 +86,30 @@ class OcrEnsembleExecutor(BaseNodeExecutor):
                 except Exception as viz_err:
                     self.logger.warning(f"시각화 생성 실패 (무시됨): {viz_err}")
 
-            return {
+            # 원본 이미지 패스스루 (후속 노드에서 필요)
+            import base64
+            original_image = inputs.get("image", "")
+            if not original_image and file_bytes:
+                original_image = base64.b64encode(file_bytes).decode("utf-8")
+
+            output = {
                 "results": texts,
                 "texts": texts,  # 호환성
                 "full_text": result.get("full_text", ""),
                 "visualized_image": visualized_image,
-                "image": visualized_image,  # 대체 필드명
+                "image": original_image,  # 원본 이미지 패스스루
                 "engine_results": result.get("engine_results", {}),
                 "engine_status": result.get("engine_status", {}),
                 "weights_used": result.get("weights_used", {}),
                 "processing_time": result.get("processing_time_ms", 0),
                 "raw_response": result,
             }
+
+            # drawing_type 패스스루 (BOM 세션 생성에 필요)
+            if inputs.get("drawing_type"):
+                output["drawing_type"] = inputs["drawing_type"]
+
+            return output
 
         except Exception as e:
             self.logger.error(f"OCR Ensemble 실행 실패: {e}")

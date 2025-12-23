@@ -81,13 +81,20 @@ class LineDetectorExecutor(BaseNodeExecutor):
             raise Exception(f"Line Detector 실패: {result.get('error', 'Unknown error')}")
 
         data = result.get("data", {})
-        return {
+
+        # 원본 이미지 패스스루 (후속 노드에서 필요)
+        import base64
+        original_image = inputs.get("image", "")
+        if not original_image and file_bytes:
+            original_image = base64.b64encode(file_bytes).decode("utf-8")
+
+        output = {
             # Line Detector 결과
             "lines": data.get("lines", []),
             "intersections": data.get("intersections", []),
             "statistics": data.get("statistics", {}),
             "visualized_image": data.get("visualization", ""),  # 프론트엔드 호환 필드명
-            "image": data.get("visualization", ""),  # 대체 필드명
+            "image": original_image,  # 원본 이미지 패스스루
             "method": data.get("method", method),
             "image_size": data.get("image_size", {}),
             "processing_time": result.get("processing_time", 0),
@@ -95,6 +102,12 @@ class LineDetectorExecutor(BaseNodeExecutor):
             "detections": passthrough_detections,
             "symbols": passthrough_symbols,
         }
+
+        # drawing_type 패스스루 (BOM 세션 생성에 필요)
+        if inputs.get("drawing_type"):
+            output["drawing_type"] = inputs["drawing_type"]
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""

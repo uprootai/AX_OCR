@@ -249,6 +249,7 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [stoppedContainers, setStoppedContainers] = useState<Set<string>>(new Set());
   const [statusFetched, setStatusFetched] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // 컨테이너 상태 가져오기
   const fetchContainerStatus = useCallback(async () => {
@@ -426,27 +427,21 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
                         <img
                           src={uploadedImage}
                           alt="Uploaded preview"
-                          className="w-full h-20 object-cover rounded border border-gray-300 dark:border-gray-600"
+                          className="w-full h-20 object-cover rounded border border-gray-300 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => setShowImageModal(true)}
+                          title="클릭하여 확대"
                         />
                         {uploadedFileName && (
-                          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">
+                          <div
+                            className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate cursor-pointer hover:text-blue-500"
+                            onClick={() => setShowImageModal(true)}
+                          >
                             📁 {uploadedFileName}
                           </div>
                         )}
-                        {/* Hover to show larger preview */}
-                        <div className="absolute left-full ml-2 top-0 hidden group-hover:block z-50">
-                          <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-xl border border-gray-300 dark:border-gray-600">
-                            <img
-                              src={uploadedImage}
-                              alt="Uploaded preview large"
-                              className="w-64 h-auto rounded"
-                            />
-                            {uploadedFileName && (
-                              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 text-center">
-                                {uploadedFileName}
-                              </div>
-                            )}
-                          </div>
+                        {/* 클릭 힌트 */}
+                        <div className="absolute bottom-1 right-1 bg-black/50 text-white text-[10px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                          🔍 클릭하여 확대
                         </div>
                       </div>
                     </div>
@@ -984,6 +979,45 @@ export default function NodePalette({ onNodeDragStart, uploadedImage, uploadedFi
         </div>
       </div>
 
+        </div>
+      )}
+
+      {/* 이미지 확대 모달 */}
+      {showImageModal && uploadedImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div
+            className="relative max-w-[90vw] max-h-[90vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+              title="닫기 (ESC)"
+            >
+              ✕
+            </button>
+            {/* 이미지 */}
+            <img
+              src={uploadedImage}
+              alt="Uploaded preview full"
+              className="max-w-[85vw] max-h-[85vh] object-contain"
+            />
+            {/* 파일 정보 */}
+            {uploadedFileName && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <div className="text-white text-sm font-medium">
+                  📁 {uploadedFileName}
+                </div>
+                <div className="text-white/70 text-xs mt-1">
+                  크기: {Math.round(uploadedImage.length / 1024)} KB (base64) | 클릭하여 닫기
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

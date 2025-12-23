@@ -10,7 +10,7 @@ services:
   edocr2-v2-api:
     build:
       context: ./models/edocr2-v2-api
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
     container_name: edocr2-v2-api
     ports:
       - "5002:5002"
@@ -26,9 +26,12 @@ services:
       - EDOCR2_VERSION=v2
       - EDOCR2_LOG_LEVEL=INFO
       - PYTHONUNBUFFERED=1
-    networks:
-      - ax_poc_network
-    restart: unless-stopped
+      - NVIDIA_VISIBLE_DEVICES=all
+      - TF_FORCE_GPU_ALLOW_GROWTH=true
+      # XLA JIT 완전 비활성화 (JIT compilation failed 오류 방지)
+      - TF_XLA_FLAGS=--tf_xla_auto_jit=-1 --tf_xla_enable_xla_devices=false
+      - XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
+      - TF_DISABLE_MKL=1
     deploy:
       resources:
         reservations:
@@ -36,6 +39,9 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/api/v2/health"]
       interval: 30s
@@ -248,7 +254,9 @@ services:
       - ./models/edocr2-v2-api/models:/app/admin_models/edocr2-v2:ro
     environment:
       - GATEWAY_PORT=8000
-      - GATEWAY_WORKERS=4
+      # NOTE: 다중 worker 시 health check 루프 중복 문제로 1로 고정
+      # 스케일링 필요시 Docker Compose replicas 사용 권장
+      - GATEWAY_WORKERS=1
       - EDOCR_V2_URL=http://edocr2-v2-api:5002
       - EDOCR2_URL=http://edocr2-v2-api:5002
       - EDGNET_URL=http://edgnet-api:5002

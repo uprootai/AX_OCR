@@ -31,7 +31,7 @@ class BOMExecutor(BaseNodeExecutor):
         BOM 세션 생성 및 검증 UI 열기
 
         이 노드는 자체적으로 검출을 수행하지 않습니다.
-        반드시 YOLO 노드에서 detections를 받아야 합니다.
+        반드시 YOLO 또는 YOLO-PID 노드에서 detections를 받아야 합니다.
         세션 생성 후 검증 UI URL을 반환합니다.
 
         Args:
@@ -39,9 +39,18 @@ class BOMExecutor(BaseNodeExecutor):
             context: 실행 컨텍스트
 
         Returns:
-            검증 UI URL
+            검증 UI URL, 세션 정보
         """
         try:
+            # 0. 활성화할 기능 가져오기 (2025-12-22: drawing_type은 ImageInput으로 이동)
+            features = self.parameters.get("features", ["verification"])
+            if isinstance(features, str):
+                features = [features]
+            logger.info(f"활성화된 기능: {features}")
+
+            # drawing_type은 ImageInput에서 context를 통해 전달받음
+            drawing_type = inputs.get("drawing_type", "auto")
+            logger.info(f"도면 타입 (ImageInput에서 전달): {drawing_type}")
 
             # 1. 이미지 확인 (필수)
             # 원본 이미지: 수작업 라벨 추가용 (깨끗한 이미지)
@@ -68,33 +77,60 @@ class BOMExecutor(BaseNodeExecutor):
 
             image_data = original_image
 
-            # 2. detections 확인 (필수 - YOLO 노드에서 받아야 함)
-            external_detections = inputs.get("detections")
-            if not external_detections or len(external_detections) == 0:
-                raise ValueError(
-                    "detections 입력이 필요합니다. YOLO 노드를 연결하세요. "
-                    "Blueprint AI BOM 노드는 자체 검출을 수행하지 않습니다."
-                )
+            # 2. detections 확인 (drawing_type에 따라 선택적)
+            external_detections = inputs.get("detections", [])
 
-            # 3. 세션 생성 (이미지 크기 자동 추출 및 업데이트)
-            session_id, image_width, image_height = await self._create_session(image_data)
+            # drawing_type별 검출 요구사항
+            # - auto: VLM 분류 미사용 시 detections 없이 허용 (수동 라벨링)
+            # - dimension: 치수 도면 → detections 불필요 (OCR만 사용)
+            # - dimension_bom: 치수+BOM → detections 불필요 (OCR + 수동 라벨링)
+            # - electrical_panel, pid, assembly: detections 필수 (YOLO 사용)
+            detection_optional_types = ["auto", "dimension", "dimension_bom"]
+
+            if drawing_type not in detection_optional_types:
+                if not external_detections or len(external_detections) == 0:
+                    raise ValueError(
+                        f"detections 입력이 필요합니다. '{drawing_type}' 타입은 YOLO 노드가 필요합니다. "
+                        "치수 도면(dimension)은 detections 없이 사용 가능합니다."
+                    )
+            else:
+                if not external_detections:
+                    logger.info(f"'{drawing_type}' 타입: detections 없이 세션 생성 (OCR 전용 모드)")
+
+            # 3. 세션 생성 (이미지 크기 자동 추출 및 업데이트, 도면 타입 전달)
+            session_id, image_width, image_height = await self._create_session(image_data, drawing_type)
             logger.info(f"세션 생성됨: {session_id} (이미지 크기: {image_width}x{image_height})")
 
-            # 4. YOLO 노드의 검출 결과 가져오기
-            logger.info(f"YOLO detections 가져오기: {len(external_detections)}개")
-            await self._import_detections_v2(session_id, external_detections)
+            # 4. YOLO 노드의 검출 결과 가져오기 (있는 경우만)
+            if external_detections and len(external_detections) > 0:
+                logger.info(f"YOLO detections 가져오기: {len(external_detections)}개")
+                await self._import_detections_v2(session_id, external_detections)
+            else:
+                logger.info("detections 없음 - OCR 전용 모드로 세션 생성됨")
 
             # 5. 검증 UI URL 반환 (항상 Human-in-the-Loop)
             # WorkflowPage 사용 - GT 비교, Precision, Recall, F1 Score 표시
-            verification_url = f"{self.FRONTEND_URL}/workflow?session={session_id}"
+            # features 파라미터를 URL에 포함
+            features_param = ",".join(features) if features else "verification"
+            verification_url = f"{self.FRONTEND_URL}/workflow?session={session_id}&features={features_param}"
+            detection_count = len(external_detections) if external_detections else 0
+
+            # drawing_type에 따른 메시지
+            if drawing_type in detection_optional_types and detection_count == 0:
+                message = "OCR 전용 모드: 검증 UI에서 수동으로 부품을 추가하고 BOM을 생성하세요."
+            else:
+                message = "검증 UI에서 검출 결과를 확인하고 BOM을 생성하세요."
+
             return {
                 "status": "pending_verification",
                 "session_id": session_id,
                 "verification_url": verification_url,
-                "detection_count": len(external_detections),
+                "detection_count": detection_count,
                 "image_width": image_width,
                 "image_height": image_height,
-                "message": "검증 UI에서 검출 결과를 확인하고 BOM을 생성하세요.",
+                "features": features,
+                "drawing_type": drawing_type,
+                "message": message,
                 "interactive": True,
                 "ui_action": {
                     "type": "open_url",
@@ -111,8 +147,12 @@ class BOMExecutor(BaseNodeExecutor):
         """파라미터 유효성 검사 - 파라미터 없음"""
         return True, None
 
-    async def _create_session(self, image_data: Any) -> Tuple[str, int, int]:
+    async def _create_session(self, image_data: Any, drawing_type: str = "auto") -> Tuple[str, int, int]:
         """세션 생성 및 이미지 업로드
+
+        Args:
+            image_data: 이미지 데이터 (base64, URL, 바이트 등)
+            drawing_type: 빌더에서 설정한 도면 타입
 
         Returns:
             Tuple[str, int, int]: (session_id, image_width, image_height)
@@ -120,6 +160,7 @@ class BOMExecutor(BaseNodeExecutor):
         import base64
 
         file_bytes = None
+        upload_url = f"{self.BASE_URL}/sessions/upload?drawing_type={drawing_type}"
 
         async with httpx.AsyncClient(timeout=60) as client:
             # Data URL 형식 (data:image/png;base64,...)
@@ -132,7 +173,7 @@ class BOMExecutor(BaseNodeExecutor):
 
                 files = {"file": (f"image.{ext}", file_bytes, mime_type)}
                 response = await client.post(
-                    f"{self.BASE_URL}/sessions/upload",
+                    upload_url,
                     files=files
                 )
             elif isinstance(image_data, str):
@@ -162,7 +203,7 @@ class BOMExecutor(BaseNodeExecutor):
 
                     files = {"file": (f"image.{ext}", file_bytes, mime_type)}
                     response = await client.post(
-                        f"{self.BASE_URL}/sessions/upload",
+                        upload_url,
                         files=files
                     )
                 except Exception as e:
@@ -175,7 +216,7 @@ class BOMExecutor(BaseNodeExecutor):
                 file_bytes = image_data
                 files = {"file": ("image.png", image_data, "image/png")}
                 response = await client.post(
-                    f"{self.BASE_URL}/sessions/upload",
+                    upload_url,
                     files=files
                 )
 

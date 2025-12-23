@@ -9,6 +9,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Query
 
 from schemas.session import SessionResponse, SessionDetail, SessionStatus
+from schemas.classification import DrawingType
 
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -34,8 +35,16 @@ def get_session_service():
 
 
 @router.post("/upload", response_model=SessionResponse)
-async def upload_image(file: UploadFile = File(...)):
-    """이미지 업로드 및 새 세션 생성"""
+async def upload_image(
+    file: UploadFile = File(...),
+    drawing_type: str = Query(default="auto", description="도면 타입 (빌더에서 설정)")
+):
+    """이미지 업로드 및 새 세션 생성
+
+    Args:
+        file: 업로드할 이미지 파일
+        drawing_type: 도면 타입 (auto, mechanical, pid, assembly, electrical, architectural)
+    """
     service = get_session_service()
 
     # 파일 확장자 검증
@@ -47,6 +56,12 @@ async def upload_image(file: UploadFile = File(...)):
             status_code=400,
             detail=f"지원하지 않는 파일 형식입니다. 허용: {', '.join(allowed_extensions)}"
         )
+
+    # drawing_type 유효성 검사
+    try:
+        dt = DrawingType(drawing_type)
+    except ValueError:
+        dt = DrawingType.AUTO
 
     # 세션 ID 생성
     session_id = str(uuid.uuid4())
@@ -61,11 +76,12 @@ async def upload_image(file: UploadFile = File(...)):
         content = await file.read()
         await f.write(content)
 
-    # 세션 생성
+    # 세션 생성 (drawing_type 포함)
     session = service.create_session(
         session_id=session_id,
         filename=file.filename,
-        file_path=str(file_path)
+        file_path=str(file_path),
+        drawing_type=dt.value
     )
 
     return SessionResponse(**session)
@@ -119,6 +135,14 @@ async def update_session(session_id: str, updates: dict):
         service.update_session(session_id, filtered_updates)
 
     return {"status": "updated", "session_id": session_id, "updated_fields": list(filtered_updates.keys())}
+
+
+@router.delete("")
+async def delete_all_sessions():
+    """모든 세션 삭제"""
+    service = get_session_service()
+    deleted_count = service.delete_all_sessions()
+    return {"status": "deleted", "deleted_count": deleted_count}
 
 
 @router.delete("/{session_id}")

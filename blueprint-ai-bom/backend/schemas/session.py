@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 
+from .classification import DrawingType  # 도면 타입은 classification.py에서 정의
+
 
 class SessionStatus(str, Enum):
     """세션 상태"""
@@ -23,6 +25,7 @@ class SessionCreate(BaseModel):
     """세션 생성 요청"""
     filename: str
     file_path: str
+    drawing_type: DrawingType = DrawingType.AUTO  # 빌더에서 설정한 도면 타입
 
 
 class SessionResponse(BaseModel):
@@ -40,6 +43,11 @@ class SessionResponse(BaseModel):
     bom_generated: bool = False
     error_message: Optional[str] = None
 
+    # 도면 분류 정보
+    drawing_type: DrawingType = DrawingType.AUTO
+    drawing_type_source: str = "builder"  # builder, vlm, manual
+    drawing_type_confidence: Optional[float] = None  # VLM 분류 시 신뢰도
+
 
 class SessionDetail(BaseModel):
     """세션 상세 정보"""
@@ -51,6 +59,12 @@ class SessionDetail(BaseModel):
     status: SessionStatus
     created_at: datetime
     updated_at: datetime
+
+    # 도면 분류 정보
+    drawing_type: DrawingType = DrawingType.AUTO
+    drawing_type_source: str = "builder"  # builder, vlm, manual
+    drawing_type_confidence: Optional[float] = None  # VLM 분류 시 신뢰도
+    vlm_classification_result: Optional[str] = None  # VLM 분류 결과 (auto인 경우)
 
     # 검출 정보
     detections: List[Dict[str, Any]] = []

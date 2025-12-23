@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 from schemas.session import SessionStatus, SessionResponse, SessionDetail
+from schemas.classification import DrawingType
 
 
 class SessionService:
@@ -21,10 +22,17 @@ class SessionService:
         self,
         session_id: str,
         filename: str,
-        file_path: str
+        file_path: str,
+        drawing_type: str = "auto"  # 빌더에서 설정한 도면 타입
     ) -> Dict[str, Any]:
         """새 세션 생성"""
         now = datetime.now()
+
+        # drawing_type 유효성 검사
+        try:
+            dt = DrawingType(drawing_type)
+        except ValueError:
+            dt = DrawingType.AUTO
 
         session = {
             "session_id": session_id,
@@ -44,6 +52,11 @@ class SessionService:
             "image_width": None,
             "image_height": None,
             "error_message": None,
+            # 도면 분류 정보
+            "drawing_type": dt.value,
+            "drawing_type_source": "builder" if dt != DrawingType.AUTO else "pending",
+            "drawing_type_confidence": None,
+            "vlm_classification_result": None,
         }
 
         self.sessions[session_id] = session
@@ -196,6 +209,26 @@ class SessionService:
             del self.sessions[session_id]
 
         return True
+
+    def delete_all_sessions(self) -> int:
+        """모든 세션 삭제"""
+        import shutil
+
+        # 모든 세션 디렉토리 찾기
+        session_dirs = [d for d in self.upload_dir.iterdir() if d.is_dir()]
+        deleted_count = 0
+
+        for session_dir in session_dirs:
+            try:
+                shutil.rmtree(session_dir)
+                deleted_count += 1
+            except Exception:
+                continue
+
+        # 메모리에서도 삭제
+        self.sessions.clear()
+
+        return deleted_count
 
     def _save_session(self, session_id: str):
         """세션 파일 저장"""

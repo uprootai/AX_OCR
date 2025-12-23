@@ -69,8 +69,43 @@ outputs:
     type: string
     description: BOM 다운로드 URL
 
-parameters: []
-  # 파라미터 없음 - 세션 생성 후 검증 UI에서 모든 작업 수행
+# 2025-12-22: drawing_type은 ImageInput으로 이동됨
+# AI BOM은 세션 생성 + 기능 선택 용도로 변경
+parameters:
+  - name: features
+    type: array
+    default:
+      - verification
+    required: false
+    description: 활성화할 기능 목록. 검증 UI에서 사용할 기능을 선택합니다.
+    items:
+      type: string
+      enum:
+        - verification
+        - gt_comparison
+        - dimension_extraction
+        - relation_analysis
+    options:
+      - value: verification
+        label: Human-in-the-Loop 검증
+        description: 검출 결과를 수동으로 확인하고 수정합니다. 기본 기능.
+      - value: gt_comparison
+        label: GT 비교 분석
+        description: Ground Truth와 비교하여 Precision, Recall, F1 Score를 표시합니다.
+      - value: dimension_extraction
+        label: 치수 추출 (Phase 2)
+        description: OCR로 치수 텍스트를 추출합니다. 개발 중.
+        disabled: true
+      - value: relation_analysis
+        label: 심볼-치수 관계 분석 (Phase 2)
+        description: 심볼과 치수 간의 관계를 분석합니다. 개발 중.
+        disabled: true
+    tooltip: |
+      검증 UI에서 사용할 기능을 선택합니다.
+      • verification: 기본 검증 기능 (필수)
+      • gt_comparison: Ground Truth 비교 메트릭 표시
+      • dimension_extraction: OCR 기반 치수 추출 (Phase 2)
+      • relation_analysis: 심볼-치수 관계 분석 (Phase 2)
 
 mappings:
   input:

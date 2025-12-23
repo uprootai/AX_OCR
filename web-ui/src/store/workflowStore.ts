@@ -4,7 +4,7 @@ import type { Node, Edge, Connection, NodeChange, EdgeChange } from 'reactflow';
 import { getNodeDefinition } from '../config/nodeDefinitions';
 
 // Type definitions
-type ParameterValue = string | number | boolean | null | undefined;
+type ParameterValue = string | number | boolean | string[] | null | undefined;
 type ParameterRecord = Record<string, ParameterValue>;
 
 // Workflow result type

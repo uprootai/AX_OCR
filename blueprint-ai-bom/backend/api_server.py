@@ -17,10 +17,17 @@ from fastapi.responses import FileResponse, JSONResponse
 from routers.session_router import router as session_router_api, set_session_service
 from routers.detection_router import router as detection_router_api, set_detection_service
 from routers.bom_router import router as bom_router_api, set_bom_service
+from routers.analysis_router import router as analysis_router_api, set_analysis_services, set_line_detector_service
+from routers.verification_router import router as verification_router_api, set_verification_services
+from routers.classification_router import router as classification_router_api, set_classification_services
+from routers.relation_router import router as relation_router_api, set_relation_services
 from schemas.session import SessionCreate, SessionResponse
 from services.session_service import SessionService
 from services.detection_service import DetectionService
 from services.bom_service import BOMService
+from services.dimension_service import DimensionService
+from services.line_detector_service import LineDetectorService
+from services.dimension_relation_service import DimensionRelationService
 
 # 기본 경로 설정 (Docker에서는 /app 기준)
 BASE_DIR = Path(__file__).parent
@@ -38,7 +45,7 @@ CONFIG_DIR.mkdir(exist_ok=True)
 app = FastAPI(
     title="Blueprint AI BOM API",
     description="AI 기반 도면 분석 및 BOM 생성 솔루션",
-    version="3.0.0",
+    version="5.0.0",  # Phase 2: 치수선 기반 관계 추출
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -62,16 +69,28 @@ if not model_path.exists():
 
 detection_service = DetectionService(model_path=model_path)
 bom_service = BOMService(output_dir=RESULTS_DIR)
+dimension_service = DimensionService()  # v2: 치수 OCR 서비스
+line_detector_service = LineDetectorService()  # v2: 선 검출 서비스
+relation_service = DimensionRelationService()  # Phase 2: 치수선 기반 관계 추출
 
 # 라우터에 서비스 주입
 set_session_service(session_service, UPLOAD_DIR)
 set_detection_service(detection_service, session_service)
 set_bom_service(bom_service, session_service)
+set_analysis_services(dimension_service, detection_service, session_service, relation_service)  # Phase 2 추가
+set_line_detector_service(line_detector_service)  # v2: 선 검출 서비스
+set_verification_services(session_service)  # v3: Active Learning 검증
+set_classification_services(session_service)  # v4: VLM 분류
+set_relation_services(session_service, line_detector_service)  # Phase 2: 치수선 기반 관계
 
 # 라우터 등록 (prefix 없이 - 라우터 내부에 이미 prefix 있음)
 app.include_router(session_router_api, tags=["Session"])
 app.include_router(detection_router_api, tags=["Detection"])
 app.include_router(bom_router_api, tags=["BOM"])
+app.include_router(analysis_router_api, tags=["Analysis"])  # v2: 분석 옵션 및 치수 OCR
+app.include_router(verification_router_api, tags=["Verification"])  # v3: Active Learning
+app.include_router(classification_router_api, tags=["Classification"])  # v4: VLM 분류
+app.include_router(relation_router_api, tags=["Relations"])  # Phase 2: 치수선 기반 관계
 
 
 @app.get("/")
@@ -79,7 +98,7 @@ async def root():
     """API 상태 확인"""
     return {
         "name": "Blueprint AI BOM API",
-        "version": "3.0.0",
+        "version": "5.0.0",
         "status": "running",
         "timestamp": datetime.now().isoformat()
     }
@@ -153,7 +172,7 @@ async def get_system_info():
         "pricing_count": pricing_count,
         "session_count": session_count,
         "model_name": "YOLO v11",
-        "version": "3.0.0"
+        "version": "5.0.0"
     }
 
 

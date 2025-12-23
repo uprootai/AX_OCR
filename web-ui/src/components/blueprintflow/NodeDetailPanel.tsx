@@ -1,27 +1,43 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage } from 'lucide-react';
-import { useState, memo } from 'react';
+import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, AlertTriangle } from 'lucide-react';
+import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
+import { DRAWING_TYPE_RECOMMENDATIONS } from '../../config/nodes/inputNodes';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useWorkflowStore } from '../../store/workflowStore';
 import type { Node } from 'reactflow';
+import type { SelectOption } from '../../config/nodes/types';
+
+// Helper to check if option is SelectOption object
+const isSelectOption = (opt: string | SelectOption): opt is SelectOption => {
+  return typeof opt === 'object' && 'value' in opt;
+};
 
 interface NodeDetailPanelProps {
   selectedNode: Node | null;
   onClose: () => void;
   onUpdateNode: (nodeId: string, data: Record<string, unknown>) => void;
+  onAddNode?: (nodeType: string) => void;  // 추천 노드 추가 콜백
 }
 
-const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, onUpdateNode }: NodeDetailPanelProps) {
+const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, onUpdateNode, onAddNode }: NodeDetailPanelProps) {
   const { t } = useTranslation();
   const [showParameters, setShowParameters] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Get uploaded image from store
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
   const uploadedFileName = useWorkflowStore((state) => state.uploadedFileName);
+
+  // 도면 타입별 추천 노드 계산 (ImageInput 노드일 때만)
+  const drawingTypeRecommendation = useMemo(() => {
+    if (!selectedNode || selectedNode.type !== 'imageinput') return null;
+    const drawingType = selectedNode.data?.parameters?.drawing_type || 'auto';
+    return DRAWING_TYPE_RECOMMENDATIONS[drawingType] || null;
+  }, [selectedNode]);
 
   // Collapsed state - show only toggle button
   if (isCollapsed) {
@@ -164,14 +180,23 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             <CardContent>
               {uploadedImage ? (
                 <div className="space-y-2">
-                  <div className="relative">
+                  <div className="relative group">
                     <img
                       src={uploadedImage}
                       alt="Uploaded preview"
-                      className="w-full h-auto rounded-lg border border-green-300 dark:border-green-700 max-h-48 object-contain bg-white"
+                      className="w-full h-auto rounded-lg border border-green-300 dark:border-green-700 max-h-48 object-contain bg-white cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setShowImageModal(true)}
+                      title="클릭하여 확대"
                     />
+                    {/* 클릭 힌트 */}
+                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                      🔍 클릭하여 확대
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                  <div
+                    className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 cursor-pointer hover:text-green-700"
+                    onClick={() => setShowImageModal(true)}
+                  >
                     <Image className="w-3 h-3" />
                     <span className="truncate font-medium">{uploadedFileName || t('nodeDetail.image')}</span>
                   </div>
@@ -186,6 +211,75 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                   <p className="text-xs mt-1">{t('nodeDetail.useUploadButton')}</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recommended Nodes - Only for ImageInput node with drawing_type set */}
+        {nodeType === 'imageinput' && drawingTypeRecommendation && (
+          <Card className="border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                <Lightbulb className="w-4 h-4" />
+                📌 추천 파이프라인
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Description */}
+              <p className="text-xs text-orange-800 dark:text-orange-200 font-medium">
+                {drawingTypeRecommendation.description}
+              </p>
+
+              {/* Pipeline flow (if present) */}
+              {drawingTypeRecommendation.pipeline && (
+                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-700">
+                  <div className="flex items-center gap-1 mb-1">
+                    <ArrowRight className="w-3 h-3 text-orange-500" />
+                    <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                      권장 순서
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 font-mono">
+                    {drawingTypeRecommendation.pipeline}
+                  </p>
+                </div>
+              )}
+
+              {/* Warning if present */}
+              {drawingTypeRecommendation.warning && (
+                <div className="flex items-start gap-2 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-xs text-yellow-800 dark:text-yellow-200">
+                    {drawingTypeRecommendation.warning}
+                  </span>
+                </div>
+              )}
+
+              {/* Node buttons */}
+              <div className="flex flex-wrap gap-2">
+                {drawingTypeRecommendation.nodes.map((nodeTypeId) => {
+                  const nodeDef = getNodeDefinition(nodeTypeId);
+                  return (
+                    <button
+                      key={nodeTypeId}
+                      onClick={() => onAddNode?.(nodeTypeId)}
+                      disabled={!onAddNode}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-white dark:bg-gray-700 border border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                    >
+                      <Plus className="w-3 h-3" />
+                      {nodeDef?.label || nodeTypeId}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Tips */}
+              <div className="flex items-start gap-2 p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                <span className="text-orange-500">💡</span>
+                <span className="text-xs text-orange-800 dark:text-orange-200">
+                  {drawingTypeRecommendation.tips}
+                </span>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -267,8 +361,16 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
 
                   return (
                     <div key={param.name} className="space-y-1">
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
                         {param.name}
+                        {param.tooltip && (
+                          <span className="group relative">
+                            <HelpCircle className="w-3 h-3 text-gray-400 hover:text-blue-500 cursor-help" />
+                            <span className="absolute z-50 hidden group-hover:block w-64 p-2 text-xs bg-gray-900 text-white rounded-lg shadow-lg -left-28 top-5">
+                              {param.tooltip}
+                            </span>
+                          </span>
+                        )}
                       </label>
                       <p className="text-xs text-gray-500">{param.description}</p>
 
@@ -305,17 +407,42 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                       )}
 
                       {param.type === 'select' && (
-                        <select
-                          value={currentValue}
-                          onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                          className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600"
-                        >
-                          {param.options?.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="space-y-2">
+                          <select
+                            value={currentValue}
+                            onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                            className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600"
+                          >
+                            {param.options?.map((opt) => {
+                              const value = isSelectOption(opt) ? opt.value : opt;
+                              const label = isSelectOption(opt) ? opt.label : opt;
+                              return (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          {/* Show description for selected option */}
+                          {param.options?.some(isSelectOption) && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-2 rounded border border-gray-200 dark:border-gray-600">
+                              {(() => {
+                                const selectedOpt = param.options?.find(
+                                  (opt) => isSelectOption(opt) && opt.value === currentValue
+                                );
+                                if (selectedOpt && isSelectOption(selectedOpt)) {
+                                  return (
+                                    <div className="flex items-start gap-2">
+                                      <HelpCircle className="w-3 h-3 mt-0.5 text-blue-500 flex-shrink-0" />
+                                      <span>{selectedOpt.description}</span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          )}
+                        </div>
                       )}
 
                       {param.type === 'boolean' && (
@@ -423,6 +550,45 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           </Card>
         )}
       </div>
+
+      {/* 이미지 확대 모달 */}
+      {showImageModal && uploadedImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div
+            className="relative max-w-[90vw] max-h-[90vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+              title="닫기 (ESC)"
+            >
+              ✕
+            </button>
+            {/* 이미지 */}
+            <img
+              src={uploadedImage}
+              alt="Uploaded preview full"
+              className="max-w-[85vw] max-h-[85vh] object-contain"
+            />
+            {/* 파일 정보 */}
+            {uploadedFileName && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <div className="text-white text-sm font-medium">
+                  📁 {uploadedFileName}
+                </div>
+                <div className="text-white/70 text-xs mt-1">
+                  크기: {Math.round(uploadedImage.length / 1024)} KB (base64) | 클릭하여 닫기
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 });

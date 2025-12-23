@@ -185,6 +185,54 @@ function WorkflowBuilderCanvas() {
     event.dataTransfer.effectAllowed = 'move';
   }, []);
 
+  // 추천 노드 추가 콜백 (NodeDetailPanel에서 사용)
+  const handleAddRecommendedNode = useCallback(
+    (nodeType: string) => {
+      if (!reactFlowInstance) return;
+
+      // 선택된 노드 위치를 기준으로 오른쪽에 배치
+      const selectedNode = nodes.find(n => n.id === selectedNodeId);
+      const basePosition = selectedNode?.position || { x: 300, y: 200 };
+
+      // 기존 노드들과 겹치지 않도록 위치 조정
+      const existingNodePositions = nodes.map(n => n.position);
+      let offsetX = 250;
+      let offsetY = 0;
+
+      // 이미 해당 위치에 노드가 있으면 아래로 이동
+      while (existingNodePositions.some(p =>
+        Math.abs(p.x - (basePosition.x + offsetX)) < 100 &&
+        Math.abs(p.y - (basePosition.y + offsetY)) < 80
+      )) {
+        offsetY += 100;
+      }
+
+      const position = {
+        x: basePosition.x + offsetX,
+        y: basePosition.y + offsetY,
+      };
+
+      const customAPI = customAPIs.find((api) => api.id === nodeType);
+      const newNode = {
+        id: getId(),
+        type: nodeType,
+        position,
+        data: {
+          label: customAPI?.displayName || nodeType,
+          description: `${nodeType} node`,
+          parameters: {},
+          ...(customAPI && {
+            icon: customAPI.icon,
+            color: customAPI.color,
+          }),
+        },
+        selected: false,
+      };
+      addNode(newNode);
+    },
+    [reactFlowInstance, nodes, selectedNodeId, customAPIs, addNode]
+  );
+
   // Save workflow
   const handleSave = async () => {
     try {
@@ -454,6 +502,7 @@ function WorkflowBuilderCanvas() {
         selectedNode={selectedNode}
         onClose={() => setSelectedNodeId(null)}
         onUpdateNode={updateNodeData}
+        onAddNode={handleAddRecommendedNode}
       />
 
       {/* Debug Panel */}

@@ -218,10 +218,17 @@ def find_frame(img, frame_thres):
             return max_p, min_p
     
     # Return the best (innermost) frame found
-    bottom, top = find_best_peaks(h_peaks, 0)
-    right, left = find_best_peaks(v_peaks, 1)
+    h_result = find_best_peaks(h_peaks, 0)
+    v_result = find_best_peaks(v_peaks, 1)
+
+    # Handle case where no valid peaks found
+    if h_result is None or v_result is None:
+        return None
+
+    bottom, top = h_result
+    right, left = v_result
     best_frame = Rect('frame', left, top, right - left, bottom - top)
-   
+
     return best_frame
 
 def touching_box(cl, cl_fire, thres=1.1):

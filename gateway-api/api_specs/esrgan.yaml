@@ -20,7 +20,7 @@ server:
   method: POST
   contentType: multipart/form-data
   timeout: 120
-  healthEndpoint: /health
+  healthEndpoint: /api/v1/health
 
 blueprintflow:
   category: preprocessing

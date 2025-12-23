@@ -63,12 +63,19 @@ class VLExecutor(BaseNodeExecutor):
             if response.status_code == 200:
                 result = response.json()
 
+                # 원본 이미지 패스스루 (후속 노드에서 필요)
+                import base64
+                original_image = inputs.get("image", "")
+                if not original_image and file_bytes:
+                    original_image = base64.b64encode(file_bytes).decode("utf-8")
+
                 # 출력 구조화
                 output = {
                     "mode": result.get("mode", "captioning"),
                     "model_used": result.get("model_used", model),
                     "processing_time": result.get("processing_time", 0),
                     "confidence": result.get("confidence", 1.0),
+                    "image": original_image,  # 원본 이미지 패스스루
                 }
 
                 # VQA 모드
@@ -78,6 +85,10 @@ class VLExecutor(BaseNodeExecutor):
                 # 캡셔닝 모드
                 else:
                     output["caption"] = result.get("caption", "")
+
+                # drawing_type 패스스루 (BOM 세션 생성에 필요)
+                if inputs.get("drawing_type"):
+                    output["drawing_type"] = inputs["drawing_type"]
 
                 return output
 

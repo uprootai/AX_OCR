@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [bomLoading, setBomLoading] = useState(false);
   const [bomError, setBomError] = useState<string | null>(null);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   // BOM 세션 목록 가져오기
   const fetchBomSessions = useCallback(async () => {
@@ -76,6 +77,35 @@ export default function Dashboard() {
       setDeletingSessionId(null);
     }
   }, []);
+
+  // BOM 세션 전체 삭제
+  const deleteAllBomSessions = useCallback(async () => {
+    if (bomSessions.length === 0) {
+      alert('삭제할 세션이 없습니다.');
+      return;
+    }
+
+    if (!confirm(`${bomSessions.length}개의 세션을 모두 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+    setIsDeletingAll(true);
+    try {
+      const response = await fetch('http://localhost:5020/sessions', {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setBomSessions([]);
+        alert(`✅ ${result.deleted_count}개의 세션이 삭제되었습니다.`);
+      } else {
+        alert('세션 전체 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('세션 전체 삭제 실패:', error);
+      alert('세션 전체 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeletingAll(false);
+    }
+  }, [bomSessions.length]);
 
   // BOM 세션 로드
   useEffect(() => {
@@ -229,16 +259,39 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <ClipboardList className="w-5 h-5" />
               BOM 세션 관리
+              {bomSessions.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({bomSessions.length}개)
+                </span>
+              )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchBomSessions}
-              disabled={bomLoading}
-            >
-              <RefreshCw className={`w-4 h-4 mr-1 ${bomLoading ? 'animate-spin' : ''}`} />
-              새로고침
-            </Button>
+            <div className="flex items-center gap-2">
+              {bomSessions.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={deleteAllBomSessions}
+                  disabled={isDeletingAll || bomLoading}
+                  className="text-destructive hover:text-destructive border-destructive/50 hover:border-destructive"
+                >
+                  {isDeletingAll ? (
+                    <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-1" />
+                  )}
+                  전체 삭제
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchBomSessions}
+                disabled={bomLoading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${bomLoading ? 'animate-spin' : ''}`} />
+                새로고침
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>

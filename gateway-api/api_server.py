@@ -178,9 +178,9 @@ app.openapi = custom_openapi
 # =====================
 
 async def check_service_health(url: str, service_name: str) -> str:
-    """서비스 헬스체크"""
+    """서비스 헬스체크 (2초 타임아웃)"""
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=2.0) as client:
             # eDOCr v2 uses /api/v2/health, others use /api/v1/health
             if "edocr2-v2-api" in url:
                 health_endpoint = f"{url}/api/v2/health"
@@ -921,13 +921,23 @@ async def shutdown_event():
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
-    """헬스체크"""
-    services = {
-        "edocr2": await check_service_health(EDOCR2_URL, "eDOCr2"),
-        "edgnet": await check_service_health(EDGNET_URL, "EDGNet"),
-        "skinmodel": await check_service_health(SKINMODEL_URL, "Skin Model"),
-        "knowledge": await check_service_health(KNOWLEDGE_API_URL, "Knowledge API")
-    }
+    """헬스체크 (병렬 실행으로 최대 2초 내 완료)"""
+    # 병렬로 모든 서비스 health check 실행
+    results = await asyncio.gather(
+        check_service_health(EDOCR2_URL, "eDOCr2"),
+        check_service_health(EDGNET_URL, "EDGNet"),
+        check_service_health(SKINMODEL_URL, "Skin Model"),
+        check_service_health(KNOWLEDGE_API_URL, "Knowledge API"),
+        return_exceptions=True
+    )
+
+    service_names = ["edocr2", "edgnet", "skinmodel", "knowledge"]
+    services = {}
+    for name, result in zip(service_names, results):
+        if isinstance(result, Exception):
+            services[name] = f"error ({str(result)})"
+        else:
+            services[name] = result
 
     all_healthy = all(status == "healthy" for status in services.values())
 
@@ -2011,7 +2021,9 @@ async def download_quote(quote_number: str):
 
 if __name__ == "__main__":
     port = int(os.getenv("GATEWAY_PORT", 8000))
-    workers = int(os.getenv("GATEWAY_WORKERS", 4))
+    # NOTE: Docker 환경에서는 workers=1 권장 (다중 worker 시 health check 루프 중복 문제)
+    # 스케일링이 필요하면 Docker Compose의 replicas 사용
+    workers = int(os.getenv("GATEWAY_WORKERS", 1))
 
     logger.info(f"Starting Gateway API on port {port} with {workers} workers")
     logger.info(f"Services: eDOCr2={EDOCR2_URL}, EDGNet={EDGNET_URL}, SkinModel={SKINMODEL_URL}, VL={VL_API_URL}, YOLO={YOLO_API_URL}, Knowledge={KNOWLEDGE_API_URL}")

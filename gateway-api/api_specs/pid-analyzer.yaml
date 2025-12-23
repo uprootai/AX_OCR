@@ -19,7 +19,7 @@ server:
   method: POST
   contentType: application/json
   timeout: 120
-  healthEndpoint: /health
+  healthEndpoint: /api/v1/health
 
 blueprintflow:
   category: analysis

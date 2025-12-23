@@ -6,6 +6,21 @@ Port: 5002
 Features: Extract dimensions, GD&T, and text from engineering drawings
 """
 import os
+
+# CRITICAL: Force CPU-only mode for TensorFlow
+# The GPU XLA/JIT compilation has libdevice issues causing Floor operations to fail
+# Using CPU is more stable and the OCR model is small enough that CPU is sufficient
+os.environ['CUDA_VISIBLE_DEVICES'] = ''  # Hide all GPUs from TensorFlow
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Reduce TF logging
+
+import tensorflow as tf
+
+# Verify no GPU is visible
+print(f"TensorFlow GPUs visible: {tf.config.list_physical_devices('GPU')}")
+
+# Force eager execution mode (no graph compilation)
+tf.config.run_functions_eagerly(True)
+
 import time
 import json
 import shutil

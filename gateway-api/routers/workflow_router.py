@@ -4,14 +4,17 @@ BlueprintFlow 워크플로우 실행 엔드포인트
 """
 
 import json
+import base64
 import logging
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 
 from blueprintflow import (
     PipelineEngine,
     WorkflowExecutionRequest,
     WorkflowExecutionResponse,
+    WorkflowDefinition,
 )
 from blueprintflow.executors.executor_registry import ExecutorRegistry
 
@@ -46,22 +49,95 @@ async def execute_workflow(request: WorkflowExecutionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def _parse_workflow_request(request: Request) -> WorkflowExecutionRequest:
+    """
+    요청 Content-Type에 따라 JSON 또는 Multipart 형식을 파싱합니다.
+
+    - JSON: { workflow: {...}, inputs: {...}, config: {...} }
+    - Multipart: workflow (JSON string) + file (binary image)
+    """
+    content_type = request.headers.get("content-type", "")
+
+    if "multipart/form-data" in content_type:
+        # Multipart form data 파싱
+        logger.info("[SSE] Multipart 형식 요청 감지")
+        form = await request.form()
+
+        # workflow JSON 파싱
+        workflow_json = form.get("workflow")
+        if not workflow_json:
+            raise HTTPException(status_code=400, detail="Missing 'workflow' field in multipart request")
+
+        try:
+            workflow_data = json.loads(workflow_json)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON in 'workflow' field: {e}")
+
+        # inputs와 config 준비
+        inputs = workflow_data.pop("inputs", {}) if "inputs" in workflow_data else {}
+        config = workflow_data.pop("config", {}) if "config" in workflow_data else {}
+
+        # file이 있으면 base64로 변환하여 inputs에 추가
+        file = form.get("file")
+        if file and hasattr(file, "read"):
+            file_content = await file.read()
+            file_base64 = base64.b64encode(file_content).decode("utf-8")
+            # MIME type 추출
+            content_type_header = getattr(file, "content_type", "image/jpeg")
+            inputs["image"] = f"data:{content_type_header};base64,{file_base64}"
+            logger.info(f"[SSE] 파일 변환: {getattr(file, 'filename', 'unknown')} -> base64 ({len(file_content)} bytes)")
+
+        # WorkflowDefinition이 workflow_data에 직접 있는 경우 처리
+        if "nodes" in workflow_data and "edges" in workflow_data:
+            workflow_def = WorkflowDefinition(**workflow_data)
+        elif "workflow" in workflow_data:
+            workflow_def = WorkflowDefinition(**workflow_data["workflow"])
+        else:
+            raise HTTPException(status_code=400, detail="Invalid workflow structure: missing 'nodes' and 'edges'")
+
+        return WorkflowExecutionRequest(
+            workflow=workflow_def,
+            inputs=inputs,
+            config=config
+        )
+
+    else:
+        # JSON body 파싱 (기본)
+        logger.info("[SSE] JSON 형식 요청 감지")
+        try:
+            body = await request.body()
+            data = json.loads(body)
+            return WorkflowExecutionRequest(**data)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON body: {e}")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid request format: {e}")
+
+
 @router.post("/execute-stream")
-async def execute_workflow_stream(request: WorkflowExecutionRequest):
+async def execute_workflow_stream(request: Request):
     """
     BlueprintFlow 워크플로우 실행 엔드포인트 (SSE 스트리밍)
 
     실시간으로 워크플로우 실행 진행상황을 Server-Sent Events로 전송합니다.
+
+    지원 형식:
+    - JSON: Content-Type: application/json
+      Body: { "workflow": {...}, "inputs": {...}, "config": {...} }
+    - Multipart: Content-Type: multipart/form-data
+      Fields: workflow (JSON string), file (optional binary image)
     """
     try:
-        logger.info(f"[SSE] 워크플로우 실행 요청: {request.workflow.name}")
+        # Content-Type에 따라 요청 파싱
+        exec_request = await _parse_workflow_request(request)
+        logger.info(f"[SSE] 워크플로우 실행 요청: {exec_request.workflow.name}")
 
         async def event_stream():
             try:
                 async for event in blueprint_engine.execute_workflow_stream(
-                    workflow=request.workflow,
-                    inputs=request.inputs,
-                    config=request.config,
+                    workflow=exec_request.workflow,
+                    inputs=exec_request.inputs,
+                    config=exec_request.config,
                 ):
                     yield event
 
@@ -79,6 +155,8 @@ async def execute_workflow_stream(request: WorkflowExecutionRequest):
             }
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[SSE] 워크플로우 실행 중 에러: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

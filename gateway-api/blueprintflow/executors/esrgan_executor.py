@@ -68,8 +68,8 @@ class EsrganExecutor(BaseNodeExecutor):
                 method = response.headers.get("X-Method", "Real-ESRGAN")
                 # 이미지 바이트를 base64 문자열로 변환 (JSON 직렬화를 위해)
                 image_base64 = base64.b64encode(response.content).decode('utf-8')
-                return {
-                    "image": image_base64,  # BlueprintFlow 출력 형식에 맞춤
+                output = {
+                    "image": image_base64,  # 업스케일된 이미지가 새 원본이 됨
                     "upscaled_image": image_base64,
                     "scale": scale,
                     "method": method,
@@ -80,13 +80,19 @@ class EsrganExecutor(BaseNodeExecutor):
                 # JSON 응답인 경우
                 result = response.json()
                 self.logger.info(f"ESRGAN 완료: {result.get('message', 'success')}")
-                return {
+                output = {
                     "image": result.get("image_base64"),
                     "upscaled_image": result.get("image_base64"),
                     "scale": scale,
                     "processing_time": result.get("processing_time_ms", 0),
                     "raw_response": result,
                 }
+
+            # drawing_type 패스스루 (BOM 세션 생성에 필요)
+            if inputs.get("drawing_type"):
+                output["drawing_type"] = inputs["drawing_type"]
+
+            return output
 
         except Exception as e:
             self.logger.error(f"ESRGAN 실행 실패: {e}")

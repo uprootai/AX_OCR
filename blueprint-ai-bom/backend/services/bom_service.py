@@ -45,6 +45,8 @@ class BOMService:
         self,
         session_id: str,
         detections: List[Dict[str, Any]],
+        dimensions: Optional[List[Dict[str, Any]]] = None,
+        links: Optional[List[Dict[str, Any]]] = None,
         filename: Optional[str] = None,
         model_id: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -55,6 +57,21 @@ class BOMService:
             d for d in detections
             if d.get("verification_status") in ("approved", "modified", "manual")
         ]
+
+        # 치수 및 링크 맵핑 준비
+        dim_map = {d["id"]: d for d in (dimensions or [])}
+        symbol_to_dims = defaultdict(list)
+        
+        if links and dimensions:
+            for link in links:
+                symbol_id = link.get("symbol_id")
+                dim_id = link.get("dimension_id")
+                
+                # 링크가 유효하고, 심볼이 존재하며, 치수가 존재하는 경우
+                if symbol_id and dim_id and dim_id in dim_map:
+                    dim_data = dim_map[dim_id]
+                    # 승인된 치수만 포함 (선택사항 - 현재는 모두 포함하되 상태 표시)
+                    symbol_to_dims[symbol_id].append(dim_data)
 
         # 클래스별 그룹화
         grouped = defaultdict(list)
@@ -88,6 +105,26 @@ class BOMService:
 
             # 클래스 ID 가져오기
             class_id = detections_list[0].get("class_id", -1)
+            
+            # 연결된 치수 정보 수집
+            linked_dimensions = []
+            linked_dimension_ids = []
+            
+            for d in detections_list:
+                sym_id = d.get("id")
+                if sym_id in symbol_to_dims:
+                    for dim in symbol_to_dims[sym_id]:
+                        dim_text = dim.get("value", "")
+                        # 치수 텍스트 포맷팅 (예: "Ø50", "120")
+                        # 값이 승인/수정된 경우 해당 값 사용
+                        if dim.get("modified_value"):
+                            dim_text = dim.get("modified_value")
+                        
+                        if dim_text and dim_text not in linked_dimensions:
+                             linked_dimensions.append(dim_text)
+                        
+                        if dim.get("id") not in linked_dimension_ids:
+                            linked_dimension_ids.append(dim.get("id"))
 
             item = {
                 "item_no": item_no,
@@ -102,6 +139,8 @@ class BOMService:
                 "lead_time": lead_time_text,
                 "supplier": supplier,
                 "remarks": pricing_info.get("비고", None),
+                "dimensions": linked_dimensions,
+                "linked_dimension_ids": linked_dimension_ids,
             }
             items.append(item)
             item_no += 1
@@ -163,7 +202,7 @@ class BOMService:
         )
 
         # 제목
-        ws.merge_cells('A1:J1')
+        ws.merge_cells('A1:K1')
         ws['A1'] = "부품 명세서 (BOM)"
         ws['A1'].font = Font(bold=True, size=16)
         ws['A1'].alignment = Alignment(horizontal='center')
@@ -176,7 +215,7 @@ class BOMService:
         ws['A5'] = f"파일명: {bom_data.get('filename', 'N/A')}"
 
         # 헤더
-        headers = ["No.", "부품명", "모델명", "수량", "단가", "합계", "공급업체", "리드타임", "신뢰도", "비고"]
+        headers = ["No.", "부품명", "모델명", "수량", "단가", "합계", "치수", "공급업체", "리드타임", "신뢰도", "비고"]
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=7, column=col, value=header)
             cell.font = header_font_white
@@ -192,10 +231,13 @@ class BOMService:
             ws.cell(row=row_idx, column=4, value=item["quantity"]).border = border
             ws.cell(row=row_idx, column=5, value=f"₩{item['unit_price']:,}").border = border
             ws.cell(row=row_idx, column=6, value=f"₩{item['total_price']:,}").border = border
-            ws.cell(row=row_idx, column=7, value=item.get("supplier", "-")).border = border
-            ws.cell(row=row_idx, column=8, value=item.get("lead_time", "-")).border = border
-            ws.cell(row=row_idx, column=9, value=f"{item['avg_confidence']:.1%}").border = border
-            ws.cell(row=row_idx, column=10, value=item.get("remarks", "-") or "-").border = border
+            # 치수 정보 (여러 개면 쉼표로 구분)
+            dim_text = ", ".join(item.get("dimensions", [])) if item.get("dimensions") else "-"
+            ws.cell(row=row_idx, column=7, value=dim_text).border = border
+            ws.cell(row=row_idx, column=8, value=item.get("supplier", "-")).border = border
+            ws.cell(row=row_idx, column=9, value=item.get("lead_time", "-")).border = border
+            ws.cell(row=row_idx, column=10, value=f"{item['avg_confidence']:.1%}").border = border
+            ws.cell(row=row_idx, column=11, value=item.get("remarks", "-") or "-").border = border
 
         # 요약
         summary_row = 8 + len(bom_data["items"]) + 1
@@ -212,15 +254,16 @@ class BOMService:
 
         # 열 너비 조정
         ws.column_dimensions['A'].width = 6
-        ws.column_dimensions['B'].width = 35
-        ws.column_dimensions['C'].width = 25
+        ws.column_dimensions['B'].width = 30
+        ws.column_dimensions['C'].width = 20
         ws.column_dimensions['D'].width = 8
         ws.column_dimensions['E'].width = 12
-        ws.column_dimensions['F'].width = 15
-        ws.column_dimensions['G'].width = 15
-        ws.column_dimensions['H'].width = 10
+        ws.column_dimensions['F'].width = 14
+        ws.column_dimensions['G'].width = 20  # 치수
+        ws.column_dimensions['H'].width = 12
         ws.column_dimensions['I'].width = 10
-        ws.column_dimensions['J'].width = 12
+        ws.column_dimensions['J'].width = 10
+        ws.column_dimensions['K'].width = 12
 
         wb.save(output_path)
         return output_path
@@ -240,10 +283,11 @@ class BOMService:
             writer = csv.writer(f)
 
             # 헤더
-            writer.writerow(["No.", "부품명", "모델명", "수량", "단가", "합계", "공급업체", "리드타임", "신뢰도", "비고"])
+            writer.writerow(["No.", "부품명", "모델명", "수량", "단가", "합계", "치수", "공급업체", "리드타임", "신뢰도", "비고"])
 
             # 데이터
             for item in bom_data["items"]:
+                dim_text = ", ".join(item.get("dimensions", [])) if item.get("dimensions") else ""
                 writer.writerow([
                     item["item_no"],
                     item["class_name"],
@@ -251,6 +295,7 @@ class BOMService:
                     item["quantity"],
                     item["unit_price"],
                     item["total_price"],
+                    dim_text,
                     item.get("supplier", ""),
                     item.get("lead_time", ""),
                     f"{item['avg_confidence']:.1%}",
@@ -370,20 +415,22 @@ class BOMService:
         elements.append(Spacer(1, 20))
 
         # BOM 테이블 데이터
-        table_data = [["No.", "부품명", "수량", "단가", "합계", "신뢰도"]]
+        table_data = [["No.", "부품명", "수량", "단가", "합계", "치수", "신뢰도"]]
 
         for item in bom_data["items"]:
+            dim_text = ", ".join(item.get("dimensions", []))[:20] if item.get("dimensions") else "-"
             table_data.append([
                 str(item["item_no"]),
-                item["class_name"][:30],  # 이름 길이 제한
+                item["class_name"][:25],  # 이름 길이 제한
                 str(item["quantity"]),
                 f"₩{item['unit_price']:,}",
                 f"₩{item['total_price']:,}",
+                dim_text,
                 f"{item['avg_confidence']:.1%}",
             ])
 
         # 테이블 생성
-        col_widths = [30, 150, 40, 70, 80, 50]
+        col_widths = [25, 120, 35, 60, 70, 70, 40]
         bom_table = Table(table_data, colWidths=col_widths)
         bom_table.setStyle(TableStyle([
             # 헤더 스타일

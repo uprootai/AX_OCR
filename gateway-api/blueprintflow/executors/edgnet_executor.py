@@ -46,29 +46,43 @@ class EdgnetExecutor(BaseNodeExecutor):
             model=model
         )
 
+        # 원본 이미지 패스스루 (후속 노드에서 필요)
+        import base64
+        original_image = inputs.get("image", "")
+        if not original_image and file_bytes:
+            original_image = base64.b64encode(file_bytes).decode("utf-8")
+
         # UNet과 GraphSAGE는 다른 응답 형식
         if model == "unet":
             # UNet 응답 형식
             data = result.get("data", {})
-            return {
+            output = {
                 "segments": [],  # UNet은 세그먼트 목록 대신 마스크 제공
                 "total_segments": 1,  # 단일 마스크
                 "mask_shape": data.get("mask_shape", []),
                 "edge_pixel_count": data.get("edge_pixel_count", 0),
                 "edge_percentage": data.get("edge_percentage", 0),
                 "visualized_image": data.get("visualized_image", ""),
+                "image": original_image,  # 원본 이미지 패스스루
                 "model_used": "UNet",
                 "processing_time": result.get("processing_time", 0),
             }
         else:
             # GraphSAGE 응답 형식
-            return {
+            output = {
                 "segments": result.get("data", {}).get("segments", []),
                 "total_segments": len(result.get("data", {}).get("segments", [])),
                 "visualized_image": result.get("data", {}).get("visualized_image", ""),
+                "image": original_image,  # 원본 이미지 패스스루
                 "model_used": result.get("model_used", "GraphSAGE"),
                 "processing_time": result.get("processing_time", 0),
             }
+
+        # drawing_type 패스스루 (BOM 세션 생성에 필요)
+        if inputs.get("drawing_type"):
+            output["drawing_type"] = inputs["drawing_type"]
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""

@@ -70,6 +70,8 @@ async def generate_bom(session_id: str):
         bom_data = bom_service.generate_bom(
             session_id=session_id,
             detections=detections,
+            dimensions=session.get("dimensions"),
+            links=session.get("dimension_symbol_links"),
             filename=session.get("filename"),
             model_id=session.get("model_id")
         )

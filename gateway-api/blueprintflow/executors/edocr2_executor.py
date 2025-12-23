@@ -70,6 +70,14 @@ class Edocr2Executor(BaseNodeExecutor):
         if result.get("visualized_image"):
             output["visualized_image"] = result["visualized_image"]
 
+        # 원본 이미지 패스스루 (BOM 등 후속 노드에서 사용)
+        if inputs.get("image"):
+            output["image"] = inputs["image"]
+
+        # drawing_type 패스스루 (BOM 세션 생성에 필요)
+        if inputs.get("drawing_type"):
+            output["drawing_type"] = inputs["drawing_type"]
+
         return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:

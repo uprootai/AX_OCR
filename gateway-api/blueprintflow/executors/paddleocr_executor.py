@@ -61,6 +61,18 @@ class PaddleocrExecutor(BaseNodeExecutor):
         if result.get("visualized_image"):
             output["visualized_image"] = result["visualized_image"]
 
+        # 원본 이미지 패스스루 (후속 노드에서 필요)
+        import base64
+        original_image = inputs.get("image", "")
+        if not original_image and file_bytes:
+            original_image = base64.b64encode(file_bytes).decode("utf-8")
+        if original_image:
+            output["image"] = original_image
+
+        # drawing_type 패스스루 (BOM 세션 생성에 필요)
+        if inputs.get("drawing_type"):
+            output["drawing_type"] = inputs["drawing_type"]
+
         return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:

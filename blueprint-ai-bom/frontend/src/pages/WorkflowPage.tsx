@@ -22,6 +22,7 @@ import {
   Cpu,
   RefreshCw,
   CheckCircle,
+  Ruler,
 } from 'lucide-react';
 import { useSessionStore } from '../store/sessionStore';
 import axios from 'axios';
@@ -37,6 +38,49 @@ interface ClassExample {
 import type { VerificationStatus, DetectionConfig, ExportFormat } from '../types';
 import { ReferencePanel } from '../components/ReferencePanel';
 import { DrawingCanvas } from '../components/DrawingCanvas';
+import { AnalysisOptions } from '../components/AnalysisOptions';
+import { DimensionList } from '../components/DimensionList';
+import { IntegratedOverlay } from '../components/IntegratedOverlay';
+import { VerificationQueue } from '../components/VerificationQueue';
+import { DrawingClassifier } from '../components/DrawingClassifier';
+import { RelationList } from '../components/RelationList';
+import { RelationOverlay } from '../components/RelationOverlay';
+import { InfoTooltip, FEATURE_TOOLTIPS } from '../components/Tooltip';
+import type { DimensionRelation, RelationStatistics } from '../types';
+
+// Dimension types
+interface Dimension {
+  id: string;
+  bbox: { x1: number; y1: number; x2: number; y2: number };
+  value: string;
+  raw_text: string;
+  unit: string | null;
+  tolerance: string | null;
+  dimension_type: string;
+  confidence: number;
+  verification_status: 'pending' | 'approved' | 'rejected' | 'modified' | 'manual';
+  modified_value: string | null;
+  linked_to: string | null;
+}
+
+interface DimensionStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+  modified: number;
+  manual: number;
+}
+
+interface AnalysisOptionsData {
+  enable_symbol_detection: boolean;
+  enable_dimension_ocr: boolean;
+  enable_line_detection: boolean;
+  enable_text_extraction: boolean;
+  ocr_engine: string;
+  confidence_threshold: number;
+  symbol_model_type: string;
+  preset: string | null;
+}
 
 // 페이지당 아이템 수
 const ITEMS_PER_PAGE = 7;
@@ -77,7 +121,7 @@ export function WorkflowPage() {
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('darkMode') === 'true' ||
-             window.matchMedia('(prefers-color-scheme: dark)').matches;
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return false;
   });
@@ -114,6 +158,64 @@ export function WorkflowPage() {
 
   // Image modal state (이미지 확대 모달)
   const [showImageModal, setShowImageModal] = useState(false);
+
+  // Dimension OCR state
+  const [dimensions, setDimensions] = useState<Dimension[]>([]);
+  const [dimensionStats, setDimensionStats] = useState<DimensionStats | null>(null);
+  const [isRunningAnalysis, setIsRunningAnalysis] = useState(false);
+  const [selectedDimensionId, setSelectedDimensionId] = useState<string | null>(null);
+  const [showAnalysisOptions, setShowAnalysisOptions] = useState(false);
+
+  // Active Learning verification queue
+  const [showVerificationQueue, setShowVerificationQueue] = useState(false);
+
+  // VLM Classification (Phase 4)
+  interface ClassificationData {
+    drawing_type: string;
+    confidence: number;
+    suggested_preset: string;
+    provider: string;
+  }
+  const [classification, setClassification] = useState<ClassificationData | null>(null);
+  const [showClassifier, setShowClassifier] = useState(true);
+
+  // Line detection state
+  interface LineData {
+    id: string;
+    start: { x: number; y: number };
+    end: { x: number; y: number };
+    length: number;
+    angle: number;
+    line_type: string;
+    line_style: string;
+    color?: string;
+    confidence: number;
+    thickness?: number;
+  }
+  interface IntersectionData {
+    id: string;
+    point: { x: number; y: number };
+    line_ids: string[];
+    intersection_type?: string;
+  }
+  const [lines, setLines] = useState<LineData[]>([]);
+  const [intersections, setIntersections] = useState<IntersectionData[]>([]);
+  const [isRunningLineDetection, setIsRunningLineDetection] = useState(false);
+  const [showLines, setShowLines] = useState(true);
+
+  // Phase 2: Relation state (치수선 기반 관계 추출)
+  const [relations, setRelations] = useState<DimensionRelation[]>([]);
+  const [relationStats, setRelationStats] = useState<RelationStatistics | null>(null);
+  const [showRelations, setShowRelations] = useState(true);
+  const [isExtractingRelations, setIsExtractingRelations] = useState(false);
+
+
+  // Derive links from dimensions for IntegratedOverlay
+  const links = useMemo(() => {
+    return dimensions
+      .filter(d => d.linked_to)
+      .map(d => ({ dimension_id: d.id, symbol_id: d.linked_to! }));
+  }, [dimensions]);
 
   // Fetch YOLO defaults from BlueprintFlow API
   useEffect(() => {
@@ -159,6 +261,43 @@ export function WorkflowPage() {
   // Reset verificationFinalized when session changes
   useEffect(() => {
     setVerificationFinalized(false);
+  }, [currentSession?.session_id]);
+
+  // Auto-load dimensions when session changes
+  useEffect(() => {
+    const fetchDimensions = async () => {
+      if (currentSession?.session_id) {
+        try {
+          const { data } = await axios.get(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}`);
+          setDimensions(data.dimensions || []);
+          setDimensionStats(data.stats || null);
+        } catch (err) {
+          console.error('Failed to auto-load dimensions:', err);
+        }
+      }
+    };
+    fetchDimensions();
+  }, [currentSession?.session_id]);
+
+  // Auto-load relations when session changes (Phase 2)
+  useEffect(() => {
+    const fetchRelations = async () => {
+      if (currentSession?.session_id) {
+        try {
+          const { data } = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}`);
+          setRelations(data.relations || []);
+          // Fetch statistics separately
+          const statsRes = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}/statistics`);
+          setRelationStats(statsRes.data || null);
+        } catch (err) {
+          // Relations might not exist yet, that's ok
+          console.log('No relations found:', err);
+          setRelations([]);
+          setRelationStats(null);
+        }
+      }
+    };
+    fetchRelations();
   }, [currentSession?.session_id]);
 
   // Auto-load GT when detections are available
@@ -260,6 +399,243 @@ export function WorkflowPage() {
     reset();
     setGtCompareResult(null);
     setCurrentPage(1);
+    setDimensions([]);
+    setDimensionStats(null);
+    setSelectedDimensionId(null);
+    setLines([]);
+    setIntersections([]);
+  };
+
+  // Dimension handlers
+  const loadDimensions = async (sessionId: string) => {
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/analysis/dimensions/${sessionId}`);
+      setDimensions(data.dimensions || []);
+      setDimensionStats(data.stats || null);
+    } catch (err) {
+      console.error('Failed to load dimensions:', err);
+    }
+  };
+
+  const handleRunAnalysis = async () => {
+    if (!currentSession) return;
+
+    setIsRunningAnalysis(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/analysis/run/${currentSession.session_id}`);
+
+      // 심볼 검출 결과는 기존 detections로 처리
+      if (data.detections && data.detections.length > 0) {
+        // 세션 다시 로드하여 detections 업데이트
+        await loadSession(currentSession.session_id);
+      }
+
+      // 치수 OCR 결과
+      if (data.dimensions) {
+        setDimensions(data.dimensions);
+        // 통계 계산
+        const stats = { pending: 0, approved: 0, rejected: 0, modified: 0, manual: 0 };
+        data.dimensions.forEach((d: Dimension) => {
+          const status = d.verification_status || 'pending';
+          if (status in stats) stats[status as keyof typeof stats]++;
+        });
+        setDimensionStats(stats);
+      }
+
+      // Phase 2: 관계 추출 결과
+      if (data.relations) {
+        setRelations(data.relations);
+        // 통계 다시 로드
+        try {
+          const statsRes = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}/statistics`);
+          setRelationStats(statsRes.data || null);
+        } catch {
+          // 통계 로드 실패 시 기본값
+          setRelationStats({
+            total: data.relations.length,
+            by_method: {},
+            by_confidence: { high: 0, medium: 0, low: 0 },
+            linked_count: 0,
+            unlinked_count: data.relations.length,
+          });
+        }
+        console.log(`✅ 관계 추출 완료: ${data.relations.length}개`);
+      }
+
+      console.log('분석 완료:', data);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+    } finally {
+      setIsRunningAnalysis(false);
+    }
+  };
+
+  const handleDimensionVerify = async (id: string, status: 'approved' | 'rejected') => {
+    if (!currentSession) return;
+
+    try {
+      await axios.put(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}/${id}`, {
+        verification_status: status
+      });
+
+      // 로컬 상태 업데이트
+      setDimensions(prev => prev.map(d =>
+        d.id === id ? { ...d, verification_status: status } : d
+      ));
+
+      // 통계 업데이트
+      await loadDimensions(currentSession.session_id);
+    } catch (err) {
+      console.error('Dimension verification failed:', err);
+    }
+  };
+
+  const handleDimensionEdit = async (id: string, newValue: string) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.put(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}/${id}`, {
+        modified_value: newValue,
+        verification_status: 'modified'
+      });
+
+      // 로컬 상태 업데이트
+      setDimensions(prev => prev.map(d =>
+        d.id === id ? { ...d, modified_value: newValue, verification_status: 'modified' } : d
+      ));
+    } catch (err) {
+      console.error('Dimension edit failed:', err);
+    }
+  };
+
+  const handleDimensionDelete = async (id: string) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}/${id}`);
+
+      // 로컬 상태 업데이트
+      setDimensions(prev => prev.filter(d => d.id !== id));
+
+      // 통계 업데이트
+      await loadDimensions(currentSession.session_id);
+    } catch (err) {
+      console.error('Dimension delete failed:', err);
+    }
+  };
+
+  const handleBulkApproveDimensions = async (ids: string[]) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.put(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}/verify/bulk`, {
+        updates: ids.map(id => ({ dimension_id: id, status: 'approved' }))
+      });
+
+      // 로컬 상태 업데이트
+      setDimensions(prev => prev.map(d =>
+        ids.includes(d.id) ? { ...d, verification_status: 'approved' } : d
+      ));
+
+      // 통계 업데이트
+      await loadDimensions(currentSession.session_id);
+    } catch (err) {
+      console.error('Bulk approve failed:', err);
+    }
+  };
+
+  const handleAnalysisOptionsChange = (options: AnalysisOptionsData) => {
+    // 분석 옵션이 변경되면 콘솔에 로깅 (추후 활용)
+    console.log('Analysis options changed:', options);
+  };
+
+  // 선 검출 핸들러
+  const handleRunLineDetection = async () => {
+    if (!currentSession) return;
+
+    setIsRunningLineDetection(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/analysis/lines/${currentSession.session_id}`);
+      setLines(data.lines || []);
+      setIntersections(data.intersections || []);
+      console.log('선 검출 완료:', data.lines?.length, '개 선');
+    } catch (err) {
+      console.error('Line detection failed:', err);
+    } finally {
+      setIsRunningLineDetection(false);
+    }
+  };
+
+  // 치수-심볼 연결 핸들러
+  const handleLinkDimensionsToSymbols = async () => {
+    if (!currentSession) return;
+
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/analysis/lines/${currentSession.session_id}/link-dimensions`);
+      console.log('치수-심볼 연결 완료:', data);
+
+      // 치수 목록 다시 로드
+      await loadDimensions(currentSession.session_id);
+    } catch (err) {
+      console.error('Link dimensions failed:', err);
+    }
+  };
+
+  // Phase 2: 관계 추출 핸들러
+  const handleExtractRelations = async () => {
+    if (!currentSession) return;
+
+    setIsExtractingRelations(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/relations/extract/${currentSession.session_id}?use_lines=true`);
+      setRelations(data.relations || []);
+      setRelationStats(data.statistics || null);
+      console.log(`✅ 관계 추출 완료: ${data.relations?.length}개`);
+    } catch (err) {
+      console.error('Relation extraction failed:', err);
+    } finally {
+      setIsExtractingRelations(false);
+    }
+  };
+
+  // Phase 2: 수동 관계 연결 핸들러
+  const handleManualLink = async (dimensionId: string, targetId: string) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.post(`${API_BASE_URL}/relations/${currentSession.session_id}/link/${dimensionId}/${targetId}`);
+      console.log(`✅ 수동 연결: ${dimensionId} → ${targetId}`);
+
+      // 관계 목록 다시 로드
+      const { data } = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}`);
+      setRelations(data.relations || []);
+
+      // 통계 업데이트
+      const statsRes = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}/statistics`);
+      setRelationStats(statsRes.data || null);
+    } catch (err) {
+      console.error('Manual link failed:', err);
+    }
+  };
+
+  // Phase 2: 관계 삭제 핸들러
+  const handleDeleteRelation = async (relationId: string) => {
+    if (!currentSession) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/relations/${currentSession.session_id}/${relationId}`);
+      console.log(`🗑️ 관계 삭제: ${relationId}`);
+
+      // 관계 목록 다시 로드
+      const { data } = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}`);
+      setRelations(data.relations || []);
+
+      // 통계 업데이트
+      const statsRes = await axios.get(`${API_BASE_URL}/relations/${currentSession.session_id}/statistics`);
+      setRelationStats(statsRes.data || null);
+    } catch (err) {
+      console.error('Delete relation failed:', err);
+    }
   };
 
   // Stats
@@ -363,11 +739,10 @@ export function WorkflowPage() {
                 {sessions.slice(0, 10).map(session => (
                   <li
                     key={session.session_id}
-                    className={`group relative p-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                      currentSession?.session_id === session.session_id
-                        ? 'bg-primary-50 dark:bg-primary-900/30 border border-primary-200'
-                        : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100'
-                    }`}
+                    className={`group relative p-2 rounded-lg text-sm cursor-pointer transition-colors ${currentSession?.session_id === session.session_id
+                      ? 'bg-primary-50 dark:bg-primary-900/30 border border-primary-200'
+                      : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100'
+                      }`}
                     onClick={() => {
                       loadSession(session.session_id);
                       setGtCompareResult(null);
@@ -394,13 +769,14 @@ export function WorkflowPage() {
 
           {/* Settings */}
           <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            {/* 기존 심볼 검출 설정 */}
             <button
               onClick={() => setShowSettings(!showSettings)}
               className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <span className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
                 <Settings className="w-4 h-4" />
-                <span className="text-sm">검출 설정</span>
+                <span className="text-sm">심볼 검출 설정</span>
               </span>
               {showSettings ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
@@ -444,10 +820,32 @@ export function WorkflowPage() {
                   ) : (
                     <>
                       <Settings className="w-4 h-4" />
-                      <span>검출 실행</span>
+                      <span>심볼 검출</span>
                     </>
                   )}
                 </button>
+              </div>
+            )}
+
+            {/* 통합 분석 옵션 토글 */}
+            <button
+              onClick={() => setShowAnalysisOptions(!showAnalysisOptions)}
+              className="w-full mt-2 flex items-center justify-between px-3 py-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800"
+            >
+              <span className="flex items-center space-x-2 text-purple-700 dark:text-purple-300">
+                <Ruler className="w-4 h-4" />
+                <span className="text-sm">분석 옵션</span>
+              </span>
+              {showAnalysisOptions ? <ChevronDown className="w-4 h-4 text-purple-600" /> : <ChevronRight className="w-4 h-4 text-purple-600" />}
+            </button>
+            {showAnalysisOptions && currentSession && (
+              <div className="mt-2">
+                <AnalysisOptions
+                  sessionId={currentSession.session_id}
+                  onOptionsChange={handleAnalysisOptionsChange}
+                  onRunAnalysis={handleRunAnalysis}
+                  compact={true}
+                />
               </div>
             )}
           </div>
@@ -670,11 +1068,10 @@ export function WorkflowPage() {
                 <button
                   onClick={() => handleVerify(detection.id, 'approved')}
                   disabled={editingId !== null}
-                  className={`p-2 rounded-lg transition-colors ${
-                    detection.verification_status === 'approved'
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-green-100 hover:text-green-600'
-                  } disabled:opacity-50`}
+                  className={`p-2 rounded-lg transition-colors ${detection.verification_status === 'approved'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-green-100 hover:text-green-600'
+                    } disabled:opacity-50`}
                   title="승인"
                 >
                   <Check className="w-4 h-4" />
@@ -682,11 +1079,10 @@ export function WorkflowPage() {
                 <button
                   onClick={() => handleVerify(detection.id, 'rejected')}
                   disabled={editingId !== null}
-                  className={`p-2 rounded-lg transition-colors ${
-                    detection.verification_status === 'rejected'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 hover:text-red-600'
-                  } disabled:opacity-50`}
+                  className={`p-2 rounded-lg transition-colors ${detection.verification_status === 'rejected'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-red-100 hover:text-red-600'
+                    } disabled:opacity-50`}
                   title="거부"
                 >
                   <X className="w-4 h-4" />
@@ -697,11 +1093,10 @@ export function WorkflowPage() {
                     setEditingClassName(detection.modified_class_name || detection.class_name);
                   }}
                   disabled={editingId !== null}
-                  className={`p-2 rounded-lg transition-colors ${
-                    detection.verification_status === 'modified'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-orange-100 hover:text-orange-600'
-                  } disabled:opacity-50`}
+                  className={`p-2 rounded-lg transition-colors ${detection.verification_status === 'modified'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-orange-100 hover:text-orange-600'
+                    } disabled:opacity-50`}
                   title="수정"
                 >
                   <span className="text-sm">✏️</span>
@@ -758,7 +1153,10 @@ export function WorkflowPage() {
           {/* 참조 도면 */}
           {imageData && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">📐 참조 도면</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-1">
+                📐 참조 도면
+                <InfoTooltip content={FEATURE_TOOLTIPS.referenceDrawing.description} position="right" />
+              </h2>
               <div className="flex gap-4">
                 <div className="flex-1">
                   <img
@@ -769,17 +1167,20 @@ export function WorkflowPage() {
                 </div>
                 {imageSize && (
                   <div className="w-48 space-y-2 text-sm">
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 flex items-center">
                       <span className="text-gray-500">크기:</span>
                       <span className="ml-2 font-medium">{imageSize.width} × {imageSize.height}</span>
+                      <InfoTooltip content={FEATURE_TOOLTIPS.imageSize.description} position="left" iconSize={12} />
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 flex items-center">
                       <span className="text-gray-500">검출:</span>
                       <span className="ml-2 font-medium">{detections.length}개</span>
+                      <InfoTooltip content={FEATURE_TOOLTIPS.detectionCount.description} position="left" iconSize={12} />
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 flex items-center">
                       <span className="text-gray-500">승인:</span>
                       <span className="ml-2 font-medium text-green-600">{stats.approved}개</span>
+                      <InfoTooltip content={FEATURE_TOOLTIPS.approvedCount.description} position="left" iconSize={12} />
                     </div>
                   </div>
                 )}
@@ -787,18 +1188,146 @@ export function WorkflowPage() {
             </section>
           )}
 
+          {/* 도면 분류 정보 (빌더에서 설정한 경우 읽기 전용) */}
+          {currentSession && currentSession.drawing_type && currentSession.drawing_type !== 'auto' && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-1">
+                📋 도면 정보
+                <InfoTooltip content="빌더에서 설정한 도면 타입입니다. 분석 파이프라인이 이 타입에 맞게 최적화됩니다." position="right" />
+              </h2>
+              <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">
+                    {/* 새로운 타입 (2025-12-22) */}
+                    {currentSession.drawing_type === 'dimension' && '📏'}
+                    {currentSession.drawing_type === 'electrical_panel' && '🔌'}
+                    {currentSession.drawing_type === 'dimension_bom' && '📐'}
+                    {/* 기존 타입 */}
+                    {currentSession.drawing_type === 'pid' && '🔬'}
+                    {currentSession.drawing_type === 'assembly' && '🔩'}
+                    {/* 레거시 타입 */}
+                    {currentSession.drawing_type === 'mechanical' && '⚙️'}
+                    {currentSession.drawing_type === 'mechanical_part' && '⚙️'}
+                    {currentSession.drawing_type === 'electrical' && '⚡'}
+                    {currentSession.drawing_type === 'electrical_circuit' && '⚡'}
+                    {currentSession.drawing_type === 'architectural' && '🏗️'}
+                  </span>
+                  <div>
+                    <span className="font-medium text-indigo-800 dark:text-indigo-200">
+                      {/* 새로운 타입 (2025-12-22) */}
+                      {currentSession.drawing_type === 'dimension' && '치수 도면'}
+                      {currentSession.drawing_type === 'electrical_panel' && '전기 제어판'}
+                      {currentSession.drawing_type === 'dimension_bom' && '치수 + BOM'}
+                      {/* 기존 타입 */}
+                      {currentSession.drawing_type === 'pid' && 'P&ID (배관계장도)'}
+                      {currentSession.drawing_type === 'assembly' && '조립도'}
+                      {/* 레거시 타입 */}
+                      {currentSession.drawing_type === 'mechanical' && '기계 부품도'}
+                      {currentSession.drawing_type === 'mechanical_part' && '기계 부품도'}
+                      {currentSession.drawing_type === 'electrical' && '전기 회로도'}
+                      {currentSession.drawing_type === 'electrical_circuit' && '전기 회로도'}
+                      {currentSession.drawing_type === 'architectural' && '건축 도면'}
+                    </span>
+                    <span className="ml-2 text-sm text-indigo-600 dark:text-indigo-400">
+                      (빌더에서 설정됨)
+                    </span>
+                  </div>
+                </div>
+                {/* 도면 타입별 설명 */}
+                <div className="text-xs text-indigo-600 dark:text-indigo-400 max-w-[200px] text-right">
+                  {currentSession.drawing_type === 'dimension' && 'OCR 치수 인식 중심'}
+                  {currentSession.drawing_type === 'electrical_panel' && 'YOLO 심볼 검출'}
+                  {currentSession.drawing_type === 'dimension_bom' && 'OCR + 수동 라벨링'}
+                  {currentSession.drawing_type === 'pid' && 'P&ID 심볼 + 라인'}
+                  {currentSession.drawing_type === 'assembly' && 'YOLO + OCR'}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* VLM 도면 분류 (Phase 4) - auto인 경우에만 표시 */}
+          {currentSession && imageData && showClassifier && (!currentSession.drawing_type || currentSession.drawing_type === 'auto') && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <DrawingClassifier
+                sessionId={currentSession.session_id}
+                imageBase64={imageData.replace(/^data:image\/[a-z]+;base64,/, '')}
+                onClassificationComplete={(result) => {
+                  setClassification({
+                    drawing_type: result.drawing_type,
+                    confidence: result.confidence,
+                    suggested_preset: result.suggested_preset,
+                    provider: result.provider
+                  });
+                  console.log('Classification complete:', result);
+                }}
+                onPresetApply={(presetName) => {
+                  console.log('Preset applied:', presetName);
+                  // 분석 옵션 패널 열기
+                  setShowAnalysisOptions(true);
+                }}
+                apiBaseUrl={API_BASE_URL}
+              />
+              {classification && (
+                <div className="px-4 pb-4 flex justify-end">
+                  <button
+                    onClick={() => setShowClassifier(false)}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    분류 패널 숨기기
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 분류 결과 요약 (VLM 분류 완료 후 - auto인 경우에만) */}
+          {classification && !showClassifier && (!currentSession?.drawing_type || currentSession.drawing_type === 'auto') && (
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">
+                  {classification.drawing_type === 'mechanical_part' && '⚙️'}
+                  {classification.drawing_type === 'pid' && '🔧'}
+                  {classification.drawing_type === 'assembly' && '🔩'}
+                  {classification.drawing_type === 'electrical' && '⚡'}
+                  {classification.drawing_type === 'architectural' && '🏗️'}
+                  {classification.drawing_type === 'unknown' && '❓'}
+                </span>
+                <div>
+                  <span className="font-medium text-indigo-800 dark:text-indigo-200">
+                    {classification.drawing_type === 'mechanical_part' && '기계 부품도'}
+                    {classification.drawing_type === 'pid' && 'P&ID'}
+                    {classification.drawing_type === 'assembly' && '조립도'}
+                    {classification.drawing_type === 'electrical' && '전기 회로도'}
+                    {classification.drawing_type === 'architectural' && '건축 도면'}
+                    {classification.drawing_type === 'unknown' && '분류 불가'}
+                  </span>
+                  <span className="ml-2 text-sm text-indigo-600 dark:text-indigo-400">
+                    ({(classification.confidence * 100).toFixed(0)}% via {classification.provider})
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowClassifier(true)}
+                className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400"
+              >
+                다시 분류
+              </button>
+            </div>
+          )}
+
           {/* Section 1: AI 검출 결과 */}
           {detections.length > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               {/* Title with inline metrics (Streamlit style) */}
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-1">
                 🔍 AI 검출 결과
+                <InfoTooltip content={FEATURE_TOOLTIPS.detectionResults.description} position="right" />
                 {gtCompareResult && (
-                  <span className="text-base font-normal ml-2">
+                  <span className="text-base font-normal ml-2 flex items-center gap-1">
                     📊 파나시아 YOLOv11N - {stats.total}개 검출
-                    (F1: {gtCompareResult.metrics.f1_score.toFixed(1)}%,
-                    정밀도: {gtCompareResult.metrics.precision.toFixed(1)}%,
-                    재현율: {gtCompareResult.metrics.recall.toFixed(1)}%)
+                    (<span className="inline-flex items-center">F1: {gtCompareResult.metrics.f1_score.toFixed(1)}%<InfoTooltip content={FEATURE_TOOLTIPS.f1Score.description} position="bottom" iconSize={12} /></span>,
+                    <span className="inline-flex items-center ml-1">정밀도: {gtCompareResult.metrics.precision.toFixed(1)}%<InfoTooltip content={FEATURE_TOOLTIPS.precision.description} position="bottom" iconSize={12} /></span>,
+                    <span className="inline-flex items-center ml-1">재현율: {gtCompareResult.metrics.recall.toFixed(1)}%<InfoTooltip content={FEATURE_TOOLTIPS.recall.description} position="bottom" iconSize={12} /></span>)
                   </span>
                 )}
               </h2>
@@ -967,36 +1496,45 @@ export function WorkflowPage() {
           {detections.length > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">✅ 심볼 검증 및 수정</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                  ✅ 심볼 검증 및 수정
+                  <InfoTooltip content={FEATURE_TOOLTIPS.symbolVerification.description} position="right" />
+                </h2>
                 <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => approveAll()}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>처리 중...</span>
-                      </>
-                    ) : (
-                      <span>전체 승인</span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => rejectAll()}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>처리 중...</span>
-                      </>
-                    ) : (
-                      <span>전체 거부</span>
-                    )}
-                  </button>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => approveAll()}
+                      disabled={isLoading}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>처리 중...</span>
+                        </>
+                      ) : (
+                        <span>전체 승인</span>
+                      )}
+                    </button>
+                    <InfoTooltip content={FEATURE_TOOLTIPS.approveAll.description} position="bottom" iconSize={12} />
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => rejectAll()}
+                      disabled={isLoading}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>처리 중...</span>
+                        </>
+                      ) : (
+                        <span>전체 거부</span>
+                      )}
+                    </button>
+                    <InfoTooltip content={FEATURE_TOOLTIPS.rejectAll.description} position="bottom" iconSize={12} />
+                  </div>
                 </div>
               </div>
 
@@ -1010,6 +1548,7 @@ export function WorkflowPage() {
                     className="rounded"
                   />
                   <span className="text-sm">🏷️ GT 이미지 표시</span>
+                  <InfoTooltip content={FEATURE_TOOLTIPS.showGT.description} position="bottom" iconSize={12} />
                 </label>
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
@@ -1019,13 +1558,17 @@ export function WorkflowPage() {
                     className="rounded"
                   />
                   <span className="text-sm">📚 참조 이미지 표시</span>
+                  <InfoTooltip content={FEATURE_TOOLTIPS.showReference.description} position="bottom" iconSize={12} />
                 </label>
-                <button
-                  onClick={() => setShowManualLabel(!showManualLabel)}
-                  className="text-sm text-primary-600 hover:text-primary-700"
-                >
-                  ✏️ 수작업 라벨 추가
-                </button>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setShowManualLabel(!showManualLabel)}
+                    className="text-sm text-primary-600 hover:text-primary-700"
+                  >
+                    ✏️ 수작업 라벨 추가
+                  </button>
+                  <InfoTooltip content={FEATURE_TOOLTIPS.manualLabel.description} position="bottom" iconSize={12} />
+                </div>
               </div>
 
               {/* Manual Label Section */}
@@ -1064,7 +1607,7 @@ export function WorkflowPage() {
                             bbox: d.bbox,
                             label: d.modified_class_name || d.class_name,
                             color: d.verification_status === 'manual' ? '#a855f7' :
-                                   d.verification_status === 'modified' ? '#f97316' : '#22c55e'
+                              d.verification_status === 'modified' ? '#f97316' : '#22c55e'
                           }))
                       }
                       onBoxDrawn={async (box) => {
@@ -1166,11 +1709,10 @@ export function WorkflowPage() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 text-sm rounded ${
-                        page === currentPage
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700'
-                      }`}
+                      className={`px-3 py-1 text-sm rounded ${page === currentPage
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700'
+                        }`}
                     >
                       {page}
                     </button>
@@ -1215,33 +1757,35 @@ export function WorkflowPage() {
                       (승인 + 수작업)
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      const finalCount = stats.approved + stats.manual;
-                      if (finalCount === 0) {
-                        alert('BOM에 포함할 항목이 없습니다.\n검출 결과를 승인하거나 수작업 라벨을 추가해주세요.');
-                        return;
-                      }
-                      setVerificationFinalized(true);
-                    }}
-                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                      verificationFinalized
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => {
+                        const finalCount = stats.approved + stats.manual;
+                        if (finalCount === 0) {
+                          alert('BOM에 포함할 항목이 없습니다.\n검출 결과를 승인하거나 수작업 라벨을 추가해주세요.');
+                          return;
+                        }
+                        setVerificationFinalized(true);
+                      }}
+                      className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all ${verificationFinalized
                         ? 'bg-green-100 text-green-700 border-2 border-green-500'
                         : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {verificationFinalized ? (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        <span>검증 완료됨</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        <span>검증 완료</span>
-                      </>
-                    )}
-                  </button>
+                        }`}
+                    >
+                      {verificationFinalized ? (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          <span>검증 완료됨</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          <span>검증 완료</span>
+                        </>
+                      )}
+                    </button>
+                    <InfoTooltip content={FEATURE_TOOLTIPS.verificationComplete.description} position="left" iconSize={14} />
+                  </div>
                 </div>
                 {verificationFinalized && (
                   <p className="mt-2 text-sm text-green-600 dark:text-green-400">
@@ -1249,6 +1793,308 @@ export function WorkflowPage() {
                   </p>
                 )}
               </div>
+            </section>
+          )}
+
+          {/* Section 4.5: 치수 OCR 결과 (dimensions이 있을 때만 표시) */}
+          {dimensions.length > 0 && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  📏 치수 OCR 결과
+                  <span className="text-base font-normal text-gray-500 ml-2">
+                    ({dimensions.length}개 치수)
+                  </span>
+                </h2>
+                {isRunningAnalysis && (
+                  <div className="flex items-center text-primary-600">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-sm">분석 중...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 뷰 모드 토글 */}
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => setShowVerificationQueue(false)}
+                  className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
+                    !showVerificationQueue
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  치수 목록
+                </button>
+                <button
+                  onClick={() => setShowVerificationQueue(true)}
+                  className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
+                    showVerificationQueue
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  Active Learning 큐
+                </button>
+              </div>
+
+              {/* Dimension List 또는 Verification Queue */}
+              {!showVerificationQueue ? (
+                <DimensionList
+                  dimensions={dimensions}
+                  stats={dimensionStats || undefined}
+                  onVerify={handleDimensionVerify}
+                  onEdit={handleDimensionEdit}
+                  onDelete={handleDimensionDelete}
+                  onBulkApprove={handleBulkApproveDimensions}
+                  onHover={(id) => setSelectedDimensionId(id)}
+                  selectedId={selectedDimensionId}
+                />
+              ) : currentSession?.session_id ? (
+                <VerificationQueue
+                  sessionId={currentSession.session_id}
+                  itemType="dimension"
+                  onVerify={(itemId, action) => {
+                    console.log(`Verified ${itemId}: ${action}`);
+                    // 치수 목록 새로고침
+                    axios.get(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}`)
+                      .then(({ data }) => {
+                        setDimensions(data.dimensions || []);
+                        setDimensionStats(data.stats || null);
+                      });
+                  }}
+                  onAutoApprove={() => {
+                    // 자동 승인 후 새로고침
+                    axios.get(`${API_BASE_URL}/analysis/dimensions/${currentSession.session_id}`)
+                      .then(({ data }) => {
+                        setDimensions(data.dimensions || []);
+                        setDimensionStats(data.stats || null);
+                      });
+                  }}
+                  onItemSelect={(itemId) => setSelectedDimensionId(itemId)}
+                  apiBaseUrl={API_BASE_URL}
+                />
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  세션을 선택해주세요
+                </div>
+              )}
+
+              {/* 치수 요약 */}
+              {dimensionStats && (
+                <div className="mt-4 grid grid-cols-5 gap-2 text-sm">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 text-center">
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{dimensions.length}</p>
+                    <p className="text-xs text-gray-500">총 치수</p>
+                  </div>
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded p-2 text-center">
+                    <p className="text-lg font-bold text-yellow-600">{dimensionStats.pending}</p>
+                    <p className="text-xs text-gray-500">대기</p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded p-2 text-center">
+                    <p className="text-lg font-bold text-green-600">{dimensionStats.approved}</p>
+                    <p className="text-xs text-gray-500">승인</p>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded p-2 text-center">
+                    <p className="text-lg font-bold text-red-600">{dimensionStats.rejected}</p>
+                    <p className="text-xs text-gray-500">거부</p>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-2 text-center">
+                    <p className="text-lg font-bold text-blue-600">{dimensionStats.modified + dimensionStats.manual}</p>
+                    <p className="text-xs text-gray-500">수정</p>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Section 4.7: 선 검출 결과 */}
+          {currentSession && imageData && imageSize && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                  📐 선 검출
+                  <InfoTooltip content={FEATURE_TOOLTIPS.lineDetection.description} position="right" />
+                  {lines.length > 0 && (
+                    <span className="text-base font-normal text-gray-500 ml-2">
+                      ({lines.length}개 선, {intersections.length}개 교차점)
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center gap-2">
+                  {lines.length > 0 && (
+                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={showLines}
+                        onChange={(e) => setShowLines(e.target.checked)}
+                        className="rounded text-primary-600"
+                      />
+                      선 표시
+                    </label>
+                  )}
+                  <button
+                    onClick={handleRunLineDetection}
+                    disabled={isRunningLineDetection}
+                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isRunningLineDetection ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>검출 중...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Ruler className="w-4 h-4" />
+                        <span>선 검출</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* 선 검출 결과 표시 */}
+              {lines.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 이미지 + 선 오버레이 */}
+                  <div className="relative border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700" style={{ height: 400 }}>
+                    <img
+                      src={imageData}
+                      alt="Blueprint with lines"
+                      className="w-full h-full object-contain"
+                    />
+                    {showLines && (
+                      <div className="absolute top-0 left-0 w-full h-full">
+                        <IntegratedOverlay
+                          imageData={imageData}
+                          imageSize={imageSize}
+                          detections={detections}
+                          lines={lines}
+                          dimensions={dimensions}
+                          intersections={intersections}
+                          links={links}
+                          maxWidth="100%"
+                          maxHeight={400}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 선 유형별 통계 */}
+                  <div className="grid grid-cols-4 gap-2 text-sm">
+                    {Object.entries(
+                      lines.reduce((acc, line) => {
+                        acc[line.line_type] = (acc[line.line_type] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)
+                    ).slice(0, 4).map(([type, count]) => (
+                      <div key={type} className="bg-gray-50 dark:bg-gray-700 rounded p-2 text-center">
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">{count}</p>
+                        <p className="text-xs text-gray-500">{type}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 치수-심볼 연결 버튼 */}
+                  {dimensions.length > 0 && detections.length > 0 && (
+                    <button
+                      onClick={handleLinkDimensionsToSymbols}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>치수 → 심볼 자동 연결</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Ruler className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                  <p>선 검출을 실행하여 도면의 선을 분석하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">치수선, 배관, 신호선 등을 자동으로 분류합니다</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Section 4.5: Phase 2 - 치수-객체 관계 (치수가 있을 때 표시) */}
+          {currentSession && dimensions.length > 0 && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🔗 치수-객체 관계
+                  <InfoTooltip content={FEATURE_TOOLTIPS.dimensionRelation.description} position="right" />
+                  {relations.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+                      {relations.length}개
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center gap-2">
+                  {/* 토글 버튼 */}
+                  <button
+                    onClick={() => setShowRelations(!showRelations)}
+                    className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                      showRelations
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                    }`}
+                  >
+                    {showRelations ? '관계선 표시' : '관계선 숨김'}
+                  </button>
+                  {/* 추출 버튼 */}
+                  <button
+                    onClick={handleExtractRelations}
+                    disabled={isExtractingRelations}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isExtractingRelations ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        추출 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3 h-3" />
+                        관계 재추출
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* 이미지 + 관계 오버레이 */}
+              {imageData && imageSize && relations.length > 0 && showRelations && (
+                <div className="relative border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 mb-4" style={{ height: 350 }}>
+                  <img
+                    src={imageData}
+                    alt="Blueprint with relations"
+                    className="w-full h-full object-contain"
+                  />
+                  <RelationOverlay
+                    relations={relations}
+                    dimensions={dimensions.map(d => ({ id: d.id, bbox: d.bbox, value: d.value }))}
+                    detections={detections}
+                    imageSize={imageSize}
+                    containerSize={{ width: 600, height: 350 }}
+                    selectedDimensionId={selectedDimensionId}
+                    showLabels={true}
+                    showConfidence={true}
+                  />
+                </div>
+              )}
+
+              {/* 관계 목록 */}
+              <RelationList
+                relations={relations}
+                statistics={relationStats}
+                dimensions={dimensions.map(d => ({ id: d.id, value: d.value, bbox: d.bbox }))}
+                detections={detections}
+                onManualLink={handleManualLink}
+                onDeleteRelation={handleDeleteRelation}
+                onSelectDimension={(id) => setSelectedDimensionId(id)}
+                selectedDimensionId={selectedDimensionId}
+                isLoading={isExtractingRelations}
+              />
             </section>
           )}
 
@@ -1530,25 +2376,34 @@ export function WorkflowPage() {
           {verificationFinalized && detections.length > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 BOM 생성 및 내보내기</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                  📊 BOM 생성 및 내보내기
+                  <InfoTooltip content={FEATURE_TOOLTIPS.bomGeneration.description} position="right" />
+                </h2>
                 <div className="flex items-center space-x-3">
-                  <select
-                    value={exportFormat}
-                    onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                  >
-                    <option value="excel">Excel (.xlsx)</option>
-                    <option value="csv">CSV</option>
-                    <option value="json">JSON</option>
-                  </select>
-                  <button
-                    onClick={handleGenerateBOM}
-                    disabled={isLoading || stats.approved === 0}
-                    className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                  >
-                    <FileSpreadsheet className="w-5 h-5" />
-                    <span>BOM 생성</span>
-                  </button>
+                  <div className="flex items-center">
+                    <select
+                      value={exportFormat}
+                      onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                    >
+                      <option value="excel">Excel (.xlsx)</option>
+                      <option value="csv">CSV</option>
+                      <option value="json">JSON</option>
+                    </select>
+                    <InfoTooltip content={FEATURE_TOOLTIPS.exportFormat.description} position="bottom" iconSize={12} />
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      onClick={handleGenerateBOM}
+                      disabled={isLoading || stats.approved === 0}
+                      className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      <FileSpreadsheet className="w-5 h-5" />
+                      <span>BOM 생성</span>
+                    </button>
+                    <InfoTooltip content={FEATURE_TOOLTIPS.generateBOM.description} position="bottom" iconSize={12} />
+                  </div>
                 </div>
               </div>
 
@@ -1585,6 +2440,7 @@ export function WorkflowPage() {
                         <tr>
                           <th className="px-4 py-2 text-left">#</th>
                           <th className="px-4 py-2 text-left">품목명</th>
+                          <th className="px-4 py-2 text-left">치수 (규격)</th>
                           <th className="px-4 py-2 text-center">수량</th>
                           <th className="px-4 py-2 text-right">단가</th>
                           <th className="px-4 py-2 text-right">금액</th>
@@ -1595,6 +2451,19 @@ export function WorkflowPage() {
                           <tr key={idx} className="border-b border-gray-200 dark:border-gray-700">
                             <td className="px-4 py-2">{idx + 1}</td>
                             <td className="px-4 py-2 font-medium">{item.class_name}</td>
+                            <td className="px-4 py-2">
+                              {item.dimensions && item.dimensions.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {item.dimensions.map((dim, i) => (
+                                    <span key={i} className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-600 rounded text-xs whitespace-nowrap">
+                                      {dim}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-xs">-</span>
+                              )}
+                            </td>
                             <td className="px-4 py-2 text-center">{item.quantity}</td>
                             <td className="px-4 py-2 text-right">{item.unit_price?.toLocaleString() || '-'}</td>
                             <td className="px-4 py-2 text-right">{item.total_price?.toLocaleString() || '-'}</td>
@@ -1603,7 +2472,7 @@ export function WorkflowPage() {
                       </tbody>
                       <tfoot className="bg-gray-50 dark:bg-gray-700 font-bold">
                         <tr>
-                          <td colSpan={2} className="px-4 py-2">합계</td>
+                          <td colSpan={3} className="px-4 py-2">합계</td>
                           <td className="px-4 py-2 text-center">{bomData.summary.total_quantity}</td>
                           <td className="px-4 py-2"></td>
                           <td className="px-4 py-2 text-right">{bomData.summary.total?.toLocaleString() || '-'}</td>
@@ -1710,7 +2579,7 @@ export function WorkflowPage() {
       </main>
 
       {/* 📚 심볼 참조 패널 (오른쪽 고정) */}
-      <ReferencePanel onClose={() => {}} />
+      <ReferencePanel onClose={() => { }} />
     </div>
   );
 }

@@ -54,6 +54,7 @@ class APIRegistry:
         self.apis: Dict[str, APIMetadata] = {}
         self._health_check_interval = 60  # 60초마다 헬스체크
         self._health_check_task: Optional[asyncio.Task] = None
+        self._health_check_started = False  # 중복 시작 방지 플래그
 
         # 기본 API 포트 목록 (자동 검색용)
         self.default_ports = [
@@ -69,12 +70,48 @@ class APIRegistry:
         # 추가 검색 포트 범위 (사용자 정의 API용)
         self.custom_port_range = range(5007, 5020)
 
-    def load_from_specs(self, host: str = "localhost") -> List[APIMetadata]:
+        # Docker 컨테이너 호스트명 매핑 (API ID -> Docker hostname)
+        # YAML 스펙 ID와 API의 /api/v1/info 반환 ID 모두 매핑
+        self.docker_host_mapping = {
+            # YOLO - YAML: yolo, API info: yolo-detector
+            "yolo": "yolo-api",
+            "yolo-detector": "yolo-api",
+            "yolo-pid": "yolo-pid-api",
+            # eDOCr2 - YAML: edocr2, API info: edocr2-v2
+            "edocr2": "edocr2-v2-api",
+            "edocr2-v2": "edocr2-v2-api",
+            # 기타 API (YAML ID와 API info ID 동일)
+            "edgnet": "edgnet-api",
+            "skinmodel": "skinmodel-api",
+            "paddleocr": "paddleocr-api",
+            "vl": "vl-api",
+            "knowledge": "knowledge-api",
+            "tesseract": "tesseract-api",
+            "trocr": "trocr-api",
+            "esrgan": "esrgan-api",
+            "ocr-ensemble": "ocr-ensemble-api",
+            "suryaocr": "suryaocr-api",
+            "doctr": "doctr-api",
+            "easyocr": "easyocr-api",
+            "line-detector": "line-detector-api",
+            "linedetector": "line-detector-api",
+            "pid-analyzer": "pid-analyzer-api",
+            "pidanalyzer": "pid-analyzer-api",
+            "design-checker": "design-checker-api",
+            "designchecker": "design-checker-api",
+            "blueprint-ai-bom": "blueprint-ai-bom-backend",
+        }
+
+        # 스펙별 healthEndpoint 저장 (load_from_specs에서 설정)
+        self.health_endpoints: Dict[str, str] = {}
+
+    def load_from_specs(self, host: str = "localhost", use_docker_hosts: bool = True) -> List[APIMetadata]:
         """
         YAML 스펙 파일에서 API 메타데이터 로드
 
         Args:
             host: API 서버 호스트 (기본: localhost)
+            use_docker_hosts: Docker 컨테이너 이름 사용 여부 (기본: True)
 
         Returns:
             로드된 API 목록
@@ -100,13 +137,32 @@ class APIRegistry:
                 api_id = metadata.get("id", spec_file.stem)
                 port = metadata.get("port", 5000)
 
+                # Docker 환경에서는 컨테이너 이름 사용
+                if use_docker_hosts and api_id in self.docker_host_mapping:
+                    effective_host = self.docker_host_mapping[api_id]
+                else:
+                    effective_host = host
+
+                # healthEndpoint 저장 (기본값: /api/v1/health)
+                health_endpoint = server.get("healthEndpoint", "/api/v1/health")
+                self.health_endpoints[api_id] = health_endpoint
+
+                # 대체 ID에도 동일한 healthEndpoint 저장 (API info ID와 YAML ID 불일치 대응)
+                # 예: edocr2 -> edocr2-v2, yolo -> yolo-detector
+                alt_id_mapping = {
+                    "edocr2": "edocr2-v2",
+                    "yolo": "yolo-detector",
+                }
+                if api_id in alt_id_mapping:
+                    self.health_endpoints[alt_id_mapping[api_id]] = health_endpoint
+
                 api_metadata = APIMetadata(
                     id=api_id,
                     name=metadata.get("name", api_id),
                     display_name=spec.get("i18n", {}).get("ko", {}).get("label", metadata.get("name", api_id)),
                     version=metadata.get("version", "1.0.0"),
                     description=metadata.get("description", ""),
-                    base_url=f"http://{host}:{port}",
+                    base_url=f"http://{effective_host}:{port}",
                     endpoint=server.get("endpoint", "/api/v1/process"),
                     port=port,
                     method=server.get("method", "POST"),
@@ -124,7 +180,7 @@ class APIRegistry:
 
                 loaded.append(api_metadata)
                 self.apis[api_id] = api_metadata
-                logger.info(f"✅ 스펙에서 로드: {api_metadata.display_name}")
+                logger.info(f"✅ 스펙에서 로드: {api_metadata.display_name} ({effective_host}:{port})")
 
             except Exception as e:
                 logger.error(f"스펙 로드 실패 {spec_file}: {e}")
@@ -281,7 +337,16 @@ class APIRegistry:
             return "unknown"
 
         api = self.apis[api_id]
-        health_url = f"{api.base_url}/api/v1/health"
+
+        # base_url에서 localhost를 Docker 호스트명으로 변환
+        base_url = api.base_url
+        if "localhost" in base_url and api_id in self.docker_host_mapping:
+            docker_host = self.docker_host_mapping[api_id]
+            base_url = base_url.replace("localhost", docker_host)
+
+        # 스펙에서 설정된 healthEndpoint 사용, 없으면 기본값 /api/v1/health
+        health_endpoint = self.health_endpoints.get(api_id, "/api/v1/health")
+        health_url = f"{base_url}{health_endpoint}"
 
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -295,7 +360,7 @@ class APIRegistry:
                     api.last_check = datetime.now()
                     return "unhealthy"
         except Exception as e:
-            logger.warning(f"API {api_id} 헬스체크 실패: {e}")
+            logger.warning(f"API {api_id} 헬스체크 실패 ({health_url}): {e}")
             api.status = "unhealthy"
             api.last_check = datetime.now()
             return "unhealthy"
@@ -326,8 +391,14 @@ class APIRegistry:
             await asyncio.sleep(self._health_check_interval)
 
     def start_health_check_background(self):
-        """백그라운드 헬스체크 태스크 시작"""
+        """백그라운드 헬스체크 태스크 시작 (중복 시작 방지)"""
+        # 이미 시작된 경우 무시
+        if self._health_check_started:
+            logger.debug("⚠️ 헬스체크 태스크 이미 실행 중 (중복 시작 방지)")
+            return
+
         if self._health_check_task is None or self._health_check_task.done():
+            self._health_check_started = True
             self._health_check_task = asyncio.create_task(self.start_health_check_loop())
             logger.info("✅ 백그라운드 헬스체크 태스크 시작됨")
 

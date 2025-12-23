@@ -2,81 +2,30 @@
 
 이 디렉토리에는 도면 OCR 및 제조 견적 자동화 시스템을 위한 커스텀 Skills가 포함되어 있습니다.
 
-## 📚 사용 가능한 Skills
+## 📚 사용 가능한 Skills (5개)
 
-### 1. **doc-updater** - 문서 자동 업데이트
-**용도**: 코드 변경 사항을 추적하고 프로젝트 문서를 자동으로 업데이트
+### 1. **feature-implementer** - 단계별 기능 구현 ⭐ NEW
+**용도**: 계획 문서 기반 단계별 기능 구현 및 리스크 관리
 
-**실행 방법**:
-```
-/skill doc-updater
-```
+**자동 적용**: 다음 요청 시 자동 적용됨
+- "새 기능 구현해줘"
+- "이 계획대로 구현해줘"
+- ".todos/에 있는 계획 실행해줘"
 
 **주요 기능**:
-- 최근 변경된 파일 자동 탐지
-- CLAUDE.md 최근 구현 내역 업데이트
-- 버전 번호 및 날짜 자동 갱신
-- CHANGELOG 생성
-- API 문서 자동 생성
-- **Dashboard 설정 파일 동기화 검사** (신규 API 누락 감지)
-
-**언제 사용하나요?**
-- 새로운 기능 추가 후
-- **새 API 추가 후 (Dashboard 설정 파일 검사)**
-- 버그 수정 후
-- 주요 리팩토링 완료 후
-- 매주 금요일 정기 업데이트
+- 계획 문서 파싱 및 진행 상태 추적
+- 단계별 실행 (Phase-by-Phase)
+- 각 단계 완료 후 사용자 승인 요청
+- Quality Gate 검증 (빌드, 테스트, 린트)
+- 리스크 평가 (🟢Low/🟡Medium/🟠High/🔴Critical)
+- Git 추적 파일 삭제 → 일반 확인 (복구 가능)
+- Git 미추적/DB 삭제 → 명시적 확인 (복구 불가)
+- Git 자동 커밋 생성
+- 중단 후 재개 가능
 
 ---
 
-### 2. **code-janitor** - 잔 오류 자동 수정
-**용도**: 코드 스멜, 베스트 프랙티스 위반, 잔 오류를 자동으로 탐지 및 수정
-
-**실행 방법**:
-```
-/skill code-janitor
-```
-
-**주요 기능**:
-- Python: 타입 힌트, 미사용 import, 긴 함수, 하드코딩 값
-- TypeScript: console.log, any 타입, useEffect 의존성, Key prop
-- Docker: 미사용 이미지/컨테이너, 로그 크기, Health check
-- 보안: 하드코딩 시크릿, SQL Injection, CORS 설정
-- 성능: 동기 I/O, 불필요한 재계산, 메모리 누수
-
-**언제 사용하나요?**
-- PR 생성 전 (코드 리뷰 준비)
-- 매일 아침 첫 작업 (하루 1회)
-- 배포 전 최종 점검
-- CI/CD 파이프라인에 통합
-
----
-
-### 3. **ux-enhancer** - UI/UX 고도화
-**용도**: 2025년 엔터프라이즈 UI/UX 베스트 프랙티스 적용
-
-**실행 방법**:
-```
-/skill ux-enhancer
-```
-
-**주요 기능**:
-- **Phase 1**: 파일 업로드 UX (드래그 앤 드롭, 진행률, 미리보기)
-- **Phase 2**: 분석 진행 상태 시각화 (단계별 진행률, 예상 시간)
-- **Phase 3**: 결과 시각화 (인터랙티브 차트, 다운로드)
-- **Phase 4**: 접근성 (WCAG 2.1 AA, 키보드 네비게이션, ARIA)
-- **Phase 5**: 다크모드 지원
-- **Phase 6**: 성능 최적화 (Skeleton, Lazy Loading)
-
-**언제 사용하나요?**
-- 신규 UI 컴포넌트 개발 시
-- 사용자 피드백 반영 시
-- 접근성 감사 후
-- 주요 릴리스 전
-
----
-
-### 4. **workflow-optimizer** - 워크플로우 최적화 ⭐ NEW
+### 2. **workflow-optimizer** - 워크플로우 최적화
 **용도**: 도면 유형 분석 및 최적 BlueprintFlow 파이프라인 자동 추천
 
 **실행 방법**:
@@ -96,12 +45,6 @@
 - 예상 성능 메트릭 제공 (처리 시간, 정확도, 메모리)
 - BlueprintFlow 템플릿 자동 생성
 
-**언제 사용하나요?**
-- 새로운 도면 유형 분석 시작 전 (필수!)
-- 현재 파이프라인 성능이 낮을 때
-- 속도/정확도 균형 최적화 필요 시
-- BlueprintFlow 템플릿 선택 시 도움 필요
-
 **시나리오별 예상 성능**:
 | 시나리오 | 속도 | 정확도 | 적합한 도면 |
 |---------|------|--------|------------|
@@ -113,171 +56,122 @@
 
 ---
 
-## 🚀 빠른 시작
+### 3. **doc-updater** - 문서 자동 업데이트
+**용도**: 코드 변경 사항을 추적하고 프로젝트 문서를 자동으로 업데이트
 
-### Skill 실행하기
-
-Claude Code 세션에서:
-
+**실행 방법**:
 ```
 /skill doc-updater
-/skill code-janitor
-/skill ux-enhancer
-/skill workflow-optimizer
 ```
 
-### 여러 Skills 연속 실행
+**주요 기능**:
+- 최근 변경된 파일 자동 탐지
+- CLAUDE.md 최근 구현 내역 업데이트
+- 버전 번호 및 날짜 자동 갱신
+- CHANGELOG 생성
+- API 문서 자동 생성
+- **Dashboard 설정 파일 동기화 검사** (신규 API 누락 감지)
 
-```bash
-# 배포 전 체크리스트
-1. /skill code-janitor  # 코드 품질 검사
-2. /skill doc-updater   # 문서 업데이트
-3. git add . && git commit -m "chore: Pre-deploy cleanup"
-
-# 새 도면 분석 시작 전
-1. /skill workflow-optimizer  # 최적 파이프라인 추천
-2. BlueprintFlow에서 추천 템플릿 적용
-3. 실제 도면으로 테스트
-```
+**언제 사용하나요?**
+- 새로운 기능 추가 후
+- 새 API 추가 후 (Dashboard 설정 파일 검사)
+- 버그 수정 후
+- 주요 리팩토링 완료 후
 
 ---
 
-## 📋 권장 워크플로우
+### 4. **code-janitor** - 잔 오류 자동 수정
+**용도**: 코드 스멜, 베스트 프랙티스 위반, 잔 오류를 자동으로 탐지 및 수정
 
-### 1. 일일 루틴 (매일 오전 9시)
-```bash
+**실행 방법**:
+```
+/skill code-janitor
 /skill code-janitor --auto-fix
-# → 코드 품질 보고서 확인
-# → Critical 이슈 즉시 수정
 ```
 
-### 2. 기능 개발 완료 후
-```bash
-# 1. 코드 정리
-/skill code-janitor
+**주요 기능**:
+- Python: 타입 힌트, 미사용 import, 긴 함수, 하드코딩 값
+- TypeScript: console.log, any 타입, useEffect 의존성, Key prop
+- Docker: 미사용 이미지/컨테이너, 로그 크기, Health check
+- 보안: 하드코딩 시크릿, SQL Injection, CORS 설정
+- 성능: 동기 I/O, 불필요한 재계산, 메모리 누수
 
-# 2. 문서 업데이트
-/skill doc-updater
+**언제 사용하나요?**
+- PR 생성 전 (코드 리뷰 준비)
+- 매일 아침 첫 작업
+- 배포 전 최종 점검
 
-# 3. PR 생성
-git push origin feature/new-feature
+---
+
+### 5. **ux-enhancer** - UI/UX 고도화
+**용도**: 2025년 엔터프라이즈 UI/UX 베스트 프랙티스 적용
+
+**실행 방법**:
 ```
-
-### 3. UI 개선 프로젝트
-```bash
-# Phase별로 순차 실행
 /skill ux-enhancer
-# → Phase 1 완료 후 테스트
-# → Phase 2 진행...
 ```
 
-### 4. 새 도면 유형 분석 프로젝트
-```bash
-# 1. 워크플로우 최적화 분석
-/skill workflow-optimizer
-# → 도면 유형 질문에 답변
-# → 추천 파이프라인 확인
+**주요 기능**:
+- **Phase 1**: 파일 업로드 UX (드래그 앤 드롭, 진행률, 미리보기)
+- **Phase 2**: 분석 진행 상태 시각화 (단계별 진행률, 예상 시간)
+- **Phase 3**: 결과 시각화 (인터랙티브 차트, 다운로드)
+- **Phase 4**: 접근성 (WCAG 2.1 AA, 키보드 네비게이션, ARIA)
+- **Phase 5**: 다크모드 지원
+- **Phase 6**: 에러 처리 & Graceful Degradation
+- **Phase 7**: 성능 최적화 (Skeleton, Lazy Loading)
 
-# 2. BlueprintFlow에서 적용
-http://localhost:5173/blueprintflow/builder
-# → 추천 템플릿 로드 (Template 5-8)
-# → 파라미터 조정
+---
 
-# 3. 실제 도면으로 테스트
-# → 성능 메트릭 확인
-# → 필요 시 파이프라인 조정
+## 🚀 자동 적용 방식
+
+스킬은 요청 내용에 따라 **자동으로 적용**됩니다:
+
+| 요청 예시 | 적용되는 스킬 |
+|-----------|--------------|
+| "새 기능 구현해줘" | feature-implementer |
+| "이 도면 분석해줘" | workflow-optimizer |
+| "문서 업데이트해줘" | doc-updater |
+| "코드 정리해줘" | code-janitor |
+| "UI 개선해줘" | ux-enhancer |
+
+### 권장 워크플로우
+
+#### 새 기능 구현 시
+```
+1. 계획 문서 작성 (.todos/에)
+2. "이 계획대로 구현해줘" → 자동으로 단계별 진행
+3. 각 Phase 완료 후 Quality Gate 검증
+4. 자동 Git 커밋
 ```
 
-### 5. 새 API 추가 완료 후 (필수 체크리스트)
-```bash
-# 1. 코드 생성 확인
-ls models/{api-id}-api/api_server.py
-ls gateway-api/api_specs/{api-id}.yaml
-
-# 2. Dashboard 파일 업데이트 확인 (누락 시 설정 페이지 오류 발생!)
-# → APIStatusMonitor.tsx의 DEFAULT_APIS
-# → APIDetail.tsx의 DEFAULT_APIS, HYPERPARAM_DEFINITIONS, DEFAULT_HYPERPARAMS
-
-# 3. 문서 업데이트
-/skill doc-updater
-# → Dashboard 동기화 검사 포함
-
-# 4. 빌드 & 테스트
-cd web-ui && npm run build && npm run test:run
+#### 새 도면 유형 분석 시
+```
+1. "이 도면 최적 파이프라인 추천해줘"
+2. BlueprintFlow에서 추천 템플릿 적용
+3. 테스트 후 성능 확인
 ```
 
-### 6. 릴리스 준비
-```bash
-# 1. 코드 품질 최종 점검
-/skill code-janitor --strict
-
-# 2. 문서 최종 업데이트
-/skill doc-updater
-
-# 3. CHANGELOG 확인
-cat /tmp/test_results/CHANGELOG_$(date +%Y-%m-%d).md
-
-# 4. 배포
-docker-compose build && docker-compose up -d
+#### 배포 준비 시
+```
+1. "코드 품질 검사해줘"
+2. "문서 업데이트해줘"
+3. 커밋 & 푸시
 ```
 
 ---
 
-## 🎯 각 Skill의 출력물
+## 📁 Templates
 
-### doc-updater 출력
-- `/tmp/test_results/CHANGELOG_YYYY-MM-DD.md`
-- 업데이트된 `CLAUDE.md`
-- 업데이트된 `README.md`
-- 버전 번호 증가
-
-### code-janitor 출력
-- `/tmp/test_results/CODE_QUALITY_YYYY-MM-DD.md`
-- 자동 수정된 코드 (git commit)
-- Linting 보고서
-- 성능 개선 제안
-
-### ux-enhancer 출력
-- 새로운 UI 컴포넌트 파일들
-- 업데이트된 `TestGateway.tsx`
-- 설치된 npm 패키지 목록
-- Lighthouse 성능 보고서
-
----
-
-## 💡 팁
-
-### 1. Skill 조합 사용
-```bash
-# UI 개선 후 자동으로 문서화
-/skill ux-enhancer && /skill doc-updater
+변경 요약 템플릿 사용 가능:
+```
+.claude/templates/change-summary-template.md
 ```
 
-### 2. 특정 서비스만 검사
-```bash
-# 추후 구현 예정
-/skill code-janitor --service gateway-api
-/skill doc-updater --file CLAUDE.md
-```
-
-### 3. Dry-run 모드
-```bash
-# 실제 변경 없이 미리보기
-/skill code-janitor --dry-run
-/skill doc-updater --preview
-```
-
----
-
-## 🔧 커스터마이징
-
-각 Skill은 `.md` 파일이므로 프로젝트에 맞게 수정 가능합니다:
-
-```bash
-vim .claude/skills/code-janitor.md
-# 검사 항목 추가/제거
-# 자동 수정 규칙 변경
-```
+기능 구현 시 자동으로 생성되는 변경 요약:
+- 파일 변경 목록 (Created/Modified/Deleted)
+- 리스크 레벨별 분류
+- Quality Gate 결과
+- Git 커밋 정보
 
 ---
 
@@ -285,32 +179,25 @@ vim .claude/skills/code-janitor.md
 
 | Skill | 시간 절감 | 품질 향상 |
 |-------|----------|----------|
-| **doc-updater** | 주 2시간 → 10분 (90% ↓) | 문서 최신성 100% |
-| **code-janitor** | 리뷰 1시간 → 20분 (67% ↓) | 버그 50% ↓ |
-| **ux-enhancer** | UI 개발 2주 → 1주 (50% ↓) | 사용성 점수 95+ |
+| **feature-implementer** | 구현 40% ↓ | 리스크 사전 인지 |
+| **workflow-optimizer** | 파이프라인 선택 80% ↓ | 정확도 +10% |
+| **doc-updater** | 문서화 90% ↓ | 최신성 100% |
+| **code-janitor** | 리뷰 67% ↓ | 버그 50% ↓ |
+| **ux-enhancer** | UI 개발 50% ↓ | 사용성 95+ |
 
 ---
 
-## 🐛 문제 해결
+## 🔧 리스크 레벨 가이드
 
-### Skill이 인식 안될 때
-```bash
-# Skills 디렉토리 확인
-ls -la /home/uproot/ax/poc/.claude/skills/
-
-# 파일 권한 확인
-chmod 644 /home/uproot/ax/poc/.claude/skills/*.md
-```
-
-### Skill 실행 오류
-```bash
-# 로그 확인
-# Claude Code 세션에서 오류 메시지 확인
-# 필요 시 Skill 파일의 문법 검사
-```
+| 레벨 | 아이콘 | 조건 | 요구 사항 |
+|------|--------|------|----------|
+| Low | 🟢 | 새 파일, 문서, 테스트 | 자동 진행 |
+| Medium | 🟡 | 기존 코드 수정, 설정 변경 | 사용자 승인 |
+| High | 🟠 | DB 변경, API 변경, 의존성 | 상세 검토 |
+| Critical | 🔴 | 파일 삭제, Breaking changes | 명시적 확인 |
 
 ---
 
-**마지막 업데이트**: 2025-12-10
-**버전**: 1.1.0
+**마지막 업데이트**: 2025-12-23
+**버전**: 2.0.0
 **작성자**: Claude Code

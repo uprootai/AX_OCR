@@ -17,17 +17,48 @@ import {
   LoopNode,
   MergeNode,
 } from '../../components/blueprintflow/nodes';
+import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 
 // Base node type mapping
 export const baseNodeTypes = {
+  // Input nodes
   imageinput: ImageInputNode,
   textinput: TextInputNode,
+
+  // Detection nodes
   yolo: YoloNode,
+  'yolo-pid': DynamicNode,
+
+  // OCR nodes
   edocr2: Edocr2Node,
-  edgnet: EdgnetNode,
-  skinmodel: SkinmodelNode,
   paddleocr: PaddleocrNode,
+  tesseract: DynamicNode,
+  trocr: DynamicNode,
+  'ocr-ensemble': DynamicNode,
+  suryaocr: DynamicNode,
+  doctr: DynamicNode,
+  easyocr: DynamicNode,
+
+  // Segmentation nodes
+  edgnet: EdgnetNode,
+  'line-detector': DynamicNode,
+
+  // Preprocessing nodes
+  esrgan: DynamicNode,
+
+  // Analysis nodes
+  skinmodel: SkinmodelNode,
+  'pid-analyzer': DynamicNode,
+  'design-checker': DynamicNode,
+  'blueprint-ai-bom': DynamicNode,
+
+  // Knowledge nodes
+  knowledge: DynamicNode,
+
+  // AI nodes
   vl: VlNode,
+
+  // Control nodes
   if: IfNode,
   loop: LoopNode,
   merge: MergeNode,
@@ -85,13 +116,61 @@ export const BLUEPRINT_SAMPLES: SampleFile[] = [
   }
 ];
 
-// MiniMap node colors
+// MiniMap node colors (by category)
 export const getNodeColor = (nodeType: string | undefined): string => {
   switch (nodeType) {
-    case 'imageinput': return '#22c55e';
-    case 'yolo': return '#3b82f6';
-    case 'edocr2': return '#8b5cf6';
-    case 'skinmodel': return '#f59e0b';
-    default: return '#6b7280';
+    // Input - green
+    case 'imageinput':
+    case 'textinput':
+      return '#22c55e';
+
+    // Detection - blue
+    case 'yolo':
+    case 'yolo-pid':
+      return '#3b82f6';
+
+    // OCR - purple
+    case 'edocr2':
+    case 'paddleocr':
+    case 'tesseract':
+    case 'trocr':
+    case 'ocr-ensemble':
+    case 'suryaocr':
+    case 'doctr':
+    case 'easyocr':
+      return '#8b5cf6';
+
+    // Segmentation - cyan
+    case 'edgnet':
+    case 'line-detector':
+      return '#06b6d4';
+
+    // Preprocessing - pink
+    case 'esrgan':
+      return '#ec4899';
+
+    // Analysis - orange/amber
+    case 'skinmodel':
+    case 'pid-analyzer':
+    case 'design-checker':
+    case 'blueprint-ai-bom':
+      return '#f59e0b';
+
+    // Knowledge - teal
+    case 'knowledge':
+      return '#14b8a6';
+
+    // AI - indigo
+    case 'vl':
+      return '#6366f1';
+
+    // Control - gray
+    case 'if':
+    case 'loop':
+    case 'merge':
+      return '#64748b';
+
+    default:
+      return '#6b7280';
   }
 };

@@ -29,29 +29,41 @@ export function useContainerStatus({ onExecute }: UseContainerStatusOptions) {
 
       if (containerNodes.length === 0) return [];
 
-      // Fetch container status from Gateway API (lightweight endpoint - no stats)
-      const response = await fetch('http://localhost:8000/api/v1/containers/status');
-      if (!response.ok) throw new Error('Failed to fetch container status');
+      // Fetch container status from Gateway API with timeout (5초)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const data = await response.json();
-      const containers = data.containers || [];
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/containers/status', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-      // Check which required containers are not running
-      const stoppedContainers: string[] = [];
-      containerNodes.forEach(nodeType => {
-        const containerName = NODE_TO_CONTAINER[nodeType];
-        if (containerName) {
-          const container = containers.find((c: { name: string }) => c.name === containerName);
-          if (!container || container.status !== 'running') {
-            stoppedContainers.push(containerName);
+        if (!response.ok) throw new Error('Failed to fetch container status');
+
+        const data = await response.json();
+        const containers = data.containers || [];
+
+        // Check which required containers are not running
+        const stoppedContainers: string[] = [];
+        containerNodes.forEach(nodeType => {
+          const containerName = NODE_TO_CONTAINER[nodeType];
+          if (containerName) {
+            const container = containers.find((c: { name: string }) => c.name === containerName);
+            if (!container || container.status !== 'running') {
+              stoppedContainers.push(containerName);
+            }
           }
-        }
-      });
+        });
 
-      return stoppedContainers;
+        return stoppedContainers;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
     } catch (error) {
       console.error('Failed to check container status:', error);
-      return []; // Continue execution if check fails
+      return []; // Continue execution if check fails (타임아웃 포함)
     }
   }, []);
 
@@ -96,6 +108,8 @@ export function useContainerStatus({ onExecute }: UseContainerStatusOptions) {
     try {
       const stoppedContainers = await checkContainerStatus(nodes);
       if (stoppedContainers.length > 0) {
+        // 모달 열기 전에 체크 상태 리셋 (모달이 열리면 버튼이 정상 상태로 돌아가야 함)
+        setIsCheckingContainers(false);
         setContainerWarningModal({
           isOpen: true,
           stoppedContainers,
@@ -104,8 +118,16 @@ export function useContainerStatus({ onExecute }: UseContainerStatusOptions) {
         return;
       }
 
-      await onExecute();
-    } finally {
+      // 컨테이너 확인 완료 - 실행 시작 전에 상태 리셋
+      // (onExecute는 SSE 스트리밍으로 오래 걸릴 수 있어 먼저 리셋)
+      setIsCheckingContainers(false);
+
+      // 워크플로우 실행 (비동기, 완료를 기다리지 않음)
+      onExecute().catch(error => {
+        console.error('Workflow execution failed:', error);
+      });
+    } catch (error) {
+      console.error('Container check failed:', error);
       setIsCheckingContainers(false);
     }
   }, [checkContainerStatus, onExecute]);

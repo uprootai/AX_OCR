@@ -133,7 +133,11 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
 
         data = result.get("data", {})
         visualization = data.get("visualization", "")
-        return {
+
+        # 원본 이미지 패스스루 (후속 노드에서 필요) - 시각화가 아닌 원본
+        original_image = image_base64 if image_base64 else visualization
+
+        output = {
             # 입력 데이터 전달 (다음 노드에서 사용)
             "symbols": symbols,  # YOLO-PID에서 받은 symbols 전달
             "detections": symbols,  # 별칭
@@ -146,9 +150,15 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
             "equipment_list": data.get("equipment_list", []),
             "statistics": data.get("statistics", {}),
             "visualized_image": visualization,  # 프론트엔드 호환 필드명
-            "image": visualization,  # 대체 필드명
+            "image": original_image,  # 원본 이미지 패스스루
             "processing_time": result.get("processing_time", 0)
         }
+
+        # drawing_type 패스스루 (BOM 세션 생성에 필요)
+        if inputs.get("drawing_type"):
+            output["drawing_type"] = inputs["drawing_type"]
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
