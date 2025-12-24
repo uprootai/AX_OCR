@@ -89,6 +89,7 @@ const docStructure: DocFile[] = [
       { name: 'SkinModel', path: '/docs/api/skinmodel/parameters.md', type: 'file' },
       { name: 'PID Analyzer', path: '/docs/api/pid-analyzer/parameters.md', type: 'file' },
       { name: 'Design Checker', path: '/docs/api/design-checker/parameters.md', type: 'file' },
+      { name: 'Blueprint AI BOM', path: '/docs/api/blueprint-ai-bom/parameters.md', type: 'file' },
       // Knowledge & AI
       { name: 'Knowledge', path: '/docs/api/knowledge/parameters.md', type: 'file' },
       { name: 'VL', path: '/docs/api/vl/parameters.md', type: 'file' },

@@ -10,7 +10,10 @@ export default defineConfig({
     host: true,
     fs: {
       // Allow serving files from the parent docs folder via symlinks
-      allow: ['..'],
+      // Paths are relative to vite.config.ts (web-ui/)
+      // '../docs' = /home/uproot/ax/poc/docs/
+      allow: ['..', '../docs'],
+      strict: false,
     },
   },
   build: {

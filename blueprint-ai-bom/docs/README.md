@@ -1,7 +1,7 @@
 # Blueprint AI BOM 문서
 
 > **최종 업데이트**: 2025-12-23
-> **버전**: v5.0
+> **버전**: v8.0
 
 ---
 
@@ -14,18 +14,20 @@ docs/
 │   └── reference.md       # API 레퍼런스
 ├── features/              # 기능 문서
 │   ├── active_learning.md # Active Learning 검증 큐
+│   ├── feedback_pipeline.md # Feedback Loop Pipeline
 │   ├── gdt_parser.md      # GD&T 파서
-│   ├── ocr_optimization.md# OCR 최적화
-│   └── ocr_performance.md # OCR 성능 분석
+│   ├── ocr_optimization.md# OCR 최적화 (과거 분석)
+│   └── ocr_performance.md # OCR 성능 분석 (과거 분석)
 ├── deployment/            # 배포 문서
 │   ├── setup.md           # 설치 가이드
-│   ├── model_download.md  # 모델 다운로드
-│   ├── claude_guidelines.md
-│   └── claude_usage.md
-└── migration/             # 마이그레이션 문서
-    ├── overview_comparison.md
-    ├── step_by_step.md
-    └── ...
+│   ├── on-premises.md     # 온프레미스 배포
+│   └── model_download.md  # 모델 다운로드
+├── migration/             # 마이그레이션 문서
+│   ├── overview_comparison.md
+│   ├── step_by_step.md
+│   └── ...
+└── archive/               # 구식 문서 보관
+    └── README.md
 ```
 
 ---
@@ -37,6 +39,7 @@ docs/
 | 문서 | 설명 |
 |------|------|
 | [Active Learning](features/active_learning.md) | 검증 큐 시스템 |
+| [Feedback Pipeline](features/feedback_pipeline.md) | YOLO 재학습 데이터셋 내보내기 |
 | [GD&T Parser](features/gdt_parser.md) | 기하공차 파싱 |
 | [OCR Optimization](features/ocr_optimization.md) | OCR 최적화 결과 |
 | [OCR Performance](features/ocr_performance.md) | OCR 성능 분석 |
@@ -54,6 +57,7 @@ docs/
 | 문서 | 설명 |
 |------|------|
 | [Setup](deployment/setup.md) | 설치 가이드 |
+| [On-Premises](deployment/on-premises.md) | 온프레미스 배포 |
 | [Model Download](deployment/model_download.md) | 모델 다운로드 |
 
 ---
@@ -86,12 +90,18 @@ docs/
 - 검증된 검출 집계
 - Excel/CSV/JSON/PDF 내보내기
 
+### 7. Feedback Loop Pipeline
+- 검증된 데이터 YOLO 형식 내보내기
+- 모델 재학습용 데이터셋 생성
+- 클래스별 분포 분석
+
 ---
 
 ## 버전 히스토리
 
 | 버전 | 날짜 | 변경 |
 |------|------|------|
+| v8.0 | 2025-12-23 | Feedback Loop Pipeline, 온프레미스 배포 |
 | v5.0 | 2025-12-23 | Active Learning, TypedDict |
 | v4.0 | 2025-12-19 | GD&T 파서, 치수-심볼 관계 |
 | v3.0 | 2025-12-14 | React 전환 완료 |

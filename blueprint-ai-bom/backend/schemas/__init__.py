@@ -11,6 +11,8 @@ Pydantic 모델 정의
 - Relation: 치수선 기반 관계 추출 (Phase 2)
 - Region: 영역 분할 (Phase 5)
 - GDT: 기하공차 파싱 (Phase 7)
+- Feedback: 피드백 루프 파이프라인 (Phase 8)
+- Verification: Active Learning 검증 (Phase 8)
 """
 
 from .session import SessionStatus, SessionCreate, SessionResponse, SessionDetail
@@ -136,6 +138,31 @@ from .typed_dicts import (
     StatisticsDict,
     VerificationStatsDict,
 )
+from .feedback import (
+    ExportRequest,
+    ExportResponse,
+    FeedbackStatsResponse,
+    SessionStats,
+    VerifiedSession,
+    VerifiedSessionsResponse,
+    ExportInfo,
+    ExportListResponse,
+    FeedbackHealthResponse,
+)
+from .verification import (
+    VerificationAction,
+    BulkApproveRequest,
+    ThresholdUpdateRequest,
+    VerificationQueueResponse,
+    VerificationStatsResponse,
+    AutoApproveCandidatesResponse,
+    VerificationResultResponse,
+    BulkApproveResponse,
+    VerificationLogsResponse,
+    ThresholdsResponse,
+    ThresholdUpdateResponse,
+    TrainingDataResponse,
+)
 
 __all__ = [
     # Session
@@ -255,4 +282,27 @@ __all__ = [
     "SuccessResponse",
     "StatisticsDict",
     "VerificationStatsDict",
+    # Feedback (Phase 8)
+    "ExportRequest",
+    "ExportResponse",
+    "FeedbackStatsResponse",
+    "SessionStats",
+    "VerifiedSession",
+    "VerifiedSessionsResponse",
+    "ExportInfo",
+    "ExportListResponse",
+    "FeedbackHealthResponse",
+    # Verification (Phase 8)
+    "VerificationAction",
+    "BulkApproveRequest",
+    "ThresholdUpdateRequest",
+    "VerificationQueueResponse",
+    "VerificationStatsResponse",
+    "AutoApproveCandidatesResponse",
+    "VerificationResultResponse",
+    "BulkApproveResponse",
+    "VerificationLogsResponse",
+    "ThresholdsResponse",
+    "ThresholdUpdateResponse",
+    "TrainingDataResponse",
 ]

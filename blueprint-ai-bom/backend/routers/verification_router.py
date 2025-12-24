@@ -6,14 +6,24 @@
 - 검증 결과 로깅 (모델 재학습용)
 """
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import Optional
 
 from services.active_learning_service import (
     active_learning_service,
-    ActiveLearningService,
-    Priority
+)
+from schemas import (
+    VerificationAction,
+    BulkApproveRequest,
+    ThresholdUpdateRequest,
+    VerificationQueueResponse,
+    VerificationStatsResponse,
+    AutoApproveCandidatesResponse,
+    VerificationResultResponse,
+    BulkApproveResponse,
+    VerificationLogsResponse,
+    ThresholdsResponse,
+    ThresholdUpdateResponse,
+    TrainingDataResponse,
 )
 
 router = APIRouter(prefix="/verification", tags=["Verification"])
@@ -34,36 +44,13 @@ def get_session_service():
     return _session_service
 
 
-# ==================== Request/Response Models ====================
-
-class VerificationAction(BaseModel):
-    """검증 액션"""
-    item_id: str
-    item_type: str = Field(default="dimension", description="dimension 또는 symbol")
-    action: str = Field(description="approved, rejected, modified")
-    modified_data: Optional[Dict[str, Any]] = None
-    review_time_seconds: Optional[float] = None
-
-
-class BulkApproveRequest(BaseModel):
-    """일괄 승인 요청"""
-    item_ids: List[str]
-    item_type: str = "dimension"
-
-
-class ThresholdUpdateRequest(BaseModel):
-    """임계값 업데이트"""
-    auto_approve_threshold: Optional[float] = Field(None, ge=0.5, le=1.0)
-    critical_threshold: Optional[float] = Field(None, ge=0.0, le=0.9)
-
-
 # ==================== Endpoints ====================
 
-@router.get("/queue/{session_id}")
+@router.get("/queue/{session_id}", response_model=VerificationQueueResponse)
 async def get_verification_queue(
     session_id: str,
     item_type: str = "dimension"
-) -> Dict[str, Any]:
+):
     """
     검증 큐 조회
 
@@ -91,20 +78,20 @@ async def get_verification_queue(
     # 통계
     stats = active_learning_service.get_verification_stats(items, item_type)
 
-    return {
-        "session_id": session_id,
-        "item_type": item_type,
-        "queue": [item.to_dict() for item in queue],
-        "stats": stats,
-        "thresholds": active_learning_service.thresholds
-    }
+    return VerificationQueueResponse(
+        session_id=session_id,
+        item_type=item_type,
+        queue=[item.to_dict() for item in queue],
+        stats=stats,
+        thresholds=active_learning_service.thresholds
+    )
 
 
-@router.get("/stats/{session_id}")
+@router.get("/stats/{session_id}", response_model=VerificationStatsResponse)
 async def get_verification_stats(
     session_id: str,
     item_type: str = "dimension"
-) -> Dict[str, Any]:
+):
     """검증 통계 조회"""
     session_service = get_session_service()
     session = session_service.get_session(session_id)
@@ -119,19 +106,19 @@ async def get_verification_stats(
 
     stats = active_learning_service.get_verification_stats(items, item_type)
 
-    return {
-        "session_id": session_id,
-        "item_type": item_type,
-        "stats": stats,
-        "thresholds": active_learning_service.thresholds
-    }
+    return VerificationStatsResponse(
+        session_id=session_id,
+        item_type=item_type,
+        stats=stats,
+        thresholds=active_learning_service.thresholds
+    )
 
 
-@router.get("/auto-approve-candidates/{session_id}")
+@router.get("/auto-approve-candidates/{session_id}", response_model=AutoApproveCandidatesResponse)
 async def get_auto_approve_candidates(
     session_id: str,
     item_type: str = "dimension"
-) -> Dict[str, Any]:
+):
     """
     자동 승인 후보 조회
 
@@ -156,21 +143,21 @@ async def get_auto_approve_candidates(
         if item.get("id") in candidates
     ]
 
-    return {
-        "session_id": session_id,
-        "item_type": item_type,
-        "candidates": candidates,
-        "candidate_items": candidate_items,
-        "count": len(candidates),
-        "threshold": active_learning_service.thresholds['auto_approve']
-    }
+    return AutoApproveCandidatesResponse(
+        session_id=session_id,
+        item_type=item_type,
+        candidates=candidates,
+        candidate_items=candidate_items,
+        count=len(candidates),
+        threshold=active_learning_service.thresholds['auto_approve']
+    )
 
 
-@router.post("/verify/{session_id}")
+@router.post("/verify/{session_id}", response_model=VerificationResultResponse)
 async def verify_item(
     session_id: str,
     action: VerificationAction
-) -> Dict[str, Any]:
+):
     """
     단일 항목 검증
 
@@ -226,20 +213,20 @@ async def verify_item(
         review_time_seconds=action.review_time_seconds
     )
 
-    return {
-        "session_id": session_id,
-        "item_id": action.item_id,
-        "action": action.action,
-        "success": True,
-        "message": f"항목 '{action.item_id}' 검증 완료 ({action.action})"
-    }
+    return VerificationResultResponse(
+        session_id=session_id,
+        item_id=action.item_id,
+        action=action.action,
+        success=True,
+        message=f"항목 '{action.item_id}' 검증 완료 ({action.action})"
+    )
 
 
-@router.post("/bulk-approve/{session_id}")
+@router.post("/bulk-approve/{session_id}", response_model=BulkApproveResponse)
 async def bulk_approve(
     session_id: str,
     request: BulkApproveRequest
-) -> Dict[str, Any]:
+):
     """
     고신뢰 항목 일괄 승인
 
@@ -279,21 +266,21 @@ async def bulk_approve(
     else:
         session_service.update_session(session_id, {"detections": items})
 
-    return {
-        "session_id": session_id,
-        "item_type": request.item_type,
-        "requested_count": len(request.item_ids),
-        "approved_count": approved_count,
-        "success": True,
-        "message": f"{approved_count}개 항목 일괄 승인 완료"
-    }
+    return BulkApproveResponse(
+        session_id=session_id,
+        item_type=request.item_type,
+        requested_count=len(request.item_ids),
+        approved_count=approved_count,
+        success=True,
+        message=f"{approved_count}개 항목 일괄 승인 완료"
+    )
 
 
-@router.post("/auto-approve/{session_id}")
+@router.post("/auto-approve/{session_id}", response_model=BulkApproveResponse)
 async def auto_approve_all(
     session_id: str,
     item_type: str = "dimension"
-) -> Dict[str, Any]:
+):
     """
     모든 자동 승인 후보 승인
 
@@ -320,28 +307,28 @@ async def auto_approve_all(
     return await bulk_approve(session_id, request)
 
 
-@router.get("/logs/{session_id}")
+@router.get("/logs/{session_id}", response_model=VerificationLogsResponse)
 async def get_verification_logs(
     session_id: str,
     action_filter: Optional[str] = None
-) -> Dict[str, Any]:
+):
     """검증 로그 조회"""
     logs = active_learning_service.get_training_data(
         session_id=session_id,
         action_filter=action_filter
     )
 
-    return {
-        "session_id": session_id,
-        "logs": logs,
-        "count": len(logs)
-    }
+    return VerificationLogsResponse(
+        session_id=session_id,
+        logs=logs,
+        count=len(logs)
+    )
 
 
-@router.put("/thresholds")
+@router.put("/thresholds", response_model=ThresholdUpdateResponse)
 async def update_thresholds(
     request: ThresholdUpdateRequest
-) -> Dict[str, Any]:
+):
     """
     검증 임계값 업데이트
 
@@ -358,25 +345,25 @@ async def update_thresholds(
         active_learning_service.thresholds['critical'] = request.critical_threshold
         updated['critical'] = request.critical_threshold
 
-    return {
-        "updated": updated,
-        "current_thresholds": active_learning_service.thresholds
-    }
+    return ThresholdUpdateResponse(
+        updated=updated,
+        current_thresholds=active_learning_service.thresholds
+    )
 
 
-@router.get("/thresholds")
-async def get_thresholds() -> Dict[str, Any]:
+@router.get("/thresholds", response_model=ThresholdsResponse)
+async def get_thresholds():
     """현재 임계값 조회"""
-    return {
-        "thresholds": active_learning_service.thresholds
-    }
+    return ThresholdsResponse(
+        thresholds=active_learning_service.thresholds
+    )
 
 
-@router.get("/training-data")
+@router.get("/training-data", response_model=TrainingDataResponse)
 async def get_training_data(
     session_id: Optional[str] = None,
     action_filter: Optional[str] = None
-) -> Dict[str, Any]:
+):
     """
     모델 재학습용 데이터 조회
 
@@ -393,12 +380,12 @@ async def get_training_data(
         action = item['action']
         action_counts[action] = action_counts.get(action, 0) + 1
 
-    return {
-        "data": data,
-        "count": len(data),
-        "action_counts": action_counts,
-        "filters": {
+    return TrainingDataResponse(
+        data=data,
+        count=len(data),
+        action_counts=action_counts,
+        filters={
             "session_id": session_id,
             "action_filter": action_filter
         }
-    }
+    )

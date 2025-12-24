@@ -8,7 +8,7 @@ kind: APISpec
 metadata:
   id: blueprint-ai-bom
   name: Blueprint AI BOM
-  version: 3.0.0
+  version: 8.0.0
   port: 5020
   host: blueprint-ai-bom-backend  # Docker 서비스명
   description: AI 기반 도면 분석 및 BOM 생성. Human-in-the-Loop 검증 UI 제공.
@@ -19,6 +19,8 @@ metadata:
     - verification
     - human-in-the-loop
     - export
+    - feedback
+    - yolo-training
 
 server:
   endpoint: /detection/{session_id}/detect

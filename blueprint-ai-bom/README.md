@@ -14,8 +14,8 @@
 
 | 항목 | 값 |
 |------|-----|
-| **상태** | ✅ 구현 완료 (v5.0) |
-| **프론트엔드** | http://localhost:3001 |
+| **상태** | ✅ 구현 완료 (v8.0) |
+| **프론트엔드** | http://localhost:3000 (Docker) / :5173 (dev) |
 | **백엔드** | http://localhost:5020 |
 | **검출 클래스** | 27개 산업용 전장 부품 |
 | **출력 형식** | Excel, CSV, JSON, PDF |
@@ -43,7 +43,7 @@ blueprint-ai-bom/
 │   ├── api_server.py             # 메인 서버
 │   ├── requirements.txt
 │   ├── Dockerfile
-│   ├── schemas/                  # Pydantic 모델 (11개)
+│   ├── schemas/                  # Pydantic 모델 (13개)
 │   │   ├── session.py
 │   │   ├── detection.py
 │   │   ├── bom.py
@@ -51,6 +51,8 @@ blueprint-ai-bom/
 │   │   ├── gdt.py                # GD&T 파싱
 │   │   ├── region.py             # 영역 분할
 │   │   ├── relation.py           # 치수-심볼 관계
+│   │   ├── verification.py       # 검증 스키마 (v8.0)
+│   │   ├── feedback.py           # Feedback 스키마 (v8.0)
 │   │   └── typed_dicts.py        # TypedDict 정의
 │   ├── services/                 # 비즈니스 로직 (12개)
 │   │   ├── session_service.py
@@ -65,14 +67,15 @@ blueprint-ai-bom/
 │   │   ├── vlm_classifier.py     # VLM 분류
 │   │   ├── active_learning_service.py  # 검증 큐
 │   │   └── utils/pricing_utils.py
-│   ├── routers/                  # API 엔드포인트 (7개)
+│   ├── routers/                  # API 엔드포인트 (8개)
 │   │   ├── session_router.py
 │   │   ├── detection_router.py
 │   │   ├── bom_router.py
 │   │   ├── analysis_router.py
 │   │   ├── relation_router.py
 │   │   ├── classification_router.py
-│   │   └── verification_router.py  # Active Learning
+│   │   ├── verification_router.py  # Active Learning
+│   │   └── feedback_router.py      # Feedback Loop (v8.0)
 │   └── tests/                    # 단위 테스트 (27개)
 │
 ├── frontend/                     # React 19 + TypeScript
@@ -264,6 +267,7 @@ python scripts/export/export_package.py --customer "고객명" --output ./export
 
 | 버전 | 날짜 | 변경 내용 |
 |------|------|----------|
+| v8.0 | 2025-12-23 | Feedback Loop Pipeline, YOLO 재학습 데이터셋 내보내기, 온프레미스 배포 |
 | v5.0 | 2025-12-23 | Active Learning 검증 큐, TypedDict 타입 안전성 |
 | v4.0 | 2025-12-19 | GD&T 파서, 영역 분할, 치수-심볼 관계 |
 | v3.0 | 2025-12-14 | AX POC 통합, React 전환 완료 |

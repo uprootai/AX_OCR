@@ -1,5 +1,11 @@
 # OCR 성능 비교 - 스케일업 적용 유무
 
+> **주의**: 이 문서는 과거 OCR 엔진 비교 분석 기록입니다.
+> 현재 Blueprint AI BOM은 **eDOCr2 API (포트 5002)**를 사용합니다.
+> 아래 내용은 초기 아키텍처 설계 시 참조용으로 보관됩니다.
+
+---
+
 ## 테스트 결과 표
 
 | 심볼 | LLM 정답 | EasyOCR(스케일X) | PaddleOCR(스케일X) | EasyOCR(4x스케일) | PaddleOCR(4x스케일) |

@@ -14,6 +14,7 @@
 4. [BOM](#bom)
 5. [관계](#관계)
 6. [분류](#분류)
+7. [Feedback Loop](#feedback-loop)
 
 ---
 
@@ -422,6 +423,133 @@ POST /classification/classify/{session_id}
     {"type": "assembly", "confidence": 0.05},
     {"type": "pid", "confidence": 0.03}
   ]
+}
+```
+
+---
+
+## Feedback Loop
+
+### 피드백 통계 조회
+
+```http
+GET /feedback/stats?days_back=30
+```
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| `days_back` | int | ❌ | 최근 N일 내 데이터만 |
+
+**응답** (200):
+```json
+{
+  "total_sessions": 15,
+  "total_detections": 450,
+  "approved_count": 380,
+  "rejected_count": 45,
+  "modified_count": 25,
+  "approval_rate": 0.844,
+  "rejection_rate": 0.100,
+  "modification_rate": 0.056
+}
+```
+
+### 검증 완료 세션 목록
+
+```http
+GET /feedback/sessions?min_approved_rate=0.5&days_back=30
+```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|--------|------|
+| `min_approved_rate` | float | 0.5 | 최소 승인율 |
+| `days_back` | int | - | 최근 N일 내 세션 |
+
+**응답** (200):
+```json
+{
+  "sessions": [
+    {
+      "session_id": "abc-123",
+      "filename": "drawing.png",
+      "stats": {
+        "total": 30,
+        "approved": 28,
+        "rejected": 2,
+        "approval_rate": 0.933
+      }
+    }
+  ],
+  "count": 15
+}
+```
+
+### YOLO 데이터셋 내보내기
+
+```http
+POST /feedback/export/yolo
+Content-Type: application/json
+```
+
+**요청 본문**:
+```json
+{
+  "output_name": "dataset_v1",
+  "include_rejected": false,
+  "min_approved_rate": 0.5,
+  "days_back": 30
+}
+```
+
+**응답** (200):
+```json
+{
+  "success": true,
+  "output_path": "/data/yolo_training/dataset_v1",
+  "image_count": 150,
+  "label_count": 4500,
+  "class_distribution": {"CT": 850, "BUZZER": 320},
+  "timestamp": "20251223_143000",
+  "error": null
+}
+```
+
+### 내보내기 목록 조회
+
+```http
+GET /feedback/exports
+```
+
+**응답** (200):
+```json
+{
+  "exports": [
+    {
+      "name": "dataset_v1",
+      "path": "/data/yolo_training/dataset_v1",
+      "created_at": "20251223_143000",
+      "image_count": 150,
+      "label_count": 4500,
+      "class_count": 14
+    }
+  ],
+  "count": 1
+}
+```
+
+### 서비스 상태 확인
+
+```http
+GET /feedback/health
+```
+
+**응답** (200):
+```json
+{
+  "status": "healthy",
+  "feedback_path": "/data/feedback",
+  "yolo_export_path": "/data/yolo_training",
+  "exports_count": 1
 }
 ```
 

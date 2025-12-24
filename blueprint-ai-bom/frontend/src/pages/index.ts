@@ -3,3 +3,4 @@ export { DetectionPage } from './DetectionPage';
 export { VerificationPage } from './VerificationPage';
 export { BOMPage } from './BOMPage';
 export { WorkflowPage } from './WorkflowPage';
+export { GuidePage } from './GuidePage';

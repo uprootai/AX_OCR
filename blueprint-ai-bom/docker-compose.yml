@@ -18,6 +18,9 @@ services:
       - ./classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
       - ./test_drawings:/app/test_drawings:ro
       - ./class_examples:/app/class_examples:ro
+      # Feedback Loop Pipeline v8.0
+      - ./feedback:/data/feedback
+      - ./yolo_training:/data/yolo_training
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
@@ -54,3 +57,5 @@ networks:
 volumes:
   uploads:
   results:
+  feedback:
+  yolo_training:
