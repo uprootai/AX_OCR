@@ -42,6 +42,11 @@ export function DrawingCanvas({
   const [drawnBox, setDrawnBox] = useState<BoundingBox | null>(null);
   const [drawingMode, setDrawingMode] = useState(true);
 
+  // Refs to avoid stale closure issues in event handlers
+  const isDrawingRef = useRef(false);
+  const startPointRef = useRef<{ x: number; y: number } | null>(null);
+  const currentPointRef = useRef<{ x: number; y: number } | null>(null);
+
 
   // 마우스 좌표를 이미지 좌표로 변환
   const getImageCoordinates = useCallback((e: React.MouseEvent) => {
@@ -78,6 +83,11 @@ export function DrawingCanvas({
     const coords = getImageCoordinates(e);
     if (!coords) return;
 
+    // Update both refs and state
+    isDrawingRef.current = true;
+    startPointRef.current = coords;
+    currentPointRef.current = coords;
+
     setIsDrawing(true);
     setStartPoint(coords);
     setCurrentPoint(coords);
@@ -86,37 +96,55 @@ export function DrawingCanvas({
 
   // 마우스 이동 - 그리기 중
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDrawing || !startPoint) return;
+    // Use refs for synchronous check to avoid stale closure
+    if (!isDrawingRef.current || !startPointRef.current) return;
 
     const coords = getImageCoordinates(e);
     if (!coords) return;
 
+    currentPointRef.current = coords;
     setCurrentPoint(coords);
-  }, [isDrawing, startPoint, getImageCoordinates]);
+  }, [getImageCoordinates]);
 
   // 마우스 업 - 그리기 완료
-  const handleMouseUp = useCallback(() => {
-    if (!isDrawing || !startPoint || !currentPoint) {
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    // 버튼 클릭으로 인한 mouseUp 이벤트 무시
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('[data-button-container]')) {
+      return;
+    }
+
+    // Use refs for synchronous check to avoid stale closure
+    const isDrawingNow = isDrawingRef.current;
+    const start = startPointRef.current;
+    const current = currentPointRef.current;
+
+    if (!isDrawingNow || !start || !current) {
+      isDrawingRef.current = false;
       setIsDrawing(false);
       return;
     }
 
     // 최소 크기 확인 (10px 이상)
-    const width = Math.abs(currentPoint.x - startPoint.x);
-    const height = Math.abs(currentPoint.y - startPoint.y);
+    const width = Math.abs(current.x - start.x);
+    const height = Math.abs(current.y - start.y);
 
     if (width > 10 && height > 10) {
       const box: BoundingBox = {
-        x1: Math.min(startPoint.x, currentPoint.x),
-        y1: Math.min(startPoint.y, currentPoint.y),
-        x2: Math.max(startPoint.x, currentPoint.x),
-        y2: Math.max(startPoint.y, currentPoint.y),
+        x1: Math.min(start.x, current.x),
+        y1: Math.min(start.y, current.y),
+        x2: Math.max(start.x, current.x),
+        y2: Math.max(start.y, current.y),
       };
       setDrawnBox(box);
     }
 
+    // Reset refs and state
+    isDrawingRef.current = false;
+    startPointRef.current = null;
+    currentPointRef.current = null;
     setIsDrawing(false);
-  }, [isDrawing, startPoint, currentPoint]);
+  }, []);
 
   // 박스 확정
   const handleConfirmBox = useCallback(() => {
@@ -264,7 +292,12 @@ export function DrawingCanvas({
 
         {/* 그리기 완료 시 확인/취소 버튼 */}
         {drawnBox && !isDrawing && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3">
+          <div
+            data-button-container
+            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 z-50 pointer-events-auto"
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
+          >
             {!selectedClass && (
               <div className="text-sm text-red-600 dark:text-red-400 font-semibold animate-pulse">
                 ⚠️ 먼저 위에서 클래스를 선택하세요!
@@ -279,6 +312,8 @@ export function DrawingCanvas({
               </div>
               <button
                 onClick={handleConfirmBox}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
                 disabled={!selectedClass}
                 className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 title={selectedClass ? '이 박스 추가' : '먼저 클래스를 선택하세요'}
@@ -288,6 +323,8 @@ export function DrawingCanvas({
               </button>
               <button
                 onClick={handleCancelBox}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
                 className="flex items-center space-x-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
               >
                 <Trash2 className="w-4 h-4" />

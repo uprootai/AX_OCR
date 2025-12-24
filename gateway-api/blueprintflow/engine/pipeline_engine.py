@@ -188,11 +188,18 @@ class PipelineEngine:
 
             self.logger.info(f"워크플로우 실행 완료: {overall_status} (소요 시간: {execution_time:.2f}ms)")
 
+            # 위상 정렬 순서로 노드 상태 정렬
+            sorted_node_statuses = []
+            for node_id in sorted_nodes:
+                ns = context.node_statuses.get(node_id)
+                if ns:
+                    sorted_node_statuses.append(ns)
+
             return WorkflowExecutionResponse(
                 execution_id=execution_id,
                 status=overall_status,
                 workflow_name=workflow.name,
-                node_statuses=list(context.node_statuses.values()),
+                node_statuses=sorted_node_statuses,
                 final_output=final_output if final_output else None,
                 execution_time_ms=execution_time,
             )
@@ -476,22 +483,27 @@ class PipelineEngine:
                 except Exception as meta_err:
                     self.logger.warning(f"[결과저장] 메타데이터 저장 실패: {meta_err}")
 
-            # 완료 이벤트 전송
+            # 완료 이벤트 전송 (위상 정렬 순서로 정렬)
+            sorted_node_statuses = []
+            for node_id in sorted_nodes:
+                ns = context.node_statuses.get(node_id)
+                if ns:
+                    sorted_node_statuses.append({
+                        "node_id": ns.node_id,
+                        "status": ns.status,
+                        "progress": ns.progress,
+                        "error": ns.error,
+                        "output": ns.output,
+                        "start_time": ns.start_time,
+                        "end_time": ns.end_time,
+                    })
+
             yield self._format_sse_event({
                 "type": "workflow_complete",
                 "status": overall_status,
                 "execution_time_ms": execution_time,
                 "result_save_path": str(session_dir) if session_dir else None,  # 저장 경로 추가
-                "node_statuses": [
-                    {
-                        "node_id": ns.node_id,
-                        "status": ns.status,
-                        "progress": ns.progress,
-                        "error": ns.error,
-                        "output": ns.output  # ✅ output 추가 (이미지 포함)
-                    }
-                    for ns in context.node_statuses.values()
-                ],
+                "node_statuses": sorted_node_statuses,
                 "final_output": final_output if final_output else None
             })
 
