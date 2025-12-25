@@ -52,6 +52,9 @@ class SessionResponse(BaseModel):
     drawing_type_source: str = "builder"  # builder, vlm, manual
     drawing_type_confidence: Optional[float] = None  # VLM 분류 시 신뢰도
 
+    # 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
+    features: List[str] = Field(default_factory=list)
+
 
 class SessionDetail(BaseModel):
     """세션 상세 정보"""
@@ -69,6 +72,9 @@ class SessionDetail(BaseModel):
     drawing_type_source: str = "builder"  # builder, vlm, manual
     drawing_type_confidence: Optional[float] = None  # VLM 분류 시 신뢰도
     vlm_classification_result: Optional[str] = None  # VLM 분류 결과 (auto인 경우)
+
+    # 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
+    features: List[str] = Field(default_factory=list)
 
     # 검출 정보
     detections: List[Dict[str, Any]] = []

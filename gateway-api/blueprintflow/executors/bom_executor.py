@@ -42,11 +42,15 @@ class BOMExecutor(BaseNodeExecutor):
             검증 UI URL, 세션 정보
         """
         try:
-            # 0. 활성화할 기능 가져오기 (2025-12-22: drawing_type은 ImageInput으로 이동)
-            features = self.parameters.get("features", ["verification"])
+            # 0. 활성화할 기능 가져오기 (2025-12-24: inputs에서 우선, 없으면 파라미터에서)
+            # ImageInput에서 전달된 features 우선 사용
+            features = inputs.get("features")
+            if not features:
+                # 파이프라인에서 features가 전달되지 않은 경우 파라미터 사용
+                features = self.parameters.get("features", ["verification"])
             if isinstance(features, str):
                 features = [features]
-            logger.info(f"활성화된 기능: {features}")
+            logger.info(f"활성화된 기능 (from {'inputs' if inputs.get('features') else 'parameters'}): {features}")
 
             # drawing_type은 ImageInput에서 context를 통해 전달받음
             drawing_type = inputs.get("drawing_type", "auto")
@@ -85,21 +89,22 @@ class BOMExecutor(BaseNodeExecutor):
             # - dimension: 치수 도면 → detections 불필요 (OCR만 사용)
             # - dimension_bom: 치수+BOM → detections 불필요 (OCR + 수동 라벨링)
             # - electrical_panel, pid, assembly: detections 필수 (YOLO 사용)
-            detection_optional_types = ["auto", "dimension", "dimension_bom"]
+            # 모든 타입에서 detections 없이 허용 (수동 라벨링 지원)
+            # YOLO 연결 시 자동 가져오기, 없으면 검증 UI에서 수동 추가
+            detection_optional_types = ["auto", "dimension", "dimension_bom", "electrical_panel", "pid", "assembly"]
 
             if drawing_type not in detection_optional_types:
                 if not external_detections or len(external_detections) == 0:
                     raise ValueError(
-                        f"detections 입력이 필요합니다. '{drawing_type}' 타입은 YOLO 노드가 필요합니다. "
-                        "치수 도면(dimension)은 detections 없이 사용 가능합니다."
+                        f"detections 입력이 필요합니다. '{drawing_type}' 타입은 YOLO 노드가 필요합니다."
                     )
             else:
                 if not external_detections:
                     logger.info(f"'{drawing_type}' 타입: detections 없이 세션 생성 (OCR 전용 모드)")
 
-            # 3. 세션 생성 (이미지 크기 자동 추출 및 업데이트, 도면 타입 전달)
-            session_id, image_width, image_height = await self._create_session(image_data, drawing_type)
-            logger.info(f"세션 생성됨: {session_id} (이미지 크기: {image_width}x{image_height})")
+            # 3. 세션 생성 (이미지 크기 자동 추출 및 업데이트, 도면 타입, features 전달)
+            session_id, image_width, image_height = await self._create_session(image_data, drawing_type, features)
+            logger.info(f"세션 생성됨: {session_id} (이미지 크기: {image_width}x{image_height}, features: {features})")
 
             # 4. YOLO 노드의 검출 결과 가져오기 (있는 경우만)
             if external_detections and len(external_detections) > 0:
@@ -108,15 +113,26 @@ class BOMExecutor(BaseNodeExecutor):
             else:
                 logger.info("detections 없음 - OCR 전용 모드로 세션 생성됨")
 
-            # 5. 검증 UI URL 반환 (항상 Human-in-the-Loop)
+            # 5. eDOCr2 치수 결과 가져오기 (있는 경우)
+            dimensions = inputs.get("dimensions", [])
+            if dimensions and len(dimensions) > 0:
+                logger.info(f"eDOCr2 dimensions 가져오기: {len(dimensions)}개")
+                await self._import_dimensions(session_id, dimensions)
+            else:
+                logger.info("dimensions 없음 - 검증 UI에서 직접 치수 인식 필요")
+
+            # 6. 검증 UI URL 반환 (항상 Human-in-the-Loop)
             # WorkflowPage 사용 - GT 비교, Precision, Recall, F1 Score 표시
             # features 파라미터를 URL에 포함
             features_param = ",".join(features) if features else "verification"
             verification_url = f"{self.FRONTEND_URL}/workflow?session={session_id}&features={features_param}"
             detection_count = len(external_detections) if external_detections else 0
+            dimension_count = len(dimensions) if dimensions else 0
 
             # drawing_type에 따른 메시지
-            if drawing_type in detection_optional_types and detection_count == 0:
+            if dimension_count > 0:
+                message = f"eDOCr2에서 {dimension_count}개 치수 가져옴. 검증 UI에서 확인하세요."
+            elif drawing_type in detection_optional_types and detection_count == 0:
                 message = "OCR 전용 모드: 검증 UI에서 수동으로 부품을 추가하고 BOM을 생성하세요."
             else:
                 message = "검증 UI에서 검출 결과를 확인하고 BOM을 생성하세요."
@@ -126,6 +142,7 @@ class BOMExecutor(BaseNodeExecutor):
                 "session_id": session_id,
                 "verification_url": verification_url,
                 "detection_count": detection_count,
+                "dimension_count": dimension_count,
                 "image_width": image_width,
                 "image_height": image_height,
                 "features": features,
@@ -147,12 +164,13 @@ class BOMExecutor(BaseNodeExecutor):
         """파라미터 유효성 검사 - 파라미터 없음"""
         return True, None
 
-    async def _create_session(self, image_data: Any, drawing_type: str = "auto") -> Tuple[str, int, int]:
+    async def _create_session(self, image_data: Any, drawing_type: str = "auto", features: list = None) -> Tuple[str, int, int]:
         """세션 생성 및 이미지 업로드
 
         Args:
             image_data: 이미지 데이터 (base64, URL, 바이트 등)
             drawing_type: 빌더에서 설정한 도면 타입
+            features: 활성화된 기능 목록 (2025-12-24)
 
         Returns:
             Tuple[str, int, int]: (session_id, image_width, image_height)
@@ -160,7 +178,9 @@ class BOMExecutor(BaseNodeExecutor):
         import base64
 
         file_bytes = None
-        upload_url = f"{self.BASE_URL}/sessions/upload?drawing_type={drawing_type}"
+        # features를 쉼표 구분 문자열로 변환
+        features_param = ",".join(features) if features else ""
+        upload_url = f"{self.BASE_URL}/sessions/upload?drawing_type={drawing_type}&features={features_param}"
 
         async with httpx.AsyncClient(timeout=60) as client:
             # Data URL 형식 (data:image/png;base64,...)
@@ -338,6 +358,38 @@ class BOMExecutor(BaseNodeExecutor):
                     logger.error(f"Bulk import 실패: {response.status_code} - {response.text}")
         else:
             logger.warning("가져올 검출 결과가 없습니다")
+
+    async def _import_dimensions(self, session_id: str, dimensions: list):
+        """eDOCr2 치수 결과를 Blueprint AI BOM 세션에 가져오기
+
+        eDOCr2 노드의 출력 형식:
+        {
+            "text": "100mm",
+            "bbox": {"x1": 100, "y1": 200, "x2": 300, "y2": 250},
+            "confidence": 0.95,
+            "type": "length",
+            ...
+        }
+        """
+        if not dimensions:
+            logger.warning("가져올 치수 결과가 없습니다")
+            return
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                f"{self.BASE_URL}/analysis/dimensions/{session_id}/import-bulk",
+                json={
+                    "dimensions": dimensions,
+                    "source": "edocr2",
+                    "auto_approve_threshold": None  # 자동 승인 비활성화 - 검증 UI에서 확인
+                }
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"치수 import 완료: {result.get('imported_count', 0)}개")
+            else:
+                logger.error(f"치수 import 실패: {response.status_code} - {response.text}")
 
 
 # 실행기 등록

@@ -23,6 +23,8 @@ from schemas.dimension import (
     DimensionUpdate,
     DimensionVerificationUpdate,
     BulkDimensionVerificationUpdate,
+    BulkDimensionImport,
+    BulkDimensionImportResponse,
 )
 from schemas.session import SessionStatus
 from schemas.region import (
@@ -35,6 +37,8 @@ from schemas.region import (
     ManualRegion,
     RegionProcessingResult,
     RegionListResponse,
+    TitleBlockData,
+    RegionType,
 )
 from schemas.gdt import (
     GeometricCharacteristic,
@@ -650,6 +654,130 @@ async def delete_dimension(session_id: str, dimension_id: str) -> Dict[str, Any]
         "dimension_id": dimension_id,
         "message": "치수가 삭제되었습니다"
     }
+
+
+@router.post("/dimensions/{session_id}/import-bulk", response_model=BulkDimensionImportResponse)
+async def import_dimensions_bulk(
+    session_id: str,
+    request: BulkDimensionImport
+) -> BulkDimensionImportResponse:
+    """eDOCr2 치수 결과 일괄 가져오기
+
+    BlueprintFlow 파이프라인에서 eDOCr2 노드의 결과를
+    Blueprint AI BOM 세션에 저장합니다.
+
+    Args:
+        session_id: 세션 ID
+        request: eDOCr2 치수 목록 및 설정
+
+    Returns:
+        가져온 치수 정보 및 통계
+    """
+    import uuid
+    from schemas.detection import VerificationStatus
+
+    session_service = get_session_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    existing_dimensions = session.get("dimensions", [])
+    imported_dimensions = []
+    auto_approved_count = 0
+
+    # eDOCr2 → DimensionType 매핑
+    EDOCR2_TYPE_MAPPING = {
+        "linear": "length",
+        "diameter": "diameter",
+        "radius": "radius",
+        "angle": "angle",
+        "tolerance": "tolerance",
+        "surface_finish": "surface_finish",
+        "text_dimension": "unknown",
+        "text": "unknown",
+        "unknown": "unknown",
+    }
+
+    for idx, dim_data in enumerate(request.dimensions):
+        try:
+            # eDOCr2 형식에서 Blueprint AI BOM 형식으로 변환
+            # eDOCr2 출력: {text, bbox: {x1, y1, x2, y2}, confidence, ...}
+            dim_id = f"dim_{uuid.uuid4().hex[:8]}"
+
+            # bbox 정규화 (eDOCr2는 여러 형식 지원)
+            bbox_raw = dim_data.get("bbox", {})
+            if isinstance(bbox_raw, dict):
+                bbox = {
+                    "x1": int(bbox_raw.get("x1", bbox_raw.get("x", 0))),
+                    "y1": int(bbox_raw.get("y1", bbox_raw.get("y", 0))),
+                    "x2": int(bbox_raw.get("x2", bbox_raw.get("x", 0) + bbox_raw.get("width", 0))),
+                    "y2": int(bbox_raw.get("y2", bbox_raw.get("y", 0) + bbox_raw.get("height", 0))),
+                }
+            elif isinstance(bbox_raw, list) and len(bbox_raw) >= 4:
+                bbox = {
+                    "x1": int(bbox_raw[0]),
+                    "y1": int(bbox_raw[1]),
+                    "x2": int(bbox_raw[2]),
+                    "y2": int(bbox_raw[3]),
+                }
+            else:
+                logger.warning(f"알 수 없는 bbox 형식: {bbox_raw}")
+                continue
+
+            # 신뢰도 추출
+            confidence = float(dim_data.get("confidence", 0.5))
+
+            # 자동 승인 처리
+            verification_status = "pending"
+            if request.auto_approve_threshold and confidence >= request.auto_approve_threshold:
+                verification_status = "approved"
+                auto_approved_count += 1
+
+            # 치수 값 추출 (text 또는 value 필드)
+            value = dim_data.get("value") or dim_data.get("text", "")
+
+            # eDOCr2 타입을 DimensionType으로 변환
+            raw_type = dim_data.get("type", dim_data.get("dimension_type", "unknown"))
+            mapped_type = EDOCR2_TYPE_MAPPING.get(raw_type, "unknown")
+
+            dimension = Dimension(
+                id=dim_id,
+                bbox=bbox,
+                value=value,
+                raw_text=dim_data.get("raw_text", value),
+                unit=dim_data.get("unit"),
+                tolerance=dim_data.get("tolerance"),
+                dimension_type=mapped_type,
+                confidence=confidence,
+                model_id=request.source,
+                verification_status=verification_status,
+            )
+
+            imported_dimensions.append(dimension.model_dump())
+
+        except Exception as e:
+            logger.warning(f"치수 변환 중 오류 (인덱스 {idx}): {e}")
+            continue
+
+    # 기존 치수에 추가
+    all_dimensions = existing_dimensions + imported_dimensions
+
+    # 세션 업데이트
+    session_service.update_session(session_id, {
+        "dimensions": all_dimensions,
+        "dimension_count": len(all_dimensions)
+    })
+
+    logger.info(f"세션 {session_id}: {len(imported_dimensions)}개 치수 가져옴 (자동 승인: {auto_approved_count})")
+
+    return BulkDimensionImportResponse(
+        session_id=session_id,
+        imported_count=len(imported_dimensions),
+        auto_approved_count=auto_approved_count,
+        dimensions=imported_dimensions,
+        message=f"{len(imported_dimensions)}개 치수를 가져왔습니다"
+    )
 
 
 # ==================== 선 검출 API ====================
@@ -1617,3 +1745,1122 @@ async def get_gdt_summary(session_id: str) -> GDTSummary:
 
     summary = gdt_parser.get_summary(session_id)
     return summary
+
+
+# ==================== 표제란 OCR API (2025-12-24) ====================
+
+@router.post("/title-block/{session_id}/extract")
+async def extract_title_block(session_id: str) -> Dict[str, Any]:
+    """
+    표제란 OCR 실행
+    
+    도면의 우하단 표제란 영역을 검출하고 메타데이터를 추출합니다:
+    - 도면번호, 리비전, 재질, 작성자, 작성일, 스케일 등
+    
+    Args:
+        session_id: 세션 ID
+    
+    Returns:
+        title_block: TitleBlockData 형태의 표제란 정보
+    """
+    session_service = get_session_service()
+    segmenter = get_region_segmenter()
+    
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+    
+    image_path = session.get("file_path")
+    if not image_path:
+        raise HTTPException(status_code=400, detail="이미지 파일이 없습니다")
+    
+    try:
+        # 1. 영역 분할 실행 (표제란만)
+        config = RegionSegmentationConfig(
+            detect_title_block=True,
+            detect_bom_table=False,
+            detect_legend=False,
+            detect_notes=False,
+            detect_detail_views=False,
+        )
+        
+        seg_result = await segmenter.segment(
+            session_id=session_id,
+            image_path=image_path,
+            config=config,
+        )
+        
+        # 2. 표제란 영역 찾기
+        title_block_region = None
+        for region in seg_result.regions:
+            if region.region_type == RegionType.TITLE_BLOCK:
+                title_block_region = region
+                break
+        
+        if not title_block_region:
+            return {
+                "success": False,
+                "message": "표제란을 찾을 수 없습니다",
+                "title_block": None,
+            }
+        
+        # 3. 표제란 영역 처리 (OCR + 파싱)
+        process_result = await segmenter.process_region(
+            session_id=session_id,
+            region_id=title_block_region.id,
+            image_path=image_path,
+        )
+        
+        # 4. 결과 추출
+        title_block_data = TitleBlockData(
+            raw_text=process_result.ocr_text,
+            **(process_result.metadata or {})
+        )
+        
+        # 5. 세션에 저장
+        session_service.update_session(session_id, {
+            "title_block": title_block_data.model_dump(),
+            "title_block_region_id": title_block_region.id,
+        })
+        
+        return {
+            "success": True,
+            "message": "표제란 추출 완료",
+            "title_block": title_block_data.model_dump(),
+            "region": title_block_region.model_dump(),
+        }
+        
+    except Exception as e:
+        logger.error(f"표제란 OCR 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"표제란 OCR 실패: {str(e)}")
+
+
+@router.get("/title-block/{session_id}")
+async def get_title_block(session_id: str) -> Dict[str, Any]:
+    """표제란 정보 조회"""
+    session_service = get_session_service()
+    
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+    
+    title_block = session.get("title_block")
+    if not title_block:
+        return {
+            "success": False,
+            "message": "표제란 정보가 없습니다. 먼저 추출을 실행하세요.",
+            "title_block": None,
+        }
+    
+    return {
+        "success": True,
+        "title_block": title_block,
+    }
+
+
+@router.put("/title-block/{session_id}")
+async def update_title_block(session_id: str, update: Dict[str, Any]) -> Dict[str, Any]:
+    """표제란 정보 수동 수정"""
+    session_service = get_session_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    current = session.get("title_block", {})
+    updated = {**current, **update}
+
+    session_service.update_session(session_id, {"title_block": updated})
+
+    return {
+        "success": True,
+        "title_block": updated,
+    }
+
+
+# ============================================================
+# 중기 로드맵 기능 (2025-12-24)
+# ============================================================
+
+# ------------------------------------------------------------
+# 용접 기호 파싱 (Welding Symbol Parsing)
+# ------------------------------------------------------------
+
+@router.post("/welding-symbols/{session_id}/parse")
+async def parse_welding_symbols(session_id: str) -> Dict[str, Any]:
+    """
+    용접 기호 파싱
+
+    - 도면에서 용접 기호 검출
+    - 용접 타입, 크기, 깊이 등 파싱
+    - ISO 2553 표준 기반
+    """
+    import time
+    import uuid
+    start_time = time.time()
+
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # TODO: 실제 용접 기호 검출 로직 (YOLO 학습 필요)
+    # 현재는 더미 데이터 반환
+    welding_symbols = []
+
+    # 검출된 심볼에서 용접 기호 찾기 (데모용)
+    detections = session.get("detections", [])
+    for det in detections:
+        class_name = det.get("class_name", "").lower()
+        if "weld" in class_name or "용접" in class_name:
+            welding_symbols.append({
+                "id": str(uuid.uuid4()),
+                "welding_type": "fillet",
+                "location": "arrow_side",
+                "size": None,
+                "length": None,
+                "field_weld": False,
+                "all_around": False,
+                "bbox": det.get("bbox"),
+                "confidence": det.get("confidence", 0.0),
+                "raw_text": det.get("class_name"),
+            })
+
+    processing_time = (time.time() - start_time) * 1000
+
+    result = {
+        "session_id": session_id,
+        "welding_symbols": welding_symbols,
+        "total_count": len(welding_symbols),
+        "by_type": {},
+        "processing_time_ms": processing_time,
+    }
+
+    # 세션에 저장
+    session_service.update_session(session_id, {"welding_symbols": result})
+
+    return result
+
+
+@router.get("/welding-symbols/{session_id}")
+async def get_welding_symbols(session_id: str) -> Dict[str, Any]:
+    """용접 기호 파싱 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("welding_symbols")
+    if not result:
+        return {
+            "session_id": session_id,
+            "welding_symbols": [],
+            "total_count": 0,
+            "message": "용접 기호 파싱을 먼저 실행하세요.",
+        }
+
+    return result
+
+
+@router.put("/welding-symbols/{session_id}/{symbol_id}")
+async def update_welding_symbol(
+    session_id: str,
+    symbol_id: str,
+    update: Dict[str, Any]
+) -> Dict[str, Any]:
+    """용접 기호 정보 수정"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("welding_symbols", {})
+    symbols = result.get("welding_symbols", [])
+
+    for i, sym in enumerate(symbols):
+        if sym.get("id") == symbol_id:
+            symbols[i] = {**sym, **update}
+            break
+
+    result["welding_symbols"] = symbols
+    session_service.update_session(session_id, {"welding_symbols": result})
+
+    return {"success": True, "symbol": symbols[i] if i < len(symbols) else None}
+
+
+# ------------------------------------------------------------
+# 표면 거칠기 파싱 (Surface Roughness Parsing)
+# ------------------------------------------------------------
+
+@router.post("/surface-roughness/{session_id}/parse")
+async def parse_surface_roughness(session_id: str) -> Dict[str, Any]:
+    """
+    표면 거칠기 기호 파싱
+
+    - Ra, Rz, Rmax 값 추출
+    - 가공 방법 및 방향 인식
+    - ISO 1302 표준 기반
+    """
+    import time
+    import uuid
+    import re
+    start_time = time.time()
+
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    roughness_symbols = []
+
+    # 치수 텍스트에서 거칠기 값 찾기
+    dimensions = session.get("dimensions", [])
+    roughness_pattern = re.compile(r'(Ra|Rz|Rmax)\s*(\d+\.?\d*)', re.IGNORECASE)
+
+    for dim in dimensions:
+        text = dim.get("text", "") or dim.get("value", "")
+        matches = roughness_pattern.findall(str(text))
+        for match in matches:
+            roughness_type, value = match
+            roughness_symbols.append({
+                "id": str(uuid.uuid4()),
+                "roughness_type": roughness_type.capitalize(),
+                "value": float(value),
+                "unit": "μm",
+                "machining_method": "unknown",
+                "lay_direction": "unknown",
+                "bbox": dim.get("bbox"),
+                "confidence": 0.8,
+                "raw_text": f"{roughness_type} {value}",
+            })
+
+    processing_time = (time.time() - start_time) * 1000
+
+    # 타입별 집계
+    by_type = {}
+    for sym in roughness_symbols:
+        rt = sym.get("roughness_type", "unknown")
+        by_type[rt] = by_type.get(rt, 0) + 1
+
+    result = {
+        "session_id": session_id,
+        "roughness_symbols": roughness_symbols,
+        "total_count": len(roughness_symbols),
+        "by_type": by_type,
+        "processing_time_ms": processing_time,
+    }
+
+    session_service.update_session(session_id, {"surface_roughness": result})
+
+    return result
+
+
+@router.get("/surface-roughness/{session_id}")
+async def get_surface_roughness(session_id: str) -> Dict[str, Any]:
+    """표면 거칠기 파싱 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("surface_roughness")
+    if not result:
+        return {
+            "session_id": session_id,
+            "roughness_symbols": [],
+            "total_count": 0,
+            "message": "표면 거칠기 파싱을 먼저 실행하세요.",
+        }
+
+    return result
+
+
+@router.put("/surface-roughness/{session_id}/{symbol_id}")
+async def update_surface_roughness(
+    session_id: str,
+    symbol_id: str,
+    update: Dict[str, Any]
+) -> Dict[str, Any]:
+    """표면 거칠기 정보 수정"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("surface_roughness", {})
+    symbols = result.get("roughness_symbols", [])
+
+    updated_symbol = None
+    for i, sym in enumerate(symbols):
+        if sym.get("id") == symbol_id:
+            symbols[i] = {**sym, **update}
+            updated_symbol = symbols[i]
+            break
+
+    result["roughness_symbols"] = symbols
+    session_service.update_session(session_id, {"surface_roughness": result})
+
+    return {"success": True, "symbol": updated_symbol}
+
+
+# ------------------------------------------------------------
+# 수량 추출 (Quantity Extraction)
+# ------------------------------------------------------------
+
+@router.post("/quantity/{session_id}/extract")
+async def extract_quantities(session_id: str) -> Dict[str, Any]:
+    """
+    수량 정보 추출
+
+    - QTY, 수량, EA, SET 등 패턴 인식
+    - 벌룬 옆, 테이블, 노트에서 추출
+    """
+    import time
+    import uuid
+    import re
+    start_time = time.time()
+
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    quantities = []
+
+    # 수량 패턴 정의
+    patterns = [
+        (r'QTY[:\s]*(\d+)', 'inline'),
+        (r'수량[:\s]*(\d+)', 'inline'),
+        (r'(\d+)\s*EA', 'inline'),
+        (r'(\d+)\s*SET', 'inline'),
+        (r'(\d+)\s*OFF', 'inline'),
+        (r"REQ'?D[:\s]*(\d+)", 'inline'),
+        (r'×(\d+)', 'balloon'),
+        (r'\((\d+)\)', 'balloon'),
+    ]
+
+    # 치수에서 수량 찾기
+    dimensions = session.get("dimensions", [])
+    for dim in dimensions:
+        text = str(dim.get("text", "") or dim.get("value", ""))
+        for pattern, source in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                qty = int(match) if match.isdigit() else int(match)
+                if 1 <= qty <= 1000:  # 합리적인 수량 범위
+                    quantities.append({
+                        "id": str(uuid.uuid4()),
+                        "quantity": qty,
+                        "unit": "EA",
+                        "source": source,
+                        "pattern_matched": pattern,
+                        "bbox": dim.get("bbox"),
+                        "confidence": 0.85,
+                        "raw_text": text,
+                    })
+
+    # 검출 결과에서도 찾기
+    detections = session.get("detections", [])
+    for det in detections:
+        class_name = str(det.get("class_name", ""))
+        for pattern, source in patterns:
+            matches = re.findall(pattern, class_name, re.IGNORECASE)
+            for match in matches:
+                qty = int(match)
+                if 1 <= qty <= 1000:
+                    quantities.append({
+                        "id": str(uuid.uuid4()),
+                        "quantity": qty,
+                        "unit": "EA",
+                        "source": source,
+                        "pattern_matched": pattern,
+                        "bbox": det.get("bbox"),
+                        "confidence": det.get("confidence", 0.5),
+                        "raw_text": class_name,
+                    })
+
+    processing_time = (time.time() - start_time) * 1000
+
+    # 출처별 집계
+    by_source = {}
+    total_quantity = 0
+    for q in quantities:
+        src = q.get("source", "unknown")
+        by_source[src] = by_source.get(src, 0) + 1
+        total_quantity += q.get("quantity", 0)
+
+    result = {
+        "session_id": session_id,
+        "quantities": quantities,
+        "total_items": len(quantities),
+        "total_quantity": total_quantity,
+        "by_source": by_source,
+        "processing_time_ms": processing_time,
+    }
+
+    session_service.update_session(session_id, {"quantities": result})
+
+    return result
+
+
+@router.get("/quantity/{session_id}")
+async def get_quantities(session_id: str) -> Dict[str, Any]:
+    """수량 추출 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("quantities")
+    if not result:
+        return {
+            "session_id": session_id,
+            "quantities": [],
+            "total_items": 0,
+            "message": "수량 추출을 먼저 실행하세요.",
+        }
+
+    return result
+
+
+@router.put("/quantity/{session_id}/{quantity_id}")
+async def update_quantity(
+    session_id: str,
+    quantity_id: str,
+    update: Dict[str, Any]
+) -> Dict[str, Any]:
+    """수량 정보 수정"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("quantities", {})
+    quantities = result.get("quantities", [])
+
+    updated_item = None
+    for i, q in enumerate(quantities):
+        if q.get("id") == quantity_id:
+            quantities[i] = {**q, **update}
+            updated_item = quantities[i]
+            break
+
+    result["quantities"] = quantities
+    session_service.update_session(session_id, {"quantities": result})
+
+    return {"success": True, "quantity": updated_item}
+
+
+# ------------------------------------------------------------
+# 벌룬 번호 매칭 (Balloon Matching)
+# ------------------------------------------------------------
+
+@router.post("/balloon/{session_id}/match")
+async def match_balloons(session_id: str) -> Dict[str, Any]:
+    """
+    벌룬 번호 매칭
+
+    - 벌룬 검출 및 번호 OCR
+    - 지시선 추적하여 심볼 연결
+    - BOM 테이블과 매칭
+    """
+    import time
+    import uuid
+    import re
+    import math
+    start_time = time.time()
+
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    balloons = []
+
+    # 검출 결과에서 벌룬 찾기
+    detections = session.get("detections", [])
+    balloon_detections = []
+    other_detections = []
+
+    for det in detections:
+        class_name = str(det.get("class_name", "")).lower()
+        if "balloon" in class_name or "번호" in class_name or "item" in class_name:
+            balloon_detections.append(det)
+        else:
+            other_detections.append(det)
+
+    # 벌룬 번호 추출 및 심볼 매칭
+    for det in balloon_detections:
+        bbox = det.get("bbox", [0, 0, 0, 0])
+        center_x = (bbox[0] + bbox[2]) / 2 if len(bbox) >= 4 else 0
+        center_y = (bbox[1] + bbox[3]) / 2 if len(bbox) >= 4 else 0
+
+        # 벌룬 번호 추출 (클래스명에서 숫자 추출)
+        class_name = det.get("class_name", "")
+        numbers = re.findall(r'\d+', class_name)
+        balloon_number = numbers[0] if numbers else "?"
+
+        # 가장 가까운 심볼 찾기
+        matched_symbol_id = None
+        matched_symbol_class = None
+        min_distance = float('inf')
+
+        for other in other_detections:
+            other_bbox = other.get("bbox", [0, 0, 0, 0])
+            if len(other_bbox) >= 4:
+                other_center_x = (other_bbox[0] + other_bbox[2]) / 2
+                other_center_y = (other_bbox[1] + other_bbox[3]) / 2
+                distance = math.sqrt((center_x - other_center_x)**2 + (center_y - other_center_y)**2)
+                if distance < min_distance and distance < 500:  # 500px 이내
+                    min_distance = distance
+                    matched_symbol_id = other.get("id")
+                    matched_symbol_class = other.get("class_name")
+
+        balloons.append({
+            "id": str(uuid.uuid4()),
+            "number": balloon_number,
+            "numeric_value": int(balloon_number) if balloon_number.isdigit() else None,
+            "shape": "circle",
+            "matched_symbol_id": matched_symbol_id,
+            "matched_symbol_class": matched_symbol_class,
+            "leader_line_endpoint": None,
+            "bom_item": None,
+            "center": [center_x, center_y],
+            "bbox": bbox,
+            "confidence": det.get("confidence", 0.0),
+        })
+
+    processing_time = (time.time() - start_time) * 1000
+
+    matched_count = sum(1 for b in balloons if b.get("matched_symbol_id"))
+
+    result = {
+        "session_id": session_id,
+        "balloons": balloons,
+        "total_balloons": len(balloons),
+        "matched_count": matched_count,
+        "unmatched_count": len(balloons) - matched_count,
+        "match_rate": (matched_count / len(balloons) * 100) if balloons else 0,
+        "processing_time_ms": processing_time,
+    }
+
+    session_service.update_session(session_id, {"balloon_matching": result})
+
+    return result
+
+
+@router.get("/balloon/{session_id}")
+async def get_balloons(session_id: str) -> Dict[str, Any]:
+    """벌룬 매칭 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("balloon_matching")
+    if not result:
+        return {
+            "session_id": session_id,
+            "balloons": [],
+            "total_balloons": 0,
+            "message": "벌룬 매칭을 먼저 실행하세요.",
+        }
+
+    return result
+
+
+@router.put("/balloon/{session_id}/{balloon_id}")
+async def update_balloon(
+    session_id: str,
+    balloon_id: str,
+    update: Dict[str, Any]
+) -> Dict[str, Any]:
+    """벌룬 매칭 정보 수정"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("balloon_matching", {})
+    balloons = result.get("balloons", [])
+
+    updated_balloon = None
+    for i, b in enumerate(balloons):
+        if b.get("id") == balloon_id:
+            balloons[i] = {**b, **update}
+            updated_balloon = balloons[i]
+            break
+
+    result["balloons"] = balloons
+    session_service.update_session(session_id, {"balloon_matching": result})
+
+    return {"success": True, "balloon": updated_balloon}
+
+
+@router.post("/balloon/{session_id}/{balloon_id}/link")
+async def link_balloon_to_symbol(
+    session_id: str,
+    balloon_id: str,
+    symbol_id: str
+) -> Dict[str, Any]:
+    """벌룬을 심볼에 수동 연결"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("balloon_matching", {})
+    balloons = result.get("balloons", [])
+
+    # 심볼 정보 가져오기
+    detections = session.get("detections", [])
+    symbol_class = None
+    for det in detections:
+        if det.get("id") == symbol_id:
+            symbol_class = det.get("class_name")
+            break
+
+    updated_balloon = None
+    for i, b in enumerate(balloons):
+        if b.get("id") == balloon_id:
+            balloons[i]["matched_symbol_id"] = symbol_id
+            balloons[i]["matched_symbol_class"] = symbol_class
+            updated_balloon = balloons[i]
+            break
+
+    # 매칭 통계 업데이트
+    matched_count = sum(1 for b in balloons if b.get("matched_symbol_id"))
+    result["balloons"] = balloons
+    result["matched_count"] = matched_count
+    result["unmatched_count"] = len(balloons) - matched_count
+    result["match_rate"] = (matched_count / len(balloons) * 100) if balloons else 0
+
+    session_service.update_session(session_id, {"balloon_matching": result})
+
+    return {"success": True, "balloon": updated_balloon}
+
+
+# ============================================================
+# 장기 로드맵 기능 (Long-term Roadmap Features)
+# ============================================================
+
+# ============================================================
+# 도면 영역 세분화 (Drawing Region Segmentation)
+# ============================================================
+
+@router.post("/drawing-regions/{session_id}/segment")
+async def segment_drawing_regions(session_id: str) -> Dict[str, Any]:
+    """도면 영역 세분화 실행
+
+    정면도, 측면도, 단면도, 상세도, 표제란 등을 자동 구분합니다.
+    SAM/U-Net 기반 세그멘테이션 모델이 필요합니다 (현재: 더미 구현).
+    """
+    import time
+    start_time = time.time()
+
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # TODO: 실제 세그멘테이션 모델 구현
+    # 현재는 더미 결과 반환
+    regions = []
+
+    # 표제란 영역 추정 (우하단 고정 위치)
+    image_width = session.get("image_width", 1000)
+    image_height = session.get("image_height", 1000)
+
+    # 표제란이 있을 가능성이 높은 영역 추가
+    title_block_region = {
+        "id": f"region_{session_id[:8]}_title",
+        "view_type": "title_block",
+        "label": "표제란",
+        "bbox": [image_width * 0.6, image_height * 0.85, image_width, image_height],
+        "confidence": 0.7,
+        "contains_dimensions": False,
+        "contains_annotations": True,
+    }
+
+    # 메인 뷰 영역 (단순 추정)
+    main_view_region = {
+        "id": f"region_{session_id[:8]}_main",
+        "view_type": "front",
+        "label": "정면도",
+        "bbox": [0, 0, image_width * 0.6, image_height * 0.85],
+        "confidence": 0.5,
+        "contains_dimensions": True,
+        "contains_annotations": True,
+    }
+
+    regions = [title_block_region, main_view_region]
+
+    processing_time = (time.time() - start_time) * 1000
+
+    result = {
+        "session_id": session_id,
+        "regions": regions,
+        "total_regions": len(regions),
+        "by_view_type": {"title_block": 1, "front": 1},
+        "has_title_block": True,
+        "has_parts_list": False,
+        "processing_time_ms": processing_time,
+    }
+
+    session_service.update_session(session_id, {"drawing_regions": result})
+    return result
+
+
+@router.get("/drawing-regions/{session_id}")
+async def get_drawing_regions(session_id: str) -> Dict[str, Any]:
+    """도면 영역 세분화 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    return session.get("drawing_regions", {
+        "session_id": session_id,
+        "regions": [],
+        "total_regions": 0,
+        "by_view_type": {},
+        "has_title_block": False,
+        "has_parts_list": False,
+        "processing_time_ms": 0,
+    })
+
+
+@router.put("/drawing-regions/{session_id}/{region_id}")
+async def update_drawing_region(
+    session_id: str,
+    region_id: str,
+    update: Dict[str, Any]
+) -> Dict[str, Any]:
+    """도면 영역 정보 수정"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("drawing_regions", {})
+    regions = result.get("regions", [])
+
+    updated_region = None
+    for i, r in enumerate(regions):
+        if r.get("id") == region_id:
+            regions[i].update(update)
+            updated_region = regions[i]
+            break
+
+    if not updated_region:
+        raise HTTPException(status_code=404, detail="영역을 찾을 수 없습니다")
+
+    result["regions"] = regions
+    session_service.update_session(session_id, {"drawing_regions": result})
+
+    return {"success": True, "region": updated_region}
+
+
+# ============================================================
+# 주석/노트 추출 (Notes Extraction)
+# ============================================================
+
+@router.post("/notes/{session_id}/extract")
+async def extract_notes(session_id: str) -> Dict[str, Any]:
+    """도면 노트/주석 추출
+
+    일반 노트, 재료 사양, 열처리, 표면 처리 등을 추출합니다.
+    LLM 기반 분류가 필요합니다 (현재: 더미 구현).
+    """
+    import time
+    start_time = time.time()
+
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # TODO: 실제 노트 추출 구현
+    # 현재는 더미 결과 반환
+    notes = []
+    materials = []
+    standards = []
+    tolerances = {}
+
+    processing_time = (time.time() - start_time) * 1000
+
+    result = {
+        "session_id": session_id,
+        "notes": notes,
+        "total_notes": len(notes),
+        "by_category": {},
+        "materials": materials,
+        "standards": standards,
+        "tolerances": tolerances,
+        "processing_time_ms": processing_time,
+    }
+
+    session_service.update_session(session_id, {"notes_extraction": result})
+    return result
+
+
+@router.get("/notes/{session_id}")
+async def get_notes(session_id: str) -> Dict[str, Any]:
+    """노트 추출 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    return session.get("notes_extraction", {
+        "session_id": session_id,
+        "notes": [],
+        "total_notes": 0,
+        "by_category": {},
+        "materials": [],
+        "standards": [],
+        "tolerances": {},
+        "processing_time_ms": 0,
+    })
+
+
+@router.put("/notes/{session_id}/{note_id}")
+async def update_note(
+    session_id: str,
+    note_id: str,
+    update: Dict[str, Any]
+) -> Dict[str, Any]:
+    """노트 정보 수정"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    result = session.get("notes_extraction", {})
+    notes = result.get("notes", [])
+
+    updated_note = None
+    for i, n in enumerate(notes):
+        if n.get("id") == note_id:
+            notes[i].update(update)
+            updated_note = notes[i]
+            break
+
+    if not updated_note:
+        raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다")
+
+    result["notes"] = notes
+    session_service.update_session(session_id, {"notes_extraction": result})
+
+    return {"success": True, "note": updated_note}
+
+
+# ============================================================
+# 리비전 비교 (Revision Comparison)
+# ============================================================
+
+@router.post("/revision/compare")
+async def compare_revisions(request: Dict[str, Any]) -> Dict[str, Any]:
+    """두 도면 리비전 비교
+
+    이미지 정합 및 변경점 감지를 수행합니다.
+    SIFT/ORB 기반 정합 알고리즘이 필요합니다 (현재: 더미 구현).
+
+    Request body:
+    - session_id_old: 이전 리비전 세션 ID
+    - session_id_new: 새 리비전 세션 ID
+    - config: 비교 설정 (선택)
+    """
+    import time
+    import uuid
+    start_time = time.time()
+
+    session_id_old = request.get("session_id_old")
+    session_id_new = request.get("session_id_new")
+
+    if not session_id_old or not session_id_new:
+        raise HTTPException(status_code=400, detail="session_id_old와 session_id_new가 필요합니다")
+
+    session_service = get_session_service()
+
+    session_old = session_service.get_session(session_id_old)
+    session_new = session_service.get_session(session_id_new)
+
+    if not session_old:
+        raise HTTPException(status_code=404, detail="이전 리비전 세션을 찾을 수 없습니다")
+    if not session_new:
+        raise HTTPException(status_code=404, detail="새 리비전 세션을 찾을 수 없습니다")
+
+    # TODO: 실제 리비전 비교 구현
+    # 현재는 더미 결과 반환
+    changes = []
+    comparison_id = str(uuid.uuid4())
+
+    processing_time = (time.time() - start_time) * 1000
+
+    result = {
+        "comparison_id": comparison_id,
+        "session_id_old": session_id_old,
+        "session_id_new": session_id_new,
+        "changes": changes,
+        "total_changes": len(changes),
+        "by_type": {},
+        "by_category": {},
+        "added_count": 0,
+        "removed_count": 0,
+        "modified_count": 0,
+        "diff_image_url": None,
+        "overlay_image_url": None,
+        "alignment_score": 0.0,
+        "processing_time_ms": processing_time,
+    }
+
+    # 새 세션에 비교 결과 저장
+    session_service.update_session(session_id_new, {"revision_comparison": result})
+
+    return result
+
+
+@router.get("/revision/{session_id}")
+async def get_revision_comparison(session_id: str) -> Dict[str, Any]:
+    """리비전 비교 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    return session.get("revision_comparison", {
+        "session_id_old": None,
+        "session_id_new": session_id,
+        "changes": [],
+        "total_changes": 0,
+        "by_type": {},
+        "by_category": {},
+        "added_count": 0,
+        "removed_count": 0,
+        "modified_count": 0,
+        "processing_time_ms": 0,
+    })
+
+
+# ============================================================
+# VLM 자동 분류 (VLM Auto Classification)
+# ============================================================
+
+@router.post("/vlm-classify/{session_id}")
+async def vlm_classify_drawing(
+    session_id: str,
+    config: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """VLM 기반 도면 자동 분류
+
+    GPT-4V, Claude Vision 등을 사용하여 도면 타입 및 특성을 분류합니다.
+    현재는 Local VL API를 사용합니다 (더미 구현).
+
+    Config options:
+    - provider: VLM 제공자 (local, openai, anthropic, google)
+    - recommend_features: 기능 추천 포함 여부
+    - detailed_analysis: 상세 분석 포함 여부
+    """
+    import time
+    start_time = time.time()
+
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    provider = (config or {}).get("provider", "local")
+    recommend_features = (config or {}).get("recommend_features", True)
+
+    # TODO: 실제 VLM API 호출 구현
+    # 현재는 세션의 기존 분류 정보 사용 또는 기본값 반환
+
+    # 기존 분류 정보가 있으면 활용
+    existing_type = session.get("drawing_type", "auto")
+    confidence = session.get("drawing_type_confidence", 0.0)
+
+    # 도면 타입 매핑
+    type_mapping = {
+        "mechanical_part": "mechanical_part",
+        "assembly": "assembly",
+        "pid": "pid",
+        "electrical": "electrical",
+        "dimension": "mechanical_part",
+        "electrical_panel": "electrical",
+        "auto": "other",
+    }
+
+    drawing_type = type_mapping.get(existing_type, "other")
+
+    # 추천 기능 계산
+    recommended_features = []
+    if recommend_features:
+        if drawing_type == "mechanical_part":
+            recommended_features = [
+                "dimension_ocr", "dimension_verification", "gdt_parsing",
+                "surface_roughness_parsing", "welding_symbol_parsing"
+            ]
+        elif drawing_type == "assembly":
+            recommended_features = [
+                "symbol_detection", "balloon_matching", "quantity_extraction",
+                "bom_generation"
+            ]
+        elif drawing_type == "pid":
+            recommended_features = [
+                "symbol_detection", "line_detection", "pid_connectivity",
+                "bom_generation"
+            ]
+        elif drawing_type == "electrical":
+            recommended_features = [
+                "symbol_detection", "bom_generation"
+            ]
+
+    processing_time = (time.time() - start_time) * 1000
+
+    result = {
+        "session_id": session_id,
+        "drawing_type": drawing_type,
+        "drawing_type_confidence": confidence or 0.7,
+        "industry_domain": "machinery",
+        "industry_confidence": 0.6,
+        "complexity": "moderate",
+        "estimated_part_count": None,
+        "has_dimensions": True,
+        "has_tolerances": drawing_type == "mechanical_part",
+        "has_surface_finish": drawing_type == "mechanical_part",
+        "has_welding_symbols": drawing_type in ["mechanical_part", "assembly"],
+        "has_gdt": drawing_type == "mechanical_part",
+        "has_bom": drawing_type in ["assembly", "pid"],
+        "has_notes": True,
+        "has_title_block": True,
+        "recommended_features": recommended_features,
+        "analysis_summary": f"도면 타입: {drawing_type}, 추천 기능 {len(recommended_features)}개",
+        "raw_response": None,
+        "vlm_provider": provider,
+        "vlm_model": "local-vl" if provider == "local" else None,
+        "processing_time_ms": processing_time,
+    }
+
+    session_service.update_session(session_id, {"vlm_classification": result})
+    return result
+
+
+@router.get("/vlm-classify/{session_id}")
+async def get_vlm_classification(session_id: str) -> Dict[str, Any]:
+    """VLM 분류 결과 조회"""
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    return session.get("vlm_classification", {
+        "session_id": session_id,
+        "drawing_type": "other",
+        "drawing_type_confidence": 0.0,
+        "industry_domain": "general",
+        "industry_confidence": 0.0,
+        "complexity": "moderate",
+        "recommended_features": [],
+        "processing_time_ms": 0,
+    })

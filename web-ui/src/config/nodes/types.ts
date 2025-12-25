@@ -11,14 +11,23 @@ export interface SelectOption {
   disabled?: boolean;    // 옵션 비활성화 (Phase 2 기능 등)
 }
 
+export interface CheckboxOption {
+  value: string;
+  label: string;
+  hint?: string;        // 힌트 텍스트 (예: "YOLO 노드 필요")
+  icon?: string;        // 이모지 아이콘
+  description?: string; // 마우스 hover 시 표시되는 상세 설명
+}
+
 export interface NodeParameter {
   name: string;
-  type: 'number' | 'string' | 'boolean' | 'select' | 'textarea' | 'multiselect';
-  default: string | number | boolean | string[];  // multiselect는 string[] 기본값
+  type: 'number' | 'string' | 'boolean' | 'select' | 'textarea' | 'multiselect' | 'checkboxGroup';
+  default: string | number | boolean | string[];  // multiselect, checkboxGroup은 string[] 기본값
   min?: number;
   max?: number;
   step?: number;
-  options?: string[] | SelectOption[];  // 단순 문자열 또는 상세 옵션 객체
+  options?: string[] | SelectOption[] | CheckboxOption[];  // 단순 문자열, 상세 옵션 또는 체크박스 옵션
+  linkedTo?: string;  // 다른 파라미터와 연동 (예: drawing_type → features 자동 업데이트)
   description: string;
   placeholder?: string;
   tooltip?: string;  // 파라미터 전체에 대한 상세 툴팁

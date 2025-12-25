@@ -26,10 +26,25 @@ import {
 } from 'lucide-react';
 import { useSessionStore } from '../store/sessionStore';
 import axios from 'axios';
-import { detectionApi, systemApi, groundTruthApi, blueprintFlowApi } from '../lib/api';
+import { detectionApi, systemApi, groundTruthApi, blueprintFlowApi, analysisApi, longtermApi } from '../lib/api';
 import logger from '../lib/logger';
 import { API_BASE_URL } from '../lib/constants';
-import type { GPUStatus, GTCompareResponse } from '../lib/api';
+import type {
+  GPUStatus,
+  GTCompareResponse,
+  ConnectivityResult,
+  TitleBlockData,
+  // 중기 로드맵 기능 타입 (2025-12-24)
+  WeldingParsingResult,
+  SurfaceRoughnessResult,
+  QuantityExtractionResult,
+  BalloonMatchingResult,
+  // 장기 로드맵 기능 타입 (2025-12-24)
+  DrawingRegion,
+  ExtractedNote,
+  RevisionChange,
+  VLMClassificationResult,
+} from '../lib/api';
 
 interface ClassExample {
   class_name: string;
@@ -50,6 +65,7 @@ import { FEATURE_TOOLTIPS } from '../components/tooltipContent';
 import GDTEditor from '../components/GDTEditor';
 import type { FeatureControlFrame, DatumFeature, GDTSummary } from '../components/GDTEditor';
 import type { DimensionRelation, RelationStatistics } from '../types';
+import { ConnectivityDiagram } from '../components/ConnectivityDiagram';
 
 // Dimension types
 interface Dimension {
@@ -84,6 +100,270 @@ interface AnalysisOptionsData {
   symbol_model_type: string;
   preset: string | null;
 }
+
+// 도면 타입별 섹션 가시성 설정
+interface SectionVisibility {
+  symbolDetection: boolean;    // 심볼 검출 (YOLO)
+  dimensionOCR: boolean;       // 치수 OCR (eDOCr2)
+  lineDetection: boolean;      // 선 검출
+  gdtParsing: boolean;         // GD&T 기하공차
+  relationExtraction: boolean; // 치수-객체 관계
+  // 단기 로드맵 기능 (2025-12-24)
+  pidConnectivity: boolean;    // P&ID 연결성 분석
+  titleBlockOcr: boolean;      // 표제란 OCR
+  // 중기 로드맵 기능 (2025-12-24)
+  weldingSymbolParsing: boolean;      // 용접 기호 파싱
+  surfaceRoughnessParsing: boolean;   // 표면 거칠기 파싱
+  quantityExtraction: boolean;        // 수량 추출
+  balloonMatching: boolean;           // 벌룬 번호 매칭
+  // 장기 로드맵 기능 (2025-12-24)
+  drawingRegionSegmentation: boolean; // 도면 영역 세분화
+  notesExtraction: boolean;           // 주석/노트 추출
+  revisionComparison: boolean;        // 리비전 비교
+  vlmAutoClassification: boolean;     // VLM 자동 분류
+}
+
+const DRAWING_TYPE_SECTIONS: Record<string, SectionVisibility> = {
+  // 전력 설비: 심볼만 필요
+  electrical_panel: {
+    symbolDetection: true,
+    dimensionOCR: false,
+    lineDetection: false,
+    gdtParsing: false,
+    relationExtraction: false,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: false,
+    surfaceRoughnessParsing: false,
+    quantityExtraction: false,
+    balloonMatching: false,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  electrical: {
+    symbolDetection: true,
+    dimensionOCR: false,
+    lineDetection: false,
+    gdtParsing: false,
+    relationExtraction: false,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: false,
+    surfaceRoughnessParsing: false,
+    quantityExtraction: false,
+    balloonMatching: false,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  electrical_circuit: {
+    symbolDetection: true,
+    dimensionOCR: false,
+    lineDetection: false,
+    gdtParsing: false,
+    relationExtraction: false,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: false,
+    surfaceRoughnessParsing: false,
+    quantityExtraction: false,
+    balloonMatching: false,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  // 기계 부품도: 치수 + GD&T + 용접 + 표면 거칠기
+  mechanical_part: {
+    symbolDetection: false,
+    dimensionOCR: true,
+    lineDetection: false,
+    gdtParsing: true,
+    relationExtraction: true,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: true,
+    surfaceRoughnessParsing: true,
+    quantityExtraction: true,
+    balloonMatching: true,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  mechanical: {
+    symbolDetection: false,
+    dimensionOCR: true,
+    lineDetection: false,
+    gdtParsing: true,
+    relationExtraction: true,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: true,
+    surfaceRoughnessParsing: true,
+    quantityExtraction: true,
+    balloonMatching: true,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  dimension: {
+    symbolDetection: false,
+    dimensionOCR: true,
+    lineDetection: false,
+    gdtParsing: false,
+    relationExtraction: false,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: false,
+    surfaceRoughnessParsing: true,
+    quantityExtraction: false,
+    balloonMatching: false,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  dimension_bom: {
+    symbolDetection: false,
+    dimensionOCR: true,
+    lineDetection: false,
+    gdtParsing: true,
+    relationExtraction: true,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: true,
+    surfaceRoughnessParsing: true,
+    quantityExtraction: true,
+    balloonMatching: true,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  // P&ID: 심볼 + 선 + 연결성
+  pid: {
+    symbolDetection: true,
+    dimensionOCR: false,
+    lineDetection: true,
+    gdtParsing: false,
+    relationExtraction: true,
+    pidConnectivity: true,
+    titleBlockOcr: true,
+    weldingSymbolParsing: false,
+    surfaceRoughnessParsing: false,
+    quantityExtraction: true,
+    balloonMatching: true,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  // 조립도: 심볼 + 치수 + 선 + 벌룬 + 수량
+  assembly: {
+    symbolDetection: true,
+    dimensionOCR: true,
+    lineDetection: true,
+    gdtParsing: false,
+    relationExtraction: true,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: true,
+    surfaceRoughnessParsing: false,
+    quantityExtraction: true,
+    balloonMatching: true,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  // 건축 도면: 치수 + 선
+  architectural: {
+    symbolDetection: false,
+    dimensionOCR: true,
+    lineDetection: true,
+    gdtParsing: false,
+    relationExtraction: false,
+    pidConnectivity: false,
+    titleBlockOcr: true,
+    weldingSymbolParsing: false,
+    surfaceRoughnessParsing: false,
+    quantityExtraction: false,
+    balloonMatching: false,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  // 기본값 (auto 또는 unknown): 모두 표시
+  auto: {
+    symbolDetection: true,
+    dimensionOCR: true,
+    lineDetection: true,
+    gdtParsing: true,
+    relationExtraction: true,
+    pidConnectivity: true,
+    titleBlockOcr: true,
+    weldingSymbolParsing: true,
+    surfaceRoughnessParsing: true,
+    quantityExtraction: true,
+    balloonMatching: true,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+  unknown: {
+    symbolDetection: true,
+    dimensionOCR: true,
+    lineDetection: true,
+    gdtParsing: true,
+    relationExtraction: true,
+    pidConnectivity: true,
+    titleBlockOcr: true,
+    weldingSymbolParsing: true,
+    surfaceRoughnessParsing: true,
+    quantityExtraction: true,
+    balloonMatching: true,
+    drawingRegionSegmentation: true,
+    notesExtraction: true,
+    revisionComparison: true,
+    vlmAutoClassification: true,
+  },
+};
+
+// 섹션 가시성 헬퍼 함수 (2025-12-24: features 기반 지원 추가)
+const getSectionVisibility = (drawingType: string | undefined, features?: string[]): SectionVisibility => {
+  // features가 제공된 경우 features 기반 가시성 사용
+  if (features && features.length > 0) {
+    return {
+      symbolDetection: features.includes('symbol_detection'),
+      dimensionOCR: features.includes('dimension_ocr'),
+      lineDetection: features.includes('line_detection'),
+      gdtParsing: features.includes('gdt_parsing'),
+      relationExtraction: features.includes('relation_extraction'),
+      pidConnectivity: features.includes('pid_connectivity'),
+      titleBlockOcr: features.includes('title_block_ocr'),
+      // 중기 로드맵 기능 (2025-12-24)
+      weldingSymbolParsing: features.includes('welding_symbol_parsing'),
+      surfaceRoughnessParsing: features.includes('surface_roughness_parsing'),
+      quantityExtraction: features.includes('quantity_extraction'),
+      balloonMatching: features.includes('balloon_matching'),
+      // 장기 로드맵 기능 (2025-12-24)
+      drawingRegionSegmentation: features.includes('drawing_region_segmentation'),
+      notesExtraction: features.includes('notes_extraction'),
+      revisionComparison: features.includes('revision_comparison'),
+      vlmAutoClassification: features.includes('vlm_auto_classification'),
+    };
+  }
+  // features가 없으면 drawing_type 기반 폴백
+  const type = drawingType || 'auto';
+  return DRAWING_TYPE_SECTIONS[type] || DRAWING_TYPE_SECTIONS.auto;
+};
 
 // 페이지당 아이템 수
 const ITEMS_PER_PAGE = 7;
@@ -206,6 +486,38 @@ export function WorkflowPage() {
   const [isRunningLineDetection, setIsRunningLineDetection] = useState(false);
   const [showLines, setShowLines] = useState(true);
 
+  // P&ID 연결성 분석 상태 (2025-12-24)
+  const [connectivityData, setConnectivityData] = useState<ConnectivityResult | null>(null);
+  const [isAnalyzingConnectivity, setIsAnalyzingConnectivity] = useState(false);
+  const [selectedSymbolId, setSelectedSymbolId] = useState<string | null>(null);
+  const [highlightPath, setHighlightPath] = useState<string[] | null>(null);
+
+  // 표제란 OCR 상태 (2025-12-24)
+  const [titleBlockData, setTitleBlockData] = useState<TitleBlockData | null>(null);
+  const [isExtractingTitleBlock, setIsExtractingTitleBlock] = useState(false);
+  const [editingTitleBlock, setEditingTitleBlock] = useState<Partial<TitleBlockData> | null>(null);
+
+  // 중기 로드맵 기능 상태 (2025-12-24)
+  // 1. 용접 기호 파싱
+  const [weldingResult, setWeldingResult] = useState<WeldingParsingResult | null>(null);
+  const [isParsingWelding, setIsParsingWelding] = useState(false);
+  const [selectedWeldingId, setSelectedWeldingId] = useState<string | null>(null);
+
+  // 2. 표면 거칠기 파싱
+  const [roughnessResult, setRoughnessResult] = useState<SurfaceRoughnessResult | null>(null);
+  const [isParsingRoughness, setIsParsingRoughness] = useState(false);
+  const [selectedRoughnessId, setSelectedRoughnessId] = useState<string | null>(null);
+
+  // 3. 수량 추출
+  const [quantityResult, setQuantityResult] = useState<QuantityExtractionResult | null>(null);
+  const [isExtractingQuantity, setIsExtractingQuantity] = useState(false);
+  const [selectedQuantityId, setSelectedQuantityId] = useState<string | null>(null);
+
+  // 4. 벌룬 매칭
+  const [balloonResult, setBalloonResult] = useState<BalloonMatchingResult | null>(null);
+  const [isMatchingBalloons, setIsMatchingBalloons] = useState(false);
+  const [selectedBalloonId, setSelectedBalloonId] = useState<string | null>(null);
+
   // Phase 2: Relation state (치수선 기반 관계 추출)
   const [relations, setRelations] = useState<DimensionRelation[]>([]);
   const [relationStats, setRelationStats] = useState<RelationStatistics | null>(null);
@@ -220,6 +532,26 @@ export function WorkflowPage() {
   const [isParsingGDT, setIsParsingGDT] = useState(false);
   const [selectedFCFId, setSelectedFCFId] = useState<string | null>(null);
   const [selectedDatumId, setSelectedDatumId] = useState<string | null>(null);
+
+  // 장기 로드맵 기능 (2025-12-24)
+  // 1. 도면 영역 세분화
+  const [drawingRegions, setDrawingRegions] = useState<DrawingRegion[]>([]);
+  const [isSegmentingRegions, setIsSegmentingRegions] = useState(false);
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
+
+  // 2. 주석/노트 추출
+  const [extractedNotes, setExtractedNotes] = useState<ExtractedNote[]>([]);
+  const [isExtractingNotes, setIsExtractingNotes] = useState(false);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+
+  // 3. 리비전 비교
+  const [revisionChanges, setRevisionChanges] = useState<RevisionChange[]>([]);
+  const [isComparingRevisions, setIsComparingRevisions] = useState(false);
+  const [comparisonSessionId, setComparisonSessionId] = useState<string>('');
+
+  // 4. VLM 자동 분류
+  const [vlmClassification, setVlmClassification] = useState<VLMClassificationResult | null>(null);
+  const [isVlmClassifying, setIsVlmClassifying] = useState(false);
 
   // Derive links from dimensions for IntegratedOverlay
   const links = useMemo(() => {
@@ -617,6 +949,217 @@ export function WorkflowPage() {
     }
   };
 
+  // P&ID 연결성 분석 핸들러 (2025-12-24)
+  const handleAnalyzeConnectivity = async () => {
+    if (!currentSession) return;
+
+    setIsAnalyzingConnectivity(true);
+    try {
+      const result = await analysisApi.analyzeConnectivity(currentSession.session_id);
+      setConnectivityData(result.connectivity_graph);
+      logger.log('P&ID 연결성 분석 완료:', result.connectivity_graph.statistics);
+    } catch (err) {
+      logger.error('Connectivity analysis failed:', err);
+    } finally {
+      setIsAnalyzingConnectivity(false);
+    }
+  };
+
+  // P&ID 경로 찾기 핸들러 (2025-12-24)
+  const handleFindPath = async (startId: string, endId: string) => {
+    if (!currentSession) return;
+
+    try {
+      const result = await analysisApi.findPath(currentSession.session_id, startId, endId);
+      setHighlightPath(result.path);
+      logger.log('경로 찾기 완료:', result.path.length, '노드');
+    } catch (err) {
+      logger.error('Path finding failed:', err);
+      setHighlightPath(null);
+    }
+  };
+
+  // 표제란 OCR 추출 핸들러 (2025-12-24)
+  const handleExtractTitleBlock = async () => {
+    if (!currentSession) return;
+
+    setIsExtractingTitleBlock(true);
+    try {
+      const result = await analysisApi.extractTitleBlock(currentSession.session_id);
+      if (result.title_block) {
+        setTitleBlockData(result.title_block);
+        logger.log('표제란 OCR 완료:', result.title_block);
+      } else {
+        logger.warn('표제란을 찾을 수 없습니다');
+      }
+    } catch (err) {
+      logger.error('Title block extraction failed:', err);
+    } finally {
+      setIsExtractingTitleBlock(false);
+    }
+  };
+
+  // 표제란 정보 수정 핸들러 (2025-12-24)
+  const handleUpdateTitleBlock = async () => {
+    if (!currentSession || !editingTitleBlock) return;
+
+    try {
+      const result = await analysisApi.updateTitleBlock(currentSession.session_id, editingTitleBlock);
+      setTitleBlockData(result.title_block);
+      setEditingTitleBlock(null);
+      logger.log('표제란 정보 수정 완료');
+    } catch (err) {
+      logger.error('Title block update failed:', err);
+    }
+  };
+
+  // ==================== 중기 로드맵 핸들러 (2025-12-24) ====================
+
+  // 1. 용접 기호 파싱 핸들러
+  const handleParseWelding = async () => {
+    if (!currentSession) return;
+    setIsParsingWelding(true);
+    try {
+      const result = await analysisApi.parseWeldingSymbols(currentSession.session_id);
+      setWeldingResult(result);
+      logger.log(`🔩 용접 기호 파싱 완료: ${result.total_count}개`);
+    } catch (err) {
+      logger.error('Welding symbol parsing failed:', err);
+    } finally {
+      setIsParsingWelding(false);
+    }
+  };
+
+  // 2. 표면 거칠기 파싱 핸들러
+  const handleParseRoughness = async () => {
+    if (!currentSession) return;
+    setIsParsingRoughness(true);
+    try {
+      const result = await analysisApi.parseSurfaceRoughness(currentSession.session_id);
+      setRoughnessResult(result);
+      logger.log(`🪨 표면 거칠기 파싱 완료: ${result.total_count}개`);
+    } catch (err) {
+      logger.error('Surface roughness parsing failed:', err);
+    } finally {
+      setIsParsingRoughness(false);
+    }
+  };
+
+  // 3. 수량 추출 핸들러
+  const handleExtractQuantity = async () => {
+    if (!currentSession) return;
+    setIsExtractingQuantity(true);
+    try {
+      const result = await analysisApi.extractQuantities(currentSession.session_id);
+      setQuantityResult(result);
+      logger.log(`🔢 수량 추출 완료: ${result.total_items}개 항목, 총 ${result.total_quantity}개`);
+    } catch (err) {
+      logger.error('Quantity extraction failed:', err);
+    } finally {
+      setIsExtractingQuantity(false);
+    }
+  };
+
+  // 4. 벌룬 매칭 핸들러
+  const handleMatchBalloons = async () => {
+    if (!currentSession) return;
+    setIsMatchingBalloons(true);
+    try {
+      const result = await analysisApi.matchBalloons(currentSession.session_id);
+      setBalloonResult(result);
+      logger.log(`🎈 벌룬 매칭 완료: ${result.matched_count}/${result.total_balloons}개 매칭됨 (${result.match_rate.toFixed(1)}%)`);
+    } catch (err) {
+      logger.error('Balloon matching failed:', err);
+    } finally {
+      setIsMatchingBalloons(false);
+    }
+  };
+
+  // 벌룬-심볼 수동 연결 핸들러
+  const handleLinkBalloon = async (balloonId: string, symbolId: string) => {
+    if (!currentSession) return;
+    try {
+      const result = await analysisApi.linkBalloonToSymbol(currentSession.session_id, balloonId, symbolId);
+      // 결과 업데이트
+      if (balloonResult) {
+        const updated = balloonResult.balloons.map(b =>
+          b.id === balloonId ? result.balloon : b
+        );
+        setBalloonResult({
+          ...balloonResult,
+          balloons: updated,
+          matched_count: updated.filter(b => b.matched_symbol_id).length,
+          unmatched_count: updated.filter(b => !b.matched_symbol_id).length,
+          match_rate: (updated.filter(b => b.matched_symbol_id).length / updated.length) * 100,
+        });
+      }
+      logger.log(`🎈 벌룬 ${balloonId} → 심볼 ${symbolId} 연결됨`);
+    } catch (err) {
+      logger.error('Balloon link failed:', err);
+    }
+  };
+
+  // 장기 로드맵 핸들러 (2025-12-24)
+  // 1. 도면 영역 세분화
+  const handleSegmentRegions = async () => {
+    if (!currentSession) return;
+    setIsSegmentingRegions(true);
+    try {
+      const result = await longtermApi.segmentDrawingRegions(currentSession.session_id);
+      setDrawingRegions(result.regions);
+      logger.log(`🗺️ 도면 영역 세분화 완료: ${result.total_regions}개 영역 검출`);
+    } catch (err) {
+      logger.error('Region segmentation failed:', err);
+    } finally {
+      setIsSegmentingRegions(false);
+    }
+  };
+
+  // 2. 주석/노트 추출
+  const handleExtractNotes = async () => {
+    if (!currentSession) return;
+    setIsExtractingNotes(true);
+    try {
+      const result = await longtermApi.extractNotes(currentSession.session_id);
+      setExtractedNotes(result.notes);
+      logger.log(`📋 주석/노트 추출 완료: ${result.total_notes}개 추출`);
+    } catch (err) {
+      logger.error('Notes extraction failed:', err);
+    } finally {
+      setIsExtractingNotes(false);
+    }
+  };
+
+  // 3. 리비전 비교
+  const handleCompareRevisions = async () => {
+    if (!currentSession || !comparisonSessionId) return;
+    setIsComparingRevisions(true);
+    try {
+      const result = await longtermApi.compareRevisions(currentSession.session_id, comparisonSessionId);
+      setRevisionChanges(result.changes);
+      logger.log(`🔄 리비전 비교 완료: ${result.total_changes}개 변경점 감지`);
+    } catch (err) {
+      logger.error('Revision comparison failed:', err);
+    } finally {
+      setIsComparingRevisions(false);
+    }
+  };
+
+  // 4. VLM 자동 분류
+  const handleVlmClassify = async () => {
+    if (!currentSession) return;
+    setIsVlmClassifying(true);
+    try {
+      const result = await longtermApi.vlmClassify(currentSession.session_id);
+      setVlmClassification(result);
+      logger.log(`🤖 VLM 분류 완료: ${result.drawing_type} (${(result.drawing_type_confidence * 100).toFixed(1)}%)`);
+    } catch (err) {
+      logger.error('VLM classification failed:', err);
+    } finally {
+      setIsVlmClassifying(false);
+    }
+  };
+
   // Phase 2: 관계 추출 핸들러
   const handleExtractRelations = async () => {
     if (!currentSession) return;
@@ -762,6 +1305,30 @@ export function WorkflowPage() {
     return { total, approved, rejected, pending, manual };
   }, [detections]);
 
+  // Effective drawing type: session type or VLM classification result
+  const effectiveDrawingType = useMemo(() => {
+    // 세션에 명시적 타입이 설정된 경우 (빌더에서 설정)
+    if (currentSession?.drawing_type && currentSession.drawing_type !== 'auto') {
+      return currentSession.drawing_type;
+    }
+    // VLM 분류 결과가 있는 경우
+    if (classification?.drawing_type) {
+      return classification.drawing_type;
+    }
+    // 기본값
+    return 'auto';
+  }, [currentSession?.drawing_type, classification?.drawing_type]);
+
+  // Effective features: 세션에서 전달된 features 배열 (2025-12-24: 기능 기반 재설계)
+  const effectiveFeatures = useMemo(() => {
+    // 세션에 features가 있으면 사용
+    if (currentSession?.features && currentSession.features.length > 0) {
+      return currentSession.features;
+    }
+    // features가 없으면 undefined 반환 (drawing_type 기반 폴백)
+    return undefined;
+  }, [currentSession?.features]);
+
   // Pagination
   const totalPages = Math.ceil(detections.length / ITEMS_PER_PAGE);
   const paginatedDetections = useMemo(() => {
@@ -878,6 +1445,23 @@ export function WorkflowPage() {
                   </li>
                 ))}
               </ul>
+            )}
+
+            {/* 세션 전체 삭제 버튼 */}
+            {sessions.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (confirm(`모든 세션(${sessions.length}개)을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+                    for (const session of sessions) {
+                      await deleteSession(session.session_id);
+                    }
+                  }
+                }}
+                className="w-full mt-3 flex items-center justify-center space-x-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>전체 삭제 ({sessions.length}개)</span>
+              </button>
             )}
           </div>
 
@@ -1277,8 +1861,11 @@ export function WorkflowPage() {
                   <img
                     src={imageData}
                     alt="도면"
-                    className="w-full max-h-[400px] object-contain rounded-lg border border-gray-200 dark:border-gray-700"
+                    className="w-full max-h-[400px] object-contain rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setShowImageModal(true)}
+                    title="클릭하여 크게 보기"
                   />
+                  <p className="text-xs text-gray-500 text-center mt-1">📌 클릭하여 크게 보기</p>
                 </div>
                 {imageSize && (
                   <div className="w-48 space-y-2 text-sm">
@@ -1360,8 +1947,76 @@ export function WorkflowPage() {
             </section>
           )}
 
-          {/* VLM 도면 분류 (Phase 4) - auto인 경우에만 표시 */}
-          {currentSession && imageData && showClassifier && (!currentSession.drawing_type || currentSession.drawing_type === 'auto') && (
+          {/* 빌더에서 설정된 기능 (features가 있는 경우 표시) */}
+          {currentSession && effectiveFeatures && effectiveFeatures.length > 0 && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                🔧 활성화된 기능
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  (빌더에서 설정됨)
+                </span>
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {effectiveFeatures.includes('symbol_detection') && (
+                  <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm flex items-center gap-1">
+                    🎯 심볼 검출
+                  </span>
+                )}
+                {effectiveFeatures.includes('symbol_verification') && (
+                  <span className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm flex items-center gap-1">
+                    ✅ 심볼 검증
+                  </span>
+                )}
+                {effectiveFeatures.includes('dimension_ocr') && (
+                  <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm flex items-center gap-1">
+                    📏 치수 OCR
+                  </span>
+                )}
+                {effectiveFeatures.includes('dimension_verification') && (
+                  <span className="px-3 py-1.5 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-full text-sm flex items-center gap-1">
+                    ✅ 치수 검증
+                  </span>
+                )}
+                {effectiveFeatures.includes('gt_comparison') && (
+                  <span className="px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full text-sm flex items-center gap-1">
+                    📊 GT 비교
+                  </span>
+                )}
+                {effectiveFeatures.includes('bom_generation') && (
+                  <span className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-sm flex items-center gap-1">
+                    📋 BOM 생성
+                  </span>
+                )}
+                {effectiveFeatures.includes('gdt_parsing') && (
+                  <span className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm flex items-center gap-1">
+                    📐 GD&T 파싱
+                  </span>
+                )}
+                {/* 단기 로드맵 기능 (2025-12-24) */}
+                {effectiveFeatures.includes('line_detection') && (
+                  <span className="px-3 py-1.5 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded-full text-sm flex items-center gap-1">
+                    📐 선 검출
+                  </span>
+                )}
+                {effectiveFeatures.includes('pid_connectivity') && (
+                  <span className="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-full text-sm flex items-center gap-1">
+                    🔗 P&ID 연결성
+                  </span>
+                )}
+                {effectiveFeatures.includes('title_block_ocr') && (
+                  <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300 rounded-full text-sm flex items-center gap-1">
+                    📝 표제란 OCR
+                  </span>
+                )}
+              </div>
+              <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                💡 워크플로우 빌더에서 선택한 기능에 따라 아래 섹션이 동적으로 표시됩니다.
+              </p>
+            </section>
+          )}
+
+          {/* VLM 도면 분류 (Phase 4) - auto인 경우에만 표시, features가 있으면 건너뜀 */}
+          {currentSession && imageData && showClassifier && (!currentSession.drawing_type || currentSession.drawing_type === 'auto') && !effectiveFeatures && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <DrawingClassifier
                 sessionId={currentSession.session_id}
@@ -1395,8 +2050,8 @@ export function WorkflowPage() {
             </section>
           )}
 
-          {/* 분류 결과 요약 (VLM 분류 완료 후 - auto인 경우에만) */}
-          {classification && !showClassifier && (!currentSession?.drawing_type || currentSession.drawing_type === 'auto') && (
+          {/* 분류 결과 요약 (VLM 분류 완료 후 - auto인 경우에만, features 없을 때만) */}
+          {classification && !showClassifier && (!currentSession?.drawing_type || currentSession.drawing_type === 'auto') && !effectiveFeatures && (
             <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">
@@ -1911,8 +2566,8 @@ export function WorkflowPage() {
             </section>
           )}
 
-          {/* Section 4.5: 치수 OCR 결과 (dimensions이 있을 때만 표시) */}
-          {dimensions.length > 0 && (
+          {/* Section 4.5: 치수 OCR 결과 - 타입별 조건부 렌더링 */}
+          {dimensions.length > 0 && getSectionVisibility(effectiveDrawingType, effectiveFeatures).dimensionOCR && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -1964,6 +2619,8 @@ export function WorkflowPage() {
                   onBulkApprove={handleBulkApproveDimensions}
                   onHover={(id) => setSelectedDimensionId(id)}
                   selectedId={selectedDimensionId}
+                  imageData={imageData}
+                  imageSize={imageSize}
                 />
               ) : currentSession?.session_id ? (
                 <VerificationQueue
@@ -2023,8 +2680,8 @@ export function WorkflowPage() {
             </section>
           )}
 
-          {/* Section 4.7: 선 검출 결과 */}
-          {currentSession && imageData && imageSize && (
+          {/* Section 4.7: 선 검출 결과 - 타입별 조건부 렌더링 */}
+          {currentSession && imageData && imageSize && getSectionVisibility(effectiveDrawingType, effectiveFeatures).lineDetection && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
@@ -2131,8 +2788,8 @@ export function WorkflowPage() {
             </section>
           )}
 
-          {/* Section 4.5: Phase 2 - 치수-객체 관계 (치수가 있을 때 표시) */}
-          {currentSession && dimensions.length > 0 && (
+          {/* Section 4.5: Phase 2 - 치수-객체 관계 - 타입별 조건부 렌더링 */}
+          {currentSession && dimensions.length > 0 && getSectionVisibility(effectiveDrawingType, effectiveFeatures).relationExtraction && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -2213,8 +2870,353 @@ export function WorkflowPage() {
             </section>
           )}
 
-          {/* Section 4.8: Phase 7 - GD&T 기하공차 (이미지가 있을 때 표시) */}
-          {currentSession && imageData && imageSize && (
+          {/* Section 4.7.5: P&ID 연결성 분석 - features 기반 조건부 렌더링 (2025-12-24) */}
+          {currentSession && imageData && imageSize && getSectionVisibility(effectiveDrawingType, effectiveFeatures).pidConnectivity && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🔗 P&ID 연결성
+                  <InfoTooltip content="P&ID 도면에서 심볼 간 연결 관계를 분석합니다. 선 검출 결과를 기반으로 배관, 밸브, 기기 간의 연결을 추적합니다." position="right" />
+                  {connectivityData && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 rounded-full">
+                      {connectivityData.statistics.total_connections}개 연결
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={handleAnalyzeConnectivity}
+                  disabled={isAnalyzingConnectivity || detections.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isAnalyzingConnectivity ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      분석 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      연결성 분석
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* 연결성 다이어그램 */}
+              {connectivityData ? (
+                <div className="relative border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700" style={{ height: 400 }}>
+                  <img
+                    src={imageData}
+                    alt="P&ID with connectivity"
+                    className="w-full h-full object-contain"
+                  />
+                  <div className="absolute inset-0">
+                    <ConnectivityDiagram
+                      data={connectivityData}
+                      detections={detections}
+                      imageSize={imageSize}
+                      containerSize={{ width: 600, height: 400 }}
+                      selectedSymbolId={selectedSymbolId}
+                      highlightPath={highlightPath}
+                      onSymbolClick={(id) => {
+                        if (selectedSymbolId && selectedSymbolId !== id) {
+                          // 두 심볼 선택 시 경로 찾기
+                          handleFindPath(selectedSymbolId, id);
+                        }
+                        setSelectedSymbolId(id);
+                      }}
+                      onSymbolHover={() => {}}
+                      showLabels={true}
+                      showOrphans={true}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="w-12 h-12 mx-auto mb-2 text-gray-300 flex items-center justify-center">
+                    <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <p>연결성 분석을 실행하여 심볼 간 연결을 분석하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {detections.length === 0
+                      ? '먼저 심볼 검출을 실행하세요'
+                      : `${detections.length}개 심볼 검출됨 - 분석 가능`}
+                  </p>
+                </div>
+              )}
+
+              {/* 연결 통계 요약 */}
+              {connectivityData && (
+                <div className="mt-4 grid grid-cols-4 gap-4 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {connectivityData.statistics.total_symbols}
+                    </div>
+                    <div className="text-xs text-gray-500">전체 심볼</div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                      {connectivityData.statistics.total_connections}
+                    </div>
+                    <div className="text-xs text-gray-500">연결 수</div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {(connectivityData.statistics.connectivity_ratio * 100).toFixed(0)}%
+                    </div>
+                    <div className="text-xs text-gray-500">연결률</div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                      {connectivityData.statistics.orphan_count}
+                    </div>
+                    <div className="text-xs text-gray-500">고립 심볼</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 선택된 심볼 정보 / 경로 찾기 안내 */}
+              {selectedSymbolId && connectivityData && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+                  <span className="font-medium text-blue-700 dark:text-blue-300">
+                    💡 다른 심볼을 클릭하면 두 심볼 간 연결 경로를 찾습니다.
+                  </span>
+                  {highlightPath && highlightPath.length > 1 && (
+                    <div className="mt-2 text-blue-600 dark:text-blue-400">
+                      경로: {highlightPath.map((id, i) => (
+                        <span key={id}>
+                          {connectivityData.nodes[id]?.class_name || id}
+                          {i < highlightPath.length - 1 && ' → '}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => { setSelectedSymbolId(null); setHighlightPath(null); }}
+                    className="mt-2 text-xs text-blue-500 hover:underline"
+                  >
+                    선택 해제
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Section 4.7.6: 표제란 OCR - features 기반 조건부 렌더링 (2025-12-24) */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).titleBlockOcr && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  📝 표제란 OCR
+                  <InfoTooltip content="도면 표제란에서 도면번호, 리비전, 날짜, 스케일 등 메타데이터를 자동으로 추출합니다." position="right" />
+                  {titleBlockData?.drawing_number && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300 rounded-full">
+                      {titleBlockData.drawing_number}
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center gap-2">
+                  {titleBlockData && !editingTitleBlock && (
+                    <button
+                      onClick={() => setEditingTitleBlock(titleBlockData)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      ✏️ 수정
+                    </button>
+                  )}
+                  <button
+                    onClick={handleExtractTitleBlock}
+                    disabled={isExtractingTitleBlock}
+                    className="flex items-center gap-2 px-4 py-2 text-sm bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isExtractingTitleBlock ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        추출 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        표제란 추출
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* 표제란 정보 표시 */}
+              {titleBlockData ? (
+                <div className="space-y-4">
+                  {/* 편집 모드 */}
+                  {editingTitleBlock ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">도면번호</label>
+                          <input
+                            type="text"
+                            value={editingTitleBlock.drawing_number || ''}
+                            onChange={(e) => setEditingTitleBlock({ ...editingTitleBlock, drawing_number: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">리비전</label>
+                          <input
+                            type="text"
+                            value={editingTitleBlock.revision || ''}
+                            onChange={(e) => setEditingTitleBlock({ ...editingTitleBlock, revision: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">도면 제목</label>
+                          <input
+                            type="text"
+                            value={editingTitleBlock.drawing_title || ''}
+                            onChange={(e) => setEditingTitleBlock({ ...editingTitleBlock, drawing_title: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">날짜</label>
+                          <input
+                            type="text"
+                            value={editingTitleBlock.date || ''}
+                            onChange={(e) => setEditingTitleBlock({ ...editingTitleBlock, date: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">스케일</label>
+                          <input
+                            type="text"
+                            value={editingTitleBlock.scale || ''}
+                            onChange={(e) => setEditingTitleBlock({ ...editingTitleBlock, scale: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">회사</label>
+                          <input
+                            type="text"
+                            value={editingTitleBlock.company || ''}
+                            onChange={(e) => setEditingTitleBlock({ ...editingTitleBlock, company: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleUpdateTitleBlock}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                        >
+                          ✓ 저장
+                        </button>
+                        <button
+                          onClick={() => setEditingTitleBlock(null)}
+                          className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 text-sm"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* 읽기 모드 */
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {titleBlockData.drawing_number && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">도면번호</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.drawing_number}</div>
+                        </div>
+                      )}
+                      {titleBlockData.revision && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">리비전</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.revision}</div>
+                        </div>
+                      )}
+                      {titleBlockData.drawing_title && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3 col-span-2">
+                          <div className="text-xs text-slate-500 mb-1">도면 제목</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.drawing_title}</div>
+                        </div>
+                      )}
+                      {titleBlockData.date && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">날짜</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.date}</div>
+                        </div>
+                      )}
+                      {titleBlockData.scale && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">스케일</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.scale}</div>
+                        </div>
+                      )}
+                      {titleBlockData.material && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">재료</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.material}</div>
+                        </div>
+                      )}
+                      {titleBlockData.company && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">회사</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.company}</div>
+                        </div>
+                      )}
+                      {titleBlockData.drawn_by && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">작성자</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.drawn_by}</div>
+                        </div>
+                      )}
+                      {titleBlockData.checked_by && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">검토자</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.checked_by}</div>
+                        </div>
+                      )}
+                      {titleBlockData.approved_by && (
+                        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">승인자</div>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{titleBlockData.approved_by}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 원본 텍스트 표시 (디버깅용) */}
+                  {titleBlockData.raw_text && (
+                    <details className="mt-4">
+                      <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
+                        📄 원본 텍스트 보기
+                      </summary>
+                      <pre className="mt-2 p-3 bg-gray-100 dark:bg-gray-900 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+                        {titleBlockData.raw_text}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="w-12 h-12 mx-auto mb-2 text-gray-300 flex items-center justify-center text-4xl">
+                    📝
+                  </div>
+                  <p>표제란 추출을 실행하여 도면 메타데이터를 가져오세요</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    도면번호, 리비전, 날짜, 스케일 등의 정보를 자동으로 인식합니다
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Section 4.8: Phase 7 - GD&T 기하공차 - 타입별 조건부 렌더링 */}
+          {currentSession && imageData && imageSize && getSectionVisibility(effectiveDrawingType, effectiveFeatures).gdtParsing && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -2320,6 +3322,789 @@ export function WorkflowPage() {
                   <div className="text-4xl mb-2">&#128208;</div>
                   <p>GD&T 파싱을 실행하여 기하공차를 분석하세요</p>
                   <p className="text-sm text-gray-400 mt-1">직진도, 평면도, 위치도 등 14가지 기하 특성을 검출합니다</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ==================== 중기 로드맵 기능 섹션 (2025-12-24) ==================== */}
+
+          {/* Section 4.9: 용접 기호 파싱 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).weldingSymbolParsing && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🔩 용접 기호 파싱
+                  <InfoTooltip content="용접 기호를 검출하고 파싱합니다. 필렛, 그루브, 점 용접 등의 타입과 크기, 깊이, 피치 정보를 추출합니다." position="right" />
+                  {weldingResult && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
+                      {weldingResult.total_count}개
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={handleParseWelding}
+                  disabled={isParsingWelding}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isParsingWelding ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      파싱 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      용접 기호 파싱
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {weldingResult && weldingResult.welding_symbols.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 타입별 통계 */}
+                  <div className="grid grid-cols-4 gap-3">
+                    {Object.entries(weldingResult.by_type).map(([type, count]) => (
+                      <div key={type} className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-amber-600">{count}</p>
+                        <p className="text-xs text-gray-500">{type}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 용접 기호 목록 */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {weldingResult.welding_symbols.map((symbol) => (
+                      <div
+                        key={symbol.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedWeldingId === symbol.id
+                            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300'
+                            : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setSelectedWeldingId(symbol.id === selectedWeldingId ? null : symbol.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {symbol.welding_type.toUpperCase()}
+                            </span>
+                            <span className="ml-2 text-sm text-gray-500">
+                              ({symbol.location.replace('_', ' ')})
+                            </span>
+                          </div>
+                          <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded">
+                            {(symbol.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="mt-1 text-sm text-gray-600 dark:text-gray-400 flex flex-wrap gap-2">
+                          {symbol.size && <span>크기: {symbol.size}</span>}
+                          {symbol.length && <span>길이: {symbol.length}</span>}
+                          {symbol.pitch && <span>피치: {symbol.pitch}</span>}
+                          {symbol.depth && <span>깊이: {symbol.depth}</span>}
+                          {symbol.field_weld && <span className="text-blue-600">현장용접</span>}
+                          {symbol.all_around && <span className="text-purple-600">전둘레</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🔩</div>
+                  <p>용접 기호 파싱을 실행하여 용접 정보를 추출하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">필렛, 그루브, 점 용접 등 다양한 용접 타입을 인식합니다</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Section 4.10: 표면 거칠기 파싱 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).surfaceRoughnessParsing && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🪨 표면 거칠기 파싱
+                  <InfoTooltip content="표면 거칠기 기호를 검출하고 파싱합니다. Ra, Rz, Rmax 값과 가공 방법, 방향 정보를 추출합니다." position="right" />
+                  {roughnessResult && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-stone-100 text-stone-700 dark:bg-stone-900/30 dark:text-stone-300 rounded-full">
+                      {roughnessResult.total_count}개
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={handleParseRoughness}
+                  disabled={isParsingRoughness}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-stone-600 text-white rounded-lg hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isParsingRoughness ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      파싱 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      거칠기 파싱
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {roughnessResult && roughnessResult.roughness_symbols.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 타입별 통계 */}
+                  <div className="grid grid-cols-4 gap-3">
+                    {Object.entries(roughnessResult.by_type).map(([type, count]) => (
+                      <div key={type} className="bg-stone-50 dark:bg-stone-900/20 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-stone-600">{count}</p>
+                        <p className="text-xs text-gray-500">{type}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 표면 거칠기 목록 */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {roughnessResult.roughness_symbols.map((symbol) => (
+                      <div
+                        key={symbol.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedRoughnessId === symbol.id
+                            ? 'bg-stone-50 dark:bg-stone-900/20 border-stone-300'
+                            : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setSelectedRoughnessId(symbol.id === selectedRoughnessId ? null : symbol.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {symbol.roughness_type}
+                            </span>
+                            {symbol.value && (
+                              <span className="ml-2 text-lg font-bold text-stone-600">
+                                {symbol.value} {symbol.unit}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs px-2 py-1 bg-stone-100 text-stone-700 rounded">
+                            {(symbol.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="mt-1 text-sm text-gray-600 dark:text-gray-400 flex flex-wrap gap-2">
+                          {symbol.machining_method !== 'unknown' && <span>가공: {symbol.machining_method}</span>}
+                          {symbol.lay_direction !== 'unknown' && <span>방향: {symbol.lay_direction}</span>}
+                          {symbol.upper_limit && <span>상한: {symbol.upper_limit}</span>}
+                          {symbol.lower_limit && <span>하한: {symbol.lower_limit}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🪨</div>
+                  <p>표면 거칠기 파싱을 실행하여 거칠기 정보를 추출하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">Ra, Rz, Rmax 값과 가공 방법을 인식합니다</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Section 4.11: 수량 추출 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).quantityExtraction && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🔢 수량 추출
+                  <InfoTooltip content="도면에서 부품 수량 정보를 추출합니다. QTY, 수량, EA 등의 패턴을 인식하여 자동으로 수량을 파악합니다." position="right" />
+                  {quantityResult && (
+                    <>
+                      <span className="px-2 py-0.5 text-xs font-normal bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 rounded-full">
+                        {quantityResult.total_items}개 항목
+                      </span>
+                      <span className="px-2 py-0.5 text-xs font-normal bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+                        총 {quantityResult.total_quantity}개
+                      </span>
+                    </>
+                  )}
+                </h2>
+                <button
+                  onClick={handleExtractQuantity}
+                  disabled={isExtractingQuantity}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isExtractingQuantity ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      추출 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      수량 추출
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {quantityResult && quantityResult.quantities.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 출처별 통계 */}
+                  <div className="grid grid-cols-4 gap-3">
+                    {Object.entries(quantityResult.by_source).map(([source, count]) => (
+                      <div key={source} className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-cyan-600">{count}</p>
+                        <p className="text-xs text-gray-500">{source}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 수량 목록 */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {quantityResult.quantities.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedQuantityId === item.id
+                            ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-300'
+                            : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setSelectedQuantityId(item.id === selectedQuantityId ? null : item.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl font-bold text-cyan-600">{item.quantity}</span>
+                            {item.unit && <span className="text-sm text-gray-500">{item.unit}</span>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{item.source}</span>
+                            <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded">
+                              {(item.confidence * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                          {item.part_number && <span className="mr-2">부품번호: {item.part_number}</span>}
+                          {item.balloon_number && <span className="mr-2">벌룬: {item.balloon_number}</span>}
+                          {item.pattern_matched && <span className="text-gray-400">({item.pattern_matched})</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🔢</div>
+                  <p>수량 추출을 실행하여 부품 수량을 파악하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">QTY, 수량, EA 등의 패턴을 자동 인식합니다</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Section 4.12: 벌룬 매칭 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).balloonMatching && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🎈 벌룬 매칭
+                  <InfoTooltip content="벌룬 번호를 검출하고 해당 심볼과 자동으로 매칭합니다. 지시선을 분석하여 벌룬과 부품을 연결합니다." position="right" />
+                  {balloonResult && (
+                    <>
+                      <span className="px-2 py-0.5 text-xs font-normal bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 rounded-full">
+                        {balloonResult.total_balloons}개
+                      </span>
+                      <span className="px-2 py-0.5 text-xs font-normal bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded-full">
+                        {balloonResult.match_rate.toFixed(0)}% 매칭
+                      </span>
+                    </>
+                  )}
+                </h2>
+                <button
+                  onClick={handleMatchBalloons}
+                  disabled={isMatchingBalloons || detections.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isMatchingBalloons ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      매칭 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      벌룬 매칭
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {balloonResult && balloonResult.balloons.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 매칭 통계 */}
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-3 text-center">
+                      <p className="text-lg font-bold text-pink-600">{balloonResult.total_balloons}</p>
+                      <p className="text-xs text-gray-500">전체</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                      <p className="text-lg font-bold text-green-600">{balloonResult.matched_count}</p>
+                      <p className="text-xs text-gray-500">매칭됨</p>
+                    </div>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 text-center">
+                      <p className="text-lg font-bold text-yellow-600">{balloonResult.unmatched_count}</p>
+                      <p className="text-xs text-gray-500">미매칭</p>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                      <p className="text-lg font-bold text-blue-600">{balloonResult.match_rate.toFixed(0)}%</p>
+                      <p className="text-xs text-gray-500">매칭률</p>
+                    </div>
+                  </div>
+
+                  {/* 벌룬 목록 */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {balloonResult.balloons.map((balloon) => (
+                      <div
+                        key={balloon.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedBalloonId === balloon.id
+                            ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-300'
+                            : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setSelectedBalloonId(balloon.id === selectedBalloonId ? null : balloon.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-lg font-bold text-pink-600">
+                              {balloon.number}
+                            </span>
+                            <div>
+                              {balloon.matched_symbol_id ? (
+                                <span className="text-green-600 font-medium flex items-center gap-1">
+                                  <Check className="w-4 h-4" />
+                                  {balloon.matched_symbol_class || balloon.matched_symbol_id}
+                                </span>
+                              ) : (
+                                <span className="text-yellow-600 font-medium flex items-center gap-1">
+                                  <AlertCircle className="w-4 h-4" />
+                                  미매칭
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                            {balloon.shape}
+                          </span>
+                        </div>
+
+                        {/* 수동 연결 UI (미매칭 벌룬 선택 시) */}
+                        {selectedBalloonId === balloon.id && !balloon.matched_symbol_id && detections.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-sm text-gray-600 mb-2">수동 연결:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {detections.slice(0, 10).map((d) => (
+                                <button
+                                  key={d.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLinkBalloon(balloon.id, d.id);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                >
+                                  {d.class_name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🎈</div>
+                  <p>벌룬 매칭을 실행하여 부품 번호를 연결하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {detections.length === 0
+                      ? '먼저 심볼 검출을 실행하세요'
+                      : `${detections.length}개 심볼 검출됨 - 매칭 가능`}
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 장기 로드맵 섹션 (2025-12-24) */}
+
+          {/* 1. 도면 영역 세분화 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).drawingRegionSegmentation && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🗺️ 도면 영역 세분화
+                  <InfoTooltip content="SAM/U-Net 모델을 사용하여 도면의 뷰 영역(정면도, 측면도, 단면도, 상세도, 표제란 등)을 자동으로 구분합니다." position="right" />
+                  {drawingRegions.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded-full">
+                      {drawingRegions.length}개 영역
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={handleSegmentRegions}
+                  disabled={isSegmentingRegions}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSegmentingRegions ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      분석 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      영역 분석
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {drawingRegions.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 영역 타입별 통계 */}
+                  <div className="grid grid-cols-5 gap-3">
+                    {['front', 'side', 'section', 'detail', 'title_block'].map((type) => {
+                      const count = drawingRegions.filter(r => r.view_type === type).length;
+                      return (
+                        <div key={type} className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 text-center">
+                          <p className="text-lg font-bold text-indigo-600">{count}</p>
+                          <p className="text-xs text-gray-500 capitalize">{type.replace('_', ' ')}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 영역 목록 */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {drawingRegions.map((region) => (
+                      <div
+                        key={region.id}
+                        onClick={() => setSelectedRegionId(selectedRegionId === region.id ? null : region.id)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedRegionId === region.id
+                            ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300'
+                            : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 hover:border-indigo-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium capitalize">{region.view_type.replace('_', ' ')}</span>
+                          <span className="text-xs text-gray-500">{(region.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                        {region.label && (
+                          <p className="text-sm text-gray-500 mt-1">{region.label}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🗺️</div>
+                  <p>영역 분석을 실행하여 도면 뷰를 자동 구분하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">정면도, 측면도, 단면도, 상세도 등을 자동 검출</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 2. 주석/노트 추출 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).notesExtraction && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  📋 주석/노트 추출
+                  <InfoTooltip content="OCR과 LLM을 활용하여 도면의 주석, 노트, 재료 정보, 열처리 조건 등을 자동으로 추출하고 분류합니다." position="right" />
+                  {extractedNotes.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 rounded-full">
+                      {extractedNotes.length}개 노트
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={handleExtractNotes}
+                  disabled={isExtractingNotes}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isExtractingNotes ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      추출 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      노트 추출
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {extractedNotes.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 카테고리별 통계 */}
+                  <div className="grid grid-cols-4 gap-3">
+                    {['material', 'tolerance', 'surface_finish', 'general'].map((cat) => {
+                      const count = extractedNotes.filter(n => n.category === cat).length;
+                      const colors: Record<string, string> = {
+                        material: 'bg-blue-50 text-blue-600',
+                        tolerance: 'bg-green-50 text-green-600',
+                        surface_finish: 'bg-orange-50 text-orange-600',
+                        general: 'bg-gray-50 text-gray-600',
+                      };
+                      return (
+                        <div key={cat} className={`${colors[cat] || 'bg-gray-50 text-gray-600'} dark:bg-opacity-20 rounded-lg p-3 text-center`}>
+                          <p className="text-lg font-bold">{count}</p>
+                          <p className="text-xs capitalize">{cat.replace('_', ' ')}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 노트 목록 */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {extractedNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        onClick={() => setSelectedNoteId(selectedNoteId === note.id ? null : note.id)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedNoteId === note.id
+                            ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-300'
+                            : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 hover:border-teal-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            note.category === 'material' ? 'bg-blue-100 text-blue-700' :
+                            note.category === 'tolerance' ? 'bg-green-100 text-green-700' :
+                            note.category === 'surface_finish' ? 'bg-orange-100 text-orange-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {note.category.replace('_', ' ')}
+                          </span>
+                          <span className="text-xs text-gray-500">{(note.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                        <p className="text-sm">{note.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">📋</div>
+                  <p>노트 추출을 실행하여 주석 정보를 추출하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">재료, 공차, 가공 방법, 일반 주석 자동 분류</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 3. 리비전 비교 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).revisionComparison && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🔄 리비전 비교
+                  <InfoTooltip content="SIFT/ORB 특징점 매칭을 사용하여 두 도면 버전 간의 변경점을 감지합니다. 추가, 수정, 삭제된 요소를 자동으로 하이라이트합니다." position="right" />
+                  {revisionChanges.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 rounded-full">
+                      {revisionChanges.length}개 변경
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={comparisonSessionId}
+                    onChange={(e) => setComparisonSessionId(e.target.value)}
+                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                  >
+                    <option value="">비교할 세션 선택...</option>
+                    {sessions.filter(s => s.session_id !== currentSession.session_id).map(s => (
+                      <option key={s.session_id} value={s.session_id}>
+                        {s.filename || s.session_id.slice(0, 8)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleCompareRevisions}
+                    disabled={isComparingRevisions || !comparisonSessionId}
+                    className="flex items-center gap-2 px-4 py-2 text-sm bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isComparingRevisions ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        비교 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        비교 실행
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {revisionChanges.length > 0 ? (
+                <div className="space-y-4">
+                  {/* 변경 유형별 통계 */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {['added', 'modified', 'deleted'].map((type) => {
+                      const count = revisionChanges.filter(c => c.change_type === type).length;
+                      const colors: Record<string, string> = {
+                        added: 'bg-green-50 text-green-600',
+                        modified: 'bg-yellow-50 text-yellow-600',
+                        deleted: 'bg-red-50 text-red-600',
+                      };
+                      const icons: Record<string, string> = {
+                        added: '+',
+                        modified: '~',
+                        deleted: '-',
+                      };
+                      return (
+                        <div key={type} className={`${colors[type]} dark:bg-opacity-20 rounded-lg p-3 text-center`}>
+                          <p className="text-lg font-bold">{icons[type]}{count}</p>
+                          <p className="text-xs capitalize">{type}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 변경 목록 */}
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {revisionChanges.map((change, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg border ${
+                          change.change_type === 'added' ? 'bg-green-50 dark:bg-green-900/20 border-green-200' :
+                          change.change_type === 'modified' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200' :
+                          'bg-red-50 dark:bg-red-900/20 border-red-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            change.change_type === 'added' ? 'bg-green-200 text-green-800' :
+                            change.change_type === 'modified' ? 'bg-yellow-200 text-yellow-800' :
+                            'bg-red-200 text-red-800'
+                          }`}>
+                            {change.change_type}
+                          </span>
+                          <span className="text-xs text-gray-500">{change.category}</span>
+                        </div>
+                        <p className="text-sm">{change.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🔄</div>
+                  <p>비교할 세션을 선택하고 리비전 비교를 실행하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">추가, 수정, 삭제된 요소를 자동으로 감지</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 4. VLM 자동 분류 */}
+          {currentSession && imageData && getSectionVisibility(effectiveDrawingType, effectiveFeatures).vlmAutoClassification && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  🤖 VLM 자동 분류
+                  <InfoTooltip content="Vision-Language Model을 사용하여 도면의 타입, 산업 분야, 복잡도를 자동으로 분류하고 적합한 분석 기능을 추천합니다." position="right" />
+                  {vlmClassification && (
+                    <span className="px-2 py-0.5 text-xs font-normal bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300 rounded-full">
+                      {vlmClassification.drawing_type}
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={handleVlmClassify}
+                  disabled={isVlmClassifying}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-fuchsia-600 text-white rounded-lg hover:bg-fuchsia-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isVlmClassifying ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      분류 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      AI 분류
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {vlmClassification ? (
+                <div className="space-y-4">
+                  {/* 분류 결과 */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-fuchsia-50 dark:bg-fuchsia-900/20 rounded-lg p-4 text-center">
+                      <p className="text-xs text-gray-500 mb-1">도면 타입</p>
+                      <p className="text-lg font-bold text-fuchsia-600 capitalize">
+                        {vlmClassification.drawing_type.replace('_', ' ')}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {(vlmClassification.drawing_type_confidence * 100).toFixed(0)}%
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
+                      <p className="text-xs text-gray-500 mb-1">산업 분야</p>
+                      <p className="text-lg font-bold text-purple-600 capitalize">
+                        {vlmClassification.industry_domain.replace('_', ' ')}
+                      </p>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+                      <p className="text-xs text-gray-500 mb-1">복잡도</p>
+                      <p className="text-lg font-bold text-blue-600 capitalize">
+                        {vlmClassification.complexity}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 추천 기능 */}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🔧 추천 분석 기능:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {vlmClassification.recommended_features.map((feature: string) => (
+                        <span
+                          key={feature}
+                          className="px-3 py-1 text-sm bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300 rounded-full"
+                        >
+                          {feature.replace('_', ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* VLM 분석 */}
+                  {vlmClassification.analysis_summary && (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📝 AI 분석:</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {vlmClassification.analysis_summary}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🤖</div>
+                  <p>AI 분류를 실행하여 도면 타입을 자동 분석하세요</p>
+                  <p className="text-sm text-gray-400 mt-1">VLM이 도면 타입, 산업 분야, 적합한 기능을 추천</p>
                 </div>
               )}
             </section>

@@ -105,3 +105,26 @@ class DimensionVerificationUpdate(BaseModel):
 class BulkDimensionVerificationUpdate(BaseModel):
     """일괄 치수 검증 업데이트"""
     updates: List[DimensionVerificationUpdate]
+
+
+class BulkDimensionImport(BaseModel):
+    """eDOCr2 치수 결과 일괄 가져오기 요청
+
+    BlueprintFlow 파이프라인에서 eDOCr2 노드의 결과를
+    Blueprint AI BOM 세션에 저장하기 위한 스키마.
+    """
+    dimensions: List[dict] = Field(..., description="eDOCr2에서 반환된 치수 목록")
+    source: str = Field(default="edocr2", description="소스 모델 ID")
+    auto_approve_threshold: Optional[float] = Field(
+        default=None,
+        description="자동 승인 신뢰도 임계값 (예: 0.9 이상이면 자동 승인)"
+    )
+
+
+class BulkDimensionImportResponse(BaseModel):
+    """일괄 치수 가져오기 응답"""
+    session_id: str
+    imported_count: int
+    auto_approved_count: int = 0
+    dimensions: List[Dimension]
+    message: str

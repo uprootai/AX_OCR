@@ -163,6 +163,58 @@ from .verification import (
     ThresholdUpdateResponse,
     TrainingDataResponse,
 )
+from .manufacturing import (
+    # 용접 기호 파싱
+    WeldingType,
+    WeldingLocation,
+    WeldingSymbol,
+    WeldingParsingResult,
+    # 표면 거칠기 파싱
+    RoughnessType,
+    MachiningMethod,
+    LayDirection,
+    SurfaceRoughness,
+    SurfaceRoughnessResult,
+    # 수량 추출
+    QuantitySource,
+    QuantityItem,
+    QuantityExtractionResult,
+    # 벌룬 매칭
+    BalloonShape,
+    Balloon,
+    BalloonMatchingResult,
+    # 공통
+    ManufacturingFeatureResponse,
+)
+from .longterm import (
+    # 도면 영역 세분화
+    ViewType,
+    DrawingRegion,
+    RegionSegmentationConfig as LongtermRegionSegmentationConfig,  # 기존 region.py와 구분
+    DrawingRegionSegmentationResult,
+    # 주석/노트 추출
+    NoteCategory,
+    ExtractedNote,
+    NotesExtractionConfig,
+    NotesExtractionResult,
+    # 리비전 비교
+    ChangeType,
+    ChangeCategory,
+    RevisionChange,
+    RevisionComparisonConfig,
+    RevisionComparisonRequest,
+    RevisionComparisonResult,
+    # VLM 자동 분류
+    DrawingClassification,
+    IndustryDomain,
+    ComplexityLevel,
+    VLMClassificationResult,
+    VLMClassificationConfig,
+    # 업데이트 모델
+    DrawingRegionUpdate,
+    ExtractedNoteUpdate,
+    LongtermFeatureResponse,
+)
 
 __all__ = [
     # Session
@@ -305,4 +357,44 @@ __all__ = [
     "ThresholdsResponse",
     "ThresholdUpdateResponse",
     "TrainingDataResponse",
+    # Manufacturing (중기 로드맵)
+    "WeldingType",
+    "WeldingLocation",
+    "WeldingSymbol",
+    "WeldingParsingResult",
+    "RoughnessType",
+    "MachiningMethod",
+    "LayDirection",
+    "SurfaceRoughness",
+    "SurfaceRoughnessResult",
+    "QuantitySource",
+    "QuantityItem",
+    "QuantityExtractionResult",
+    "BalloonShape",
+    "Balloon",
+    "BalloonMatchingResult",
+    "ManufacturingFeatureResponse",
+    # Longterm (장기 로드맵)
+    "ViewType",
+    "DrawingRegion",
+    "LongtermRegionSegmentationConfig",
+    "DrawingRegionSegmentationResult",
+    "NoteCategory",
+    "ExtractedNote",
+    "NotesExtractionConfig",
+    "NotesExtractionResult",
+    "ChangeType",
+    "ChangeCategory",
+    "RevisionChange",
+    "RevisionComparisonConfig",
+    "RevisionComparisonRequest",
+    "RevisionComparisonResult",
+    "DrawingClassification",
+    "IndustryDomain",
+    "ComplexityLevel",
+    "VLMClassificationResult",
+    "VLMClassificationConfig",
+    "DrawingRegionUpdate",
+    "ExtractedNoteUpdate",
+    "LongtermFeatureResponse",
 ]

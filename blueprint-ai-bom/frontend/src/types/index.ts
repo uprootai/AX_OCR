@@ -47,6 +47,9 @@ export interface Session {
   drawing_type?: DrawingType;
   drawing_type_source?: 'builder' | 'vlm' | 'manual' | 'pending';
   drawing_type_confidence?: number;
+
+  // 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
+  features?: string[];
 }
 
 export interface SessionDetail extends Session {

@@ -1,10 +1,11 @@
 /**
  * DimensionList - 치수 목록 및 검증 컴포넌트
  *
- * 치수 OCR 결과를 테이블 형태로 표시하고 검증 기능 제공
+ * 치수 OCR 결과를 테이블/카드 형태로 표시하고 검증 기능 제공
+ * 카드 뷰에서 bbox 크롭 이미지 비교 기능 포함
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Check,
   X,
@@ -12,7 +13,11 @@ import {
   Trash2,
   Filter,
   Download,
+  Grid3X3,
+  List,
+  Image as ImageIcon,
 } from 'lucide-react';
+import logger from '../lib/logger';
 
 interface BoundingBox {
   x1: number;
@@ -53,6 +58,92 @@ interface DimensionListProps {
   onExport?: () => void;
   onHover?: (id: string | null) => void;
   selectedId?: string | null;
+  // 크롭 이미지를 위한 추가 props
+  imageData?: string | null;
+  imageSize?: { width: number; height: number } | null;
+}
+
+// bbox 크롭 이미지 컴포넌트
+function CroppedDimensionImage({
+  bbox,
+  imageData,
+  imageSize,
+}: {
+  bbox: BoundingBox;
+  imageData: string;
+  imageSize: { width: number; height: number };
+}) {
+  const [croppedSrc, setCroppedSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!imageData || !imageSize) {
+      setCroppedSrc(null);
+      return;
+    }
+
+    const { x1, y1, x2, y2 } = bbox;
+    const padding = 10; // 약간의 패딩 추가
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setCroppedSrc(null);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imageData;
+
+    function cropImage() {
+      const cropX = Math.max(0, Math.floor(x1) - padding);
+      const cropY = Math.max(0, Math.floor(y1) - padding);
+      const cropW = Math.min(imageSize.width - cropX, Math.floor(x2 - x1) + padding * 2);
+      const cropH = Math.min(imageSize.height - cropY, Math.floor(y2 - y1) + padding * 2);
+
+      canvas.width = cropW;
+      canvas.height = cropH;
+
+      ctx!.drawImage(
+        img,
+        cropX, cropY, cropW, cropH,
+        0, 0, cropW, cropH
+      );
+
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        setCroppedSrc(dataUrl);
+      } catch (e) {
+        logger.error('Failed to crop dimension image:', e);
+        setCroppedSrc(null);
+      }
+    }
+
+    if (img.complete && img.naturalWidth > 0) {
+      cropImage();
+    } else {
+      img.onload = cropImage;
+      img.onerror = () => setCroppedSrc(null);
+    }
+  }, [imageData, imageSize, bbox]);
+
+  if (!croppedSrc) {
+    return (
+      <div className="w-full h-20 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
+        <ImageIcon className="w-6 h-6 text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-20 bg-gray-50 dark:bg-gray-700 rounded overflow-hidden flex items-center justify-center">
+      <img
+        src={croppedSrc}
+        alt="치수 크롭"
+        className="max-w-full max-h-full object-contain"
+      />
+    </div>
+  );
 }
 
 // 치수 유형 라벨
@@ -85,12 +176,16 @@ export function DimensionList({
   onExport,
   onHover,
   selectedId,
+  imageData,
+  imageSize,
 }: DimensionListProps) {
   const [filter, setFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'confidence' | 'type' | 'value'>('confidence');
   const [sortAsc, setSortAsc] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  // 뷰 모드: 'table' | 'card'
+  const [viewMode, setViewMode] = useState<'table' | 'card'>(imageData ? 'card' : 'table');
 
   // 필터링 및 정렬
   const filteredDimensions = useMemo(() => {
@@ -146,16 +241,43 @@ export function DimensionList({
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       {/* 헤더 */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
+      <div className="p-4 border-b border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-900">
+          <h3 className="font-semibold text-gray-900 dark:text-white">
             치수 목록 ({dimensions.length}개)
           </h3>
           <div className="flex items-center gap-2">
+            {/* 뷰 모드 토글 */}
+            {imageData && imageSize && (
+              <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 ${
+                    viewMode === 'table'
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300'
+                      : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                  title="테이블 뷰"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('card')}
+                  className={`p-1.5 ${
+                    viewMode === 'card'
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300'
+                      : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                  title="카드 뷰 (이미지 포함)"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             {onExport && (
               <button
                 onClick={onExport}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-300"
               >
                 <Download className="w-4 h-4" />
                 내보내기
@@ -244,12 +366,172 @@ export function DimensionList({
       </div>
 
       {/* 목록 */}
-      <div className="max-h-96 overflow-y-auto">
+      <div className="max-h-[500px] overflow-y-auto">
         {filteredDimensions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             {filter === 'all' ? '치수가 없습니다.' : '해당 상태의 치수가 없습니다.'}
           </div>
+        ) : viewMode === 'card' && imageData && imageSize ? (
+          /* 카드 뷰 */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+            {filteredDimensions.map((dim) => {
+              const typeInfo = DIMENSION_TYPE_LABELS[dim.dimension_type] || DIMENSION_TYPE_LABELS.unknown;
+              const statusStyle = STATUS_STYLES[dim.verification_status] || STATUS_STYLES.pending;
+              const isEditing = editingId === dim.id;
+              const isSelected = selectedId === dim.id;
+
+              return (
+                <div
+                  key={dim.id}
+                  onMouseEnter={() => onHover?.(dim.id)}
+                  onMouseLeave={() => onHover?.(null)}
+                  className={`
+                    rounded-lg border-2 p-3 transition-all
+                    ${statusStyle.bg}
+                    ${isSelected ? 'ring-2 ring-primary-500 border-primary-400' : 'border-gray-200 dark:border-gray-600'}
+                    hover:shadow-md
+                  `}
+                >
+                  {/* 크롭 이미지 */}
+                  <CroppedDimensionImage
+                    bbox={dim.bbox}
+                    imageData={imageData}
+                    imageSize={imageSize}
+                  />
+
+                  {/* 인식된 값 */}
+                  <div className="mt-3 text-center">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit();
+                          if (e.key === 'Escape') cancelEdit();
+                        }}
+                        autoFocus
+                        className="w-full px-2 py-1 border border-primary-500 rounded text-sm text-center"
+                      />
+                    ) : (
+                      <div className="font-mono text-lg font-bold text-gray-900 dark:text-white">
+                        {dim.modified_value || dim.value}
+                        {dim.unit && <span className="text-gray-500 ml-1 text-sm">{dim.unit}</span>}
+                      </div>
+                    )}
+                    {dim.raw_text !== dim.value && (
+                      <div className="text-xs text-gray-400 mt-0.5">원본: {dim.raw_text}</div>
+                    )}
+                  </div>
+
+                  {/* 메타 정보 */}
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className={`px-2 py-0.5 rounded ${typeInfo.color}`}>
+                      {typeInfo.label}
+                    </span>
+                    <span
+                      className={`font-medium ${
+                        dim.confidence >= 0.8
+                          ? 'text-green-600'
+                          : dim.confidence >= 0.5
+                          ? 'text-yellow-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      {(dim.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+
+                  {/* 공차 */}
+                  {dim.tolerance && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-center">
+                      공차: {dim.tolerance}
+                    </div>
+                  )}
+
+                  {/* 액션 버튼 */}
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={saveEdit}
+                          className="flex-1 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-1 text-sm"
+                        >
+                          <Check className="w-4 h-4" />
+                          저장
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="flex-1 py-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 flex items-center justify-center gap-1 text-sm"
+                        >
+                          <X className="w-4 h-4" />
+                          취소
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {dim.verification_status === 'pending' && onVerify && (
+                          <>
+                            <button
+                              onClick={() => onVerify(dim.id, 'approved')}
+                              className="flex-1 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center gap-1 text-sm"
+                              title="승인"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => onVerify(dim.id, 'rejected')}
+                              className="flex-1 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center gap-1 text-sm"
+                              title="거부"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {onEdit && (
+                          <button
+                            onClick={() => startEdit(dim)}
+                            className="flex-1 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center gap-1 text-sm"
+                            title="수정"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(dim.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* 상태 표시 */}
+                  {dim.verification_status !== 'pending' && (
+                    <div className="mt-2 text-center">
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        dim.verification_status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
+                        dim.verification_status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
+                        dim.verification_status === 'modified' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' :
+                        'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                      }`}>
+                        {dim.verification_status === 'approved' && '✓ 승인됨'}
+                        {dim.verification_status === 'rejected' && '✗ 거부됨'}
+                        {dim.verification_status === 'modified' && '✎ 수정됨'}
+                        {dim.verification_status === 'manual' && '✎ 수동추가'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          /* 테이블 뷰 */
           <table className="w-full text-sm">
             <thead className="bg-gray-50 sticky top-0">
               <tr>

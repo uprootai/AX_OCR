@@ -1,17 +1,22 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, AlertTriangle } from 'lucide-react';
+import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus } from 'lucide-react';
 import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
-import { DRAWING_TYPE_RECOMMENDATIONS } from '../../config/nodes/inputNodes';
+import { getRecommendedNodes, FEATURE_NODE_RECOMMENDATIONS } from '../../config/nodes/inputNodes';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useWorkflowStore } from '../../store/workflowStore';
 import type { Node } from 'reactflow';
-import type { SelectOption } from '../../config/nodes/types';
+import type { SelectOption, CheckboxOption } from '../../config/nodes/types';
 
 // Helper to check if option is SelectOption object
 const isSelectOption = (opt: string | SelectOption): opt is SelectOption => {
   return typeof opt === 'object' && 'value' in opt;
+};
+
+// Helper to check if option is CheckboxOption object
+const isCheckboxOption = (opt: unknown): opt is CheckboxOption => {
+  return typeof opt === 'object' && opt !== null && 'value' in opt && 'label' in opt;
 };
 
 interface NodeDetailPanelProps {
@@ -32,11 +37,24 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
   const uploadedFileName = useWorkflowStore((state) => state.uploadedFileName);
 
-  // 도면 타입별 추천 노드 계산 (ImageInput 노드일 때만)
-  const drawingTypeRecommendation = useMemo(() => {
+  // features 기반 추천 노드 계산 (ImageInput 노드일 때만)
+  const featuresRecommendation = useMemo(() => {
     if (!selectedNode || selectedNode.type !== 'imageinput') return null;
-    const drawingType = selectedNode.data?.parameters?.drawing_type || 'auto';
-    return DRAWING_TYPE_RECOMMENDATIONS[drawingType] || null;
+    const features: string[] = selectedNode.data?.parameters?.features || [];
+    if (features.length === 0) return null;
+
+    const recommendedNodes = getRecommendedNodes(features);
+    if (recommendedNodes.length === 0) return null;
+
+    // 활성화된 features에 대한 설명 생성
+    const descriptions = features
+      .filter(f => FEATURE_NODE_RECOMMENDATIONS[f])
+      .map(f => FEATURE_NODE_RECOMMENDATIONS[f].description);
+
+    return {
+      nodes: recommendedNodes,
+      descriptions,
+    };
   }, [selectedNode]);
 
   // Collapsed state - show only toggle button
@@ -108,9 +126,10 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
     );
   }
 
-  const handleParameterChange = (paramName: string, value: string | number | boolean) => {
+  const handleParameterChange = (paramName: string, value: string | number | boolean | string[]) => {
     const currentData = selectedNode.data || {};
     const currentParams = currentData.parameters || {};
+
     onUpdateNode(selectedNode.id, {
       ...currentData,
       parameters: {
@@ -118,6 +137,14 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
         [paramName]: value,
       },
     });
+  };
+
+  // checkboxGroup 값 토글 핸들러
+  const handleCheckboxToggle = (paramName: string, optionValue: string, currentValues: string[]) => {
+    const newValues = currentValues.includes(optionValue)
+      ? currentValues.filter(v => v !== optionValue)
+      : [...currentValues, optionValue];
+    handleParameterChange(paramName, newValues);
   };
 
   return (
@@ -215,49 +242,28 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           </Card>
         )}
 
-        {/* Recommended Nodes - Only for ImageInput node with drawing_type set */}
-        {nodeType === 'imageinput' && drawingTypeRecommendation && (
+        {/* Recommended Nodes - Based on selected features */}
+        {nodeType === 'imageinput' && featuresRecommendation && (
           <Card className="border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2 text-orange-700 dark:text-orange-300">
                 <Lightbulb className="w-4 h-4" />
-                📌 추천 파이프라인
+                📌 추천 노드
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Description */}
-              <p className="text-xs text-orange-800 dark:text-orange-200 font-medium">
-                {drawingTypeRecommendation.description}
-              </p>
-
-              {/* Pipeline flow (if present) */}
-              {drawingTypeRecommendation.pipeline && (
-                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-700">
-                  <div className="flex items-center gap-1 mb-1">
-                    <ArrowRight className="w-3 h-3 text-orange-500" />
-                    <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">
-                      권장 순서
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 font-mono">
-                    {drawingTypeRecommendation.pipeline}
+              {/* Description list */}
+              <div className="space-y-1">
+                {featuresRecommendation.descriptions.map((desc, idx) => (
+                  <p key={idx} className="text-xs text-orange-800 dark:text-orange-200">
+                    • {desc}
                   </p>
-                </div>
-              )}
-
-              {/* Warning if present */}
-              {drawingTypeRecommendation.warning && (
-                <div className="flex items-start gap-2 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
-                  <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-xs text-yellow-800 dark:text-yellow-200">
-                    {drawingTypeRecommendation.warning}
-                  </span>
-                </div>
-              )}
+                ))}
+              </div>
 
               {/* Node buttons */}
               <div className="flex flex-wrap gap-2">
-                {drawingTypeRecommendation.nodes.map((nodeTypeId) => {
+                {featuresRecommendation.nodes.map((nodeTypeId) => {
                   const nodeDef = getNodeDefinition(nodeTypeId);
                   return (
                     <button
@@ -277,7 +283,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
               <div className="flex items-start gap-2 p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
                 <span className="text-orange-500">💡</span>
                 <span className="text-xs text-orange-800 dark:text-orange-200">
-                  {drawingTypeRecommendation.tips}
+                  선택한 기능에 필요한 노드입니다. 클릭하여 추가하세요.
                 </span>
               </div>
             </CardContent>
@@ -456,6 +462,68 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                           />
                           <span className="text-xs">{t('nodeDetail.enabled')}</span>
                         </label>
+                      )}
+
+                      {param.type === 'checkboxGroup' && (
+                        <div className="space-y-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                          {param.options?.map((opt) => {
+                            if (!isCheckboxOption(opt)) return null;
+                            const isChecked = Array.isArray(currentValue)
+                              ? currentValue.includes(opt.value)
+                              : false;
+                            return (
+                              <div key={opt.value} className="group relative">
+                                <label
+                                  className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${
+                                    isChecked
+                                      ? 'bg-blue-50 dark:bg-blue-900/30'
+                                      : 'hover:bg-gray-100 dark:hover:bg-gray-600/50'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() =>
+                                      handleCheckboxToggle(
+                                        param.name,
+                                        opt.value,
+                                        Array.isArray(currentValue) ? currentValue : []
+                                      )
+                                    }
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm">
+                                    {opt.icon && <span className="mr-1">{opt.icon}</span>}
+                                    {opt.label}
+                                  </span>
+                                  {opt.hint && (
+                                    <span className="text-xs text-gray-400 ml-auto">
+                                      {opt.hint}
+                                    </span>
+                                  )}
+                                </label>
+                                {/* Hover Tooltip */}
+                                {opt.description && (
+                                  <div className="absolute z-50 hidden group-hover:block w-72 p-3 text-xs bg-gray-900 text-white rounded-lg shadow-xl left-0 top-full mt-1 leading-relaxed">
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-lg flex-shrink-0">{opt.icon}</span>
+                                      <div>
+                                        <div className="font-semibold text-blue-300 mb-1">{opt.label}</div>
+                                        <div className="text-gray-200">{opt.description}</div>
+                                      </div>
+                                    </div>
+                                    {/* Arrow */}
+                                    <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-900 rotate-45"></div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {/* 활성화된 기능 수 표시 */}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            {Array.isArray(currentValue) ? currentValue.length : 0}개 기능 활성화
+                          </div>
+                        </div>
                       )}
                     </div>
                   );

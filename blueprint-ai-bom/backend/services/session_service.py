@@ -26,7 +26,8 @@ class SessionService:
         file_path: str,
         drawing_type: str = "auto",  # 빌더에서 설정한 도면 타입
         image_width: int = None,
-        image_height: int = None
+        image_height: int = None,
+        features: List[str] = None  # 활성화된 기능 목록 (2025-12-24)
     ) -> Dict[str, Any]:
         """새 세션 생성"""
         now = datetime.now()
@@ -60,6 +61,8 @@ class SessionService:
             "drawing_type_source": "builder" if dt != DrawingType.AUTO else "pending",
             "drawing_type_confidence": None,
             "vlm_classification_result": None,
+            # 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
+            "features": features or [],
         }
 
         self.sessions[session_id] = session

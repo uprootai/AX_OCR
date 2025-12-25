@@ -1,6 +1,7 @@
 # AX BlueprintFlow Documentation
 
 > 기계 도면 자동 분석 및 제조 견적 생성 시스템 문서
+> **최종 업데이트**: 2025-12-24 | **버전**: v9.0
 
 ---
 
@@ -12,6 +13,7 @@
 | 문제 해결 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
 | API 사용법 | [user/API_USAGE_MANUAL.md](user/API_USAGE_MANUAL.md) |
 | 사용자 가이드 | [user/USER_GUIDE.md](user/USER_GUIDE.md) |
+| **Blueprint AI BOM** | [blueprint-ai-bom/docs/](../blueprint-ai-bom/docs/README.md) |
 
 ---
 
@@ -67,19 +69,27 @@ docs/
 
 ---
 
-## API Services (15개)
+## API Services (18개) ✅ 전체 정상
 
 | Category | Service | Port | Parameters |
 |----------|---------|------|------------|
 | Detection | YOLO | 5005 | [yolo/parameters.md](api/yolo/parameters.md) |
+| Detection | YOLO-PID | 5017 | [yolo-pid/parameters.md](api/yolo-pid/parameters.md) |
 | OCR | eDOCr2 | 5002 | [edocr2/parameters.md](api/edocr2/parameters.md) |
 | OCR | PaddleOCR | 5006 | [paddleocr/parameters.md](api/paddleocr/parameters.md) |
 | OCR | Tesseract | 5008 | [tesseract/parameters.md](api/tesseract/parameters.md) |
 | OCR | TrOCR | 5009 | [trocr/parameters.md](api/trocr/parameters.md) |
 | OCR | OCR Ensemble | 5011 | [ocr-ensemble/parameters.md](api/ocr-ensemble/parameters.md) |
+| OCR | Surya OCR | 5013 | [surya-ocr/parameters.md](api/surya-ocr/parameters.md) |
+| OCR | DocTR | 5014 | [doctr/parameters.md](api/doctr/parameters.md) |
+| OCR | EasyOCR | 5015 | [easyocr/parameters.md](api/easyocr/parameters.md) |
 | Segmentation | EDGNet | 5012 | [edgnet/parameters.md](api/edgnet/parameters.md) |
+| Segmentation | Line Detector | 5016 | [line-detector/parameters.md](api/line-detector/parameters.md) |
 | Preprocessing | ESRGAN | 5010 | [esrgan/parameters.md](api/esrgan/parameters.md) |
 | Analysis | SkinModel | 5003 | [skinmodel/parameters.md](api/skinmodel/parameters.md) |
+| Analysis | PID Analyzer | 5018 | [pid-analyzer/parameters.md](api/pid-analyzer/parameters.md) |
+| Analysis | Design Checker | 5019 | [design-checker/parameters.md](api/design-checker/parameters.md) |
+| Analysis | **Blueprint AI BOM** | 5020 | [blueprint-ai-bom/](../blueprint-ai-bom/docs/README.md) |
 | Knowledge | Knowledge | 5007 | [knowledge/parameters.md](api/knowledge/parameters.md) |
 | AI | VL | 5004 | [vl/parameters.md](api/vl/parameters.md) |
 | Orchestrator | Gateway | 8000 | - |
@@ -125,5 +135,5 @@ archive/
 
 ---
 
-**Last Updated**: 2025-12-05
-**Managed By**: Claude Code
+**Last Updated**: 2025-12-24
+**Managed By**: Claude Code (Opus 4.5)

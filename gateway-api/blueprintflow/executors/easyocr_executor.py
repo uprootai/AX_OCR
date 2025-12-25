@@ -101,6 +101,10 @@ class EasyocrExecutor(BaseNodeExecutor):
             if inputs.get("drawing_type"):
                 output["drawing_type"] = inputs["drawing_type"]
 
+            # features 패스스루 (세션 UI 동적 구성에 필요)
+            if inputs.get("features"):
+                output["features"] = inputs["features"]
+
             return output
 
         except Exception as e:

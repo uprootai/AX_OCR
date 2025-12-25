@@ -40,13 +40,15 @@ def get_session_service():
 @router.post("/upload", response_model=SessionResponse)
 async def upload_image(
     file: UploadFile = File(...),
-    drawing_type: str = Query(default="auto", description="도면 타입 (빌더에서 설정)")
+    drawing_type: str = Query(default="auto", description="도면 타입 (빌더에서 설정)"),
+    features: str = Query(default="", description="활성화된 기능 목록 (쉼표 구분)")
 ):
     """이미지 업로드 및 새 세션 생성
 
     Args:
         file: 업로드할 이미지 파일
         drawing_type: 도면 타입 (auto, mechanical, pid, assembly, electrical, architectural)
+        features: 활성화된 기능 목록 (예: "symbol_detection,bom_generation")
     """
     service = get_session_service()
 
@@ -89,14 +91,18 @@ async def upload_image(
         logger.warning(f"[Session] Failed to extract image size: {e}")
         image_width, image_height = None, None
 
-    # 세션 생성 (drawing_type 및 이미지 크기 포함)
+    # features 파싱 (쉼표 구분 문자열 → 리스트)
+    features_list = [f.strip() for f in features.split(",") if f.strip()] if features else []
+
+    # 세션 생성 (drawing_type, features, 이미지 크기 포함)
     session = service.create_session(
         session_id=session_id,
         filename=file.filename,
         file_path=str(file_path),
         drawing_type=dt.value,
         image_width=image_width,
-        image_height=image_height
+        image_height=image_height,
+        features=features_list
     )
 
     return SessionResponse(**session)
@@ -142,8 +148,8 @@ async def update_session(session_id: str, updates: dict):
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
-    # 허용된 필드만 업데이트
-    allowed_fields = {"image_width", "image_height", "status"}
+    # 허용된 필드만 업데이트 (features 추가)
+    allowed_fields = {"image_width", "image_height", "status", "features"}
     filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
 
     if filtered_updates:

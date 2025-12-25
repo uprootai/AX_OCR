@@ -1,19 +1,54 @@
 # 🔌 API Documentation
 
-**Complete guide for all 6 APIs**
+**Complete guide for all 18 APIs**
+> **최종 업데이트**: 2025-12-24 | **상태**: 18/18 healthy (100%)
 
 ---
 
 ## 📚 Available APIs
 
+### Detection
 | API | Port | Purpose | Status | Docs |
 |-----|------|---------|--------|------|
-| **YOLO** | 5005 | Object detection (symbols, dimensions) | ✅ | [yolo/](yolo/) |
-| **eDOCr2** | 5001 (v1)<br>5002 (v2) | Korean OCR specialist | ✅ | [edocr2/](edocr2/) |
-| **EDGNet** | 5012 | Edge segmentation (GraphSAGE, UNet) | ✅ | [edgnet/](edgnet/) |
-| **SkinModel** | 5003 | Tolerance analysis & GD&T validation | ✅ | [skinmodel/](skinmodel/) |
+| **YOLO** | 5005 | Object detection (14 symbol classes) | ✅ | [yolo/](yolo/) |
+| **YOLO-PID** | 5017 | P&ID symbol detection (60 classes) | ✅ | [yolo-pid/](yolo-pid/) |
+
+### OCR
+| API | Port | Purpose | Status | Docs |
+|-----|------|---------|--------|------|
+| **eDOCr2** | 5002 | Korean dimension OCR | ✅ | [edocr2/](edocr2/) |
 | **PaddleOCR** | 5006 | Multi-language OCR (en, ch, kr) | ✅ | [paddleocr/](paddleocr/) |
-| **VL** | 5004 | Vision Language Models (Claude, GPT-4o) | ✅ | [vl/](vl/) |
+| **Tesseract** | 5008 | Document OCR | ✅ | [tesseract/](tesseract/) |
+| **TrOCR** | 5009 | Handwriting OCR | ✅ | [trocr/](trocr/) |
+| **OCR Ensemble** | 5011 | 4-engine weighted voting | ✅ | [ocr-ensemble/](ocr-ensemble/) |
+| **Surya OCR** | 5013 | 90+ languages, layout analysis | ✅ | [surya-ocr/](surya-ocr/) |
+| **DocTR** | 5014 | 2-stage OCR pipeline | ✅ | [doctr/](doctr/) |
+| **EasyOCR** | 5015 | 80+ languages, CPU-friendly | ✅ | [easyocr/](easyocr/) |
+
+### Segmentation
+| API | Port | Purpose | Status | Docs |
+|-----|------|---------|--------|------|
+| **EDGNet** | 5012 | Edge segmentation (GraphSAGE, UNet) | ✅ | [edgnet/](edgnet/) |
+| **Line Detector** | 5016 | P&ID line detection | ✅ | [line-detector/](line-detector/) |
+
+### Preprocessing
+| API | Port | Purpose | Status | Docs |
+|-----|------|---------|--------|------|
+| **ESRGAN** | 5010 | 4x super resolution | ✅ | [esrgan/](esrgan/) |
+
+### Analysis
+| API | Port | Purpose | Status | Docs |
+|-----|------|---------|--------|------|
+| **SkinModel** | 5003 | Tolerance analysis & GD&T validation | ✅ | [skinmodel/](skinmodel/) |
+| **PID Analyzer** | 5018 | P&ID connectivity & BOM | ✅ | [pid-analyzer/](pid-analyzer/) |
+| **Design Checker** | 5019 | P&ID design validation | ✅ | [design-checker/](design-checker/) |
+| **Blueprint AI BOM** | 5020 | Human-in-the-Loop BOM (v9.0) | ✅ | [blueprint-ai-bom/](blueprint-ai-bom/) |
+
+### Knowledge & AI
+| API | Port | Purpose | Status | Docs |
+|-----|------|---------|--------|------|
+| **Knowledge** | 5007 | Neo4j + GraphRAG | ✅ | [knowledge/](knowledge/) |
+| **VL** | 5004 | Vision Language Models | ✅ | [vl/](vl/) |
 
 ---
 
@@ -61,7 +96,28 @@ Each API directory contains:
 
 ---
 
-**Total Parameters Across All APIs**: 26 parameters
+## 🆕 Blueprint AI BOM (v9.0)
+
+**Human-in-the-Loop 도면 BOM 생성 시스템**
+
+| 기능 | 설명 |
+|------|------|
+| 🎯 심볼 검출 | YOLO v11 기반 27개 클래스 |
+| 📏 치수 OCR | eDOCr2 한국어 치수 인식 |
+| 📐 GD&T 파싱 | 기하공차/데이텀 파싱 |
+| 🗺️ 영역 세분화 | 정면도/측면도/단면도 자동 구분 |
+| 📋 노트 추출 | 재료/열처리/표면처리 추출 |
+| 🔄 리비전 비교 | 버전 간 변경점 감지 |
+| 🤖 VLM 분류 | 도면 타입/산업분야 AI 분류 |
+
+**상세 문서**: [blueprint-ai-bom/parameters.md](blueprint-ai-bom/parameters.md)
+
+---
+
+**Total APIs**: 18 (all healthy)
+**Total Parameters Across All APIs**: 50+ parameters
 **Average Parameters Per API**: 4-6 parameters
 
 **See**: [../00_INDEX.md](../00_INDEX.md) for complete documentation map
+
+**Last Updated**: 2025-12-24

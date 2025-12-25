@@ -7,7 +7,7 @@
 
 ## 현재 상태 요약
 
-### 완료된 작업 (2025-12-23)
+### 완료된 작업 (2025-12-24)
 
 | 작업 | 상태 | 비고 |
 |------|------|------|
@@ -22,6 +22,11 @@
 | **Feedback Loop Pipeline (v8.0)** | ✅ 완료 | YOLO 재학습 데이터셋 내보내기 |
 | **온프레미스 배포 (v8.0)** | ✅ 완료 | docker-compose.onprem.yml |
 | **ESLint Fast Refresh 수정** | ✅ 완료 | 6개 컴포넌트 수정 |
+| **🗺️ 도면 영역 세분화 (v9.0)** | ✅ 완료 | 장기 로드맵 - 정면도/측면도/단면도 자동 구분 |
+| **📋 주석/노트 추출 (v9.0)** | ✅ 완료 | 장기 로드맵 - 재료/열처리/표면처리 노트 추출 |
+| **🔄 리비전 비교 (v9.0)** | ✅ 완료 | 장기 로드맵 - 도면 버전 간 변경점 감지 |
+| **🤖 VLM 자동 분류 (v9.0)** | ✅ 완료 | 장기 로드맵 - 도면 타입/산업분야 AI 분류 |
+| **18개 기능 툴팁 (v8.1)** | ✅ 완료 | ImageInput 노드 체크박스 hover 설명 |
 
 ---
 
@@ -85,9 +90,43 @@ python scripts/export/export_package.py --customer "고객명" --output ./export
 
 1. ~~**verification_router.py 리팩토링**~~ - ✅ 완료 (schemas 분리, response_model 추가)
 2. ~~**verificationApi 프론트엔드 추가**~~ - ✅ 완료 (api.ts에 10개 함수 추가)
-3. **MCP Panel 도면 대량 테스트** - 다양한 검출 케이스 검증
-4. **프론트엔드 UI 안정화** - 버그 수정 및 UX 개선
-5. **GD&T 검출 정확도 개선** - 더 많은 데이텀 패턴 추가
+3. ~~**Blueprint AI BOM 기능 중심 재설계**~~ - ✅ 완료 [상세 계획](./2025-12-24_blueprint_ai_bom_feature_based_redesign.md)
+4. **🆕 Blueprint AI BOM 기능 확장** - [로드맵 문서](./2025-12-24_blueprint_ai_bom_feature_roadmap.md)
+5. **MCP Panel 도면 대량 테스트** - 다양한 검출 케이스 검증
+6. **GD&T 검출 정확도 개선** - 더 많은 데이텀 패턴 추가
+
+---
+
+### 4. `2025-12-24_blueprint_ai_bom_feature_based_redesign.md`
+
+**상태**: ✅ 완료 | **우선순위**: 높음
+
+| Phase | 내용 | 진행 상태 |
+|-------|------|----------|
+| Phase 1 | ImageInput 노드 재설계 (features 체크박스) | ✅ 완료 |
+| Phase 2 | 파이프라인 패스스루 (17개 executor) | ✅ 완료 |
+| Phase 3 | BOM Executor features 기반 처리 | ✅ 완료 |
+| Phase 4 | 세션 UI 동적 구성 | ✅ 완료 |
+
+**핵심 변경 (v2 단순화)**:
+- `drawing_type` 완전 제거, `features` 체크박스만 사용
+- features 기반 노드 추천 (`FEATURE_NODE_RECOMMENDATIONS`)
+- VLM 분류 건너뛰기 (features 있을 때)
+- 세션 UI "🔧 활성화된 기능" 섹션 표시
+
+---
+
+### 5. `2025-12-24_blueprint_ai_bom_feature_roadmap.md` 🆕
+
+**상태**: 📋 계획 | **우선순위**: 중간
+
+| 기간 | 기능 수 | 내용 |
+|------|---------|------|
+| 단기 (1-2주) | 3개 | 표제란 OCR, P&ID 연결성, 선 검출 |
+| 중기 (2-4주) | 4개 | 용접 기호, 표면 거칠기, 수량 추출, 벌룬 매칭 |
+| 장기 (1-2개월) | 4개 | 영역 세분화, 노트 추출, 리비전 비교, VLM 자동 분류 |
+
+**총 11개 신규 기능 계획** → 기존 7개 + 11개 = 18개 기능
 
 ### 🟡 중간 (2주 이내)
 
@@ -98,12 +137,12 @@ python scripts/export/export_package.py --customer "고객명" --output ./export
 
 1. **GNN 기반 관계 분석** - 연구 단계
 2. ~~**피드백 루프**~~ - ✅ v8.0에서 구현 완료 (`/feedback/*` API)
-3. **VLM 자동 분류** - GPT-4V/Claude 비용 분석 후 결정
+3. ~~**VLM 자동 분류**~~ - ✅ v9.0에서 구현 완료 (장기 로드맵 완료)
 4. **프론트엔드 Feedback UI** - 관리자 페이지에 내보내기 UI 추가 (선택)
 
 ---
 
-## 서비스 상태 (2025-12-23)
+## 서비스 상태 (2025-12-24)
 
 | 서비스 | 포트 | 상태 |
 |--------|------|------|
@@ -112,6 +151,7 @@ python scripts/export/export_package.py --customer "고객명" --output ./export
 | YOLO | 5005 | ✅ GPU |
 | eDOCr2 | 5002 | ✅ healthy |
 | Gateway | 8000 | ✅ running |
+| **전체 API** | - | ✅ 18/18 healthy (100%) |
 
 ---
 
