@@ -20,11 +20,24 @@ from fastapi.responses import FileResponse, JSONResponse
 from routers.session_router import router as session_router_api, set_session_service
 from routers.detection_router import router as detection_router_api, set_detection_service
 from routers.bom_router import router as bom_router_api, set_bom_service
-from routers.analysis_router import router as analysis_router_api, set_analysis_services, set_line_detector_service, set_connectivity_analyzer, set_region_segmenter, set_gdt_parser
+# Analysis 라우터 패키지 (5개 모듈로 분할됨)
+from routers.analysis import (
+    core_router,
+    dimension_router,
+    line_router,
+    region_router,
+    gdt_router,
+    set_core_services,
+    set_line_services,
+    set_region_services,
+    set_gdt_services,
+)
 from routers.verification_router import router as verification_router_api, set_verification_services
 from routers.classification_router import router as classification_router_api, set_classification_services
 from routers.relation_router import router as relation_router_api, set_relation_services
 from routers.feedback_router import router as feedback_router_api, set_feedback_services
+from routers.midterm_router import router as midterm_router_api, set_session_service as set_midterm_session_service
+from routers.longterm_router import router as longterm_router_api, set_session_service as set_longterm_session_service
 from schemas.session import SessionCreate, SessionResponse
 from services.session_service import SessionService
 from services.detection_service import DetectionService
@@ -87,25 +100,34 @@ gdt_parser = GDTParser()  # Phase 7: GD&T 파싱
 set_session_service(session_service, UPLOAD_DIR)
 set_detection_service(detection_service, session_service)
 set_bom_service(bom_service, session_service)
-set_analysis_services(dimension_service, detection_service, session_service, relation_service)  # Phase 2 추가
-set_line_detector_service(line_detector_service)  # v2: 선 검출 서비스
-set_connectivity_analyzer(connectivity_analyzer)  # Phase 6: P&ID 연결 분석
-set_region_segmenter(region_segmenter)  # Phase 5: 영역 분할
-set_gdt_parser(gdt_parser)  # Phase 7: GD&T 파싱
+# Analysis 패키지 서비스 주입 (5개 라우터)
+set_core_services(dimension_service, detection_service, session_service, relation_service)
+set_line_services(line_detector_service, connectivity_analyzer)
+set_region_services(region_segmenter)
+set_gdt_services(gdt_parser)
 set_verification_services(session_service)  # v3: Active Learning 검증
 set_classification_services(session_service)  # v4: VLM 분류
 set_relation_services(session_service, line_detector_service)  # Phase 2: 치수선 기반 관계
 set_feedback_services(session_service)  # Phase 8: 피드백 루프
+set_midterm_session_service(session_service)  # 중기 로드맵: 용접, 거칠기, 수량, 벌룬
+set_longterm_session_service(session_service)  # 장기 로드맵: 영역, 노트, 리비전, VLM
 
 # 라우터 등록 (prefix 없이 - 라우터 내부에 이미 prefix 있음)
 app.include_router(session_router_api, tags=["Session"])
 app.include_router(detection_router_api, tags=["Detection"])
 app.include_router(bom_router_api, tags=["BOM"])
-app.include_router(analysis_router_api, tags=["Analysis"])  # v2: 분석 옵션 및 치수 OCR
+# Analysis 패키지 라우터 등록 (5개 모듈)
+app.include_router(core_router, tags=["Analysis Core"])
+app.include_router(dimension_router, tags=["Dimensions"])
+app.include_router(line_router, tags=["Lines & Connectivity"])
+app.include_router(region_router, tags=["Regions"])
+app.include_router(gdt_router, tags=["GD&T & Title Block"])
 app.include_router(verification_router_api, tags=["Verification"])  # v3: Active Learning
 app.include_router(classification_router_api, tags=["Classification"])  # v4: VLM 분류
 app.include_router(relation_router_api, tags=["Relations"])  # Phase 2: 치수선 기반 관계
 app.include_router(feedback_router_api, tags=["Feedback"])  # Phase 8: 피드백 루프
+app.include_router(midterm_router_api, tags=["Mid-term Features"])  # 중기 로드맵: 용접, 거칠기, 수량, 벌룬
+app.include_router(longterm_router_api, tags=["Long-term Features"])  # 장기 로드맵: 영역, 노트, 리비전, VLM
 
 
 @app.get("/")

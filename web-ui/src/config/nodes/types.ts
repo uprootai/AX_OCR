@@ -17,6 +17,7 @@ export interface CheckboxOption {
   hint?: string;        // 힌트 텍스트 (예: "YOLO 노드 필요")
   icon?: string;        // 이모지 아이콘
   description?: string; // 마우스 hover 시 표시되는 상세 설명
+  group?: string;       // 옵션 그룹화 (예: "기본 검출", "GD&T / 기계")
 }
 
 export interface NodeParameter {

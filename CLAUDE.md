@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-24
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-26
 > 모든 문서: <100줄, 모듈식 구조, 계층적 구성
 
 ---
@@ -137,6 +137,88 @@ type NodeCategory =
 ```
 
 **주의**: `'api'` 타입은 더 이상 사용하지 않음. 반드시 위 카테고리 중 하나 사용.
+
+---
+
+## 파일 크기 및 모듈화 규칙 (LLM 최적화)
+
+> **핵심 원칙**: 모든 소스 파일은 **1,000줄 이하**로 유지
+
+### 파일 크기 기준
+
+| 라인 수 | 상태 | 조치 |
+|---------|------|------|
+| < 300줄 | ✅ 이상적 | 유지 |
+| 300-500줄 | ✅ 양호 | 유지 |
+| 500-800줄 | ⚠️ 주의 | 리팩토링 고려 |
+| 800-1000줄 | ⚠️ 경고 | 리팩토링 권장 |
+| > 1000줄 | ❌ 위반 | **즉시 분리 필수** |
+
+### 분리 전략
+
+**React 컴포넌트 (TSX)**:
+```
+BigComponent.tsx (1500줄)
+    ↓ 분리
+├── hooks/
+│   ├── useComponentState.ts      # useState 중앙화
+│   ├── useComponentEffects.ts    # useEffect 중앙화
+│   └── useComponentHandlers.ts   # 이벤트 핸들러
+├── sections/
+│   ├── SectionA.tsx              # UI 섹션 분리
+│   └── SectionB.tsx
+├── components/
+│   └── SubComponent.tsx          # 재사용 컴포넌트
+└── BigComponent.tsx              # 조합만 담당 (300줄 이하)
+```
+
+**FastAPI 라우터 (Python)**:
+```
+big_router.py (2800줄)
+    ↓ 분리
+├── routers/
+│   ├── feature_a_router.py       # 기능별 분리
+│   ├── feature_b_router.py
+│   └── __init__.py               # 라우터 통합
+└── services/
+    └── feature_service.py        # 비즈니스 로직
+```
+
+### 모듈화 체크리스트
+
+새 기능 추가 시:
+- [ ] 파일이 500줄 이상이면 분리 계획 수립
+- [ ] 상태 관리 → 커스텀 훅으로 추출
+- [ ] 반복 UI → 별도 컴포넌트로 추출
+- [ ] 비즈니스 로직 → 서비스 레이어로 이동
+- [ ] index.ts에 모든 export 등록
+
+### 이점
+
+1. **LLM 컨텍스트 효율성**: 작은 파일 = 정확한 코드 생성
+2. **병렬 개발**: 여러 파일 동시 수정 가능
+3. **테스트 용이**: 단위 테스트 작성 간편
+4. **코드 재사용**: 훅/컴포넌트 다른 곳에서 import
+
+### 예시: Blueprint AI BOM 리팩토링
+
+```
+Before (2025-12-24):
+├── WorkflowPage.tsx          4,599줄  ❌
+└── analysis_router.py        2,866줄  ❌
+
+After (2025-12-26):
+├── WorkflowPage.tsx            595줄  ✅
+├── workflow/
+│   ├── hooks/ (9개)          1,200줄
+│   ├── sections/ (16개)      3,200줄
+│   ├── components/ (3개)       700줄
+│   └── 평균 파일 크기         ~190줄  ✅
+└── routers/
+    ├── analysis/ (6개)       1,915줄
+    ├── midterm_router.py       580줄
+    └── longterm_router.py      458줄  ✅
+```
 
 ---
 
@@ -414,7 +496,8 @@ resources:
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
-| **12.0** | **2025-12-24** | **Blueprint AI BOM v9.0**: 장기 로드맵 완료 (영역 세분화, 노트 추출, 리비전 비교, VLM 분류) |
+| **13.0** | **2025-12-26** | **모듈화 리팩토링**: 1000줄 제한 규칙, WorkflowPage 595줄로 분리, LLM 최적화 가이드 추가 |
+| 12.0 | 2025-12-24 | Blueprint AI BOM v9.0: 장기 로드맵 완료 (영역 세분화, 노트 추출, 리비전 비교, VLM 분류) |
 | 11.0 | 2025-12-24 | 18개 기능 체크박스 툴팁, 전체 API 18/18 healthy |
 | 10.0 | 2025-12-10 | 웹 기반 컨테이너 GPU/메모리 설정, 실시간 컨테이너 상태 표시 |
 | 9.0 | 2025-12-09 | 동적 리소스 로딩 시스템, 인사이트 아카이브 (benchmarks, lessons-learned) |

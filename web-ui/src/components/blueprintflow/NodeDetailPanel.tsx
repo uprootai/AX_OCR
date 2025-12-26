@@ -465,63 +465,159 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                       )}
 
                       {param.type === 'checkboxGroup' && (
-                        <div className="space-y-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                          {param.options?.map((opt) => {
-                            if (!isCheckboxOption(opt)) return null;
-                            const isChecked = Array.isArray(currentValue)
-                              ? currentValue.includes(opt.value)
-                              : false;
-                            return (
-                              <div key={opt.value} className="group relative">
-                                <label
-                                  className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${
-                                    isChecked
-                                      ? 'bg-blue-50 dark:bg-blue-900/30'
-                                      : 'hover:bg-gray-100 dark:hover:bg-gray-600/50'
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() =>
-                                      handleCheckboxToggle(
-                                        param.name,
-                                        opt.value,
-                                        Array.isArray(currentValue) ? currentValue : []
-                                      )
-                                    }
-                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="text-sm">
-                                    {opt.icon && <span className="mr-1">{opt.icon}</span>}
-                                    {opt.label}
-                                  </span>
-                                  {opt.hint && (
-                                    <span className="text-xs text-gray-400 ml-auto">
-                                      {opt.hint}
+                        <div className="space-y-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                          {(() => {
+                            // 그룹별로 옵션 분류
+                            const groupedOptions: Record<string, CheckboxOption[]> = {};
+                            const ungroupedOptions: CheckboxOption[] = [];
+
+                            param.options?.forEach((opt) => {
+                              if (!isCheckboxOption(opt)) return;
+                              const cbOpt = opt as CheckboxOption;
+                              if (cbOpt.group) {
+                                if (!groupedOptions[cbOpt.group]) groupedOptions[cbOpt.group] = [];
+                                groupedOptions[cbOpt.group]!.push(cbOpt);
+                              } else {
+                                ungroupedOptions.push(cbOpt);
+                              }
+                            });
+
+                            const groups = Object.keys(groupedOptions);
+                            const hasGroups = groups.length > 0;
+
+                            // 그룹 아이콘 매핑
+                            const groupIcons: Record<string, string> = {
+                              '기본 검출': '🎯',
+                              'GD&T / 기계': '🔧',
+                              'P&ID': '🔀',
+                              'BOM 생성': '📋',
+                              '장기 로드맵': '🚀',
+                            };
+
+                            // 그룹 색상 매핑
+                            const groupColors: Record<string, string> = {
+                              '기본 검출': 'border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/20',
+                              'GD&T / 기계': 'border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-900/20',
+                              'P&ID': 'border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/20',
+                              'BOM 생성': 'border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/20',
+                              '장기 로드맵': 'border-pink-300 dark:border-pink-700 bg-pink-50/50 dark:bg-pink-900/20',
+                            };
+
+                            const renderOption = (opt: CheckboxOption) => {
+                              if (!isCheckboxOption(opt)) return null;
+                              const isChecked = Array.isArray(currentValue)
+                                ? currentValue.includes(opt.value)
+                                : false;
+                              return (
+                                <div key={opt.value} className="group relative">
+                                  <label
+                                    className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${
+                                      isChecked
+                                        ? 'bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-600'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-600/50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() =>
+                                        handleCheckboxToggle(
+                                          param.name,
+                                          opt.value,
+                                          Array.isArray(currentValue) ? currentValue : []
+                                        )
+                                      }
+                                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm">
+                                      {opt.icon && <span className="mr-1">{opt.icon}</span>}
+                                      {opt.label}
                                     </span>
+                                    {opt.hint && (
+                                      <span className="text-xs text-gray-400 ml-auto">
+                                        {opt.hint}
+                                      </span>
+                                    )}
+                                  </label>
+                                  {/* Hover Tooltip */}
+                                  {opt.description && (
+                                    <div className="absolute z-50 hidden group-hover:block w-72 p-3 text-xs bg-gray-900 text-white rounded-lg shadow-xl left-0 top-full mt-1 leading-relaxed">
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-lg flex-shrink-0">{opt.icon}</span>
+                                        <div>
+                                          <div className="font-semibold text-blue-300 mb-1">{opt.label}</div>
+                                          <div className="text-gray-200">{opt.description}</div>
+                                        </div>
+                                      </div>
+                                      <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-900 rotate-45"></div>
+                                    </div>
                                   )}
-                                </label>
-                                {/* Hover Tooltip */}
-                                {opt.description && (
-                                  <div className="absolute z-50 hidden group-hover:block w-72 p-3 text-xs bg-gray-900 text-white rounded-lg shadow-xl left-0 top-full mt-1 leading-relaxed">
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-lg flex-shrink-0">{opt.icon}</span>
-                                      <div>
-                                        <div className="font-semibold text-blue-300 mb-1">{opt.label}</div>
-                                        <div className="text-gray-200">{opt.description}</div>
+                                </div>
+                              );
+                            };
+
+                            return (
+                              <>
+                                {/* 그룹화된 옵션 렌더링 */}
+                                {hasGroups && groups.map((group) => {
+                                  const opts = groupedOptions[group] || [];
+                                  const checkedCount = opts.filter(opt =>
+                                    Array.isArray(currentValue) && currentValue.includes(opt.value)
+                                  ).length;
+
+                                  return (
+                                    <div
+                                      key={group}
+                                      className={`rounded-lg border p-2 ${groupColors[group] || 'border-gray-200 dark:border-gray-600'}`}
+                                    >
+                                      <div className="flex items-center justify-between mb-2 pb-1 border-b border-gray-200 dark:border-gray-600">
+                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                          {groupIcons[group] || '📁'} {group}
+                                        </span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                          {checkedCount}/{opts.length}
+                                        </span>
+                                      </div>
+                                      <div className="space-y-1">
+                                        {opts.map(renderOption)}
                                       </div>
                                     </div>
-                                    {/* Arrow */}
-                                    <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-900 rotate-45"></div>
+                                  );
+                                })}
+
+                                {/* 그룹 없는 옵션 렌더링 */}
+                                {ungroupedOptions.length > 0 && (
+                                  <div className="space-y-1">
+                                    {ungroupedOptions.map(renderOption)}
                                   </div>
                                 )}
-                              </div>
+                              </>
                             );
-                          })}
+                          })()}
                           {/* 활성화된 기능 수 표시 */}
-                          <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
-                            {Array.isArray(currentValue) ? currentValue.length : 0}개 기능 활성화
+                          <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                            <span>{Array.isArray(currentValue) ? currentValue.length : 0}개 기능 활성화</span>
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const allValues = param.options
+                                    ?.filter(isCheckboxOption)
+                                    .map(opt => opt.value) || [];
+                                  handleParameterChange(param.name, allValues);
+                                }}
+                                className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800/50"
+                              >
+                                전체 선택
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleParameterChange(param.name, [])}
+                                className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500"
+                              >
+                                전체 해제
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}

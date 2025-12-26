@@ -1,0 +1,37 @@
+{
+  "TC1": {
+    "session_id": "3ee4c152-80e6-4530-b311-499d3cf801f5",
+    "features": ["symbol_detection"],
+    "description": "기본 검출 Only"
+  },
+  "TC2": {
+    "session_id": "8d982314-384c-4faa-ae36-2d5c0ef57264",
+    "features": ["symbol_detection", "dimension_ocr", "gdt_parsing", "relation_extraction"],
+    "description": "GD&T / 기계 도면 조합"
+  },
+  "TC3": {
+    "session_id": "25201bfe-e548-43c3-8005-dd64f5c6f12b",
+    "features": ["symbol_detection", "line_detection", "pid_connectivity"],
+    "description": "P&ID 전용"
+  },
+  "TC4": {
+    "session_id": "fdc57ef5-bf1c-486f-b1fb-7febe4fdcc57",
+    "features": ["symbol_detection", "title_block_ocr", "quantity_extraction", "balloon_matching", "bom_generation"],
+    "description": "BOM 생성 풀셋"
+  },
+  "TC5": {
+    "session_id": "3bd48c0d-a856-4b70-a631-dc4ac5f52dde",
+    "features": ["drawing_region_segmentation", "notes_extraction", "revision_comparison", "vlm_auto_classification"],
+    "description": "장기 로드맵 기능"
+  },
+  "TC6": {
+    "session_id": "a3d1e31a-e6a8-4da1-92e7-22147c0f5ab5",
+    "features": [],
+    "description": "빈 Features (Edge Case)"
+  },
+  "TC7": {
+    "session_id": "96d47baa-f87d-43c1-b2a9-35ad2fb0da50",
+    "features": ["all 18 features"],
+    "description": "전체 Features"
+  }
+}
