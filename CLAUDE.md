@@ -317,6 +317,69 @@ Dashboard에서 직접 컨테이너 GPU/메모리 설정을 변경하고 적용�
 
 **참고**: 설정은 `docker-compose.override.yml`에 저장되어 원본 docker-compose.yml을 수정하지 않습니다.
 
+### 1-4. GPU Override 시스템 (docker-compose.override.yml)
+
+GPU 설정은 `docker-compose.yml`에 하드코딩하지 않고, `docker-compose.override.yml`에서 동적으로 관리합니다.
+
+#### 왜 GPU가 기본적으로 OFF인가?
+
+| 이유 | 설명 |
+|------|------|
+| **VRAM 고갈** | 8개 API가 동시에 GPU 모드로 시작하면 모델을 VRAM에 미리 로드하여 GPU 메모리 고갈 |
+| **필요시 활성화** | 실제 추론 시에만 특정 API의 GPU 활성화가 효율적 |
+| **개발 환경 호환** | GPU 없는 환경에서도 바로 실행 가능 |
+
+#### GPU 지원 API (8개)
+
+| 서비스명 | 컨테이너 | 용도 |
+|----------|----------|------|
+| YOLO | yolo-api | 객체 검출 |
+| eDOCr2 | edocr2-v2-api | OCR |
+| PaddleOCR | paddleocr-api | OCR |
+| TrOCR | trocr-api | OCR |
+| EDGNet | edgnet-api | 세그멘테이션 |
+| ESRGAN | esrgan-api | 업스케일링 |
+| Line Detector | line-detector-api | 라인 검출 |
+| Blueprint AI BOM | blueprint-ai-bom-backend | BOM 생성 |
+
+#### 새 환경 설정 (템플릿 사용)
+
+```bash
+# 1. 템플릿 복사
+cp docker-compose.override.yml.example docker-compose.override.yml
+
+# 2. 필요한 서비스만 GPU 활성화 (파일 편집)
+# 또는 Dashboard에서 동적으로 설정
+
+# 3. 서비스 재시작
+docker-compose up -d
+```
+
+#### 파일 구조
+
+```
+docker-compose.yml              # 기본 설정 (GPU 없음)
+docker-compose.override.yml     # GPU 설정 (로컬용, .gitignore)
+docker-compose.override.yml.example  # 템플릿 (Git 추적)
+```
+
+#### 수동 GPU 설정 예시
+
+```yaml
+# docker-compose.override.yml
+services:
+  yolo-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]
+            count: 1
+            driver: nvidia
+```
+
+**주의**: `docker-compose.override.yml`은 `.gitignore`에 포함되어 있어 각 환경마다 별도로 설정해야 합니다.
+
 ### 2. 기존 방식 (수동)
 
 1. `models/{api-id}-api/api_server.py` 생성
@@ -496,7 +559,8 @@ resources:
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
-| **13.0** | **2025-12-26** | **모듈화 리팩토링**: 1000줄 제한 규칙, WorkflowPage 595줄로 분리, LLM 최적화 가이드 추가 |
+| **14.0** | **2025-12-26** | **GPU Override 시스템**: docker-compose.override.yml 기반 동적 GPU 설정, Dashboard GPU 토글 버그 수정, Blueprint AI BOM 하이퍼파라미터 버그 수정 |
+| 13.0 | 2025-12-26 | 모듈화 리팩토링: 1000줄 제한 규칙, WorkflowPage 595줄로 분리, LLM 최적화 가이드 추가 |
 | 12.0 | 2025-12-24 | Blueprint AI BOM v9.0: 장기 로드맵 완료 (영역 세분화, 노트 추출, 리비전 비교, VLM 분류) |
 | 11.0 | 2025-12-24 | 18개 기능 체크박스 툴팁, 전체 API 18/18 healthy |
 | 10.0 | 2025-12-10 | 웹 기반 컨테이너 GPU/메모리 설정, 실시간 컨테이너 상태 표시 |

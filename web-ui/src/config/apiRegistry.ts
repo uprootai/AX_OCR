@@ -304,6 +304,20 @@ export const API_REGISTRY: APIDefinition[] = [
     color: '#06b6d4',
     gpuEnabled: true,
   },
+  // Blueprint AI BOM
+  {
+    id: 'blueprint_ai_bom',
+    nodeType: 'blueprintaibom',
+    displayName: 'Blueprint AI BOM',
+    containerName: 'blueprint-ai-bom-backend',
+    specId: 'blueprint-ai-bom',
+    port: 5020,
+    category: 'analysis',
+    description: 'Human-in-the-Loop 도면 BOM 생성',
+    icon: '📋',
+    color: '#8b5cf6',
+    gpuEnabled: true,
+  },
 ];
 
 // ============ 유틸리티 함수들 ============

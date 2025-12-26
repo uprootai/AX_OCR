@@ -127,19 +127,25 @@ export const fetchSpecParameters = async (apiId: string): Promise<APISpecParamet
 
 /**
  * Get hyperparameter definitions from API spec
+ * Note: Array type parameters are filtered out as Dashboard UI doesn't support them
  */
 export const getHyperparamDefinitions = async (apiId: string): Promise<HyperparamDefinition[]> => {
   const params = await fetchSpecParameters(apiId);
-  return params.map(convertParamToDefinition);
+  // Filter out array type parameters - Dashboard UI doesn't support complex multi-select
+  const simpleParams = params.filter(p => p.type?.toLowerCase() !== 'array');
+  return simpleParams.map(convertParamToDefinition);
 };
 
 /**
  * Get default hyperparameter values from API spec
+ * Note: Array type parameters are filtered out as Dashboard UI doesn't support them
  */
 export const getDefaultHyperparams = async (apiId: string): Promise<Record<string, unknown>> => {
   const params = await fetchSpecParameters(apiId);
+  // Filter out array type parameters - Dashboard UI doesn't support complex multi-select
+  const simpleParams = params.filter(p => p.type?.toLowerCase() !== 'array');
   return Object.fromEntries(
-    params.map(p => [p.name, p.default])
+    simpleParams.map(p => [p.name, p.default])
   );
 };
 

@@ -36,4 +36,6 @@ export const DEFAULT_APIS: APIInfo[] = [
   { id: 'knowledge', name: 'knowledge', display_name: 'Knowledge', base_url: 'http://localhost:5007', port: 5007, status: 'unknown', category: 'knowledge', description: 'Neo4j + GraphRAG', icon: '🧠', color: '#10b981', last_check: null },
   // AI
   { id: 'vl', name: 'vl', display_name: 'VL (Vision-Language)', base_url: 'http://localhost:5004', port: 5004, status: 'unknown', category: 'ai', description: 'Vision-Language 멀티모달', icon: '🤖', color: '#06b6d4', last_check: null },
+  // Blueprint AI BOM
+  { id: 'blueprint_ai_bom', name: 'blueprint_ai_bom', display_name: 'Blueprint AI BOM', base_url: 'http://localhost:5020', port: 5020, status: 'unknown', category: 'analysis', description: 'Human-in-the-Loop 도면 BOM 생성', icon: '📋', color: '#8b5cf6', last_check: null },
 ];

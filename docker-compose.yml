@@ -32,13 +32,7 @@ services:
       - TF_XLA_FLAGS=--tf_xla_auto_jit=-1 --tf_xla_enable_xla_devices=false
       - XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
       - TF_DISABLE_MKL=1
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU 설정은 docker-compose.override.yml에서 관리 (Dashboard에서 동적 제어)
     networks:
       - ax_poc_network
     restart: unless-stopped
@@ -73,14 +67,7 @@ services:
     networks:
       - ax_poc_network
     restart: unless-stopped
-    # GPU 지원 활성화 ✅
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU 설정은 docker-compose.override.yml에서 관리 (Dashboard에서 동적 제어)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
       interval: 30s
@@ -165,14 +152,7 @@ services:
     networks:
       - ax_poc_network
     restart: unless-stopped
-    # GPU 지원 활성화 ✅
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU 설정은 docker-compose.override.yml에서 관리 (Dashboard에서 동적 제어)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5005/api/v1/health"]
       interval: 30s
@@ -202,14 +182,7 @@ services:
     networks:
       - ax_poc_network
     restart: unless-stopped
-    # GPU 지원 활성화 ✅
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU 설정은 docker-compose.override.yml에서 관리 (Dashboard에서 동적 제어)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
       interval: 30s
@@ -422,14 +395,7 @@ services:
     networks:
       - ax_poc_network
     restart: unless-stopped
-    # GPU 지원 활성화 ✅
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU 설정은 docker-compose.override.yml에서 관리 (Dashboard에서 동적 제어)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5009/health"]
       interval: 30s
@@ -456,14 +422,7 @@ services:
     networks:
       - ax_poc_network
     restart: unless-stopped
-    # GPU 지원 활성화 ✅
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU 설정은 docker-compose.override.yml에서 관리 (Dashboard에서 동적 제어)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5010/health"]
       interval: 30s
@@ -693,13 +652,7 @@ services:
     networks:
       - ax_poc_network
     restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU 설정은 docker-compose.override.yml에서 관리 (Dashboard에서 동적 제어)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5020/health"]
       interval: 30s

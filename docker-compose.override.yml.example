@@ -1,0 +1,112 @@
+# Docker Compose Override 템플릿
+# GPU 설정을 동적으로 관리하기 위한 파일
+#
+# 사용법:
+#   1. 이 파일을 docker-compose.override.yml로 복사
+#      $ cp docker-compose.override.yml.example docker-compose.override.yml
+#
+#   2. 필요에 따라 GPU 설정 수정
+#      - GPU 활성화: devices 섹션 유지
+#      - GPU 비활성화: devices: [] (빈 배열)
+#
+#   3. Dashboard에서 실시간으로 GPU/CPU 전환 가능
+#      http://localhost:5173/admin/api/{api-id}
+#
+# 참고:
+#   - docker-compose.override.yml은 .gitignore에 포함됨 (로컬 설정용)
+#   - 이 템플릿(.example)은 Git에 추적됨
+
+services:
+  # =====================
+  # Detection APIs
+  # =====================
+  yolo-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # =====================
+  # OCR APIs
+  # =====================
+  edocr2-v2-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  paddleocr-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  trocr-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # =====================
+  # Segmentation APIs
+  # =====================
+  edgnet-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  line-detector-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # =====================
+  # Preprocessing APIs
+  # =====================
+  esrgan-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # =====================
+  # Analysis APIs
+  # =====================
+  blueprint-ai-bom-backend:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+# GPU 비활성화 예시 (CPU 모드):
+# yolo-api:
+#   deploy:
+#     resources:
+#       reservations:
+#         devices: []  # 빈 배열 = GPU 비활성화

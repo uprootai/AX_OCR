@@ -577,15 +577,18 @@ def update_gpu_override(service_name: str, enable_gpu: bool, gpu_memory: Optiona
     """
     docker-compose.override.yml을 사용하여 서비스의 GPU 설정을 오버라이드합니다.
     원본 docker-compose.yml은 수정하지 않습니다.
+
+    버그 수정 (2025-12-26):
+    - GPU 비활성화 시 빈 배열로 오버라이드하여 원본 설정 무력화
     """
     import yaml
 
     try:
         # 기존 override 파일 읽기 또는 새로 생성
-        override_data = {'version': '3.8', 'services': {}}
+        override_data = {'services': {}}
         if os.path.exists(DOCKER_COMPOSE_OVERRIDE):
             with open(DOCKER_COMPOSE_OVERRIDE, 'r') as f:
-                override_data = yaml.safe_load(f) or {'version': '3.8', 'services': {}}
+                override_data = yaml.safe_load(f) or {'services': {}}
                 if 'services' not in override_data:
                     override_data['services'] = {}
 
@@ -614,10 +617,18 @@ def update_gpu_override(service_name: str, enable_gpu: bool, gpu_memory: Optiona
             override_data['services'][service_name] = deploy_config
             logger.info(f"GPU enabled for {service_name} in override file")
         else:
-            # GPU 설정 제거 (override에서 삭제)
-            if service_name in override_data.get('services', {}):
-                del override_data['services'][service_name]
-            logger.info(f"GPU override removed for {service_name}")
+            # GPU 비활성화: 빈 devices 배열로 오버라이드하여 원본 GPU 설정 무력화
+            # 단순히 삭제하면 원본 docker-compose.yml의 GPU 설정이 적용됨
+            override_data['services'][service_name] = {
+                'deploy': {
+                    'resources': {
+                        'reservations': {
+                            'devices': []  # 빈 배열로 원본 GPU 설정 오버라이드
+                        }
+                    }
+                }
+            }
+            logger.info(f"GPU disabled for {service_name} in override file (empty devices)")
 
         # override 파일 저장
         with open(DOCKER_COMPOSE_OVERRIDE, 'w') as f:
@@ -633,15 +644,41 @@ def recreate_container(service_name: str) -> tuple[bool, str]:
     """
     Docker 컨테이너를 재생성합니다.
     docker:24.0-cli 이미지(Docker Compose v2 포함)를 사용하여 컨테이너를 재생성합니다.
+
+    버그 수정 (2025-12-26):
+    - stop/rm 결과 확인 및 로깅
+    - --force-recreate 추가로 이름 충돌 방지
+    - 잘못된 fallback 제거 (삭제된 컨테이너 start 시도 버그)
     """
     container_name = service_name
 
     try:
-        # 1. 컨테이너 중지 및 삭제
-        subprocess.run(["docker", "stop", container_name], capture_output=True, timeout=30)
-        subprocess.run(["docker", "rm", container_name], capture_output=True, timeout=10)
+        # 1. 컨테이너 중지 (실패해도 계속 - 이미 중지된 경우)
+        stop_result = subprocess.run(
+            ["docker", "stop", container_name],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if stop_result.returncode != 0:
+            logger.info(f"Container {container_name} stop skipped (may not be running): {stop_result.stderr.strip()}")
+        else:
+            logger.info(f"Container {container_name} stopped")
 
-        # 2. docker:24.0-cli 이미지로 재생성 (Docker Compose v2 내장)
+        # 2. 컨테이너 삭제 (실패해도 계속 - 존재하지 않는 경우)
+        rm_result = subprocess.run(
+            ["docker", "rm", container_name],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if rm_result.returncode != 0:
+            logger.info(f"Container {container_name} rm skipped (may not exist): {rm_result.stderr.strip()}")
+        else:
+            logger.info(f"Container {container_name} removed")
+
+        # 3. docker:24.0-cli 이미지로 재생성 (Docker Compose v2 내장)
+        # --force-recreate 추가: 이름 충돌 방지
         compose_result = subprocess.run(
             [
                 "docker", "run", "--rm",
@@ -652,7 +689,7 @@ def recreate_container(service_name: str) -> tuple[bool, str]:
                 "compose",
                 "-f", f"{DOCKER_COMPOSE_DIR}/docker-compose.yml",
                 "-f", DOCKER_COMPOSE_OVERRIDE,
-                "up", "-d", service_name
+                "up", "-d", "--force-recreate", service_name
             ],
             capture_output=True,
             text=True,
@@ -660,25 +697,19 @@ def recreate_container(service_name: str) -> tuple[bool, str]:
         )
 
         if compose_result.returncode == 0:
-            return True, f"Container {container_name} recreated with GPU settings"
+            logger.info(f"Container {container_name} recreated successfully")
+            return True, f"Container {container_name} recreated with new settings"
 
-        # fallback: docker start 시도
-        logger.warning(f"docker compose failed: {compose_result.stderr}")
-        start_result = subprocess.run(
-            ["docker", "start", container_name],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
+        # compose 실패 시 에러 반환 (잘못된 fallback 제거)
+        error_msg = compose_result.stderr.strip() or compose_result.stdout.strip() or 'Unknown error'
+        logger.error(f"docker compose failed for {container_name}: {error_msg}")
+        return False, f"Failed to recreate container: {error_msg}"
 
-        if start_result.returncode == 0:
-            return True, f"Container started. Run 'docker compose up -d --force-recreate {service_name}' on host to apply GPU settings"
-
-        return False, f"Failed: {compose_result.stderr or 'Unknown error'}"
-
-    except subprocess.TimeoutExpired:
-        return False, "Timeout while recreating container"
+    except subprocess.TimeoutExpired as e:
+        logger.error(f"Timeout while recreating {container_name}: {e}")
+        return False, f"Timeout while recreating container (command: {e.cmd})"
     except Exception as e:
+        logger.error(f"Exception while recreating {container_name}: {e}")
         return False, str(e)
 
 

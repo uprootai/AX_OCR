@@ -65,7 +65,7 @@ interface ContainerStatus {
 }
 
 // 하이퍼파라미터 정의
-const HYPERPARAM_DEFINITIONS: Record<string, { label: string; type: 'number' | 'boolean' | 'select' | 'text'; min?: number; max?: number; step?: number; options?: { value: string; label: string }[]; description: string }[]> = {
+const HYPERPARAM_DEFINITIONS: Record<string, { key?: string; label: string; type: 'number' | 'boolean' | 'select' | 'text'; min?: number; max?: number; step?: number; options?: { value: string; label: string }[]; description: string }[]> = {
   yolo: [
     { label: '신뢰도 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '검출 객체의 최소 신뢰도 (0-1)' },
     { label: 'IoU 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '겹치는 박스 제거 기준' },
@@ -157,6 +157,13 @@ const HYPERPARAM_DEFINITIONS: Record<string, { label: string; type: 'number' | '
     { label: '최대 토큰', type: 'number', min: 100, max: 4096, step: 100, description: '생성 최대 토큰 수' },
     { label: '온도', type: 'number', min: 0, max: 2, step: 0.1, description: '생성 다양성 (높을수록 다양)' },
   ],
+  blueprint_ai_bom: [
+    { key: 'symbol_detection', label: '심볼 검출', type: 'boolean', description: 'YOLO 기반 심볼 검출' },
+    { key: 'dimension_ocr', label: '치수 OCR', type: 'boolean', description: 'eDOCr2 기반 치수 인식' },
+    { key: 'gdt_parsing', label: 'GD&T 파싱', type: 'boolean', description: '기하공차/데이텀 파싱' },
+    { key: 'human_in_the_loop', label: 'Human-in-the-Loop', type: 'boolean', description: '수동 검증 큐 활성화' },
+    { key: 'confidence_threshold', label: '신뢰도 임계값', type: 'number', min: 0.5, max: 1, step: 0.05, description: '자동 승인 신뢰도 임계값' },
+  ],
 };
 
 // 기본 하이퍼파라미터 값
@@ -178,6 +185,7 @@ const DEFAULT_HYPERPARAMS: Record<string, HyperParams> = {
   design_checker: { ruleset: 'standard', include_warnings: true },
   knowledge: { search_mode: 'hybrid', search_depth: 2, top_k: 10 },
   vl: { model: 'qwen-vl', max_tokens: 1024, temperature: 0.7 },
+  blueprint_ai_bom: { symbol_detection: true, dimension_ocr: true, gdt_parsing: true, human_in_the_loop: true, confidence_threshold: 0.8 },
 };
 
 // 기본 API 정의 (APIStatusMonitor와 동일 - 19개 서비스)
@@ -208,6 +216,8 @@ const DEFAULT_APIS: APIInfo[] = [
   { id: 'knowledge', name: 'knowledge', display_name: 'Knowledge', base_url: 'http://localhost:5007', port: 5007, status: 'unknown', category: 'knowledge', description: 'Neo4j + GraphRAG', icon: '🧠', color: '#10b981' },
   // AI
   { id: 'vl', name: 'vl', display_name: 'VL (Vision-Language)', base_url: 'http://localhost:5004', port: 5004, status: 'unknown', category: 'ai', description: 'Vision-Language 멀티모달', icon: '🤖', color: '#06b6d4' },
+  // Blueprint AI BOM
+  { id: 'blueprint_ai_bom', name: 'blueprint_ai_bom', display_name: 'Blueprint AI BOM', base_url: 'http://localhost:5020', port: 5020, status: 'unknown', category: 'analysis', description: 'Human-in-the-Loop 도면 BOM 생성', icon: '📋', color: '#8b5cf6' },
 ];
 
 export default function APIDetail() {
@@ -236,17 +246,20 @@ export default function APIDetail() {
   const fetchAPIInfo = useCallback(async () => {
     if (!apiId) return;
 
+    // URL에서 하이픈으로 접근해도 언더스코어 ID와 매칭되도록 정규화
+    const normalizedId = apiId.replace(/-/g, '_');
+
     try {
       let api: APIInfo | undefined;
 
-      // 1. 먼저 DEFAULT_APIS에서 찾기
-      api = DEFAULT_APIS.find((a) => a.id === apiId || a.name === apiId);
+      // 1. 먼저 DEFAULT_APIS에서 찾기 (원본 ID와 정규화된 ID 모두 시도)
+      api = DEFAULT_APIS.find((a) => a.id === apiId || a.name === apiId || a.id === normalizedId || a.name === normalizedId);
 
       // 2. Gateway Registry에서도 시도 (추가 정보 가져오기)
       try {
         const response = await axios.get('http://localhost:8000/api/v1/registry/list', { timeout: 3000 });
         const registryApis = response.data.apis || [];
-        const registryApi = registryApis.find((a: APIInfo) => a.id === apiId || a.name === apiId);
+        const registryApi = registryApis.find((a: APIInfo) => a.id === apiId || a.name === apiId || a.id === normalizedId || a.name === normalizedId);
 
         if (registryApi) {
           // Registry에서 찾은 경우 해당 정보 사용
@@ -266,11 +279,13 @@ export default function APIDetail() {
         const savedConfigs = localStorage.getItem('serviceConfigs');
         const savedHyperParams = localStorage.getItem('hyperParameters');
 
+        // 정규화된 ID로 하이퍼파라미터 찾기 (URL 하이픈 → 언더스코어)
+        const effectiveApiId = api.id;
         let loadedConfig: APIConfig = {
           enabled: api.status === 'healthy' || api.status === 'unknown',
           device: 'cpu',
           memory_limit: '2g',
-          hyperparams: DEFAULT_HYPERPARAMS[apiId] || {},
+          hyperparams: DEFAULT_HYPERPARAMS[effectiveApiId] || DEFAULT_HYPERPARAMS[normalizedId] || {},
         };
 
         if (savedConfigs) {
@@ -552,6 +567,8 @@ export default function APIDetail() {
   }
 
   // Use dynamic definitions from spec, fallback to hardcoded
+  // Normalize apiId for fallback lookup (hyphens to underscores)
+  const normalizedApiId = apiId?.replace(/-/g, '_') || '';
   const hyperparamDefs = dynamicHyperparamDefs.length > 0
     ? dynamicHyperparamDefs.map(def => ({
         label: def.label,
@@ -563,7 +580,7 @@ export default function APIDetail() {
         description: def.description,
         key: def.key,
       }))
-    : (HYPERPARAM_DEFINITIONS[apiId || ''] || []);
+    : (HYPERPARAM_DEFINITIONS[normalizedApiId] || HYPERPARAM_DEFINITIONS[apiId || ''] || []);
 
   return (
     <div className="space-y-6">
