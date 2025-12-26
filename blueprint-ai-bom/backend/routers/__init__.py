@@ -16,6 +16,10 @@ from .analysis import (
     gdt_router as analysis_gdt_router,
 )
 
+# Roadmap routers (로드맵 기능)
+from .midterm_router import router as midterm_router
+from .longterm_router import router as longterm_router
+
 __all__ = [
     "session_router",
     "detection_router",
@@ -29,4 +33,7 @@ __all__ = [
     "analysis_line_router",
     "analysis_region_router",
     "analysis_gdt_router",
+    # Roadmap routers
+    "midterm_router",
+    "longterm_router",
 ]

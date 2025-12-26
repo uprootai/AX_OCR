@@ -278,4 +278,15 @@ class TestServiceName:
 ---
 
 **작성자**: Claude Code (Opus 4.5)
-**최종 업데이트**: 2025-12-24
+**최종 업데이트**: 2025-12-26
+
+---
+
+## v9.1 추가 완료 작업 (2025-12-26)
+
+| 작업 | 상태 |
+|------|------|
+| SSOT 리팩토링 (features 정의 단일 소스화) | ✅ 완료 |
+| NodeDetailPanel 그룹 UI (체크박스 그룹별 렌더링) | ✅ 완료 |
+| midterm/longterm 라우터 routers/__init__.py 등록 | ✅ 완료 |
+| TypeScript 타입 에러 수정 (CheckboxOption) | ✅ 완료 |
