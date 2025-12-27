@@ -13,6 +13,12 @@
  * 동기화 대상:
  * - blueprint-ai-bom/frontend/src/config/features/featureDefinitions.ts
  *   (별도 프로젝트이므로 수동 동기화 필요, 동일 내용 유지)
+ *
+ * 구현 상태 (implementationStatus):
+ * - 'implemented': 백엔드 API 완전 구현됨
+ * - 'partial': 기본 구조는 있으나 일부 기능 미완성 (예: 더미 데이터 반환)
+ * - 'stub': API 엔드포인트만 존재, 실제 로직 미구현
+ * - 'planned': 계획됨, 코드 없음
  */
 
 // ============================================================
@@ -28,6 +34,19 @@ export const FEATURE_GROUPS = {
 } as const;
 
 export type FeatureGroup = (typeof FEATURE_GROUPS)[keyof typeof FEATURE_GROUPS];
+
+// ============================================================
+// Implementation Status Type
+// ============================================================
+
+export const IMPLEMENTATION_STATUS = {
+  IMPLEMENTED: 'implemented',
+  PARTIAL: 'partial',
+  STUB: 'stub',
+  PLANNED: 'planned',
+} as const;
+
+export type ImplementationStatus = (typeof IMPLEMENTATION_STATUS)[keyof typeof IMPLEMENTATION_STATUS];
 
 // ============================================================
 // Feature Definition Type
@@ -52,6 +71,10 @@ export interface FeatureDefinition {
   badgeBgClass: string;
   /** 배지 텍스트색 (Tailwind 클래스) */
   badgeTextClass: string;
+  /** 구현 상태: implemented, partial, stub, planned */
+  implementationStatus: ImplementationStatus;
+  /** 구현 위치 (라우터 파일 경로) */
+  implementationLocation?: string;
 }
 
 // ============================================================
@@ -71,6 +94,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['yolo'],
     badgeBgClass: 'bg-purple-100 dark:bg-purple-900/30',
     badgeTextClass: 'text-purple-700 dark:text-purple-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'detection_router.py',
   },
   symbol_verification: {
     key: 'symbol_verification',
@@ -83,6 +108,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: [],
     badgeBgClass: 'bg-green-100 dark:bg-green-900/30',
     badgeTextClass: 'text-green-700 dark:text-green-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'verification_router.py',
   },
   dimension_ocr: {
     key: 'dimension_ocr',
@@ -95,6 +122,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['edocr2'],
     badgeBgClass: 'bg-blue-100 dark:bg-blue-900/30',
     badgeTextClass: 'text-blue-700 dark:text-blue-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'dimension_router.py',
   },
   dimension_verification: {
     key: 'dimension_verification',
@@ -107,6 +136,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: [],
     badgeBgClass: 'bg-teal-100 dark:bg-teal-900/30',
     badgeTextClass: 'text-teal-700 dark:text-teal-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'dimension_router.py',
   },
   gt_comparison: {
     key: 'gt_comparison',
@@ -119,6 +150,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: [],
     badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
+    implementationStatus: 'partial',
+    implementationLocation: 'session (gt_results 저장만)',
   },
 
   // === GD&T / 기계 ===
@@ -133,6 +166,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['skinmodel'],
     badgeBgClass: 'bg-indigo-100 dark:bg-indigo-900/30',
     badgeTextClass: 'text-indigo-700 dark:text-indigo-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'gdt_router.py',
   },
   line_detection: {
     key: 'line_detection',
@@ -145,6 +180,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['line-detector'],
     badgeBgClass: 'bg-cyan-100 dark:bg-cyan-900/30',
     badgeTextClass: 'text-cyan-700 dark:text-cyan-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'line_router.py',
   },
   relation_extraction: {
     key: 'relation_extraction',
@@ -157,6 +194,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['yolo', 'edocr2'],
     badgeBgClass: 'bg-violet-100 dark:bg-violet-900/30',
     badgeTextClass: 'text-violet-700 dark:text-violet-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'relation_router.py',
   },
   welding_symbol_parsing: {
     key: 'welding_symbol_parsing',
@@ -169,6 +208,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['yolo', 'edocr2'],
     badgeBgClass: 'bg-red-100 dark:bg-red-900/30',
     badgeTextClass: 'text-red-700 dark:text-red-300',
+    implementationStatus: 'partial',
+    implementationLocation: 'midterm_router.py (YOLO 모델 학습 필요)',
   },
   surface_roughness_parsing: {
     key: 'surface_roughness_parsing',
@@ -181,6 +222,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['yolo', 'edocr2', 'skinmodel'],
     badgeBgClass: 'bg-stone-100 dark:bg-stone-900/30',
     badgeTextClass: 'text-stone-700 dark:text-stone-300',
+    implementationStatus: 'partial',
+    implementationLocation: 'midterm_router.py (정규식 기반)',
   },
 
   // === P&ID ===
@@ -195,6 +238,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['pid-analyzer', 'line-detector', 'yolo-pid'],
     badgeBgClass: 'bg-rose-100 dark:bg-rose-900/30',
     badgeTextClass: 'text-rose-700 dark:text-rose-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'line_router.py (connectivity analysis)',
   },
 
   // === BOM 생성 ===
@@ -209,6 +254,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['blueprint-ai-bom'],
     badgeBgClass: 'bg-amber-100 dark:bg-amber-900/30',
     badgeTextClass: 'text-amber-700 dark:text-amber-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'bom_router.py',
   },
   title_block_ocr: {
     key: 'title_block_ocr',
@@ -221,6 +268,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['edocr2'],
     badgeBgClass: 'bg-slate-100 dark:bg-slate-900/30',
     badgeTextClass: 'text-slate-700 dark:text-slate-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'gdt_router.py (title-block OCR)',
   },
   quantity_extraction: {
     key: 'quantity_extraction',
@@ -233,6 +282,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['edocr2'],
     badgeBgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
     badgeTextClass: 'text-emerald-700 dark:text-emerald-300',
+    implementationStatus: 'partial',
+    implementationLocation: 'midterm_router.py (정규식 기반)',
   },
   balloon_matching: {
     key: 'balloon_matching',
@@ -245,6 +296,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['yolo', 'edocr2'],
     badgeBgClass: 'bg-pink-100 dark:bg-pink-900/30',
     badgeTextClass: 'text-pink-700 dark:text-pink-300',
+    implementationStatus: 'partial',
+    implementationLocation: 'midterm_router.py (근접성 기반)',
   },
 
   // === 장기 로드맵 ===
@@ -255,10 +308,12 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     group: FEATURE_GROUPS.LONG_TERM,
     hint: '뷰 영역 자동 구분',
     description:
-      'SAM/U-Net 모델로 도면의 뷰 영역(정면도, 측면도, 단면도, 상세도, 표제란)을 자동 구분합니다. 각 영역별 독립 분석이 가능해집니다.',
-    recommendedNodes: ['edgnet'],
+      '휴리스틱 + VLM 하이브리드 방식으로 도면의 뷰 영역(정면도, 측면도, 단면도, 상세도, 표제란 등)을 자동 구분합니다. 11개 영역 타입 지원.',
+    recommendedNodes: ['edgnet', 'vl'],
     badgeBgClass: 'bg-sky-100 dark:bg-sky-900/30',
     badgeTextClass: 'text-sky-700 dark:text-sky-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'longterm_router.py + region_segmenter.py (휴리스틱 + VLM)',
   },
   notes_extraction: {
     key: 'notes_extraction',
@@ -271,6 +326,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['edocr2', 'vl'],
     badgeBgClass: 'bg-lime-100 dark:bg-lime-900/30',
     badgeTextClass: 'text-lime-700 dark:text-lime-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'longterm_router.py + notes_extractor.py (GPT-4o-mini/OpenAI)',
   },
   revision_comparison: {
     key: 'revision_comparison',
@@ -279,10 +336,12 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     group: FEATURE_GROUPS.LONG_TERM,
     hint: '도면 변경점 감지',
     description:
-      'SIFT/ORB 특징점 매칭으로 두 리비전 간 변경점을 자동 감지합니다. 추가/수정/삭제된 심볼, 치수, 주석을 하이라이트 표시합니다.',
-    recommendedNodes: [],
+      'SSIM 이미지 비교 + 세션 데이터 비교 + VLM 지능형 비교로 두 리비전 간 변경점을 자동 감지합니다. 심볼, 치수, 노트 변경을 추적합니다.',
+    recommendedNodes: ['vl'],
     badgeBgClass: 'bg-fuchsia-100 dark:bg-fuchsia-900/30',
     badgeTextClass: 'text-fuchsia-700 dark:text-fuchsia-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'longterm_router.py + revision_comparator.py (SSIM + 데이터 + VLM)',
   },
   vlm_auto_classification: {
     key: 'vlm_auto_classification',
@@ -295,6 +354,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: ['vl'],
     badgeBgClass: 'bg-yellow-100 dark:bg-yellow-900/30',
     badgeTextClass: 'text-yellow-700 dark:text-yellow-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'longterm_router.py + vlm_classifier.py (GPT-4o-mini/OpenAI)',
   },
 };
 
@@ -335,4 +396,88 @@ export function getRecommendedNodes(featureKeys: string[]): string[] {
     }
   }
   return Array.from(nodes);
+}
+
+// ============================================================
+// Helper: 그룹별 구현 상태 카운트
+// ============================================================
+
+export interface GroupImplementationStats {
+  total: number;
+  implemented: number;
+  partial: number;
+  stub: number;
+  planned: number;
+}
+
+/**
+ * 그룹별 구현 상태 통계 계산
+ */
+export function getGroupImplementationStats(group: FeatureGroup): GroupImplementationStats {
+  const features = getFeaturesByGroup(group);
+  return {
+    total: features.length,
+    implemented: features.filter((f) => f.implementationStatus === 'implemented').length,
+    partial: features.filter((f) => f.implementationStatus === 'partial').length,
+    stub: features.filter((f) => f.implementationStatus === 'stub').length,
+    planned: features.filter((f) => f.implementationStatus === 'planned').length,
+  };
+}
+
+/**
+ * 모든 그룹의 구현 상태 통계
+ */
+export function getAllGroupsImplementationStats(): Record<FeatureGroup, GroupImplementationStats> {
+  const result: Record<string, GroupImplementationStats> = {};
+  for (const group of Object.values(FEATURE_GROUPS)) {
+    result[group] = getGroupImplementationStats(group);
+  }
+  return result as Record<FeatureGroup, GroupImplementationStats>;
+}
+
+/**
+ * 구현 상태에 따른 표시 포맷
+ * @param stats 그룹 통계
+ * @returns "구현됨/전체" 형식의 문자열
+ */
+export function formatImplementationCount(stats: GroupImplementationStats): string {
+  // implemented + partial을 "구현됨"으로 카운트
+  const implementedCount = stats.implemented + stats.partial;
+  return `${implementedCount}/${stats.total}`;
+}
+
+/**
+ * 구현 상태에 따른 아이콘
+ */
+export function getImplementationStatusIcon(status: ImplementationStatus): string {
+  switch (status) {
+    case 'implemented':
+      return '✅';
+    case 'partial':
+      return '🔶';
+    case 'stub':
+      return '📋';
+    case 'planned':
+      return '📅';
+    default:
+      return '❓';
+  }
+}
+
+/**
+ * 구현 상태에 따른 라벨
+ */
+export function getImplementationStatusLabel(status: ImplementationStatus): string {
+  switch (status) {
+    case 'implemented':
+      return '완전 구현';
+    case 'partial':
+      return '부분 구현';
+    case 'stub':
+      return '스텁만';
+    case 'planned':
+      return '계획됨';
+    default:
+      return '알 수 없음';
+  }
 }

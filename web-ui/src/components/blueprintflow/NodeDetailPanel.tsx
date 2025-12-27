@@ -3,6 +3,12 @@ import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getNodeDefinition } from '../../config/nodeDefinitions';
 import { getRecommendedNodes, FEATURE_NODE_RECOMMENDATIONS } from '../../config/nodes/inputNodes';
+import {
+  getGroupImplementationStats,
+  formatImplementationCount,
+  getImplementationStatusIcon,
+  type FeatureGroup,
+} from '../../config/features';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useWorkflowStore } from '../../store/workflowStore';
@@ -508,6 +514,15 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                               const isChecked = Array.isArray(currentValue)
                                 ? currentValue.includes(opt.value)
                                 : false;
+
+                              // 구현 상태 아이콘 결정
+                              const implStatus = opt.implementationStatus;
+                              const statusIcon = implStatus ? getImplementationStatusIcon(implStatus) : '';
+                              const statusLabel = implStatus === 'implemented' ? '완전 구현'
+                                : implStatus === 'partial' ? '부분 구현'
+                                : implStatus === 'stub' ? '스텁만'
+                                : implStatus === 'planned' ? '계획됨' : '';
+
                               return (
                                 <div key={opt.value} className="group relative">
                                   <label
@@ -529,9 +544,15 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                                       }
                                       className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
-                                    <span className="text-sm">
-                                      {opt.icon && <span className="mr-1">{opt.icon}</span>}
+                                    <span className="text-sm flex items-center gap-1">
+                                      {opt.icon && <span>{opt.icon}</span>}
                                       {opt.label}
+                                      {/* 구현 상태 아이콘 */}
+                                      {statusIcon && (
+                                        <span title={statusLabel} className="text-xs opacity-70">
+                                          {statusIcon}
+                                        </span>
+                                      )}
                                     </span>
                                     {opt.hint && (
                                       <span className="text-xs text-gray-400 ml-auto">
@@ -545,8 +566,20 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                                       <div className="flex items-start gap-2">
                                         <span className="text-lg flex-shrink-0">{opt.icon}</span>
                                         <div>
-                                          <div className="font-semibold text-blue-300 mb-1">{opt.label}</div>
+                                          <div className="font-semibold text-blue-300 mb-1 flex items-center gap-2">
+                                            {opt.label}
+                                            {statusIcon && (
+                                              <span className="text-xs bg-gray-700 px-1.5 py-0.5 rounded">
+                                                {statusIcon} {statusLabel}
+                                              </span>
+                                            )}
+                                          </div>
                                           <div className="text-gray-200">{opt.description}</div>
+                                          {opt.implementationLocation && (
+                                            <div className="text-gray-400 mt-1 text-[10px]">
+                                              📁 {opt.implementationLocation}
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-900 rotate-45"></div>
@@ -561,9 +594,9 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                                 {/* 그룹화된 옵션 렌더링 */}
                                 {hasGroups && groups.map((group) => {
                                   const opts = groupedOptions[group] || [];
-                                  const checkedCount = opts.filter(opt =>
-                                    Array.isArray(currentValue) && currentValue.includes(opt.value)
-                                  ).length;
+                                  // 구현 상태 통계 (SSOT에서 가져옴)
+                                  const stats = getGroupImplementationStats(group as FeatureGroup);
+                                  const implCount = formatImplementationCount(stats);
 
                                   return (
                                     <div
@@ -574,8 +607,8 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                                         <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                                           {groupIcons[group] || '📁'} {group}
                                         </span>
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                                          {checkedCount}/{opts.length}
+                                        <span className="text-xs text-gray-500 dark:text-gray-400" title="구현됨/전체">
+                                          {implCount} 구현
                                         </span>
                                       </div>
                                       <div className="space-y-1">

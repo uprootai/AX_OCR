@@ -125,19 +125,46 @@ class VLMClassifier:
     OPENAI_API_URL = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions")
     ANTHROPIC_API_URL = os.getenv("ANTHROPIC_API_URL", "https://api.anthropic.com/v1/messages")
 
+    # 지원하는 OpenAI 모델 (Vision 지원)
+    OPENAI_MODELS = {
+        "gpt-4o-mini": {
+            "name": "GPT-4o Mini",
+            "description": "가장 저렴한 Vision 모델 - 테스트용 추천",
+            "input_cost": 0.15,   # per 1M tokens
+            "output_cost": 0.60,  # per 1M tokens
+        },
+        "gpt-4o": {
+            "name": "GPT-4o",
+            "description": "고성능 Vision 모델 - 프로덕션용",
+            "input_cost": 2.50,
+            "output_cost": 10.00,
+        },
+        "gpt-4-turbo": {
+            "name": "GPT-4 Turbo",
+            "description": "이전 세대 Vision 모델",
+            "input_cost": 10.00,
+            "output_cost": 30.00,
+        },
+    }
+
     def __init__(
         self,
         local_vl_url: Optional[str] = None,
         openai_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
-        default_provider: str = "local"
+        default_provider: str = "local",
+        openai_model: Optional[str] = None,
     ):
         # Docker 환경에서는 vl-api 컨테이너 이름 사용
         self.local_vl_url = local_vl_url or os.getenv("VL_API_URL", "http://vl-api:5004")
         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
         self.anthropic_api_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
         self.default_provider = default_provider
+        # OpenAI 모델 (기본: gpt-4o-mini - 테스트/비용 절감용)
+        self.openai_model = openai_model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.timeout = 120.0
+
+        logger.info(f"[VLMClassifier] 초기화 - provider: {default_provider}, openai_model: {self.openai_model}")
 
     async def classify_drawing(
         self,
@@ -252,7 +279,9 @@ class VLMClassifier:
             return self._parse_blip_response(raw_response, "local")
 
     async def _classify_with_openai(self, image_base64: str) -> Optional[ClassificationResult]:
-        """OpenAI GPT-4V 사용"""
+        """OpenAI GPT-4V 사용 (gpt-4o-mini, gpt-4o, gpt-4-turbo 지원)"""
+        logger.info(f"[VLMClassifier] OpenAI API 호출 - 모델: {self.openai_model}")
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(
                 self.OPENAI_API_URL,
@@ -261,7 +290,7 @@ class VLMClassifier:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "gpt-4o",  # gpt-4-vision-preview 대신 gpt-4o 사용
+                    "model": self.openai_model,  # 환경변수 또는 기본값 (gpt-4o-mini)
                     "messages": [
                         {
                             "role": "user",

@@ -9,6 +9,7 @@ import {
   FEATURE_GROUPS,
   type FeatureDefinition,
   type FeatureGroup,
+  type ImplementationStatus,
 } from './featureDefinitions';
 
 // ============================================================
@@ -22,6 +23,10 @@ export interface CheckboxGroupOption {
   icon: string;
   description: string;
   group: string;
+  /** 구현 상태: implemented, partial, stub, planned */
+  implementationStatus: ImplementationStatus;
+  /** 구현 위치 (파일 경로) */
+  implementationLocation?: string;
 }
 
 /**
@@ -52,6 +57,8 @@ export function toCheckboxGroupOptions(): CheckboxGroupOption[] {
         icon: feature.icon,
         description: feature.description,
         group: feature.group,
+        implementationStatus: feature.implementationStatus,
+        implementationLocation: feature.implementationLocation,
       });
     }
   }

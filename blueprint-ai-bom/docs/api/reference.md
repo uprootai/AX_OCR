@@ -2,7 +2,7 @@
 
 > **Blueprint AI BOM 백엔드 API 문서**
 > **Base URL**: `http://localhost:5020`
-> **최종 업데이트**: 2025-12-23
+> **최종 업데이트**: 2025-12-27 (v10.3)
 
 ---
 
@@ -15,6 +15,7 @@
 5. [관계](#관계)
 6. [분류](#분류)
 7. [Feedback Loop](#feedback-loop)
+8. [장기 로드맵 (v10.3)](#장기-로드맵-v103) ✅ NEW
 
 ---
 
@@ -551,6 +552,157 @@ GET /feedback/health
   "yolo_export_path": "/data/yolo_training",
   "exports_count": 1
 }
+```
+
+---
+
+## 장기 로드맵 (v10.3)
+
+> **4개 고급 분석 기능**: VLM 분류, 노트 추출, 영역 세분화, 리비전 비교
+
+### VLM 자동 분류
+
+```http
+POST /analysis/vlm-classify/{session_id}
+Content-Type: application/json
+```
+
+**요청 본문**:
+```json
+{
+  "provider": "openai",
+  "recommend_features": true
+}
+```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|--------|------|
+| `provider` | string | `openai` | local, openai, anthropic |
+| `recommend_features` | bool | true | 기능 추천 포함 |
+
+**응답** (200):
+```json
+{
+  "session_id": "abc-123",
+  "drawing_type": "mechanical_part",
+  "confidence": 0.95,
+  "industry": "machinery",
+  "complexity": "moderate",
+  "recommended_features": ["symbol_detection", "dimension_ocr", "gdt_parsing"]
+}
+```
+
+### 노트 추출
+
+```http
+POST /analysis/notes/{session_id}/extract
+Content-Type: application/json
+```
+
+**요청 본문**:
+```json
+{
+  "provider": "openai",
+  "use_ocr": true
+}
+```
+
+**응답** (200):
+```json
+{
+  "session_id": "abc-123",
+  "notes": [
+    {"id": "note_001", "category": "material", "text": "재질: SUS304", "confidence": 0.95}
+  ],
+  "total_notes": 5,
+  "by_category": {"material": 2, "tolerance": 1, "heat_treatment": 2}
+}
+```
+
+### 노트 결과 조회
+
+```http
+GET /analysis/notes/{session_id}
+```
+
+### 영역 세분화
+
+```http
+POST /analysis/drawing-regions/{session_id}/segment
+Content-Type: application/json
+```
+
+**요청 본문**:
+```json
+{
+  "use_vlm": false
+}
+```
+
+**응답** (200):
+```json
+{
+  "session_id": "abc-123",
+  "regions": [
+    {"id": "region_001", "region_type": "TITLE_BLOCK", "bbox": [0.7, 0.85, 1.0, 1.0], "confidence": 0.95},
+    {"id": "region_002", "region_type": "MAIN_VIEW", "bbox": [0.05, 0.1, 0.65, 0.8], "confidence": 0.92}
+  ],
+  "total_regions": 3
+}
+```
+
+### 영역 결과 조회
+
+```http
+GET /analysis/drawing-regions/{session_id}
+```
+
+### 리비전 비교
+
+```http
+POST /analysis/revision/compare
+Content-Type: application/json
+```
+
+**요청 본문**:
+```json
+{
+  "session_id_old": "old-session-id",
+  "session_id_new": "new-session-id",
+  "config": {
+    "use_vlm": false,
+    "compare_dimensions": true,
+    "compare_symbols": true,
+    "compare_notes": true
+  }
+}
+```
+
+**응답** (200):
+```json
+{
+  "comparison_id": "comp-abc123",
+  "session_id_old": "old-session-id",
+  "session_id_new": "new-session-id",
+  "changes": [
+    {
+      "id": "change_001",
+      "change_type": "added",
+      "category": "dimension",
+      "description": "치수 추가: 25mm",
+      "severity": "critical"
+    }
+  ],
+  "total_changes": 5,
+  "by_type": {"added": 2, "removed": 1, "modified": 2},
+  "by_category": {"dimension": 3, "symbol": 2}
+}
+```
+
+### 리비전 결과 조회
+
+```http
+GET /analysis/revision/{session_id}
 ```
 
 ---

@@ -11,6 +11,7 @@
  *   toCheckboxGroupOptions,
  *   toBadgeConfig,
  *   getRecommendedNodes,
+ *   getGroupImplementationStats,
  * } from '@/config/features';
  * ```
  */
@@ -20,12 +21,20 @@ export {
   FEATURE_DEFINITIONS,
   FEATURE_GROUPS,
   FEATURE_KEYS,
+  IMPLEMENTATION_STATUS,
   getFeaturesByGroup,
   getGroupedFeatures,
   getRecommendedNodes,
+  getGroupImplementationStats,
+  getAllGroupsImplementationStats,
+  formatImplementationCount,
+  getImplementationStatusIcon,
+  getImplementationStatusLabel,
   type FeatureDefinition,
   type FeatureGroup,
   type FeatureKey,
+  type ImplementationStatus,
+  type GroupImplementationStats,
 } from './featureDefinitions';
 
 // Converters

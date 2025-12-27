@@ -1,7 +1,7 @@
 # Blueprint AI BOM - 구현 로드맵
 
-> **목표**: Streamlit → React + FastAPI 전환
-> **상태**: ✅ 완료 (2025-12-23)
+> **목표**: Streamlit → React + FastAPI 전환 + 장기 로드맵 기능 완성
+> **상태**: ✅ 완료 (v10.3 - 2025-12-27)
 
 ---
 
@@ -16,6 +16,7 @@
 | Phase 5 | 치수-심볼 관계 | ✅ 완료 | 2025-12-19 |
 | Phase 6 | Active Learning | ✅ 완료 | 2025-12-23 |
 | Phase 7 | TypedDict 타입 안전성 | ✅ 완료 | 2025-12-23 |
+| **Phase 8** | **장기 로드맵 기능** | **✅ 완료** | **2025-12-27** |
 
 ---
 
@@ -177,21 +178,77 @@ frontend/src/
 
 ---
 
+## Phase 8: 장기 로드맵 기능 ✅
+
+> **버전**: v10.0 ~ v10.3
+> **완료일**: 2025-12-27
+
+### 완료된 작업
+
+- [x] **🤖 VLM 자동 분류** (v10.0)
+  - GPT-4o-mini 기본, OpenAI/Anthropic/로컬 멀티 프로바이더
+  - 도면 타입, 산업 분야, 복잡도 AI 분류
+  - 기능 자동 추천
+  - `vlm_classifier.py` 서비스
+
+- [x] **📋 노트 추출** (v10.1)
+  - GPT-4o-mini LLM + 정규식 폴백
+  - 10개 카테고리 자동 분류 (재료, 열처리, 표면처리 등)
+  - `notes_extractor.py` 서비스
+
+- [x] **🗺️ 영역 세분화** (v10.2)
+  - 휴리스틱 + VLM 하이브리드 방식
+  - 11개 영역 타입 자동 검출
+  - `region_segmenter.py` 서비스
+
+- [x] **🔄 리비전 비교** (v10.3)
+  - SSIM 이미지 비교 (OpenCV)
+  - 세션 데이터 비교 (심볼, 치수, 노트)
+  - VLM 지능형 비교 (선택)
+  - `revision_comparator.py` 서비스
+
+### API 엔드포인트 (longterm_router.py)
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| POST | `/analysis/vlm-classify/{id}` | VLM 분류 |
+| GET | `/analysis/vlm-classify/{id}` | 분류 결과 조회 |
+| POST | `/analysis/notes/{id}/extract` | 노트 추출 |
+| GET | `/analysis/notes/{id}` | 노트 결과 조회 |
+| POST | `/analysis/drawing-regions/{id}/segment` | 영역 세분화 |
+| GET | `/analysis/drawing-regions/{id}` | 영역 결과 조회 |
+| POST | `/analysis/revision/compare` | 리비전 비교 |
+| GET | `/analysis/revision/{id}` | 비교 결과 조회 |
+
+### 생성된 파일
+
+```
+backend/
+├── services/
+│   ├── vlm_classifier.py      # VLM 분류 (멀티 프로바이더)
+│   ├── notes_extractor.py     # 노트 추출 (LLM + 정규식)
+│   ├── region_segmenter.py    # 영역 세분화 (휴리스틱 + VLM)
+│   └── revision_comparator.py # 리비전 비교 (SSIM + 데이터 + VLM)
+├── routers/
+│   └── longterm_router.py     # 장기 로드맵 API
+├── schemas/
+│   └── longterm.py            # 장기 로드맵 스키마
+└── tests/
+    ├── test_revision_comparator.py  # 단위 테스트 (19개)
+    └── test_longterm_api.py         # API 테스트 (13개)
+```
+
+---
+
 ## 향후 계획
 
-### 🟡 중간 우선순위
+### 🟢 낮은 우선순위 (선택)
 
-| 항목 | 설명 |
-|------|------|
-| VLM 자동 분류 | GPT-4V/Claude로 도면 타입 분류 |
-| 온프레미스 테스트 | 고객사 환경 검증 |
-
-### 🟢 낮은 우선순위
-
-| 항목 | 설명 |
-|------|------|
-| GNN 관계 분석 | 그래프 신경망 부품 관계 학습 |
-| 피드백 루프 | Active Learning 로그 → 모델 재학습 |
+| 항목 | 설명 | 상태 |
+|------|------|------|
+| GNN 관계 분석 | 그래프 신경망 부품 관계 학습 | 미정 |
+| 온프레미스 테스트 | 고객사 환경 검증 | 대기 |
+| 모델 재학습 자동화 | Feedback Loop → YOLO 자동 재학습 | 대기 |
 
 ---
 
@@ -214,9 +271,11 @@ frontend/src/
 | BOM Service | 9개 | ✅ 통과 |
 | Detection Service | 7개 | ✅ 통과 |
 | Pricing Utils | 11개 | ✅ 통과 |
-| **총계** | **27개** | **✅ 통과** |
+| Revision Comparator | 19개 | ✅ 통과 |
+| Longterm API | 13개 | ✅ 통과 |
+| **총계** | **59개** | **✅ 통과** |
 
 ---
 
-**완료일**: 2025-12-23
-**버전**: v5.0
+**최초 완료일**: 2025-12-23 (v5.0)
+**장기 로드맵 완료일**: 2025-12-27 (v10.3)

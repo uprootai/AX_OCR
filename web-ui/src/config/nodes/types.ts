@@ -18,6 +18,10 @@ export interface CheckboxOption {
   icon?: string;        // 이모지 아이콘
   description?: string; // 마우스 hover 시 표시되는 상세 설명
   group?: string;       // 옵션 그룹화 (예: "기본 검출", "GD&T / 기계")
+  /** 구현 상태: implemented, partial, stub, planned */
+  implementationStatus?: 'implemented' | 'partial' | 'stub' | 'planned';
+  /** 구현 위치 (파일 경로) */
+  implementationLocation?: string;
 }
 
 export interface NodeParameter {
