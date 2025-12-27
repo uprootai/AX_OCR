@@ -1,6 +1,6 @@
 # 🐛 Known Issues & Problem Tracker
 
-**Last Updated**: 2025-12-03
+**Last Updated**: 2025-12-26
 **Purpose**: Track all reported issues, their status, and resolutions
 
 ---
@@ -13,7 +13,7 @@
 | 🟠 High | 0 |
 | 🟡 Medium | 3 |
 | 🟢 Low | 0 |
-| ✅ Resolved | 6 |
+| ✅ Resolved | 9 |
 
 ---
 
@@ -101,6 +101,90 @@ Tencent Hunyuan 라이선스에 따라 한국에서 HunyuanOCR 사용이 **명�
 ---
 
 ## ✅ Resolved Issues (Recent)
+
+### Issue #R009: Blueprint AI BOM 하이퍼파라미터 [object Object] 표시 버그
+
+**Status**: ✅ **RESOLVED**
+**Severity**: Medium
+**Component**: Web UI (Dashboard)
+**Discovered**: 2025-12-26
+**Resolved**: 2025-12-26
+
+**증상**: Dashboard에서 Blueprint AI BOM API 상세 페이지 접속 시 하이퍼파라미터 값이 `[object Object]`로 표시됨
+
+**근본 원인**:
+1. `blueprint-ai-bom.yaml` 스펙 파일의 `features` 파라미터가 `type: array`로 정의
+2. Dashboard UI가 배열 타입 파라미터를 지원하지 않아 `[object Object]`로 렌더링
+3. URL의 하이픈(`blueprint-ai-bom`) ↔ 코드의 언더스코어(`blueprint_ai_bom`) ID 불일치
+
+**해결 방안**:
+```typescript
+// web-ui/src/utils/specToHyperparams.ts
+// 배열 타입 파라미터 필터링 추가
+const simpleParams = params.filter(p => p.type?.toLowerCase() !== 'array');
+
+// web-ui/src/pages/admin/APIDetail.tsx
+// URL 정규화 추가 (하이픈 → 언더스코어)
+const normalizedApiId = apiId?.replace(/-/g, '_') || '';
+```
+
+**관련 파일**:
+- `web-ui/src/utils/specToHyperparams.ts:132-149`
+- `web-ui/src/pages/admin/APIDetail.tsx:68,160-166,569-583`
+
+---
+
+### Issue #R008: Dashboard GPU 토글 비활성화 안됨
+
+**Status**: ✅ **RESOLVED**
+**Severity**: High
+**Component**: Gateway Admin Router
+**Discovered**: 2025-12-26
+**Resolved**: 2025-12-26
+
+**증상**: Dashboard에서 GPU를 비활성화해도 컨테이너가 여전히 GPU 모드로 실행됨
+
+**근본 원인**:
+1. GPU 비활성화 시 `docker-compose.override.yml`에서 해당 서비스 설정을 단순 삭제
+2. 삭제해도 원본 `docker-compose.yml`의 GPU 설정이 그대로 적용됨
+3. Docker Compose 배열 병합 특성으로 인해 빈 배열만으로는 오버라이드 불가
+
+**해결 방안**:
+1. `docker-compose.yml`에서 8개 API의 GPU 설정 제거
+2. GPU 비활성화 시 빈 `devices: []` 배열로 오버라이드
+3. `docker-compose.override.yml.example` 템플릿 생성
+
+**관련 파일**:
+- `gateway-api/routers/admin_router.py:577-640`
+- `docker-compose.yml`
+- `docker-compose.override.yml.example`
+
+---
+
+### Issue #R007: 컨테이너 재생성 시 이름 충돌
+
+**Status**: ✅ **RESOLVED**
+**Severity**: Medium
+**Component**: Gateway Admin Router
+**Discovered**: 2025-12-26
+**Resolved**: 2025-12-26
+
+**증상**: Dashboard에서 컨테이너 재설정 시 `bf9c847283a6_gateway-api` 같은 이름 충돌 발생
+
+**근본 원인**:
+1. `recreate_container()` 함수에서 stop/rm 결과 확인 없이 진행
+2. `--force-recreate` 옵션 누락으로 기존 컨테이너와 충돌
+
+**해결 방안**:
+```python
+# --force-recreate 추가
+"up", "-d", "--force-recreate", service_name
+```
+
+**관련 파일**:
+- `gateway-api/routers/admin_router.py:643-714`
+
+---
 
 ### Issue #R006: FileDropzone/FilePreview 미사용 (오진)
 

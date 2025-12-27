@@ -1,12 +1,12 @@
-# ⚡ Quick Start Guide
+# Quick Start Guide
 
-**5분 안에 프로젝트 파악하기**
+**5분 안에 프로젝트 파악하기** | 최종 업데이트: 2025-12-26
 
 ---
 
-## 🎯 What Is This?
+## What Is This?
 
-**도면 OCR 및 제조 견적 자동화 시스템**
+**기계 도면 자동 분석 및 제조 견적 생성 시스템**
 
 ```
 도면 이미지 → YOLO 검출 → OCR 추출 → 공차 분석 → 자동 견적서
@@ -14,126 +14,110 @@
 
 ---
 
-## 🏗️ Architecture (30초 이해)
+## Architecture (30초 이해)
 
 ```
-Web UI (React) → Gateway API → [ YOLO | eDOCr2 | EDGNet | Skin Model ]
-                                   ↓       ↓        ↓         ↓
-                              객체검출   OCR    세그멘테이션  공차예측
+Web UI (React 19) → Gateway API → [ 19개 AI API 서비스 ]
+     :5173              :8000         :5002-5020
 ```
 
-**All APIs**: Refactored modular structure
-```
-api_server.py (200-350 lines) + models/ + services/ + utils/
-```
-
-**🔮 BlueprintFlow** ⭐ NEW (2025-11-20)
-```
-비주얼 워크플로우 빌더 - 드래그 앤 드롭으로 API 조합
-9 노드 타입 | 실시간 파라미터 편집 | 저장/불러오기 | 한영 지원
-```
-
-**Access**: http://localhost:5173/blueprintflow
+**BlueprintFlow**: 비주얼 워크플로우 빌더 (http://localhost:5173/blueprintflow)
+**Blueprint AI BOM**: Human-in-the-Loop BOM 생성 (http://localhost:3000)
 
 ---
 
-## 📁 Project Structure
+## API Services (20개)
 
-```
-/home/uproot/ax/poc/
-├── gateway-api/           ⭐ Main orchestrator (Port 8000)
-├── web-ui/                🌐 React frontend (Port 5173)
-└── models/                🆕 All inference APIs (standalone ready)
-    ├── yolo-api/          🎯 Object detection (Port 5005)
-    ├── edocr2-v2-api/     📝 OCR service (Port 5002)
-    ├── edgnet-api/        🎨 Segmentation (Port 5012)
-    ├── skinmodel-api/     📐 Tolerance (Port 5003)
-    ├── paddleocr-api/     📄 Aux OCR (Port 5006)
-    └── vl-api/            🔑 Vision-Language (Port 5004)
-```
+| 카테고리 | 서비스 | 포트 | 용도 |
+|----------|--------|------|------|
+| **Orchestrator** | Gateway | 8000 | API 오케스트레이터 |
+| **Detection** | YOLO | 5005 | 14가지 심볼 검출 |
+| **Detection** | YOLO-PID | 5017 | P&ID 60종 심볼 |
+| **OCR** | eDOCr2 | 5002 | 한국어 치수 |
+| **OCR** | PaddleOCR | 5006 | 다국어 OCR |
+| **OCR** | Tesseract | 5008 | 문서 OCR |
+| **OCR** | TrOCR | 5009 | 필기체 OCR |
+| **OCR** | OCR Ensemble | 5011 | 4엔진 가중투표 |
+| **OCR** | Surya OCR | 5013 | 90+ 언어 |
+| **OCR** | DocTR | 5014 | 2단계 파이프라인 |
+| **OCR** | EasyOCR | 5015 | CPU 친화적 |
+| **Segmentation** | EDGNet | 5012 | 엣지 세그멘테이션 |
+| **Segmentation** | Line Detector | 5016 | P&ID 라인 |
+| **Preprocessing** | ESRGAN | 5010 | 4x 업스케일링 |
+| **Analysis** | SkinModel | 5003 | 공차 분석 |
+| **Analysis** | PID Analyzer | 5018 | P&ID BOM |
+| **Analysis** | Design Checker | 5019 | 설계 검증 |
+| **Analysis** | Blueprint AI BOM | 5020 | 도면 BOM |
+| **Knowledge** | Knowledge | 5007 | GraphRAG |
+| **AI** | VL | 5004 | Vision-Language |
 
 ---
 
-## 🚀 Common Tasks
+## Quick Commands
 
-### Start Services
 ```bash
-cd /home/uproot/ax/poc
+# 서비스 시작
+docker-compose up -d
+
+# 상태 확인
+curl http://localhost:8000/api/v1/health
+
+# 로그 확인
+docker logs gateway-api -f
+
+# 개발 서버 (프론트엔드)
+cd web-ui && npm run dev
+```
+
+---
+
+## GPU 설정 (선택)
+
+GPU 설정은 `docker-compose.override.yml`에서 관리합니다.
+
+```bash
+# 템플릿 복사
+cp docker-compose.override.yml.example docker-compose.override.yml
+
+# 서비스 재시작
 docker-compose up -d
 ```
 
-### Check Health
-```bash
-curl http://localhost:8000/api/v1/health
-curl http://localhost:5005/api/v1/health
+또는 Dashboard (http://localhost:5173/admin/api/{api-id})에서 실시간 설정 가능.
+
+---
+
+## Project Structure
+
 ```
-
-### Test Pipeline
-```bash
-curl -X POST -F "file=@test.jpg" \
-  -F "pipeline_mode=speed" \
-  -F "use_ocr=true" \
-  http://localhost:8000/api/v1/process
-```
-
-### View Logs
-```bash
-docker logs gateway-api --tail 50
-docker logs yolo-api -f  # Note: Container names remain the same
-```
-
-### Run Individual API
-```bash
-# Standalone execution
-cd models/yolo-api
-docker-compose -f docker-compose.single.yml up -d
-
-# Check API docs
-http://localhost:5005/docs
+/home/uproot/ax/poc/
+├── gateway-api/           # Gateway API (Port 8000)
+├── web-ui/                # React 프론트엔드 (Port 5173)
+├── blueprint-ai-bom/      # Blueprint AI BOM (Port 3000, 5020)
+└── models/                # 개별 AI API 서비스들
+    ├── yolo-api/
+    ├── edocr2-v2-api/
+    └── ...
 ```
 
 ---
 
-## 📚 Learn More
+## Documentation
 
-- **Architecture**: [ARCHITECTURE.md](ARCHITECTURE.md)
-- **Workflows**: [WORKFLOWS.md](WORKFLOWS.md)
-- **Issues**: [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
-- **Roadmap**: [ROADMAP.md](ROADMAP.md)
-- **LLM Guide**: [LLM_USABILITY_GUIDE.md](LLM_USABILITY_GUIDE.md)
-
----
-
-## 🐛 Having Issues?
-
-1. Check [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
-2. Check logs: `docker logs <service-name>`
-3. Restart service: `docker-compose restart <service-name>`
+| 문서 | 내용 |
+|------|------|
+| [CLAUDE.md](CLAUDE.md) | 프로젝트 가이드 (LLM 최적화) |
+| [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 알려진 이슈 |
+| [docs/](docs/) | 상세 문서 |
 
 ---
 
-**Updated**: 2025-11-20
+## Having Issues?
 
-## 🔮 BlueprintFlow Quick Tour
-
-**URL**: http://localhost:5173/blueprintflow
-
-### 3 Main Pages:
-1. **Builder** - 드래그 앤 드롭 캔버스 에디터
-2. **Templates** - 4가지 미리 만들어진 워크플로우
-3. **My Workflows** - 저장된 워크플로우 목록
-
-### How to Build:
-1. 왼쪽 팔레트에서 노드 드래그
-2. 노드 클릭 → 오른쪽 패널에서 입출력/파라미터 확인
-3. 노드 연결 (핸들 클릭 후 드래그)
-4. 파라미터 실시간 조정
-5. 저장 버튼 클릭
-
-### 9 Node Types:
-- **API**: YOLO, eDOCr2, EDGNet, SkinModel, PaddleOCR, VL
-- **Control**: IF (조건), Loop (반복), Merge (병합)
+1. `docker-compose ps` - 컨테이너 상태 확인
+2. `docker logs <service>` - 로그 확인
+3. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) - 알려진 이슈 확인
 
 ---
 
-**Project Version**: 2.2.0
+**Version**: 14.0 | **Managed By**: Claude Code

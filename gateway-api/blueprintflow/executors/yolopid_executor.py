@@ -11,9 +11,10 @@ import httpx
 
 
 class YoloPidExecutor(BaseNodeExecutor):
-    """YOLO-PID 실행기 - P&ID 심볼 검출"""
+    """YOLO-PID 실행기 - P&ID 심볼 검출 (통합 YOLO API 사용)"""
 
-    API_BASE_URL = "http://yolo-pid-api:5017"
+    # 통합 YOLO API 사용 (별도 yolo-pid-api 불필요)
+    API_BASE_URL = "http://yolo-api:5005"
 
     async def execute(self, inputs: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -45,10 +46,14 @@ class YoloPidExecutor(BaseNodeExecutor):
         visualize = self.parameters.get("visualize", True)
         filename = self.parameters.get("filename", "pid_image.jpg")
 
-        # API 호출 (SAHI 파라미터)
+        # P&ID 모델 타입 선택 (class_agnostic 옵션에 따라)
+        model_type = "pid_class_agnostic" if class_agnostic else "pid_class_aware"
+
+        # API 호출 (통합 YOLO API + SAHI 파라미터)
         async with httpx.AsyncClient(timeout=120.0) as client:
             files = {"file": (filename, file_bytes, "image/jpeg")}
             data = {
+                "model_type": model_type,  # P&ID 모델 지정
                 "confidence": str(confidence),
                 "slice_height": str(slice_height),
                 "slice_width": str(slice_width),
