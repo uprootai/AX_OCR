@@ -98,7 +98,7 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
       {
         name: 'lines',
         type: 'Line[]',
-        description: '📏 검출된 라인 목록 (시작점, 끝점, 타입)',
+        description: '📏 검출된 라인 목록 (시작점, 끝점, 타입, 스타일)',
       },
       {
         name: 'intersections',
@@ -106,9 +106,14 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
         description: '⭕ 라인 교차점 목록',
       },
       {
+        name: 'regions',
+        type: 'Region[]',
+        description: '📦 점선 박스 영역 목록 (SIGNAL FOR BWMS 등)',
+      },
+      {
         name: 'line_stats',
         type: 'object',
-        description: '📊 라인 통계 (총 개수, 타입별 분포)',
+        description: '📊 라인/영역 통계 (총 개수, 타입별 분포)',
       },
     ],
     parameters: [
@@ -171,10 +176,37 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
         description: '교차점 검출 활성화',
       },
       {
+        name: 'detect_regions',
+        type: 'boolean',
+        default: false,
+        description: '📦 점선 박스 영역 검출 (SIGNAL FOR BWMS 등)',
+      },
+      {
+        name: 'region_line_styles',
+        type: 'string',
+        default: 'dashed,dash_dot',
+        description: '영역 검출에 사용할 라인 스타일 (쉼표 구분: dashed, dash_dot, dotted)',
+      },
+      {
+        name: 'min_region_area',
+        type: 'number',
+        default: 5000,
+        min: 1000,
+        max: 100000,
+        step: 1000,
+        description: '최소 영역 크기 (픽셀²). 작은 영역 필터링',
+      },
+      {
         name: 'visualize',
         type: 'boolean',
         default: true,
         description: '검출 결과 시각화 생성',
+      },
+      {
+        name: 'visualize_regions',
+        type: 'boolean',
+        default: true,
+        description: '검출된 영역 시각화 포함',
       },
     ],
     examples: [
@@ -186,6 +218,8 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
       '💡 combined 방법이 가장 정확하지만 처리 시간이 더 깁니다',
       '💡 min_length를 높이면 노이즈가 줄어들지만 짧은 라인을 놓칠 수 있습니다',
       '💡 P&ID Analyzer의 입력으로 사용하여 심볼 간 연결성을 분석합니다',
+      '📦 detect_regions를 활성화하면 점선 박스 영역(SIGNAL FOR BWMS 등)을 자동 검출합니다',
+      '🎨 classify_styles로 실선/점선/일점쇄선 등 라인 스타일을 분류할 수 있습니다',
     ],
     recommendedInputs: [
       {

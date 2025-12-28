@@ -85,7 +85,7 @@
 | **OCR** | DocTR | 5014 | 2단계 파이프라인 |
 | **OCR** | EasyOCR | 5015 | 80+ 언어, CPU 친화적 |
 | **Segmentation** | EDGNet | 5012 | 엣지 세그멘테이션 |
-| **Segmentation** | Line Detector | 5016 | P&ID 라인 검출 |
+| **Segmentation** | Line Detector | 5016 | P&ID 라인 검출, 스타일 분류, 영역 검출 |
 | **Preprocessing** | ESRGAN | 5010 | 4x 업스케일링 |
 | **Analysis** | SkinModel | 5003 | 공차 분석 |
 | **Analysis** | PID Analyzer | 5018 | P&ID 연결 분석, BOM 생성 |
@@ -559,7 +559,8 @@ resources:
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
-| **15.0** | **2025-12-27** | **Blueprint AI BOM v10.3**: 장기 로드맵 4/4 기능 완전 구현 (VLM 분류, 노트 추출, 영역 세분화, 리비전 비교), 테스트 59개 통과 |
+| **16.0** | **2025-12-28** | **Line Detector v1.1**: 라인 스타일 분류 (실선/점선/일점쇄선 등 6종), 점선 박스 영역 검출 (SIGNAL FOR BWMS 등), 라인 용도 분류 (ISO 10628 기반), 테스트 16개 통과 |
+| 15.0 | 2025-12-27 | Blueprint AI BOM v10.3: 장기 로드맵 4/4 기능 완전 구현 (VLM 분류, 노트 추출, 영역 세분화, 리비전 비교), 테스트 59개 통과 |
 | 14.0 | 2025-12-26 | GPU Override 시스템: docker-compose.override.yml 기반 동적 GPU 설정, Dashboard GPU 토글 버그 수정 |
 | 13.0 | 2025-12-26 | 모듈화 리팩토링: 1000줄 제한 규칙, WorkflowPage 595줄로 분리, LLM 최적화 가이드 추가 |
 | 12.0 | 2025-12-24 | Blueprint AI BOM v9.0: 장기 로드맵 API 스텁 생성 |

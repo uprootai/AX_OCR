@@ -5,14 +5,15 @@ kind: APISpec
 metadata:
   id: linedetector
   name: Line Detector
-  version: 1.0.0
+  version: 1.1.0
   port: 5016
   host: line-detector-api
-  description: P&ID 라인(배관/신호선) 검출 및 연결성 분석 API
+  description: P&ID 라인 검출, 스타일 분류, 영역 검출 API
   author: AX Team
   tags:
     - segmentation
     - pid
+    - region-detection
 
 server:
   endpoint: /api/v1/process
@@ -36,13 +37,16 @@ inputs:
 outputs:
   - name: lines
     type: array
-    description: 검출된 라인 목록
+    description: 검출된 라인 목록 (스타일, 색상, 용도 분류 포함)
   - name: intersections
     type: array
     description: 교차점 목록
+  - name: regions
+    type: array
+    description: 점선 박스 영역 목록 (SIGNAL FOR BWMS 등)
   - name: statistics
     type: object
-    description: 라인 통계
+    description: 라인/영역 통계
   - name: visualization
     type: string
     description: 시각화 이미지 (base64)
@@ -71,15 +75,34 @@ parameters:
   - name: classify_styles
     type: boolean
     default: true
-    description: 스타일 분류 (실선/점선/점점선)
+    description: 스타일 분류 (실선/점선/점점선/이중선/물결선)
   - name: find_intersections
     type: boolean
     default: true
     description: 교차점 검출
+  - name: detect_regions
+    type: boolean
+    default: false
+    description: 점선 박스 영역 검출 (SIGNAL FOR BWMS 등)
+  - name: region_line_styles
+    type: text
+    default: "dashed,dash_dot"
+    description: 영역 검출에 사용할 라인 스타일 (쉼표 구분)
+  - name: min_region_area
+    type: number
+    min: 1000
+    max: 100000
+    default: 5000
+    step: 1000
+    description: 최소 영역 크기 (픽셀²)
   - name: visualize
     type: boolean
     default: true
     description: 결과 시각화
+  - name: visualize_regions
+    type: boolean
+    default: true
+    description: 영역 시각화 포함
   - name: min_length
     type: number
     min: 0
@@ -98,10 +121,10 @@ parameters:
 i18n:
   ko:
     label: Line Detector
-    description: P&ID 라인(배관/신호선) 검출 및 연결성 분석
+    description: P&ID 라인 검출, 스타일 분류, 점선 박스 영역 검출
   en:
     label: Line Detector
-    description: P&ID line detection and connectivity analysis
+    description: P&ID line detection, style classification, dashed region detection
 
 resources:
   gpu:
@@ -118,9 +141,58 @@ resources:
     - parameter: method
       impact: "combined 방식 시 시간 2배"
       examples: "lsd:빠름, combined:보통"
+    - parameter: detect_regions
+      impact: "영역 검출 활성화 시 추가 처리 시간"
+      examples: "false:라인만, true:라인+영역"
     - parameter: min_length
       impact: "값↑ → 라인 수↓, 처리시간↓"
       examples: "0:전체, 30:중간, 50:긴 라인만"
     - parameter: max_lines
       impact: "값↓ → 라인 수↓, 처리시간↓"
       examples: "0:제한없음, 500:적당, 200:빠름"
+
+lineStyleTypes:
+  solid:
+    korean: 실선
+    description: 주요 공정 배관
+    signalType: process
+  dashed:
+    korean: 점선
+    description: 계장 신호선
+    signalType: instrument
+  dotted:
+    korean: 점점선
+    description: 보조/옵션 라인
+    signalType: auxiliary
+  dash_dot:
+    korean: 일점쇄선
+    description: 경계선/중심선
+    signalType: centerline
+  double:
+    korean: 이중선
+    description: 주요 배관/케이싱
+    signalType: main_pipe
+  wavy:
+    korean: 물결선
+    description: 플렉시블 호스
+    signalType: flexible
+
+regionTypes:
+  signal_group:
+    korean: 신호 그룹
+    description: SIGNAL FOR BWMS 등 신호 관련 심볼 그룹
+  equipment_boundary:
+    korean: 장비 경계
+    description: 패키지/스키드 경계
+  note_box:
+    korean: 노트 박스
+    description: 주석/설명 영역
+  hazardous_area:
+    korean: 위험 구역
+    description: 위험 구역 표시
+  scope_boundary:
+    korean: 공급 범위
+    description: 공급자/구매자 범위 경계
+  detail_area:
+    korean: 상세도 영역
+    description: 상세도 참조 영역

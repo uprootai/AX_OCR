@@ -30,10 +30,10 @@ const EASYOCR_BASE = import.meta.env.VITE_EASYOCR_URL || 'http://localhost:5015'
 
 // Knowledge & P&ID Services
 const KNOWLEDGE_BASE = import.meta.env.VITE_KNOWLEDGE_URL || 'http://localhost:5007';
-const YOLO_PID_BASE = import.meta.env.VITE_YOLO_PID_URL || 'http://localhost:5017';
 const LINE_DETECTOR_BASE = import.meta.env.VITE_LINE_DETECTOR_URL || 'http://localhost:5016';
 const PID_ANALYZER_BASE = import.meta.env.VITE_PID_ANALYZER_URL || 'http://localhost:5018';
 const DESIGN_CHECKER_BASE = import.meta.env.VITE_DESIGN_CHECKER_URL || 'http://localhost:5019';
+const BLUEPRINT_AI_BOM_BASE = import.meta.env.VITE_BLUEPRINT_AI_BOM_URL || 'http://localhost:5020';
 
 // Axios 인스턴스 생성
 const gatewayAPI = axios.create({ baseURL: API_BASE });
@@ -56,10 +56,10 @@ const easyocrAPI = axios.create({ baseURL: EASYOCR_BASE });
 
 // Knowledge & P&ID Services
 const knowledgeAPI = axios.create({ baseURL: KNOWLEDGE_BASE });
-const yoloPidAPI = axios.create({ baseURL: YOLO_PID_BASE });
 const lineDetectorAPI = axios.create({ baseURL: LINE_DETECTOR_BASE });
 const pidAnalyzerAPI = axios.create({ baseURL: PID_ANALYZER_BASE });
 const designCheckerAPI = axios.create({ baseURL: DESIGN_CHECKER_BASE });
+const blueprintAiBomAPI = axios.create({ baseURL: BLUEPRINT_AI_BOM_BASE });
 
 // 진행률 콜백 타입
 export type ProgressCallback = (progress: number) => void;
@@ -566,7 +566,6 @@ export const checkAllServices = async () => {
   const healthChecks: Record<string, Promise<boolean>> = {
     gateway: gatewayAPI.get('/api/v1/health', { timeout: 3000 }).then(() => true).catch(() => false),
     yolo: yoloAPI.get('/api/v1/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    yolo_pid: yoloPidAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
     edocr2: edocr2V2API.get('/api/v1/health', { timeout: 3000 }).then(() => true).catch(() => false),
     paddleocr: paddleocrAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
     tesseract: tesseractAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
@@ -583,6 +582,7 @@ export const checkAllServices = async () => {
     design_checker: designCheckerAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
     knowledge: knowledgeAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
     vl: vlAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
+    blueprint_ai_bom: blueprintAiBomAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
   };
 
   const entries = Object.entries(healthChecks);

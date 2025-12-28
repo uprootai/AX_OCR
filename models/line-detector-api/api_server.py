@@ -294,13 +294,40 @@ def classify_all_lines_by_color(image: np.ndarray, lines: List[Dict]) -> List[Di
     return lines
 
 
-# P&ID 라인 스타일 분류 기준
+# P&ID 라인 스타일 분류 기준 (확장)
 LINE_STYLE_TYPES = {
-    'solid': {'korean': '실선', 'description': '주요 공정 배관', 'signal_type': 'process'},
-    'dashed': {'korean': '점선', 'description': '계장 신호선', 'signal_type': 'instrument'},
-    'dotted': {'korean': '점점선', 'description': '보조/옵션 라인', 'signal_type': 'auxiliary'},
-    'dash_dot': {'korean': '일점쇄선', 'description': '경계선/중심선', 'signal_type': 'centerline'},
-    'unknown': {'korean': '미분류', 'description': '분류 불가', 'signal_type': 'unknown'},
+    'solid': {'korean': '실선', 'description': '주요 공정 배관', 'signal_type': 'process', 'priority': 1},
+    'dashed': {'korean': '점선', 'description': '계장 신호선', 'signal_type': 'instrument', 'priority': 2},
+    'dotted': {'korean': '점점선', 'description': '보조/옵션 라인', 'signal_type': 'auxiliary', 'priority': 3},
+    'dash_dot': {'korean': '일점쇄선', 'description': '경계선/중심선', 'signal_type': 'centerline', 'priority': 4},
+    'double': {'korean': '이중선', 'description': '주요 배관/케이싱', 'signal_type': 'main_pipe', 'priority': 5},
+    'wavy': {'korean': '물결선', 'description': '플렉시블 호스', 'signal_type': 'flexible', 'priority': 6},
+    'unknown': {'korean': '미분류', 'description': '분류 불가', 'signal_type': 'unknown', 'priority': 99},
+}
+
+# P&ID 라인 용도별 분류 (ISO 10628 기반)
+LINE_PURPOSE_TYPES = {
+    'main_process': {'korean': '주공정 배관', 'style': 'solid', 'color': 'black', 'weight': 'thick'},
+    'secondary_process': {'korean': '보조공정 배관', 'style': 'solid', 'color': 'black', 'weight': 'thin'},
+    'instrument_signal': {'korean': '계장 신호선', 'style': 'dashed', 'color': 'black', 'weight': 'thin'},
+    'electrical': {'korean': '전기 배선', 'style': 'dashed', 'color': 'red', 'weight': 'thin'},
+    'pneumatic': {'korean': '공압 신호', 'style': 'dashed', 'color': 'blue', 'weight': 'thin'},
+    'hydraulic': {'korean': '유압 라인', 'style': 'solid', 'color': 'green', 'weight': 'medium'},
+    'software_link': {'korean': '소프트웨어 연결', 'style': 'dotted', 'color': 'black', 'weight': 'thin'},
+    'future_equipment': {'korean': '미래 설비', 'style': 'dash_dot', 'color': 'gray', 'weight': 'thin'},
+    'boundary': {'korean': '경계선', 'style': 'dash_dot', 'color': 'black', 'weight': 'medium'},
+    'enclosure': {'korean': '영역 표시', 'style': 'dashed', 'color': 'black', 'weight': 'thin'},
+}
+
+# 점선 영역 타입 분류
+REGION_TYPES = {
+    'signal_group': {'korean': '신호 그룹', 'description': 'SIGNAL FOR BWMS 등 신호 관련 심볼 그룹', 'keywords': ['SIGNAL', 'BWMS', 'CONTROL']},
+    'equipment_boundary': {'korean': '장비 경계', 'description': '패키지/스키드 경계', 'keywords': ['PACKAGE', 'SKID', 'UNIT']},
+    'note_box': {'korean': '노트 박스', 'description': '주석/설명 영역', 'keywords': ['NOTE', 'REMARK', 'LEGEND']},
+    'hazardous_area': {'korean': '위험 구역', 'description': '위험 구역 표시', 'keywords': ['HAZARD', 'DANGER', 'ZONE']},
+    'scope_boundary': {'korean': '공급 범위', 'description': '공급자/구매자 범위 경계', 'keywords': ['SCOPE', 'SUPPLY', 'BY OWNER', 'BY VENDOR']},
+    'detail_area': {'korean': '상세도 영역', 'description': '상세도 참조 영역', 'keywords': ['DETAIL', 'SEE', 'REFER']},
+    'unknown': {'korean': '미분류 영역', 'description': '분류되지 않은 영역', 'keywords': []},
 }
 
 
@@ -470,6 +497,315 @@ def classify_all_lines_by_style(image: np.ndarray, lines: List[Dict]) -> List[Di
         line['gap_ratio'] = style_info['gap_ratio']
 
     return lines
+
+
+def classify_line_purpose(line: Dict) -> Dict:
+    """
+    라인의 용도 분류 (스타일 + 색상 조합)
+
+    Args:
+        line: 스타일과 색상이 분류된 라인
+
+    Returns:
+        용도 정보 딕셔너리
+    """
+    style = line.get('line_style', 'unknown')
+    color = line.get('color_type', 'unknown')
+
+    # 스타일 + 색상 조합으로 용도 결정
+    purpose = 'unknown'
+
+    if style == 'solid':
+        if color in ['black', 'process']:
+            purpose = 'main_process'
+        elif color == 'green':
+            purpose = 'hydraulic'
+        else:
+            purpose = 'secondary_process'
+    elif style == 'dashed':
+        if color == 'red':
+            purpose = 'electrical'
+        elif color == 'blue':
+            purpose = 'pneumatic'
+        elif color in ['black', 'signal']:
+            purpose = 'instrument_signal'
+        else:
+            purpose = 'enclosure'
+    elif style == 'dotted':
+        purpose = 'software_link'
+    elif style == 'dash_dot':
+        purpose = 'boundary'
+
+    purpose_info = LINE_PURPOSE_TYPES.get(purpose, LINE_PURPOSE_TYPES.get('main_process'))
+
+    return {
+        'purpose': purpose,
+        'purpose_korean': purpose_info['korean'],
+        'expected_weight': purpose_info['weight']
+    }
+
+
+def find_dashed_regions(image: np.ndarray, lines: List[Dict],
+                        min_area: int = 5000,
+                        line_styles: List[str] = None,
+                        aspect_ratio_range: Tuple[float, float] = (0.2, 5.0)) -> List[Dict]:
+    """
+    점선/특정 스타일 라인으로 둘러싸인 영역(박스) 찾기
+
+    알고리즘:
+    1. 특정 스타일의 라인만 필터링
+    2. 라인을 이진 마스크로 변환
+    3. 형태학적 연산으로 갭 연결
+    4. 윤곽선 검출로 닫힌 영역 찾기
+    5. 사각형 근사화 및 필터링
+
+    Args:
+        image: BGR 이미지
+        lines: 스타일이 분류된 라인 목록
+        min_area: 최소 영역 크기 (픽셀²)
+        line_styles: 검출할 라인 스타일 목록 (기본: ['dashed', 'dash_dot'])
+        aspect_ratio_range: 허용 가로세로 비율 범위
+
+    Returns:
+        검출된 영역 목록
+    """
+    if line_styles is None:
+        line_styles = ['dashed', 'dash_dot']
+
+    h, w = image.shape[:2]
+
+    # 1. 특정 스타일 라인만 필터링
+    filtered_lines = [l for l in lines if l.get('line_style', 'unknown') in line_styles]
+
+    if len(filtered_lines) < 4:  # 최소 4개 라인 필요 (사각형)
+        return []
+
+    logger.info(f"Region detection: {len(filtered_lines)} {line_styles} lines found")
+
+    # 2. 라인을 이진 마스크로 변환
+    mask = np.zeros((h, w), dtype=np.uint8)
+
+    for line in filtered_lines:
+        # waypoints가 있으면 polyline, 없으면 직선
+        if 'waypoints' in line and len(line['waypoints']) >= 2:
+            pts = np.array([[int(p[0]), int(p[1])] for p in line['waypoints']], dtype=np.int32)
+            cv2.polylines(mask, [pts], isClosed=False, color=255, thickness=3)
+        else:
+            pt1 = (int(line['start_point'][0]), int(line['start_point'][1]))
+            pt2 = (int(line['end_point'][0]), int(line['end_point'][1]))
+            cv2.line(mask, pt1, pt2, 255, 3)
+
+    # 3. 형태학적 연산으로 갭 연결 (점선의 갭을 메움)
+    kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+    mask_closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
+
+    # 약간의 팽창으로 라인 연결성 향상
+    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    mask_dilated = cv2.dilate(mask_closed, kernel_dilate, iterations=2)
+
+    # 4. 윤곽선 검출
+    contours, hierarchy = cv2.findContours(mask_dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    regions = []
+    region_id = 0
+
+    for i, contour in enumerate(contours):
+        area = cv2.contourArea(contour)
+
+        # 최소 면적 필터링
+        if area < min_area:
+            continue
+
+        # 5. 사각형 근사화
+        epsilon = 0.02 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilon, True)
+
+        # 바운딩 박스
+        x, y, box_w, box_h = cv2.boundingRect(contour)
+
+        # 가로세로 비율 필터
+        aspect_ratio = box_w / box_h if box_h > 0 else 0
+        if not (aspect_ratio_range[0] <= aspect_ratio <= aspect_ratio_range[1]):
+            continue
+
+        # 회전된 바운딩 박스
+        rect = cv2.minAreaRect(contour)
+        box_points = cv2.boxPoints(rect)
+        box_points = box_points.astype(np.intp)
+
+        # 영역 내부 라인 카운트
+        lines_inside = count_lines_in_region(lines, (x, y, x + box_w, y + box_h))
+
+        region = {
+            'id': region_id,
+            'bbox': [int(x), int(y), int(x + box_w), int(y + box_h)],
+            'center': [int(x + box_w / 2), int(y + box_h / 2)],
+            'area': int(area),
+            'width': int(box_w),
+            'height': int(box_h),
+            'aspect_ratio': round(aspect_ratio, 2),
+            'vertices': len(approx),
+            'is_rectangular': len(approx) == 4,
+            'rotated_box': box_points.tolist(),
+            'rotation_angle': round(rect[2], 1),
+            'enclosing_line_style': line_styles[0] if len(line_styles) == 1 else 'mixed',
+            'lines_inside_count': lines_inside,
+            'region_type': 'unknown',
+            'region_type_korean': '미분류',
+            'confidence': 0.0
+        }
+
+        regions.append(region)
+        region_id += 1
+
+    logger.info(f"Found {len(regions)} closed regions")
+    return regions
+
+
+def count_lines_in_region(lines: List[Dict], bbox: Tuple[int, int, int, int]) -> int:
+    """
+    특정 영역 내부에 있는 라인 수 카운트
+
+    Args:
+        lines: 라인 목록
+        bbox: (x1, y1, x2, y2)
+
+    Returns:
+        영역 내 라인 수
+    """
+    x1, y1, x2, y2 = bbox
+    count = 0
+
+    for line in lines:
+        # 라인의 중심점이 영역 내에 있는지 확인
+        start = line['start_point']
+        end = line['end_point']
+        mid_x = (start[0] + end[0]) / 2
+        mid_y = (start[1] + end[1]) / 2
+
+        if x1 <= mid_x <= x2 and y1 <= mid_y <= y2:
+            count += 1
+
+    return count
+
+
+def get_symbols_in_region(symbols: List[Dict], region: Dict,
+                          margin: int = 10) -> List[Dict]:
+    """
+    특정 영역 내에 있는 심볼 필터링
+
+    Args:
+        symbols: 심볼 목록 (YOLO 검출 결과)
+        region: 영역 정보
+        margin: 여유 마진 (픽셀)
+
+    Returns:
+        영역 내 심볼 목록
+    """
+    x1, y1, x2, y2 = region['bbox']
+    x1 -= margin
+    y1 -= margin
+    x2 += margin
+    y2 += margin
+
+    symbols_inside = []
+
+    for symbol in symbols:
+        # 심볼의 중심점 또는 bbox 확인
+        if 'center' in symbol:
+            cx, cy = symbol['center']
+        elif 'bbox' in symbol:
+            sx1, sy1, sx2, sy2 = symbol['bbox']
+            cx, cy = (sx1 + sx2) / 2, (sy1 + sy2) / 2
+        else:
+            continue
+
+        if x1 <= cx <= x2 and y1 <= cy <= y2:
+            symbols_inside.append(symbol)
+
+    return symbols_inside
+
+
+def classify_region_type_by_keywords(text: str) -> Tuple[str, float]:
+    """
+    텍스트 키워드로 영역 타입 분류
+
+    Args:
+        text: OCR 추출 텍스트 (대문자)
+
+    Returns:
+        (region_type, confidence)
+    """
+    text_upper = text.upper()
+
+    for region_type, info in REGION_TYPES.items():
+        if region_type == 'unknown':
+            continue
+
+        for keyword in info['keywords']:
+            if keyword in text_upper:
+                return region_type, 0.85
+
+    return 'unknown', 0.3
+
+
+def visualize_regions(image: np.ndarray, regions: List[Dict],
+                      draw_labels: bool = True) -> np.ndarray:
+    """
+    검출된 영역 시각화
+
+    Args:
+        image: BGR 이미지
+        regions: 영역 목록
+        draw_labels: 라벨 표시 여부
+
+    Returns:
+        시각화된 이미지
+    """
+    vis = image.copy()
+
+    # 영역 타입별 색상
+    type_colors = {
+        'signal_group': (0, 255, 255),      # Cyan
+        'equipment_boundary': (255, 0, 255), # Magenta
+        'note_box': (0, 255, 0),             # Green
+        'hazardous_area': (0, 0, 255),       # Red
+        'scope_boundary': (255, 165, 0),     # Orange
+        'detail_area': (255, 255, 0),        # Yellow
+        'unknown': (128, 128, 128),          # Gray
+    }
+
+    for region in regions:
+        region_type = region.get('region_type', 'unknown')
+        color = type_colors.get(region_type, (128, 128, 128))
+
+        x1, y1, x2, y2 = region['bbox']
+
+        # 영역 테두리 (점선 효과)
+        # OpenCV는 직접 점선을 지원하지 않으므로 짧은 선분으로 구현
+        dash_length = 10
+        for start_x in range(x1, x2, dash_length * 2):
+            end_x = min(start_x + dash_length, x2)
+            cv2.line(vis, (start_x, y1), (end_x, y1), color, 2)
+            cv2.line(vis, (start_x, y2), (end_x, y2), color, 2)
+        for start_y in range(y1, y2, dash_length * 2):
+            end_y = min(start_y + dash_length, y2)
+            cv2.line(vis, (x1, start_y), (x1, end_y), color, 2)
+            cv2.line(vis, (x2, start_y), (x2, end_y), color, 2)
+
+        # 영역 내부 반투명 채우기
+        overlay = vis.copy()
+        cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
+        cv2.addWeighted(overlay, 0.1, vis, 0.9, 0, vis)
+
+        # 라벨 표시
+        if draw_labels:
+            label = f"#{region['id']} {region.get('region_type_korean', '영역')}"
+            (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+            cv2.rectangle(vis, (x1, y1 - text_h - 8), (x1 + text_w + 4, y1), color, -1)
+            cv2.putText(vis, label, (x1 + 2, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+    return vis
 
 
 def _order_segments_to_path(segments: List[Tuple[Tuple[float, float], Tuple[float, float]]],
@@ -790,8 +1126,8 @@ async def get_info():
         "id": "line-detector",
         "name": "Line Detector",
         "display_name": "P&ID Line Detector",
-        "version": "1.0.0",
-        "description": "P&ID 라인(배관/신호선) 검출 및 연결성 분석 API",
+        "version": "1.1.0",
+        "description": "P&ID 라인(배관/신호선) 검출, 스타일 분류, 영역 검출 API",
         "base_url": f"http://localhost:{API_PORT}",
         "endpoint": "/api/v1/process",
         "method": "POST",
@@ -807,6 +1143,7 @@ async def get_info():
         "outputs": [
             {"name": "lines", "type": "LineSegment[]", "description": "검출된 라인 목록"},
             {"name": "intersections", "type": "Intersection[]", "description": "교차점 목록"},
+            {"name": "regions", "type": "Region[]", "description": "점선 박스 영역 목록"},
             {"name": "visualization", "type": "Image", "description": "시각화 이미지"}
         ],
         "parameters": [
@@ -816,10 +1153,17 @@ async def get_info():
             {"name": "classify_colors", "type": "boolean", "default": True, "description": "색상 기반 라인 분류"},
             {"name": "classify_styles", "type": "boolean", "default": True, "description": "스타일 분류 (실선/점선)"},
             {"name": "find_intersections", "type": "boolean", "default": True},
+            {"name": "detect_regions", "type": "boolean", "default": False, "description": "점선 박스 영역 검출"},
+            {"name": "region_line_styles", "type": "multiselect", "options": ["dashed", "dash_dot", "dotted"], "default": ["dashed", "dash_dot"], "description": "영역 검출에 사용할 라인 스타일"},
+            {"name": "min_region_area", "type": "number", "default": 5000, "description": "최소 영역 크기 (픽셀²)"},
             {"name": "visualize", "type": "boolean", "default": True},
+            {"name": "visualize_regions", "type": "boolean", "default": True, "description": "영역 시각화 포함"},
             {"name": "min_length", "type": "number", "default": 0, "description": "최소 라인 길이 (픽셀). 0=필터링 안함"},
             {"name": "max_lines", "type": "number", "default": 0, "description": "최대 라인 수 제한. 0=제한 없음"}
-        ]
+        ],
+        "line_style_types": LINE_STYLE_TYPES,
+        "line_purpose_types": LINE_PURPOSE_TYPES,
+        "region_types": REGION_TYPES
     }
 
 
@@ -832,7 +1176,11 @@ async def process(
     classify_colors: bool = Form(default=True, description="색상 기반 라인 분류 (공정/냉각/증기/신호 등)"),
     classify_styles: bool = Form(default=True, description="스타일 분류 (실선/점선/점점선)"),
     find_intersections_flag: bool = Form(default=True, alias="find_intersections", description="교차점 검출"),
+    detect_regions: bool = Form(default=False, description="점선 박스 영역 검출"),
+    region_line_styles: str = Form(default="dashed,dash_dot", description="영역 검출에 사용할 라인 스타일 (쉼표 구분)"),
+    min_region_area: int = Form(default=5000, description="최소 영역 크기 (픽셀²)"),
     visualize: bool = Form(default=True, description="결과 시각화"),
+    visualize_regions_flag: bool = Form(default=True, alias="visualize_regions", description="영역 시각화 포함"),
     min_length: float = Form(default=0, description="최소 라인 길이 (픽셀). 0=필터링 안함"),
     max_lines: int = Form(default=0, description="최대 라인 수 제한. 0=제한 없음")
 ):
@@ -843,9 +1191,10 @@ async def process(
     - LSD/Hough 기반 라인 검출
     - 라인 유형 분류 (배관 vs 신호선)
     - 색상 기반 라인 분류 (공정/냉각/증기/신호선 등)
-    - 스타일 분류 (실선/점선/점점선)
+    - 스타일 분류 (실선/점선/점점선/이중선/물결선)
     - 공선 라인 병합
     - 교차점 검출
+    - 점선 박스 영역 검출 (SIGNAL FOR BWMS 등)
     """
     start_time = time.time()
 
@@ -915,10 +1264,47 @@ async def process(
             intersections = find_intersections(lines)
             logger.info(f"Found {len(intersections)} intersections")
 
+        # 점선 박스 영역 검출
+        regions = []
+        if detect_regions and classify_styles:
+            # 쉼표 구분 문자열을 리스트로 변환
+            styles_list = [s.strip() for s in region_line_styles.split(",") if s.strip()]
+            if not styles_list:
+                styles_list = ['dashed', 'dash_dot']
+
+            regions = find_dashed_regions(
+                image, lines,
+                min_area=min_region_area,
+                line_styles=styles_list
+            )
+            logger.info(f"Found {len(regions)} closed regions with styles {styles_list}")
+
+            # 각 영역 내 라인 용도 분류 (스타일 + 색상 조합)
+            for region in regions:
+                # 영역 내 라인들의 용도 분류
+                x1, y1, x2, y2 = region['bbox']
+                lines_in_region = []
+                for line in lines:
+                    mid_x = (line['start_point'][0] + line['end_point'][0]) / 2
+                    mid_y = (line['start_point'][1] + line['end_point'][1]) / 2
+                    if x1 <= mid_x <= x2 and y1 <= mid_y <= y2:
+                        purpose_info = classify_line_purpose(line)
+                        line['purpose'] = purpose_info['purpose']
+                        line['purpose_korean'] = purpose_info['purpose_korean']
+                        lines_in_region.append(line)
+
+                region['lines_inside'] = lines_in_region
+
         # 시각화
         visualization_base64 = None
         if visualize:
             vis_image = visualize_lines(image, lines, intersections)
+
+            # 영역 시각화 추가
+            if detect_regions and visualize_regions_flag and regions:
+                vis_image = visualize_regions(vis_image, regions, draw_labels=True)
+                logger.info(f"Visualized {len(regions)} regions")
+
             visualization_base64 = numpy_to_base64(vis_image)
 
         # 통계 계산
@@ -951,7 +1337,27 @@ async def process(
                 "solid_lines": style_counts.get('solid', 0),
                 "dashed_lines": style_counts.get('dashed', 0),
                 "dotted_lines": style_counts.get('dotted', 0),
+                "dash_dot_lines": style_counts.get('dash_dot', 0),
+                "double_lines": style_counts.get('double', 0),
+                "wavy_lines": style_counts.get('wavy', 0),
                 "unknown_style_lines": style_counts.get('unknown', 0),
+            }
+
+        # 영역 기반 통계
+        region_stats = {}
+        if detect_regions:
+            from collections import Counter
+            region_type_counts = Counter(r.get('region_type', 'unknown') for r in regions)
+            total_region_area = sum(r.get('area', 0) for r in regions)
+            avg_region_area = total_region_area / len(regions) if regions else 0
+
+            region_stats = {
+                "total_regions": len(regions),
+                "by_region_type": dict(region_type_counts),
+                "total_region_area": total_region_area,
+                "avg_region_area": round(avg_region_area, 1),
+                "rectangular_regions": sum(1 for r in regions if r.get('is_rectangular', False)),
+                "region_detection_styles": region_line_styles.split(","),
             }
 
         processing_time = time.time() - start_time
@@ -959,6 +1365,7 @@ async def process(
         result = {
             "lines": lines,
             "intersections": intersections,
+            "regions": regions,
             "statistics": {
                 "total_lines": len(lines),
                 "pipe_lines": pipe_count,
@@ -966,11 +1373,20 @@ async def process(
                 "unknown_lines": unknown_count,
                 "intersection_count": len(intersections),
                 **color_stats,
-                **style_stats
+                **style_stats,
+                **region_stats
             },
             "visualization": visualization_base64,
             "method": method,
-            "image_size": {"width": image.shape[1], "height": image.shape[0]}
+            "image_size": {"width": image.shape[1], "height": image.shape[0]},
+            "options_used": {
+                "classify_types": classify_types,
+                "classify_colors": classify_colors,
+                "classify_styles": classify_styles,
+                "detect_regions": detect_regions,
+                "region_line_styles": region_line_styles if detect_regions else None,
+                "min_region_area": min_region_area if detect_regions else None
+            }
         }
 
         return ProcessResponse(
