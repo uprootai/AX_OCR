@@ -8,6 +8,8 @@ OCR + LLM 조합으로 텍스트를 추출하고 카테고리별로 분류합니
 - OpenAI GPT-4o (고품질)
 - Anthropic Claude Vision
 - 로컬 VL API + OCR
+
+v10.4: Dashboard API Key 설정 연동
 """
 import os
 import re
@@ -22,6 +24,21 @@ from typing import Optional, List, Dict, Any
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# API Key 서비스 (Dashboard 설정 연동)
+_api_key_service = None
+
+def get_api_key_service():
+    """API Key 서비스 싱글톤"""
+    global _api_key_service
+    if _api_key_service is None:
+        try:
+            from services.api_key_service import APIKeyService
+            _api_key_service = APIKeyService()
+        except ImportError:
+            logger.warning("[NotesExtractor] APIKeyService를 불러올 수 없습니다. 환경변수를 사용합니다.")
+            _api_key_service = None
+    return _api_key_service
 
 
 class NoteCategory(str, Enum):
@@ -180,13 +197,64 @@ class NotesExtractor:
         default_provider: str = "openai",
         openai_model: Optional[str] = None,
     ):
-        self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
-        self.anthropic_api_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
+        # API Key 서비스에서 키 가져오기 (우선) → 환경변수 (폴백)
+        self._api_key_service = get_api_key_service()
+
+        # OpenAI API 키
+        self.openai_api_key = openai_api_key or self._get_key_from_service("openai") or os.getenv("OPENAI_API_KEY")
+
+        # Anthropic API 키
+        self.anthropic_api_key = anthropic_api_key or self._get_key_from_service("anthropic") or os.getenv("ANTHROPIC_API_KEY")
+
         self.default_provider = default_provider
-        self.openai_model = openai_model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+        # OpenAI 모델 (Dashboard 설정 → 환경변수 → 기본값)
+        self.openai_model = openai_model or self._get_model_from_service("openai") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+        # Anthropic 모델 (Dashboard 설정 → 기본값)
+        self.anthropic_model = self._get_model_from_service("anthropic") or "claude-3-5-sonnet-20241022"
+
         self.timeout = 120.0
 
-        logger.info(f"[NotesExtractor] 초기화 - provider: {default_provider}, model: {self.openai_model}")
+        logger.info(f"[NotesExtractor] 초기화 - provider: {default_provider}, openai_model: {self.openai_model}, anthropic_model: {self.anthropic_model}")
+
+    def _get_key_from_service(self, provider: str) -> Optional[str]:
+        """API Key 서비스에서 키 가져오기"""
+        if self._api_key_service:
+            try:
+                return self._api_key_service.get_api_key(provider)
+            except Exception as e:
+                logger.debug(f"[NotesExtractor] API Key 서비스에서 {provider} 키를 가져올 수 없음: {e}")
+        return None
+
+    def _get_model_from_service(self, provider: str) -> Optional[str]:
+        """API Key 서비스에서 선택된 모델 가져오기"""
+        if self._api_key_service:
+            try:
+                settings = self._api_key_service.get_api_key_settings(provider)
+                return settings.get("selected_model")
+            except Exception as e:
+                logger.debug(f"[NotesExtractor] API Key 서비스에서 {provider} 모델을 가져올 수 없음: {e}")
+        return None
+
+    def refresh_credentials(self):
+        """API Key 서비스에서 최신 키/모델로 갱신 (Dashboard 변경 반영)"""
+        self._api_key_service = get_api_key_service()
+
+        new_openai_key = self._get_key_from_service("openai") or os.getenv("OPENAI_API_KEY")
+        new_anthropic_key = self._get_key_from_service("anthropic") or os.getenv("ANTHROPIC_API_KEY")
+        new_openai_model = self._get_model_from_service("openai") or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        new_anthropic_model = self._get_model_from_service("anthropic") or "claude-3-5-sonnet-20241022"
+
+        if new_openai_key != self.openai_api_key or new_openai_model != self.openai_model:
+            logger.info(f"[NotesExtractor] OpenAI 설정 갱신: 모델 {self.openai_model} → {new_openai_model}")
+            self.openai_api_key = new_openai_key
+            self.openai_model = new_openai_model
+
+        if new_anthropic_key != self.anthropic_api_key or new_anthropic_model != self.anthropic_model:
+            logger.info(f"[NotesExtractor] Anthropic 설정 갱신: 모델 {self.anthropic_model} → {new_anthropic_model}")
+            self.anthropic_api_key = new_anthropic_key
+            self.anthropic_model = new_anthropic_model
 
     async def extract_notes(
         self,
@@ -207,6 +275,9 @@ class NotesExtractor:
         Returns:
             NotesExtractionResult: 추출 결과
         """
+        # Dashboard 설정 변경 반영
+        self.refresh_credentials()
+
         # 이미지 준비
         if image_path and not image_base64:
             image_base64 = self._encode_image(image_path)
@@ -305,7 +376,7 @@ class NotesExtractor:
         ocr_texts: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[NotesExtractionResult]:
         """Anthropic Claude로 노트 추출"""
-        logger.info("[NotesExtractor] Anthropic API 호출")
+        logger.info(f"[NotesExtractor] Anthropic API 호출 - 모델: {self.anthropic_model}")
 
         prompt = NOTES_EXTRACTION_PROMPT
         if ocr_texts:
@@ -323,7 +394,7 @@ class NotesExtractor:
                     "anthropic-version": "2023-06-01"
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": self.anthropic_model,  # Dashboard 설정 또는 기본값
                     "max_tokens": 4000,
                     "messages": [
                         {

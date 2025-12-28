@@ -7,8 +7,10 @@
  * - VLM 자동 분류
  */
 
-import { Loader2, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, RefreshCw, Settings } from 'lucide-react';
 import { InfoTooltip } from '../../../components/Tooltip';
+import { APIKeySettings } from '../../../components/APIKeySettings';
 import type { SectionVisibility } from '../types/workflow';
 import type {
   DrawingRegion,
@@ -79,6 +81,9 @@ export function LongTermSection({
   isVlmClassifying,
   onVlmClassify,
 }: LongTermSectionProps) {
+  // API Key 설정 모달 상태
+  const [showAPIKeySettings, setShowAPIKeySettings] = useState(false);
+
   if (!currentSession || !imageData) return null;
 
   return (
@@ -362,23 +367,33 @@ export function LongTermSection({
                 </span>
               )}
             </h2>
-            <button
-              onClick={onVlmClassify}
-              disabled={isVlmClassifying}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isVlmClassifying ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  분류 중...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  VLM 분류
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAPIKeySettings(true)}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                title="API 키 설정"
+              >
+                <Settings className="w-4 h-4" />
+                API 설정
+              </button>
+              <button
+                onClick={onVlmClassify}
+                disabled={isVlmClassifying}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isVlmClassifying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    분류 중...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    VLM 분류
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {vlmClassification ? (
@@ -428,6 +443,12 @@ export function LongTermSection({
           )}
         </section>
       )}
+
+      {/* API Key 설정 모달 */}
+      <APIKeySettings
+        isOpen={showAPIKeySettings}
+        onClose={() => setShowAPIKeySettings(false)}
+      />
     </>
   );
 }

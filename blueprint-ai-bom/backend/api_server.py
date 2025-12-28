@@ -38,6 +38,7 @@ from routers.relation_router import router as relation_router_api, set_relation_
 from routers.feedback_router import router as feedback_router_api, set_feedback_services
 from routers.midterm_router import router as midterm_router_api, set_session_service as set_midterm_session_service
 from routers.longterm_router import router as longterm_router_api, set_session_service as set_longterm_session_service
+from routers.settings_router import router as settings_router_api
 from schemas.session import SessionCreate, SessionResponse
 from services.session_service import SessionService
 from services.detection_service import DetectionService
@@ -128,6 +129,7 @@ app.include_router(relation_router_api, tags=["Relations"])  # Phase 2: 치수�
 app.include_router(feedback_router_api, tags=["Feedback"])  # Phase 8: 피드백 루프
 app.include_router(midterm_router_api, tags=["Mid-term Features"])  # 중기 로드맵: 용접, 거칠기, 수량, 벌룬
 app.include_router(longterm_router_api, tags=["Long-term Features"])  # 장기 로드맵: 영역, 노트, 리비전, VLM
+app.include_router(settings_router_api, tags=["Settings"])  # API 키 설정
 
 
 @app.get("/")

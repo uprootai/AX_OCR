@@ -16,6 +16,12 @@ import {
   FileText,
   ExternalLink,
   AlertCircle,
+  Key,
+  Eye,
+  EyeOff,
+  Check,
+  X,
+  Loader2,
 } from 'lucide-react';
 import axios from 'axios';
 import { ADMIN_ENDPOINTS } from '../../config/api';
@@ -24,6 +30,7 @@ import { YOLOModelManager } from '../../components/admin/YOLOModelManager';
 // 중복 제거: constants.ts에서 공통 정의 import
 import { DEFAULT_APIS } from '../../components/monitoring/constants';
 import type { APIInfo } from '../../components/monitoring/types';
+import { apiKeyApi, type AllAPIKeySettings, type ProviderSettings } from '../../lib/api';
 
 interface HyperParams {
   [key: string]: number | boolean | string;
@@ -143,9 +150,20 @@ const HYPERPARAM_DEFINITIONS: Record<string, { key?: string; label: string; type
     { label: 'Top K', type: 'number', min: 3, max: 20, step: 1, description: '반환할 결과 수' },
   ],
   vl: [
-    { label: '모델', type: 'select', options: [{ value: 'qwen-vl', label: 'Qwen-VL' }, { value: 'llava', label: 'LLaVA' }], description: 'Vision-Language 모델 선택' },
-    { label: '최대 토큰', type: 'number', min: 100, max: 4096, step: 100, description: '생성 최대 토큰 수' },
-    { label: '온도', type: 'number', min: 0, max: 2, step: 0.1, description: '생성 다양성 (높을수록 다양)' },
+    {
+      key: 'model',
+      label: '모델',
+      type: 'select',
+      options: [
+        // Local models (항상 표시)
+        { value: 'qwen-vl', label: 'Qwen-VL (Local)' },
+        { value: 'llava', label: 'LLaVA (Local)' },
+        // 외부 API 모델은 동적으로 추가됨 (getEnhancedHyperparamDefs에서 처리)
+      ],
+      description: 'Vision-Language 모델 선택'
+    },
+    { key: 'max_tokens', label: '최대 토큰', type: 'number', min: 100, max: 4096, step: 100, description: '생성 최대 토큰 수' },
+    { key: 'temperature', label: '온도', type: 'number', min: 0, max: 2, step: 0.1, description: '생성 다양성 (높을수록 다양)' },
   ],
   blueprint_ai_bom: [
     { key: 'symbol_detection', label: '심볼 검출', type: 'boolean', description: 'YOLO 기반 심볼 검출' },
@@ -199,6 +217,63 @@ export default function APIDetail() {
   const [gpuInfo, setGpuInfo] = useState<GPUInfo | null>(null);
   // Actual container status from Docker
   const [containerStatus, setContainerStatus] = useState<ContainerStatus | null>(null);
+  // API Key management
+  const [apiKeySettings, setApiKeySettings] = useState<AllAPIKeySettings | null>(null);
+  const [apiKeyInputs, setApiKeyInputs] = useState<Record<string, string>>({});
+  const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
+  const [savingApiKey, setSavingApiKey] = useState<string | null>(null);
+  // APIs that require external API keys
+  const API_KEY_REQUIRED_APIS = ['vl', 'ocr_ensemble', 'blueprint_ai_bom', 'blueprint-ai-bom'];
+
+  // VL API 모델 선택에 외부 API 모델 동적 추가
+  const getEnhancedHyperparamDefs = useCallback((baseDefs: typeof HYPERPARAM_DEFINITIONS[string], apiIdParam: string) => {
+    // VL API가 아니면 그대로 반환
+    if (!apiIdParam.includes('vl')) return baseDefs;
+    if (!apiKeySettings) return baseDefs;
+
+    // 모델 선택 필드 찾기
+    const modelFieldIndex = baseDefs.findIndex(def => def.key === 'model' || def.label === '모델');
+    if (modelFieldIndex === -1) return baseDefs;
+
+    const modelField = baseDefs[modelFieldIndex];
+    if (modelField.type !== 'select' || !modelField.options) return baseDefs;
+
+    // 기존 옵션 복사
+    const enhancedOptions = [...modelField.options];
+
+    // API Key가 설정된 Provider의 모델 추가
+    const providers = ['openai', 'anthropic', 'google'] as const;
+    providers.forEach(provider => {
+      const settings = apiKeySettings[provider];
+      if (settings?.has_key && settings.models) {
+        settings.models.forEach(model => {
+          const providerLabel = {
+            openai: 'OpenAI',
+            anthropic: 'Anthropic',
+            google: 'Google'
+          }[provider];
+
+          // 중복 체크
+          if (!enhancedOptions.some(opt => opt.value === model.id)) {
+            enhancedOptions.push({
+              value: model.id,
+              label: `${model.name} (${providerLabel})${model.recommended ? ' ⭐' : ''}`
+            });
+          }
+        });
+      }
+    });
+
+    // 새로운 정의 반환
+    const newDefs = [...baseDefs];
+    newDefs[modelFieldIndex] = {
+      ...modelField,
+      options: enhancedOptions
+    };
+    return newDefs;
+  }, [apiKeySettings]);
 
   // API 정보 로드
   const fetchAPIInfo = useCallback(async () => {
@@ -343,6 +418,84 @@ export default function APIDetail() {
     }
   }, [apiId]);
 
+  // API Key 설정 로드
+  const fetchApiKeySettings = useCallback(async () => {
+    try {
+      const settings = await apiKeyApi.getAllSettings();
+      setApiKeySettings(settings);
+    } catch (error) {
+      console.warn('Failed to fetch API key settings:', error);
+    }
+  }, []);
+
+  // API Key 저장
+  const handleSaveApiKey = async (provider: string) => {
+    const apiKey = apiKeyInputs[provider];
+    if (!apiKey) return;
+
+    setSavingApiKey(provider);
+    try {
+      await apiKeyApi.setAPIKey({ provider, api_key: apiKey });
+      setApiKeyInputs(prev => ({ ...prev, [provider]: '' }));
+      await fetchApiKeySettings();
+      setTestResults(prev => ({ ...prev, [provider]: { success: true, message: '저장 완료' } }));
+    } catch (error) {
+      console.error('Failed to save API key:', error);
+      setTestResults(prev => ({ ...prev, [provider]: { success: false, message: '저장 실패' } }));
+    } finally {
+      setSavingApiKey(null);
+    }
+  };
+
+  // API Key 삭제
+  const handleDeleteApiKey = async (provider: string) => {
+    if (!confirm(`${provider} API Key를 삭제하시겠습니까?`)) return;
+
+    try {
+      await apiKeyApi.deleteAPIKey(provider);
+      await fetchApiKeySettings();
+      setTestResults(prev => {
+        const newResults = { ...prev };
+        delete newResults[provider];
+        return newResults;
+      });
+    } catch (error) {
+      console.error('Failed to delete API key:', error);
+    }
+  };
+
+  // 연결 테스트
+  const handleTestConnection = async (provider: string) => {
+    setTestingProvider(provider);
+    try {
+      const result = await apiKeyApi.testConnection(provider, apiKeyInputs[provider] || undefined);
+      setTestResults(prev => ({
+        ...prev,
+        [provider]: {
+          success: result.success,
+          message: result.message || result.error || ''
+        }
+      }));
+    } catch (error) {
+      setTestResults(prev => ({
+        ...prev,
+        [provider]: { success: false, message: '테스트 실패' }
+      }));
+    } finally {
+      setTestingProvider(null);
+    }
+  };
+
+  // 모델 선택
+  const handleModelChange = async (provider: string, model: string) => {
+    try {
+      await apiKeyApi.setModel(provider, model);
+      await fetchApiKeySettings();
+    } catch (error) {
+      console.error('Failed to set model:', error);
+    }
+  };
+
   // Docker 제어
   const handleDockerAction = async (action: 'start' | 'stop' | 'restart') => {
     if (!apiId) return;
@@ -453,7 +606,11 @@ export default function APIDetail() {
   useEffect(() => {
     fetchAPIInfo();
     fetchContainerStatus();
-  }, [fetchAPIInfo, fetchContainerStatus]);
+    // API Key 설정이 필요한 API인 경우 로드
+    if (apiId && API_KEY_REQUIRED_APIS.some(id => apiId.includes(id) || id.includes(apiId.replace(/-/g, '_')))) {
+      fetchApiKeySettings();
+    }
+  }, [fetchAPIInfo, fetchContainerStatus, fetchApiKeySettings, apiId]);
 
   // Fetch GPU info when device is set to cuda
   useEffect(() => {
@@ -527,7 +684,7 @@ export default function APIDetail() {
   // Use dynamic definitions from spec, fallback to hardcoded
   // Normalize apiId for fallback lookup (hyphens to underscores)
   const normalizedApiId = apiId?.replace(/-/g, '_') || '';
-  const hyperparamDefs = dynamicHyperparamDefs.length > 0
+  const baseHyperparamDefs = dynamicHyperparamDefs.length > 0
     ? dynamicHyperparamDefs.map(def => ({
         label: def.label,
         type: def.type,
@@ -539,6 +696,9 @@ export default function APIDetail() {
         key: def.key,
       }))
     : (HYPERPARAM_DEFINITIONS[normalizedApiId] || HYPERPARAM_DEFINITIONS[apiId || ''] || []);
+
+  // VL API인 경우 외부 API 모델 동적 추가
+  const hyperparamDefs = getEnhancedHyperparamDefs(baseHyperparamDefs, apiId || '');
 
   return (
     <div className="space-y-6">
@@ -778,6 +938,147 @@ export default function APIDetail() {
               </div>
             </div>
           </Card>
+
+          {/* API Key 설정 (외부 API 필요한 서비스만 표시) */}
+          {apiKeySettings && API_KEY_REQUIRED_APIS.some(id => apiId?.includes(id) || id.includes(apiId?.replace(/-/g, '_') || '')) && (
+            <Card className="md:col-span-2">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Key className="h-5 w-5" />
+                  외부 AI API 설정
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  이 서비스는 외부 AI API를 사용합니다. API Key를 설정하면 해당 서비스를 이용할 수 있습니다.
+                </p>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {(['openai', 'anthropic', 'google', 'local'] as const).map((provider) => {
+                    const settings = apiKeySettings[provider] as ProviderSettings;
+                    const providerLabels: Record<string, { name: string; color: string; icon: string }> = {
+                      openai: { name: 'OpenAI', color: 'bg-green-500', icon: '🤖' },
+                      anthropic: { name: 'Anthropic', color: 'bg-orange-500', icon: '🧠' },
+                      google: { name: 'Google AI', color: 'bg-blue-500', icon: '🔷' },
+                      local: { name: 'Local VL', color: 'bg-purple-500', icon: '🏠' },
+                    };
+                    const label = providerLabels[provider];
+                    const testResult = testResults[provider];
+
+                    return (
+                      <div key={provider} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{label.icon}</span>
+                            <span className="font-medium">{label.name}</span>
+                          </div>
+                          {settings.has_key && (
+                            <Badge variant="success" className="text-xs">
+                              {settings.source === 'environment' ? '환경변수' : '설정됨'}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* 현재 설정된 키 표시 */}
+                        {settings.has_key && settings.masked_key && (
+                          <div className="mb-3 p-2 bg-muted/50 rounded text-sm flex items-center justify-between">
+                            <span className="font-mono">{settings.masked_key}</span>
+                            {settings.source === 'dashboard' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteApiKey(provider)}
+                                className="h-6 px-2 text-red-500 hover:text-red-600"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* API Key 입력 */}
+                        {provider !== 'local' && (
+                          <div className="mb-3">
+                            <div className="relative">
+                              <input
+                                type={showApiKeys[provider] ? 'text' : 'password'}
+                                value={apiKeyInputs[provider] || ''}
+                                onChange={(e) => setApiKeyInputs(prev => ({ ...prev, [provider]: e.target.value }))}
+                                placeholder={settings.has_key ? '새 키로 덮어쓰기' : 'API Key 입력'}
+                                className="w-full px-3 py-2 pr-10 border rounded bg-background text-sm font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowApiKeys(prev => ({ ...prev, [provider]: !prev[provider] }))}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              >
+                                {showApiKeys[provider] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 모델 선택 */}
+                        {settings.models && settings.models.length > 0 && (
+                          <div className="mb-3">
+                            <label className="block text-xs text-muted-foreground mb-1">모델</label>
+                            <select
+                              value={settings.model || ''}
+                              onChange={(e) => handleModelChange(provider, e.target.value)}
+                              className="w-full px-3 py-2 border rounded bg-background text-sm"
+                            >
+                              {settings.models.map((model) => (
+                                <option key={model.id} value={model.id}>
+                                  {model.name} ({model.cost}){model.recommended ? ' ⭐' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* 테스트 결과 */}
+                        {testResult && (
+                          <div className={`mb-3 p-2 rounded text-sm flex items-center gap-2 ${testResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            {testResult.success ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                            {testResult.message}
+                          </div>
+                        )}
+
+                        {/* 액션 버튼 */}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleTestConnection(provider)}
+                            disabled={testingProvider === provider}
+                            className="flex-1"
+                          >
+                            {testingProvider === provider ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              '테스트'
+                            )}
+                          </Button>
+                          {provider !== 'local' && apiKeyInputs[provider] && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveApiKey(provider)}
+                              disabled={savingApiKey === provider}
+                              className="flex-1"
+                            >
+                              {savingApiKey === provider ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                '저장'
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* 하이퍼파라미터 */}
           {hyperparamDefs.length > 0 && (
