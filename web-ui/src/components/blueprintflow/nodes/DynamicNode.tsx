@@ -69,7 +69,7 @@ const getIconEmoji = (icon: string | undefined): string => {
 /**
  * 동적으로 생성된 노드를 렌더링합니다.
  * - Dashboard에서 추가한 커스텀 API
- * - nodeDefinitions에 정의되어 있지만 전용 컴포넌트가 없는 노드 (blueprint-ai-bom, yolo-pid 등)
+ * - nodeDefinitions에 정의되어 있지만 전용 컴포넌트가 없는 노드 (blueprint-ai-bom 등)
  */
 export default memo(function DynamicNode({ data, selected, type }: NodeProps<DynamicNodeData>) {
   // nodeDefinitions에서 정의를 가져와서 색상과 라벨 결정

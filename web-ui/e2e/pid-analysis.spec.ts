@@ -12,7 +12,7 @@ test.describe('P&ID Analysis Nodes', () => {
     const segmentationSection = page.locator('text=/Segmentation|세그멘테이션/i');
     await expect(segmentationSection.first()).toBeVisible();
 
-    // Check for YOLO-PID in Detection category
+    // Check for YOLO in Detection category (handles P&ID via model_type)
     const detectionSection = page.locator('text=/Detection|검출/i');
     await expect(detectionSection.first()).toBeVisible();
 
@@ -27,15 +27,15 @@ test.describe('P&ID Analysis Nodes', () => {
     await expect(lineDetector.first()).toBeVisible({ timeout: 5000 });
   });
 
-  test('should display YOLO-PID node', async ({ page }) => {
-    // Search for YOLO-PID node (may need to scroll)
-    const yoloPid = page.locator('text=YOLO-PID');
+  test('should display YOLO node', async ({ page }) => {
+    // Search for YOLO node (handles P&ID via model_type parameter)
+    const yolo = page.locator('text=/^YOLO/');
     // Scroll palette if needed
     await page.evaluate(() => {
       const palette = document.querySelector('[class*="overflow-y-auto"]');
       if (palette) palette.scrollTop = 200;
     });
-    await expect(yoloPid.first()).toBeVisible({ timeout: 10000 });
+    await expect(yolo.first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should display P&ID Analyzer node', async ({ page }) => {
@@ -103,11 +103,12 @@ test.describe('P&ID Guide Section', () => {
     await page.waitForTimeout(500);
 
     // Check for P&ID-related API mentions (in h4 headings)
-    const yoloPidMention = page.locator('h4:has-text("YOLO-PID")');
+    // YOLO P&ID mode or Line Detector should be mentioned
+    const yoloPidModeMention = page.locator('h4:has-text("YOLO P&ID")');
     const lineDetectorMention = page.locator('h4:has-text("Line Detector")');
 
     // At least one should be visible
-    const pidMention = yoloPidMention.or(lineDetectorMention);
+    const pidMention = yoloPidModeMention.or(lineDetectorMention);
     await expect(pidMention.first()).toBeVisible({ timeout: 10000 });
   });
 });
@@ -127,10 +128,10 @@ test.describe('P&ID Node Categories', () => {
     await expect(lineDetectorNode.first()).toBeVisible();
   });
 
-  test('YOLO-PID should be in Detection category', async ({ page }) => {
-    // Check that YOLO-PID is associated with Detection
-    const yoloPidNode = page.locator('text=YOLO-PID');
-    await expect(yoloPidNode.first()).toBeVisible();
+  test('YOLO should be in Detection category', async ({ page }) => {
+    // Check that YOLO is associated with Detection (handles P&ID via model_type)
+    const yoloNode = page.locator('text=/^YOLO/');
+    await expect(yoloNode.first()).toBeVisible();
   });
 
   test('P&ID Analyzer should be in Analysis category', async ({ page }) => {

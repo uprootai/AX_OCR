@@ -152,7 +152,7 @@ print(response.json())
 
 ### P&ID 전체 분석
 ```
-ImageInput → YOLO-PID → Line Detector → PID Analyzer → Design Checker
+ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analyzer → Design Checker
 ```
 
 ### 라인만 검출

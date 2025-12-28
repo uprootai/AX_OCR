@@ -19,15 +19,15 @@ export type NodeCategory =
   | 'control';
 
 export interface APIDefinition {
-  /** API ID (언더스코어 형식, 예: yolo_pid) */
+  /** API ID (언더스코어 형식, 예: ocr_ensemble) */
   id: string;
-  /** 노드 타입 ID (언더스코어 없음, 예: yolopid) */
+  /** 노드 타입 ID (언더스코어 없음, 예: paddleocr) */
   nodeType: string;
   /** 표시 이름 */
   displayName: string;
   /** Docker 컨테이너 이름 */
   containerName: string;
-  /** API 스펙 파일 ID (하이픈 형식, 예: yolo-pid) */
+  /** API 스펙 파일 ID (하이픈 형식, 예: ocr-ensemble) */
   specId: string;
   /** 포트 번호 */
   port: number;
@@ -74,19 +74,6 @@ export const API_REGISTRY: APIDefinition[] = [
     category: 'detection',
     description: '14가지 도면 심볼 검출',
     icon: '🎯',
-    color: '#ef4444',
-    gpuEnabled: true,
-  },
-  {
-    id: 'yolo_pid',
-    nodeType: 'yolopid',
-    displayName: 'YOLO-PID',
-    containerName: 'yolo-pid-api',
-    specId: 'yolo-pid',
-    port: 5017,
-    category: 'detection',
-    description: 'P&ID 심볼 검출 (60종)',
-    icon: '🔧',
     color: '#ef4444',
     gpuEnabled: true,
   },

@@ -174,7 +174,7 @@ export function GuidePage() {
       },
       workflow: [
         '도면 업로드',
-        'P&ID 심볼 검출 (YOLO-PID 60클래스)',
+        'P&ID 심볼 검출 (YOLO P&ID 모드)',
         '연결선 검출 및 분석',
         '심볼-배관 연결 관계 추출',
         '검증 및 BOM 생성',

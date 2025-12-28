@@ -224,7 +224,6 @@ export default function Guide() {
 
     subgraph Detection["🎯 Detection"]
         YOLO[YOLO :5005]
-        YOLOPID[YOLO-PID :5017]
     end
 
     subgraph OCR["📝 OCR"]
@@ -376,13 +375,13 @@ export default function Guide() {
                       </div>
                       <div className="p-4 border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-bold text-emerald-900 dark:text-emerald-100">YOLO-PID (포트 5017)</h4>
-                          <Badge className="bg-emerald-600 text-xs">P&ID</Badge>
+                          <h4 className="font-bold text-emerald-900 dark:text-emerald-100">YOLO P&ID 모드</h4>
+                          <Badge className="bg-emerald-600 text-xs">model_type</Badge>
                         </div>
-                        <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-2">P&ID 도면 60종 심볼 검출</p>
+                        <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-2">YOLO에서 model_type=pid_class_aware로 P&ID 심볼 검출</p>
                         <ul className="text-xs space-y-1 text-emerald-700 dark:text-emerald-300">
                           <li><strong>• 검출 대상:</strong> 밸브 15종, 펌프 5종, 계기 20종 등</li>
-                          <li><strong>• 특징:</strong> ISO 10628, ISA 5.1 표준 심볼</li>
+                          <li><strong>• 설정:</strong> model_type: pid_class_aware/pid_class_agnostic</li>
                         </ul>
                       </div>
                     </div>
@@ -1144,7 +1143,7 @@ def test_process():
                       <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded">
                         <strong>P&ID 분석</strong>
                         <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                          <li>• YOLO-PID, LineDetector</li>
+                          <li>• YOLO (P&ID 모드), LineDetector</li>
                           <li>• PID Analyzer</li>
                           <li>• Design Checker</li>
                         </ul>

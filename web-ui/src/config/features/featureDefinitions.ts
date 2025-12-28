@@ -235,11 +235,39 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     hint: 'PID Analyzer 노드 추천',
     description:
       'P&ID(배관계장도) 도면에서 기기 간 연결 관계를 분석합니다. 밸브, 펌프, 탱크 등의 연결 토폴로지를 추출합니다.',
-    recommendedNodes: ['pid-analyzer', 'line-detector', 'yolo-pid'],
+    recommendedNodes: ['pid-analyzer', 'line-detector', 'yolo'],
     badgeBgClass: 'bg-rose-100 dark:bg-rose-900/30',
     badgeTextClass: 'text-rose-700 dark:text-rose-300',
     implementationStatus: 'implemented',
     implementationLocation: 'line_router.py (connectivity analysis)',
+  },
+  industry_equipment_detection: {
+    key: 'industry_equipment_detection',
+    icon: '🏭',
+    label: '장비 태그 인식',
+    group: FEATURE_GROUPS.PID,
+    hint: 'OCR + 패턴 매칭',
+    description:
+      'P&ID 도면에서 산업별 장비 태그(예: ECU-001, FMU-002, PUMP-101 등)를 OCR과 정규식 패턴 매칭으로 자동 인식합니다. 장비 프로파일을 선택하여 다양한 산업 분야에 적용 가능합니다.',
+    recommendedNodes: ['pid-analyzer', 'ocr-ensemble'],
+    badgeBgClass: 'bg-rose-100 dark:bg-rose-900/30',
+    badgeTextClass: 'text-rose-700 dark:text-rose-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'pid-analyzer-api/equipment_analyzer.py',
+  },
+  equipment_list_export: {
+    key: 'equipment_list_export',
+    icon: '📑',
+    label: '장비 목록 내보내기',
+    group: FEATURE_GROUPS.PID,
+    hint: 'Excel 출력',
+    description:
+      '인식된 장비 태그를 정리하여 Equipment List Excel 파일로 내보냅니다. 태그, 타입, 설명, 수량 등을 포함한 표준 형식으로 출력됩니다.',
+    recommendedNodes: ['pid-analyzer'],
+    badgeBgClass: 'bg-rose-100 dark:bg-rose-900/30',
+    badgeTextClass: 'text-rose-700 dark:text-rose-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'pid-analyzer-api/equipment_analyzer.py',
   },
 
   // === BOM 생성 ===

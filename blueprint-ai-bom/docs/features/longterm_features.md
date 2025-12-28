@@ -612,7 +612,7 @@ VLM 분류 결과에 따라 최적의 분석 파이프라인이 자동 추천됩
 | 도면 타입 | 추천 노드 | 주요 설정 |
 |----------|----------|----------|
 | mechanical_part | YOLO + eDOCr2 + SkinModel | tolerance_analysis 활성화 |
-| pid | YOLO-PID + Line Detector + PID Analyzer | connectivity 활성화 |
+| pid | YOLO (P&ID) + Line Detector + PID Analyzer | connectivity 활성화 |
 | assembly | YOLO + eDOCr2 + VL | part_matching 활성화 |
 | electrical | YOLO + OCR Ensemble | circuit_analysis 활성화 |
 | architectural | EDGNet + OCR Ensemble | floor_plan_analysis 활성화 |

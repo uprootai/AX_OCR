@@ -401,7 +401,7 @@ name: "P&ID 배관계장도"
 description: "심볼, 연결, 태그 분석"
 
 auto_enable:
-  - yolo_pid         # P&ID 심볼 검출
+  - yolo             # P&ID 심볼 검출 (model_type=pid_class_aware)
   - line_detector    # 배관선 검출
   - paddleocr        # 태그 번호 OCR
   - pid_analyzer     # 연결성 분석

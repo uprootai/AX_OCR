@@ -18,7 +18,7 @@
 
 ### 파이프라인 구성
 ```
-ImageInput → YOLO → YOLO-PID → Line Detector → eDOCr2 → SkinModel → PID Analyzer → Design Checker → Merge
+ImageInput → YOLO → YOLO (P&ID 모드) → Line Detector → eDOCr2 → SkinModel → PID Analyzer → Design Checker → Merge
 ```
 
 ### 결과 요약
@@ -34,7 +34,7 @@ ImageInput → YOLO → YOLO-PID → Line Detector → eDOCr2 → SkinModel → 
 | 노드 | 결과 | 비고 |
 |------|------|------|
 | YOLO | 13 objects | text_block(6), linear_dim(3), flatness(1) 등 |
-| YOLO-PID | 1 symbol | symbol_74 (42% 신뢰도) - 기계도면이라 P&ID 심볼 거의 없음 |
+| YOLO (P&ID) | 1 symbol | symbol_74 (42% 신뢰도) - 기계도면이라 P&ID 심볼 거의 없음 |
 | Line Detector | 0 lines | P&ID 전용 - 기계도면에서는 검출 안됨 |
 | eDOCr2 | 15 dimensions | linear(12) + text_dimension(3) |
 | SkinModel | 4 tolerances | flatness: 0.024, cylindricity: 0.036 등 |
@@ -43,10 +43,10 @@ ImageInput → YOLO → YOLO-PID → Line Detector → eDOCr2 → SkinModel → 
 
 ### 인사이트
 
-1. **YOLO vs YOLO-PID 비교**
-   - YOLO: 기계 도면 심볼 (치수, 텍스트 블록, GD&T) 검출에 최적화
-   - YOLO-PID: P&ID 심볼 (밸브, 펌프, 계기) 검출에 최적화
-   - 기계 도면에서 YOLO-PID 사용 시 의미있는 결과 없음
+1. **YOLO model_type별 비교**
+   - YOLO (engineering): 기계 도면 심볼 (치수, 텍스트 블록, GD&T) 검출에 최적화
+   - YOLO (pid_class_aware): P&ID 심볼 (밸브, 펌프, 계기) 검출에 최적화
+   - 기계 도면에서 P&ID 모드 사용 시 의미있는 결과 없음
 
 2. **OCR 품질 이슈**
    - 일부 치수가 잘못 인식됨 (`:9`, `(2::9:)` 등)
@@ -63,10 +63,10 @@ ImageInput → YOLO → YOLO-PID → Line Detector → eDOCr2 → SkinModel → 
 
 ### 파이프라인 구성
 ```
-ImageInput ─┬→ YOLO (일반, 0.35) ──┬→ Merge
-            ├→ YOLO (고신뢰, 0.5) ─┤
-            ├→ YOLO-PID (640px) ───┤
-            └→ YOLO-PID (1280px) ──┘
+ImageInput ─┬→ YOLO (engineering, 0.35) ────┬→ Merge
+            ├→ YOLO (engineering, 0.5) ─────┤
+            ├→ YOLO (pid_class_aware, 640) ─┤
+            └→ YOLO (pid_class_aware, 1280) ┘
 ```
 
 ### 결과 요약
@@ -82,10 +82,10 @@ ImageInput ─┬→ YOLO (일반, 0.35) ──┬→ Merge
 
 | 노드 | confidence | imgsz | 검출 수 | 최고 신뢰도 |
 |------|------------|-------|---------|-------------|
-| YOLO (일반) | 0.35 | 1280 | **28** | 93.0% |
-| YOLO (고신뢰) | 0.50 | 1280 | **19** | 93.0% |
-| YOLO-PID (P&ID) | 0.25 | 640 | **1** | 68.9% |
-| YOLO-PID (고해상도) | 0.25 | 1280 | **1** | 41.9% |
+| YOLO (engineering) | 0.35 | 1280 | **28** | 93.0% |
+| YOLO (engineering, 고신뢰) | 0.50 | 1280 | **19** | 93.0% |
+| YOLO (P&ID) | 0.25 | 640 | **1** | 68.9% |
+| YOLO (P&ID, 고해상도) | 0.25 | 1280 | **1** | 41.9% |
 
 ### 검출된 심볼 분포 (YOLO)
 
@@ -105,10 +105,10 @@ ImageInput ─┬→ YOLO (일반, 0.35) ──┬→ Merge
 
 ### 인사이트
 
-1. **YOLO vs YOLO-PID 성능 차이**
-   - 기계 도면에서 YOLO: 28개 검출
-   - 기계 도면에서 YOLO-PID: 1개 검출 (symbol_74)
-   - **결론**: 도면 유형에 맞는 모델 선택 필수
+1. **YOLO model_type별 성능 차이**
+   - 기계 도면에서 YOLO (engineering): 28개 검출
+   - 기계 도면에서 YOLO (pid_class_aware): 1개 검출 (symbol_74)
+   - **결론**: 도면 유형에 맞는 model_type 선택 필수
 
 2. **Confidence Threshold 효과**
    - 0.35 → 28개 검출
@@ -117,8 +117,8 @@ ImageInput ─┬→ YOLO (일반, 0.35) ──┬→ Merge
    - 높은 threshold: 정밀한 검출, 누락 가능성 증가
 
 3. **imgsz (이미지 해상도) 효과**
-   - YOLO-PID 640px: 68.9% 신뢰도
-   - YOLO-PID 1280px: 41.9% 신뢰도
+   - YOLO P&ID 640px: 68.9% 신뢰도
+   - YOLO P&ID 1280px: 41.9% 신뢰도
    - **주의**: 고해상도가 항상 좋은 것은 아님
    - 모델 학습 해상도와 일치할 때 최적 성능
 
@@ -183,7 +183,7 @@ ImageInput → ESRGAN → YOLO → eDOCr2 → SkinModel
 
 ### P&ID 분석
 ```
-ImageInput → YOLO-PID → Line Detector → PID Analyzer → Design Checker
+ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analyzer → Design Checker
 ```
 - 심볼/라인 검출 및 연결성 분석
 
@@ -213,7 +213,7 @@ ImageInput → [eDOCr2, PaddleOCR, Tesseract, TrOCR, ...] → Merge
 | Basic Drawing Analysis | 기본 도면 분석 | 기계 도면 |
 | Full OCR Benchmark | OCR 엔진 비교 | 텍스트 많은 도면 |
 | P&ID Analysis Pipeline | P&ID 완전 분석 | P&ID 도면 |
-| Detection Benchmark | YOLO vs YOLO-PID 비교 | 모든 도면 |
+| Detection Benchmark | YOLO model_type 비교 | 모든 도면 |
 | Segmentation Benchmark | 엣지/라인 검출 비교 | P&ID 도면 |
 | Analysis Benchmark | 분석 엔진 비교 | 모든 도면 |
 

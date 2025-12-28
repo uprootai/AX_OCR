@@ -212,7 +212,7 @@
     "fullOCRBenchmarkDesc": "8개 OCR 엔진 전체를 한 번에 실행하여 결과를 나란히 비교합니다. eDOCr2, PaddleOCR, Tesseract, TrOCR, Surya, DocTR, EasyOCR, Ensemble 모두 포함.",
     "fullOCRBenchmarkUseCase": "새로운 도면 유형에 최적의 OCR을 찾을 때, 엔진별 성능 벤치마킹이 필요할 때, 어떤 OCR이 특정 도면에 가장 적합한지 평가할 때 사용하세요.",
     "detectionBenchmark": "검출 모델 벤치마크",
-    "detectionBenchmarkDesc": "YOLO (일반 심볼) vs YOLO-PID (P&ID 특화) 검출 성능을 다양한 설정으로 비교합니다.",
+    "detectionBenchmarkDesc": "YOLO 모델의 다양한 설정 (model_type, 신뢰도, 해상도)으로 검출 성능을 비교합니다.",
     "detectionBenchmarkUseCase": "일반 도면과 P&ID 도면에서 최적의 검출 모델을 선택할 때, 신뢰도와 해상도 설정별 성능 차이를 평가할 때 사용하세요.",
     "segmentationBenchmark": "세그멘테이션 벤치마크",
     "segmentationBenchmarkDesc": "EDGNet (엣지 세그멘테이션) vs Line Detector (라인 검출)를 LSD/Hough 방법으로 비교합니다.",

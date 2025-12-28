@@ -8,7 +8,7 @@
 
 ## 1. 현재 모델 및 파라미터 분석
 
-### 1.1 YOLO-PID (심볼 검출)
+### 1.1 YOLO P&ID 모드 (심볼 검출)
 
 | 항목 | 값 | 비고 |
 |------|-----|------|
@@ -49,7 +49,7 @@
 
 | 노드 | 검출 수 | 소요 시간 | 문제점 |
 |------|---------|----------|--------|
-| **YOLO-PID** | 144개 심볼 | 15초 | 일부 중복 검출 |
+| **YOLO (P&ID)** | 144개 심볼 | 15초 | 일부 중복 검출 |
 | **Line Detector** | 1958개 라인 | 317초 (5분) | ⚠️ 과다 검출 |
 | **PID Analyzer** | 141개 연결 | 150초 | 대용량 데이터 처리 |
 
@@ -71,7 +71,7 @@
 
 ## 3. 최적화 권장사항
 
-### 3.1 YOLO-PID 파라미터 조정
+### 3.1 YOLO P&ID 모드 파라미터 조정
 
 | 파라미터 | 현재 | 권장 (빠름) | 권장 (정밀) |
 |----------|------|-------------|-------------|
@@ -113,7 +113,7 @@ def exclude_border_lines(lines, width, height, margin_ratio=0.05):
 
 | 최적화 | 현재 | 최적화 후 | 시간 절감 |
 |--------|------|----------|----------|
-| YOLO-PID (conf 0.35) | 144개/15초 | ~100개/12초 | 20% |
+| YOLO P&ID (conf 0.35) | 144개/15초 | ~100개/12초 | 20% |
 | Line Detector (min_len 30) | 1958개/317초 | ~500개/100초 | **68%** |
 | PID Analyzer | 141개/150초 | ~100개/50초 | 66% |
 | **총 시간** | **483초** | **~170초** | **65%** |
@@ -126,7 +126,8 @@ def exclude_border_lines(lines, width, height, margin_ratio=0.05):
 
 ```json
 {
-  "yolopid": {
+  "yolo": {
+    "model_type": "pid_class_aware",
     "confidence": 0.40,
     "slice_height": 768,
     "slice_width": 768,
@@ -145,7 +146,8 @@ def exclude_border_lines(lines, width, height, margin_ratio=0.05):
 
 ```json
 {
-  "yolopid": {
+  "yolo": {
+    "model_type": "pid_class_aware",
     "confidence": 0.15,
     "slice_height": 256,
     "slice_width": 256,
@@ -164,7 +166,7 @@ def exclude_border_lines(lines, width, height, margin_ratio=0.05):
 
 ## 5. 모델 학습 데이터 정보
 
-### 5.1 YOLO-PID 모델
+### 5.1 YOLO P&ID 모드 모델
 
 | 항목 | 정보 |
 |------|------|
@@ -183,7 +185,7 @@ def exclude_border_lines(lines, width, height, margin_ratio=0.05):
 ## 6. 향후 개선 방향
 
 ### 6.1 단기 (파라미터 조정)
-- [ ] YOLO-PID 신뢰도 0.30-0.40으로 상향
+- [ ] YOLO P&ID 신뢰도 0.30-0.40으로 상향
 - [ ] Line Detector에 `min_length` 파라미터 추가
 - [ ] 템플릿에 "빠른 분석" / "정밀 분석" 옵션 추가
 

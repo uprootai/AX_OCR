@@ -657,7 +657,7 @@ async def get_info():
             "icon": "ShieldCheck"
         },
         "inputs": [
-            {"name": "symbols", "type": "object[]", "required": True, "description": "심볼 목록 (YOLO-PID 출력)"},
+            {"name": "symbols", "type": "object[]", "required": True, "description": "심볼 목록 (YOLO 출력, model_type=pid_class_aware)"},
             {"name": "connections", "type": "object[]", "required": True, "description": "연결 정보 (PID-Analyzer 출력)"}
         ],
         "outputs": [
@@ -717,7 +717,7 @@ async def check_design(
     """
     설계 검증 실행
 
-    symbols와 connections는 이전 단계 API(YOLO-PID, PID-Analyzer)의 출력을 사용
+    symbols와 connections는 이전 단계 API(YOLO, PID-Analyzer)의 출력을 사용
     """
     start_time = time.time()
 

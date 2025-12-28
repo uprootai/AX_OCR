@@ -74,9 +74,9 @@ class APIRegistry:
         # YAML 스펙 ID와 API의 /api/v1/info 반환 ID 모두 매핑
         self.docker_host_mapping = {
             # YOLO - YAML: yolo, API info: yolo-detector
+            # YOLO handles P&ID detection via model_type parameter (no separate yolo-pid-api)
             "yolo": "yolo-api",
             "yolo-detector": "yolo-api",
-            "yolo-pid": "yolo-pid-api",
             # eDOCr2 - YAML: edocr2, API info: edocr2-v2
             "edocr2": "edocr2-v2-api",
             "edocr2-v2": "edocr2-v2-api",

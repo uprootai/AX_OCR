@@ -1,7 +1,7 @@
 # 🔌 API Documentation
 
-**Complete guide for all 18 APIs**
-> **최종 업데이트**: 2025-12-24 | **상태**: 18/18 healthy (100%)
+**Complete guide for all 17 APIs**
+> **최종 업데이트**: 2025-12-28 | **상태**: 17/17 healthy (100%)
 
 ---
 
@@ -10,8 +10,7 @@
 ### Detection
 | API | Port | Purpose | Status | Docs |
 |-----|------|---------|--------|------|
-| **YOLO** | 5005 | Object detection (14 symbol classes) | ✅ | [yolo/](yolo/) |
-| **YOLO-PID** | 5017 | P&ID symbol detection (60 classes) | ✅ | [yolo-pid/](yolo-pid/) |
+| **YOLO** | 5005 | Object detection (model_type으로 P&ID 지원) | ✅ | [yolo/](yolo/) |
 
 ### OCR
 | API | Port | Purpose | Status | Docs |
@@ -114,10 +113,10 @@ Each API directory contains:
 
 ---
 
-**Total APIs**: 18 (all healthy)
+**Total APIs**: 17 (all healthy)
 **Total Parameters Across All APIs**: 50+ parameters
 **Average Parameters Per API**: 4-6 parameters
 
 **See**: [../00_INDEX.md](../00_INDEX.md) for complete documentation map
 
-**Last Updated**: 2025-12-24
+**Last Updated**: 2025-12-28

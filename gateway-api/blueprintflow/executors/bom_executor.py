@@ -31,7 +31,7 @@ class BOMExecutor(BaseNodeExecutor):
         BOM 세션 생성 및 검증 UI 열기
 
         이 노드는 자체적으로 검출을 수행하지 않습니다.
-        반드시 YOLO 또는 YOLO-PID 노드에서 detections를 받아야 합니다.
+        반드시 YOLO 노드에서 detections를 받아야 합니다.
         세션 생성 후 검증 UI URL을 반환합니다.
 
         Args:

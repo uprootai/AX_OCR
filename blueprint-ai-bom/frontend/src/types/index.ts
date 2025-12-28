@@ -19,7 +19,7 @@ export type DrawingType =
   // 주요 타입 (빌더 동기화)
   | 'dimension'          // 치수 도면 (shaft, 플랜지) - OCR만 사용
   | 'electrical_panel'   // 전기 제어판 (MCP Panel) - YOLO 14클래스
-  | 'pid'                // P&ID (배관계장도) - YOLO-PID 60클래스
+  | 'pid'                // P&ID (배관계장도) - YOLO (model_type=pid_class_aware)
   | 'assembly'           // 조립도 - YOLO + eDOCr2
   | 'dimension_bom'      // 치수 + BOM - OCR + 수동 라벨링
   // 레거시 타입 (하위 호환)

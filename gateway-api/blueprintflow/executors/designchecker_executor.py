@@ -20,7 +20,7 @@ class DesignCheckerExecutor(BaseNodeExecutor):
         설계 검증 실행
 
         Inputs (이전 노드 출력에서 받음):
-            - symbols: YOLO-PID 검출 결과
+            - symbols: YOLO 검출 결과 (model_type=pid_class_aware)
             - connections: PID Analyzer 연결 분석 결과
             - lines: Line Detector 결과 (optional)
 
@@ -79,10 +79,10 @@ class DesignCheckerExecutor(BaseNodeExecutor):
                 f"📊 symbols 개수: {len(symbols)}\n"
                 f"📊 connections 개수: {len(connections)}\n\n"
                 "📋 필요한 입력:\n"
-                "  • symbols: YOLO-PID 노드의 검출 결과\n"
+                "  • symbols: YOLO 노드의 검출 결과 (model_type=pid_class_aware)\n"
                 "  • connections: P&ID Analyzer의 연결 분석 결과\n\n"
                 "⚠️ 파이프라인 연결을 확인하세요:\n"
-                "   1. YOLO-PID 또는 PID Analyzer가 Design Checker에 연결되어야 합니다.\n"
+                "   1. YOLO 또는 PID Analyzer가 Design Checker에 연결되어야 합니다.\n"
                 "   2. 순차 파이프라인에서는 Line Detector가 detections를 전달해야 합니다."
             )
 
@@ -107,7 +107,7 @@ class DesignCheckerExecutor(BaseNodeExecutor):
                 "checked_at": "",
                 "filters_applied": {},
                 "processing_time": 0,
-                "note": "YOLO-PID가 P&ID 심볼을 검출하지 못했습니다. 입력 이미지가 P&ID 도면인지 확인하세요."
+                "note": "YOLO가 P&ID 심볼을 검출하지 못했습니다. 입력 이미지가 P&ID 도면인지 확인하세요."
             }
 
         # 파라미터 추출
@@ -185,7 +185,7 @@ class DesignCheckerExecutor(BaseNodeExecutor):
             "properties": {
                 "symbols": {
                     "type": "array",
-                    "description": "YOLO-PID 검출 결과"
+                    "description": "YOLO 검출 결과 (model_type=pid_class_aware)"
                 },
                 "connections": {
                     "type": "array",

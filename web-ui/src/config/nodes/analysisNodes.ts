@@ -101,7 +101,7 @@ export const analysisNodes: Record<string, NodeDefinition> = {
       {
         name: 'symbols',
         type: 'PIDSymbol[]',
-        description: '🔧 YOLO-PID가 검출한 심볼 목록',
+        description: '🔧 YOLO가 검출한 심볼 목록 (model_type=pid_symbol)',
       },
       {
         name: 'lines',
@@ -129,6 +129,11 @@ export const analysisNodes: Record<string, NodeDefinition> = {
         name: 'equipment_list',
         type: 'Equipment[]',
         description: '⚙️ 장비 목록',
+      },
+      {
+        name: 'detected_equipment_tags',
+        type: 'EquipmentTag[]',
+        description: '🏭 산업별 장비 태그 (프로파일 기반 검출)',
       },
     ],
     parameters: [
@@ -173,6 +178,26 @@ export const analysisNodes: Record<string, NodeDefinition> = {
         description: '⚙️ 장비 리스트 생성',
       },
       {
+        name: 'detect_equipment_tags',
+        type: 'boolean',
+        default: false,
+        description: '🏭 OCR 기반 산업별 장비 태그 인식 (프로파일 선택 필요)',
+      },
+      {
+        name: 'equipment_profile',
+        type: 'select',
+        default: 'bwms',
+        options: ['bwms', 'hvac', 'process'],
+        description:
+          '장비 프로파일: bwms(선박 평형수 처리), hvac(공조), process(일반 공정)',
+      },
+      {
+        name: 'export_equipment_excel',
+        type: 'boolean',
+        default: false,
+        description: '📑 검출된 장비 목록을 Excel로 내보내기',
+      },
+      {
         name: 'visualize',
         type: 'boolean',
         default: true,
@@ -180,14 +205,15 @@ export const analysisNodes: Record<string, NodeDefinition> = {
       },
     ],
     examples: [
-      'YOLO-PID + Line Detector → PID Analyzer → BOM 생성',
+      'YOLO (P&ID 모델) + Line Detector → PID Analyzer → BOM 생성',
       'PID Analyzer → Design Checker → 설계 오류 검출',
     ],
     usageTips: [
-      '⭐ YOLO-PID와 Line Detector의 결과를 함께 입력해야 정확한 분석이 가능합니다',
+      '⭐ YOLO (P&ID 모델)와 Line Detector의 결과를 함께 입력해야 정확한 분석이 가능합니다',
       '💡 BOM 생성으로 도면에서 부품 목록을 자동 추출합니다',
       '💡 밸브 시그널 리스트로 제어 시스템 연동 정보를 추출합니다',
       '💡 Design Checker와 연결하여 설계 오류를 자동 검출할 수 있습니다',
+      '🏭 detect_equipment_tags로 산업별 장비 태그를 인식합니다 (BWMS, HVAC, 공정 프로파일 지원)',
     ],
     recommendedInputs: [
       {
@@ -256,7 +282,7 @@ export const analysisNodes: Record<string, NodeDefinition> = {
     ],
     examples: [
       'PID Analyzer → Design Checker → 설계 오류 리포트',
-      'YOLO-PID → Design Checker → 심볼 규격 검증',
+      'YOLO (P&ID 모델) → Design Checker → 심볼 규격 검증',
     ],
     usageTips: [
       '⭐ 20+ 설계 규칙을 자동으로 검사합니다 (연결, 심볼, 라벨링, 사양, 표준, 안전)',

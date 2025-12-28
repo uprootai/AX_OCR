@@ -3,9 +3,9 @@ import { test, expect, Page } from '@playwright/test';
 /**
  * BlueprintFlow Node Comprehensive Test
  *
- * Tests all 20 nodes across 9 categories:
+ * Tests all 19 nodes across 9 categories:
  * - Input (2): ImageInput, TextInput
- * - Detection (2): YOLO, YOLO-PID
+ * - Detection (1): YOLO (handles P&ID via model_type)
  * - Segmentation (2): Line Detector, EDGNet
  * - OCR (5): eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble
  * - Analysis (3): SkinModel, P&ID Analyzer, Design Checker
@@ -95,11 +95,6 @@ test.describe('Phase 1: Node Palette Visibility', () => {
       await expect(node).toBeVisible({ timeout: 5000 });
     });
 
-    test('should display YOLO-PID node', async ({ page }) => {
-      await scrollPaletteToNode(page, 'YOLO-PID');
-      const node = page.locator('text=YOLO-PID');
-      await expect(node.first()).toBeVisible({ timeout: 5000 });
-    });
   });
 
   // Segmentation Nodes (2)
@@ -463,15 +458,15 @@ test.describe('Phase 4: Node Handles', () => {
 // ==========================================
 
 test.describe('Node Count Summary', () => {
-  test('should have exactly 20 unique nodes available', async ({ page }) => {
+  test('should have exactly 19 unique nodes available', async ({ page }) => {
     await page.goto('/blueprintflow/builder');
     await expect(page.locator('text=Node Palette')).toBeVisible({ timeout: 10000 });
 
     const expectedNodes = [
       // Input (2)
       'Image Input', 'Text Input',
-      // Detection (2)
-      'YOLO', 'YOLO-PID',
+      // Detection (1) - YOLO handles P&ID via model_type
+      'YOLO',
       // Segmentation (2)
       'Line Detector', 'EDGNet',
       // OCR (5)

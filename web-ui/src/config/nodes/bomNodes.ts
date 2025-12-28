@@ -27,7 +27,7 @@ export const bomNodes: Record<string, NodeDefinition> = {
       {
         name: 'detections',
         type: 'DetectionResult[]',
-        description: '🎯 검출 결과 (YOLO 또는 YOLO-PID 노드 연결 필요)',
+        description: '🎯 검출 결과 (YOLO 노드 연결 필요)',
       },
     ],
     outputs: [
@@ -76,10 +76,10 @@ export const bomNodes: Record<string, NodeDefinition> = {
     ],
     examples: [
       '기계 부품도: ImageInput → YOLO → AI BOM → 검증 UI',
-      'P&ID 도면: ImageInput → YOLO-PID → AI BOM → 검증 UI',
+      'P&ID 도면: ImageInput → YOLO (P&ID 모델) → AI BOM → 검증 UI',
     ],
     usageTips: [
-      '⭐ 검출 노드 연결 필수 (YOLO 또는 YOLO-PID)',
+      '⭐ 검출 노드 연결 필수 (YOLO)',
       '📐 도면 타입은 ImageInput에서 먼저 선택하세요',
       '💡 세션 생성 후 검증 UI(localhost:3000)에서 BOM 생성',
     ],
@@ -87,12 +87,7 @@ export const bomNodes: Record<string, NodeDefinition> = {
       {
         from: 'yolo',
         field: 'detections',
-        reason: '기계 부품도 검출 결과를 BOM 검증 입력으로 사용합니다',
-      },
-      {
-        from: 'yolo-pid',
-        field: 'detections',
-        reason: 'P&ID 도면 검출 결과를 BOM 검증 입력으로 사용합니다',
+        reason: '검출 결과를 BOM 검증 입력으로 사용합니다 (model_type으로 도면 타입 선택)',
       },
       {
         from: 'imageinput',

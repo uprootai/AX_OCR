@@ -55,7 +55,6 @@ class TestExecutorRegistry:
         """P&ID 분석 실행기가 등록되어 있어야 함"""
         pid_executors = [
             'linedetector',
-            'yolopid',
             'pidanalyzer',
             'designchecker',
         ]

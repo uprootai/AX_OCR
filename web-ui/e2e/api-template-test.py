@@ -55,15 +55,15 @@ TEMPLATES = [
             "name": "P&ID Analysis Pipeline",
             "nodes": [
                 {"id": "imageinput_1", "type": "imageinput", "label": "P&ID Input", "parameters": {}},
-                {"id": "yolopid_1", "type": "yolopid", "label": "YOLO-PID", "parameters": {"confidence": 0.25}},
+                {"id": "yolo_1", "type": "yolo", "label": "YOLO P&ID", "parameters": {"model_type": "pid_class_aware", "confidence": 0.25, "use_sahi": True}},
                 {"id": "linedetector_1", "type": "linedetector", "label": "Line Detector", "parameters": {"method": "lsd"}},
                 {"id": "pidanalyzer_1", "type": "pidanalyzer", "label": "PID Analyzer", "parameters": {"generate_bom": True}},
                 {"id": "designchecker_1", "type": "designchecker", "label": "Design Checker", "parameters": {"severity_threshold": "warning"}}
             ],
             "edges": [
-                {"id": "e1", "source": "imageinput_1", "target": "yolopid_1"},
+                {"id": "e1", "source": "imageinput_1", "target": "yolo_1"},
                 {"id": "e2", "source": "imageinput_1", "target": "linedetector_1"},
-                {"id": "e3", "source": "yolopid_1", "target": "pidanalyzer_1"},
+                {"id": "e3", "source": "yolo_1", "target": "pidanalyzer_1"},
                 {"id": "e4", "source": "linedetector_1", "target": "pidanalyzer_1"},
                 {"id": "e5", "source": "pidanalyzer_1", "target": "designchecker_1"}
             ]

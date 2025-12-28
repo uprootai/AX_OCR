@@ -1,6 +1,6 @@
 # API Reference
 
-> **AX 도면 분석 시스템 - 19개 API 완전 가이드**
+> **AX 도면 분석 시스템 - 18개 API 완전 가이드**
 
 ---
 
@@ -10,8 +10,7 @@
 
 | API | 포트 | 용도 | 상태 | GPU |
 |-----|------|------|------|-----|
-| **YOLO** | 5005 | 기계 도면 심볼/치수 검출 (14종) | ✅ 운영 | 필수 |
-| **YOLO-PID** | 5017 | P&ID 심볼 검출 (60종) | ✅ 운영 | 필수 |
+| **YOLO** | 5005 | 통합 검출 (model_type으로 P&ID 지원) | ✅ 운영 | 필수 |
 
 ### OCR (문자 인식)
 
@@ -70,7 +69,7 @@ ImageInput → YOLO → eDOCr2 → SkinModel
 
 ### P&ID 도면 분석
 ```
-ImageInput → YOLO-PID → Line Detector → PID Analyzer → Design Checker
+ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analyzer → Design Checker
 ```
 
 ### 저해상도 도면 개선
@@ -125,6 +124,6 @@ GET /api/v1/health
 
 ---
 
-**총 API 수**: 19개
+**총 API 수**: 18개
 **총 파라미터 수**: 50+개
-**마지막 업데이트**: 2025-12-09
+**마지막 업데이트**: 2025-12-28

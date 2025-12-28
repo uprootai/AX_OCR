@@ -20,7 +20,7 @@
 
 | # | 기능 ID | 기능명 | 설명 | 관련 노드 | 상태 |
 |---|---------|--------|------|-----------|------|
-| 1 | `symbol_detection` | 🎯 심볼 검출 | YOLO로 부품/심볼 위치 검출 | YOLO, YOLO-PID | ✅ 완료 |
+| 1 | `symbol_detection` | 🎯 심볼 검출 | YOLO로 부품/심볼 위치 검출 | YOLO (model_type) | ✅ 완료 |
 | 2 | `symbol_verification` | ✅ 심볼 검증 | 검출 결과 승인/거부/수정 | - (Human-in-the-Loop) | ✅ 완료 |
 | 3 | `dimension_ocr` | 📏 치수 OCR | 치수값 텍스트 인식 | eDOCr2, PaddleOCR | ✅ 완료 |
 | 4 | `dimension_verification` | ✅ 치수 검증 | OCR 결과 승인/거부/수정 | - (Human-in-the-Loop) | ✅ 완료 |
@@ -83,7 +83,7 @@
 **구현 상세**:
 ```
 1. Line Detector로 배관선 추출
-2. YOLO-PID로 기기/밸브 심볼 검출
+2. YOLO (P&ID 모드)로 기기/밸브 심볼 검출
 3. PID Analyzer로 연결 관계 분석
 4. 연결 그래프 시각화
 ```

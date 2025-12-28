@@ -70,7 +70,6 @@ const docStructure: DocFile[] = [
       { name: 'API Overview', path: '/docs/api/README.md', type: 'file' },
       // Detection
       { name: 'YOLO', path: '/docs/api/yolo/parameters.md', type: 'file' },
-      { name: 'YOLO-PID', path: '/docs/api/yolo-pid/parameters.md', type: 'file' },
       // OCR
       { name: 'eDOCr2', path: '/docs/api/edocr2/parameters.md', type: 'file' },
       { name: 'PaddleOCR', path: '/docs/api/paddleocr/parameters.md', type: 'file' },

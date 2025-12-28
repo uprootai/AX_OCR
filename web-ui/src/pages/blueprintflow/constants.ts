@@ -27,7 +27,6 @@ export const baseNodeTypes = {
 
   // Detection nodes
   yolo: YoloNode,
-  'yolo-pid': DynamicNode,
 
   // OCR nodes
   edocr2: Edocr2Node,
@@ -90,7 +89,7 @@ export const BLUEPRINT_SAMPLES: SampleFile[] = [
     id: 'sample-3',
     name: 'P&ID Diagram (Eastman)',
     path: '/samples/sample6_pid_diagram.png',
-    description: 'P&ID 공정도 - YOLO-PID, Line Detector, PID Analyzer 분석용',
+    description: 'P&ID 공정도 - YOLO (P&ID 모델), Line Detector, PID Analyzer 분석용',
     type: 'image'
   },
   {
@@ -126,7 +125,6 @@ export const getNodeColor = (nodeType: string | undefined): string => {
 
     // Detection - blue
     case 'yolo':
-    case 'yolo-pid':
       return '#3b82f6';
 
     // OCR - purple

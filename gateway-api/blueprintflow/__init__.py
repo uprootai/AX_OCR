@@ -38,7 +38,6 @@ from .executors import (
     suryaocr_executor,
     # P&ID Analysis Executors
     linedetector_executor,
-    yolopid_executor,
     pidanalyzer_executor,
     designchecker_executor,
     # BOM Executor

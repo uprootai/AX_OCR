@@ -32,9 +32,9 @@ class LineDetectorExecutor(BaseNodeExecutor):
             - intersections: 교차점 목록
             - statistics: 통계
             - visualization: 시각화 이미지 (base64)
-            - detections: 이전 노드(YOLO-PID)에서 전달받은 심볼 검출 결과 (패스스루)
+            - detections: 이전 노드(YOLO)에서 전달받은 심볼 검출 결과 (패스스루)
         """
-        # 이전 노드에서 전달받은 detections 보존 (YOLO-PID → Line Detector → PID Analyzer 순차 파이프라인 지원)
+        # 이전 노드에서 전달받은 detections 보존 (YOLO → Line Detector → PID Analyzer 순차 파이프라인 지원)
         passthrough_detections = inputs.get("detections", [])
         passthrough_symbols = inputs.get("symbols", [])
 
@@ -98,7 +98,7 @@ class LineDetectorExecutor(BaseNodeExecutor):
             "method": data.get("method", method),
             "image_size": data.get("image_size", {}),
             "processing_time": result.get("processing_time", 0),
-            # 패스스루: 이전 노드(YOLO-PID)의 결과를 다음 노드(PID Analyzer)로 전달
+            # 패스스루: 이전 노드(YOLO)의 결과를 다음 노드(PID Analyzer)로 전달
             "detections": passthrough_detections,
             "symbols": passthrough_symbols,
         }
@@ -159,7 +159,7 @@ class LineDetectorExecutor(BaseNodeExecutor):
                 },
                 "detections": {
                     "type": "array",
-                    "description": "패스스루: 이전 노드(YOLO-PID)의 심볼 검출 결과"
+                    "description": "패스스루: 이전 노드(YOLO)의 심볼 검출 결과"
                 },
                 "symbols": {
                     "type": "array",

@@ -25,10 +25,10 @@ describe('nodeDefinitions', () => {
   // Additional OCR node types (3개)
   const additionalOCRNodes = ['suryaocr', 'doctr', 'easyocr'];
 
-  // P&ID Analysis node types (4개)
-  const pidAnalysisNodes = ['linedetector', 'yolopid', 'pidanalyzer', 'designchecker'];
+  // P&ID Analysis node types (3개)
+  const pidAnalysisNodes = ['linedetector', 'pidanalyzer', 'designchecker'];
 
-  // All required node types (총 23개)
+  // All required node types (총 22개)
   const requiredNodeTypes = [
     ...coreNodeTypes,
     ...additionalOCRNodes,
@@ -45,7 +45,7 @@ describe('nodeDefinitions', () => {
   it('should have valid categories for all nodes', () => {
     const validCategories = [
       'input', 'detection', 'ocr', 'segmentation',
-      'preprocessing', 'analysis', 'knowledge', 'ai', 'control'
+      'preprocessing', 'analysis', 'knowledge', 'ai', 'control', 'bom'
     ];
 
     Object.values(nodeDefinitions).forEach(node => {
@@ -98,7 +98,7 @@ describe('nodeDefinitions', () => {
       Object.values(nodeDefinitions).forEach(node => {
         node.parameters.forEach(param => {
           expect(param.name).toBeTruthy();
-          expect(['number', 'string', 'boolean', 'select', 'textarea']).toContain(param.type);
+          expect(['number', 'string', 'boolean', 'select', 'textarea', 'checkboxGroup']).toContain(param.type);
           expect(param.description).toBeTruthy();
           expect(param.default).toBeDefined();
         });
@@ -221,7 +221,6 @@ describe('nodeDefinitions', () => {
   describe('P&ID Analysis nodes', () => {
     const pidNodes = {
       linedetector: { category: 'segmentation', label: 'Line Detector', hasImageInput: true },
-      yolopid: { category: 'detection', label: '[DEPRECATED] YOLO-PID', hasImageInput: true },
       pidanalyzer: { category: 'analysis', label: 'P&ID Analyzer', hasImageInput: false },
       designchecker: { category: 'analysis', label: 'Design Checker', hasImageInput: false },
     };
@@ -339,7 +338,7 @@ describe('nodeDefinitions', () => {
       });
 
       expect(categoryCounts['input']).toBe(2);      // imageinput, textinput
-      expect(categoryCounts['detection']).toBe(2);  // yolo, yolopid
+      expect(categoryCounts['detection']).toBe(1);  // yolo (통합 API로 P&ID 포함)
       expect(categoryCounts['ocr']).toBe(8);        // edocr2, paddleocr, tesseract, trocr, ocr_ensemble, suryaocr, doctr, easyocr
       expect(categoryCounts['segmentation']).toBe(2); // edgnet, linedetector
       expect(categoryCounts['preprocessing']).toBe(1); // esrgan
@@ -347,6 +346,7 @@ describe('nodeDefinitions', () => {
       expect(categoryCounts['knowledge']).toBe(1);  // knowledge
       expect(categoryCounts['ai']).toBe(1);         // vl
       expect(categoryCounts['control']).toBe(3);    // if, loop, merge
+      expect(categoryCounts['bom']).toBe(1);        // blueprint-ai-bom
     });
   });
 });

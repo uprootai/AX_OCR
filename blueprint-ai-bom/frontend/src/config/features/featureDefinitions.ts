@@ -235,7 +235,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     hint: 'PID Analyzer 노드 추천',
     description:
       'P&ID(배관계장도) 도면에서 기기 간 연결 관계를 분석합니다. 밸브, 펌프, 탱크 등의 연결 토폴로지를 추출합니다.',
-    recommendedNodes: ['pid-analyzer', 'line-detector', 'yolo-pid'],
+    recommendedNodes: ['pid-analyzer', 'line-detector', 'yolo'],
     badgeBgClass: 'bg-rose-100 dark:bg-rose-900/30',
     badgeTextClass: 'text-rose-700 dark:text-rose-300',
     implementationStatus: 'implemented',

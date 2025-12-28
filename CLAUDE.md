@@ -70,12 +70,11 @@
 
 ---
 
-## API 서비스 (20개)
+## API 서비스 (19개)
 
 | 카테고리 | 서비스 | 포트 | 용도 |
 |----------|--------|------|------|
-| **Detection** | YOLO | 5005 | 객체 검출 (14가지 심볼) |
-| **Detection** | YOLO-PID | 5017 | P&ID 심볼 검출 (60종) |
+| **Detection** | YOLO | 5005 | 객체 검출 (model_type: engineering, pid_class_aware, bom_detector 등) |
 | **OCR** | eDOCr2 | 5002 | 한국어 치수 인식 |
 | **OCR** | PaddleOCR | 5006 | 다국어 OCR |
 | **OCR** | Tesseract | 5008 | 문서 OCR |
@@ -283,22 +282,22 @@ Dashboard에서 새 API의 모니터링 및 설정을 위해 다음 파일을 �
 - `HYPERPARAM_DEFINITIONS`에 하이퍼파라미터 UI 정의 추가
 - `DEFAULT_HYPERPARAMS`에 기본값 추가
 
-**예시** (YOLO-PID 추가):
+**예시** (Line Detector 추가):
 ```typescript
 // DEFAULT_APIS
-{ id: 'yolo_pid', name: 'yolo_pid', display_name: 'YOLO-PID',
-  base_url: 'http://localhost:5017', port: 5017,
-  status: 'unknown', category: 'detection',
-  description: 'P&ID 심볼 검출', icon: '🔧', color: '#ef4444' }
+{ id: 'line_detector', name: 'line_detector', display_name: 'Line Detector',
+  base_url: 'http://localhost:5016', port: 5016,
+  status: 'unknown', category: 'segmentation',
+  description: 'P&ID 라인 검출', icon: '📐', color: '#7c3aed' }
 
 // HYPERPARAM_DEFINITIONS
-yolo_pid: [
-  { label: '신뢰도', type: 'number', min: 0.05, max: 1, step: 0.05, description: '...' },
-  { label: '슬라이스 크기', type: 'select', options: [...], description: '...' },
+line_detector: [
+  { label: '검출 방식', type: 'select', options: ['lsd', 'hough', 'combined'], description: '...' },
+  { label: '라인 유형 분류', type: 'boolean', description: '...' },
 ]
 
 // DEFAULT_HYPERPARAMS
-yolo_pid: { confidence: 0.10, slice_height: '512', visualize: true }
+line_detector: { method: 'lsd', classify_types: true, visualize: true }
 ```
 
 ### 1-3. 웹에서 컨테이너 GPU/메모리 설정
@@ -419,12 +418,12 @@ class TestName:
 
 ## BlueprintFlow
 
-### 노드 타입 (21개)
+### 노드 타입 (20개)
 
 | 카테고리 | 노드 |
 |----------|------|
 | Input | ImageInput, TextInput |
-| Detection | YOLO, YOLO-PID |
+| Detection | YOLO (model_type으로 P&ID 검출 지원) |
 | OCR | eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble |
 | Segmentation | EDGNet, Line Detector |
 | Preprocessing | ESRGAN |
@@ -504,8 +503,7 @@ docs/
 gateway-api/api_specs/
 ├── api_spec_schema.json    # JSON Schema (검증용)
 ├── CONVENTIONS.md          # API 스펙 작성 컨벤션
-├── yolo.yaml               # YOLO Detection
-├── yolo-pid.yaml           # YOLO-PID Symbol Detection
+├── yolo.yaml               # YOLO Detection (model_type으로 P&ID 지원)
 ├── edocr2.yaml             # eDOCr2 OCR
 ├── edgnet.yaml             # EDGNet Segmentation
 ├── line-detector.yaml      # P&ID Line Detection
@@ -567,7 +565,7 @@ resources:
 | 11.0 | 2025-12-24 | 18개 기능 체크박스 툴팁, 전체 API 18/18 healthy |
 | 10.0 | 2025-12-10 | 웹 기반 컨테이너 GPU/메모리 설정, 실시간 컨테이너 상태 표시 |
 | 9.0 | 2025-12-09 | 동적 리소스 로딩 시스템, 인사이트 아카이브 (benchmarks, lessons-learned) |
-| 8.0 | 2025-12-06 | P&ID 분석 시스템 (YOLO-PID, Line Detector, PID Analyzer, Design Checker) |
+| 8.0 | 2025-12-06 | P&ID 분석 시스템 (YOLO model_type, Line Detector, PID Analyzer, Design Checker) |
 | 7.0 | 2025-12-03 | API 스펙 표준화 시스템, 스캐폴딩 스크립트 |
 | 6.0 | 2025-12-03 | 테스트 체계 구축, ESLint 정리, 번들 최적화 |
 | 5.0 | 2025-12-01 | 5개 신규 API 추가 (Knowledge, Tesseract, TrOCR, ESRGAN, OCR Ensemble) |

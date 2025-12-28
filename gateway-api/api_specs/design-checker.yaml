@@ -32,7 +32,7 @@ inputs:
   - name: symbols
     type: array
     required: true
-    description: YOLO-PID 검출 결과
+    description: YOLO 검출 결과 (model_type=pid_class_aware 사용)
   - name: connections
     type: array
     required: true

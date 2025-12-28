@@ -21,7 +21,7 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `symbols` | array | ✅ | YOLO-PID 검출 결과 |
+| `symbols` | array | ✅ | YOLO 검출 결과 (model_type=pid_class_aware) |
 | `lines` | array | ✅ | Line Detector 결과 |
 | `intersections` | array | ❌ | 교차점 정보 |
 | `image` | string | ❌ | 원본 이미지 (base64, 시각화용) |
@@ -136,8 +136,8 @@
 ```python
 import requests
 
-# 먼저 YOLO-PID와 Line Detector 실행
-yolo_result = {...}  # YOLO-PID 결과
+# 먼저 YOLO와 Line Detector 실행
+yolo_result = {...}  # YOLO 결과 (model_type=pid_class_aware)
 line_result = {...}  # Line Detector 결과
 
 data = {
@@ -162,7 +162,7 @@ print(response.json())
 ## 분석 알고리즘
 
 ```
-YOLO-PID 심볼
+YOLO 심볼 (P&ID 모드)
     ↓
 [심볼 위치 분석]
   - 바운딩 박스 중심점
@@ -187,12 +187,12 @@ Line Detector 라인
 
 ### P&ID 전체 분석
 ```
-ImageInput → YOLO-PID → Line Detector → PID Analyzer → Design Checker
+ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analyzer → Design Checker
 ```
 
 ### 연결성만 분석
 ```
-ImageInput → YOLO-PID → Line Detector → PID Analyzer
+ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analyzer
 ```
 
 ---

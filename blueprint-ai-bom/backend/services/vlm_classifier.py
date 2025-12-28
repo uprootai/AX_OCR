@@ -595,7 +595,8 @@ PRESET_PIPELINES = {
     "pid_analysis": {
         "name": "P&ID 분석 파이프라인",
         "description": "배관계장도의 심볼 및 연결 분석",
-        "nodes": ["yolo_pid", "line_detector", "pid_analyzer"],
+        "nodes": ["yolo", "line_detector", "pid_analyzer"],
+        "yolo_model_type": "pid_class_aware",
         "yolo_confidence": 0.15,
         "enable_connectivity": True,
         "enable_bom": True

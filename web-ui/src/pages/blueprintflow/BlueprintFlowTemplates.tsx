@@ -73,15 +73,15 @@ export default function BlueprintFlowTemplates() {
         description: 'Complete P&ID analysis with symbol detection, line detection, connectivity analysis, and design validation',
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'P&ID Image Input', parameters: {}, position: { x: 100, y: 200 } },
-          { id: 'yolopid_1', type: 'yolopid', label: 'YOLO-PID Symbol Detection', parameters: { confidence: 0.25, iou: 0.45, imgsz: 640 }, position: { x: 400, y: 100 } },
+          { id: 'yolo_1', type: 'yolo', label: 'YOLO P&ID Symbol Detection', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 400, y: 100 } },
           { id: 'linedetector_1', type: 'linedetector', label: 'Line Detector', parameters: { method: 'lsd', merge_lines: true, classify_types: true }, position: { x: 400, y: 300 } },
           { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'P&ID Analyzer', parameters: { generate_bom: true, generate_valve_list: true, generate_equipment_list: true }, position: { x: 700, y: 200 } },
           { id: 'designchecker_1', type: 'designchecker', label: 'Design Checker', parameters: { severity_threshold: 'warning' }, position: { x: 1000, y: 200 } },
         ],
         edges: [
-          { id: 'e1', source: 'imageinput_1', target: 'yolopid_1' },
+          { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
           { id: 'e2', source: 'imageinput_1', target: 'linedetector_1' },
-          { id: 'e3', source: 'yolopid_1', target: 'pidanalyzer_1' },
+          { id: 'e3', source: 'yolo_1', target: 'pidanalyzer_1' },
           { id: 'e4', source: 'linedetector_1', target: 'pidanalyzer_1' },
           { id: 'e5', source: 'pidanalyzer_1', target: 'designchecker_1' },
         ],
@@ -260,7 +260,7 @@ export default function BlueprintFlowTemplates() {
       },
     },
 
-    // Detection Benchmark - YOLO vs YOLO-PID
+    // Detection Benchmark - YOLO model_type variants
     {
       nameKey: 'detectionBenchmark',
       descKey: 'detectionBenchmarkDesc',
@@ -270,26 +270,26 @@ export default function BlueprintFlowTemplates() {
       category: 'benchmark',
       workflow: {
         name: 'Detection Benchmark',
-        description: 'Compare YOLO (general symbol) vs YOLO-PID (P&ID specialized) detection',
+        description: 'Compare YOLO models: engineering vs P&ID specialized detection',
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
-          // YOLO variants
-          { id: 'yolo_1', type: 'yolo', label: 'YOLO (General)', parameters: { confidence: 0.35, imgsz: 1280 }, position: { x: 350, y: 100 } },
-          { id: 'yolo_2', type: 'yolo', label: 'YOLO (High Conf)', parameters: { confidence: 0.5, imgsz: 1280 }, position: { x: 350, y: 180 } },
-          { id: 'yolopid_1', type: 'yolopid', label: 'YOLO-PID (P&ID)', parameters: { confidence: 0.25, imgsz: 640 }, position: { x: 350, y: 260 } },
-          { id: 'yolopid_2', type: 'yolopid', label: 'YOLO-PID (High Res)', parameters: { confidence: 0.25, imgsz: 1280 }, position: { x: 350, y: 340 } },
+          // YOLO variants with different model types
+          { id: 'yolo_1', type: 'yolo', label: 'YOLO (Engineering)', parameters: { model_type: 'engineering', confidence: 0.35, imgsz: 1280 }, position: { x: 350, y: 100 } },
+          { id: 'yolo_2', type: 'yolo', label: 'YOLO (BOM Detector)', parameters: { model_type: 'bom_detector', confidence: 0.4, imgsz: 1024 }, position: { x: 350, y: 180 } },
+          { id: 'yolo_3', type: 'yolo', label: 'YOLO (P&ID)', parameters: { model_type: 'pid_class_aware', confidence: 0.25, imgsz: 640, use_sahi: true }, position: { x: 350, y: 260 } },
+          { id: 'yolo_4', type: 'yolo', label: 'YOLO (P&ID Agnostic)', parameters: { model_type: 'pid_class_agnostic', confidence: 0.25, imgsz: 640, use_sahi: true }, position: { x: 350, y: 340 } },
           // Merge results
           { id: 'merge_1', type: 'merge', label: 'Detection Comparison', parameters: {}, position: { x: 650, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
           { id: 'e2', source: 'imageinput_1', target: 'yolo_2' },
-          { id: 'e3', source: 'imageinput_1', target: 'yolopid_1' },
-          { id: 'e4', source: 'imageinput_1', target: 'yolopid_2' },
+          { id: 'e3', source: 'imageinput_1', target: 'yolo_3' },
+          { id: 'e4', source: 'imageinput_1', target: 'yolo_4' },
           { id: 'e5', source: 'yolo_1', target: 'merge_1' },
           { id: 'e6', source: 'yolo_2', target: 'merge_1' },
-          { id: 'e7', source: 'yolopid_1', target: 'merge_1' },
-          { id: 'e8', source: 'yolopid_2', target: 'merge_1' },
+          { id: 'e7', source: 'yolo_3', target: 'merge_1' },
+          { id: 'e8', source: 'yolo_4', target: 'merge_1' },
         ],
       },
     },
@@ -343,8 +343,8 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 50, y: 200 } },
           // Detection first
-          { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.35 }, position: { x: 250, y: 100 } },
-          { id: 'yolopid_1', type: 'yolopid', label: 'YOLO-PID Detection', parameters: { confidence: 0.25 }, position: { x: 250, y: 300 } },
+          { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { model_type: 'engineering', confidence: 0.35 }, position: { x: 250, y: 100 } },
+          { id: 'yolo_2', type: 'yolo', label: 'YOLO P&ID Detection', parameters: { model_type: 'pid_class_aware', confidence: 0.25, use_sahi: true }, position: { x: 250, y: 300 } },
           { id: 'linedetector_1', type: 'linedetector', label: 'Line Detector', parameters: { method: 'lsd' }, position: { x: 250, y: 400 } },
           // OCR for tolerance
           { id: 'edocr2_1', type: 'edocr2', label: 'Dimension OCR', parameters: {}, position: { x: 450, y: 100 } },
@@ -357,11 +357,11 @@ export default function BlueprintFlowTemplates() {
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
-          { id: 'e2', source: 'imageinput_1', target: 'yolopid_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'yolo_2' },
           { id: 'e3', source: 'imageinput_1', target: 'linedetector_1' },
           { id: 'e4', source: 'yolo_1', target: 'edocr2_1' },
           { id: 'e5', source: 'edocr2_1', target: 'skinmodel_1' },
-          { id: 'e6', source: 'yolopid_1', target: 'pidanalyzer_1' },
+          { id: 'e6', source: 'yolo_2', target: 'pidanalyzer_1' },
           { id: 'e7', source: 'linedetector_1', target: 'pidanalyzer_1' },
           { id: 'e8', source: 'pidanalyzer_1', target: 'designchecker_1' },
           { id: 'e9', source: 'skinmodel_1', target: 'merge_1' },

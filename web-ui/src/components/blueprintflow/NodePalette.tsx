@@ -82,7 +82,6 @@ const baseNodeConfigs: NodeConfig[] = [
     color: '#0d9488',
     category: 'segmentation',
   },
-  // YOLO-PID removed - use YOLO node with model_type=pid_symbol
   // OCR Nodes
   {
     type: 'edocr2',

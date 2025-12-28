@@ -214,7 +214,7 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
       'Line Detector → PID Analyzer → 연결 관계 분석',
     ],
     usageTips: [
-      '⭐ YOLO-PID와 함께 사용하면 심볼과 라인의 연결 관계를 분석할 수 있습니다',
+      '⭐ YOLO (P&ID 모델)와 함께 사용하면 심볼과 라인의 연결 관계를 분석할 수 있습니다',
       '💡 combined 방법이 가장 정확하지만 처리 시간이 더 깁니다',
       '💡 min_length를 높이면 노이즈가 줄어들지만 짧은 라인을 놓칠 수 있습니다',
       '💡 P&ID Analyzer의 입력으로 사용하여 심볼 간 연결성을 분석합니다',

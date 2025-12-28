@@ -21,7 +21,7 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `symbols` | array | ✅ | YOLO-PID 검출 결과 |
+| `symbols` | array | ✅ | YOLO 검출 결과 (model_type=pid_class_aware) |
 | `connections` | array | ✅ | PID Analyzer 연결 분석 결과 |
 | `lines` | array | ❌ | Line Detector 결과 |
 
@@ -144,8 +144,8 @@
 ```python
 import requests
 
-# 먼저 YOLO-PID, Line Detector, PID Analyzer 실행
-yolo_result = {...}      # YOLO-PID 결과
+# 먼저 YOLO, Line Detector, PID Analyzer 실행
+yolo_result = {...}      # YOLO 결과 (model_type=pid_class_aware)
 pid_result = {...}       # PID Analyzer 결과
 line_result = {...}      # Line Detector 결과
 
@@ -173,7 +173,7 @@ print(f"위반 사항: {len(result['violations'])}건")
 
 ### P&ID 전체 분석
 ```
-ImageInput → YOLO-PID → Line Detector → PID Analyzer → Design Checker
+ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analyzer → Design Checker
 ```
 
 ### 안전 검사만

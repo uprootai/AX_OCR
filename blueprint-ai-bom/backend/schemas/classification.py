@@ -11,7 +11,7 @@ class DrawingType(str, Enum):
     2025-12-22: 빌더 drawing_type과 동기화
     - dimension: 치수 도면 (shaft, 플랜지) - YOLO 불필요
     - electrical_panel: 전기 제어판 (MCP Panel) - YOLO 14클래스
-    - pid: P&ID 배관계장도 - YOLO-PID 60클래스
+    - pid: P&ID 배관계장도 - YOLO (model_type=pid_class_aware)
     - assembly: 조립도 - YOLO + eDOCr2
     - dimension_bom: 치수 + BOM - eDOCr2 + SkinModel + AI BOM
     """
@@ -20,7 +20,7 @@ class DrawingType(str, Enum):
     # ===== 주요 도면 타입 (빌더 동기화) =====
     DIMENSION = "dimension"  # 치수 도면 (shaft, 플랜지) - OCR만 사용
     ELECTRICAL_PANEL = "electrical_panel"  # 전기 제어판 (MCP Panel) - YOLO 14클래스
-    PID = "pid"  # P&ID (배관계장도) - YOLO-PID 60클래스
+    PID = "pid"  # P&ID (배관계장도) - YOLO (model_type=pid_class_aware)
     ASSEMBLY = "assembly"  # 조립도 - YOLO + eDOCr2
     DIMENSION_BOM = "dimension_bom"  # 치수 + BOM - OCR + 수동 라벨링
 

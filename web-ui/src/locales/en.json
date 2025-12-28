@@ -212,7 +212,7 @@
     "fullOCRBenchmarkDesc": "Run all 8 OCR engines simultaneously for side-by-side comparison. Includes eDOCr2, PaddleOCR, Tesseract, TrOCR, Surya, DocTR, EasyOCR, and Ensemble.",
     "fullOCRBenchmarkUseCase": "Use to find the optimal OCR for new drawing types, benchmark engine performance, or evaluate which OCR works best for specific drawings.",
     "detectionBenchmark": "Detection Model Benchmark",
-    "detectionBenchmarkDesc": "Compare YOLO (general symbol) vs YOLO-PID (P&ID specialized) detection performance with various settings.",
+    "detectionBenchmarkDesc": "Compare YOLO model performance with various settings (model_type, confidence, resolution).",
     "detectionBenchmarkUseCase": "Use to select optimal detection model for general drawings vs P&ID drawings, or evaluate performance differences by confidence and resolution settings.",
     "segmentationBenchmark": "Segmentation Benchmark",
     "segmentationBenchmarkDesc": "Compare EDGNet (edge segmentation) vs Line Detector (line detection) using LSD/Hough methods.",
