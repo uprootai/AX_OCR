@@ -31,6 +31,7 @@ COPY trained_models/ /trained_models/
 
 # Copy application code
 COPY api_server.py .
+COPY routers/ ./routers/
 # models/ contains schemas.py and UNet models
 # Copy to both trained_models/ and models/ for api_server.py imports
 COPY models/ ./trained_models/

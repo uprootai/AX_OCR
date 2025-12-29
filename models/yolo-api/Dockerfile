@@ -23,6 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api_server.py .
 COPY models/ ./models/
 COPY services/ ./services/
+COPY routers/ ./routers/
 COPY utils/ ./utils/
 
 # Create directories

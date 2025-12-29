@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY api_server.py .
+COPY routers/ ./routers/
 COPY ml_predictor.py .
 
 # Copy module directories
