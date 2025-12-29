@@ -1,0 +1,9 @@
+version: '1.0'
+description: BWMS 체크리스트 규칙 활성화 설정
+last_updated: '2025-12-29T08:00:13.481262'
+active_profiles:
+- common/base_rules.yaml
+- ecs/ecs_rules.yaml
+- hychlor/hychlor_rules.yaml
+- ecs/bwms_rules_ecs_20251229_053602.yaml
+disabled_rules: []

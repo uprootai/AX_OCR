@@ -96,12 +96,12 @@ export const analysisNodes: Record<string, NodeDefinition> = {
     category: 'analysis',
     color: '#7c3aed',
     icon: 'Network',
-    description: 'P&ID 심볼과 라인을 분석하여 연결 관계, BOM, 밸브 시그널 리스트, 장비 목록을 생성합니다.',
+    description: 'P&ID 심볼과 라인을 분석하여 연결 관계, BOM, 장비 목록을 생성합니다.',
     inputs: [
       {
         name: 'symbols',
         type: 'PIDSymbol[]',
-        description: '🔧 YOLO가 검출한 심볼 목록 (model_type=pid_symbol)',
+        description: '🔧 YOLO가 검출한 심볼 목록 (model_type=pid_class_aware)',
       },
       {
         name: 'lines',
@@ -211,15 +211,15 @@ export const analysisNodes: Record<string, NodeDefinition> = {
     usageTips: [
       '⭐ YOLO (P&ID 모델)와 Line Detector의 결과를 함께 입력해야 정확한 분석이 가능합니다',
       '💡 BOM 생성으로 도면에서 부품 목록을 자동 추출합니다',
-      '💡 밸브 시그널 리스트로 제어 시스템 연동 정보를 추출합니다',
       '💡 Design Checker와 연결하여 설계 오류를 자동 검출할 수 있습니다',
       '🏭 detect_equipment_tags로 산업별 장비 태그를 인식합니다 (BWMS, HVAC, 공정 프로파일 지원)',
+      '🎛️ Valve Signal 추출은 별도 API (/api/v1/valve-signal/extract)를 사용하세요',
     ],
     recommendedInputs: [
       {
         from: 'yolo',
         field: 'detections',
-        reason: '⭐ YOLO (model_type=pid_symbol)로 검출된 심볼의 연결 관계를 분석합니다',
+        reason: '⭐ YOLO (model_type=pid_class_aware)로 검출된 심볼의 연결 관계를 분석합니다',
       },
       {
         from: 'linedetector',
@@ -246,6 +246,12 @@ export const analysisNodes: Record<string, NodeDefinition> = {
         type: 'Connection[]',
         description: '🔗 심볼 연결 관계',
       },
+      {
+        name: 'texts',
+        type: 'Text[]',
+        description: '📝 OCR 텍스트 (BWMS 규칙 검사용)',
+        optional: true,
+      },
     ],
     outputs: [
       {
@@ -269,8 +275,8 @@ export const analysisNodes: Record<string, NodeDefinition> = {
         name: 'categories',
         type: 'select',
         default: 'all',
-        options: ['all', 'connectivity', 'symbol', 'labeling', 'specification', 'standard', 'safety'],
-        description: '검사할 규칙 카테고리',
+        options: ['all', 'connectivity', 'symbol', 'labeling', 'specification', 'standard', 'safety', 'bwms'],
+        description: '검사할 규칙 카테고리 (bwms: TECHCROSS 전용 규칙)',
       },
       {
         name: 'severity_threshold',
@@ -279,14 +285,21 @@ export const analysisNodes: Record<string, NodeDefinition> = {
         options: ['error', 'warning', 'info'],
         description: '보고할 최소 심각도',
       },
+      {
+        name: 'include_bwms',
+        type: 'boolean',
+        default: true,
+        description: '🚢 BWMS 규칙 포함 (TECHCROSS 전용 7개 규칙: FMU-ECU 순서, GDS 위치 등)',
+      },
     ],
     examples: [
       'PID Analyzer → Design Checker → 설계 오류 리포트',
       'YOLO (P&ID 모델) → Design Checker → 심볼 규격 검증',
     ],
     usageTips: [
-      '⭐ 20+ 설계 규칙을 자동으로 검사합니다 (연결, 심볼, 라벨링, 사양, 표준, 안전)',
+      '⭐ 27개 설계 규칙을 자동 검사합니다 (연결, 심볼, 라벨링, 사양, 표준, 안전, BWMS)',
       '💡 ISO 10628, ISA 5.1, ASME, IEC 61511 등 주요 표준 지원',
+      '🚢 BWMS 규칙: FMU-ECU 순서, GDS 위치, ECS 밸브 위치 등 TECHCROSS 전용 7개 규칙',
       '💡 compliance_score로 전체 설계 품질을 수치화합니다',
       '💡 severity_threshold를 error로 설정하면 중요한 오류만 표시됩니다',
       '⚠️ 압력용기 안전밸브 누락, 태그번호 중복 등 중요 오류를 검출합니다',
@@ -295,12 +308,17 @@ export const analysisNodes: Record<string, NodeDefinition> = {
       {
         from: 'yolo',
         field: 'detections',
-        reason: 'YOLO (model_type=pid_symbol)로 검출된 심볼의 규격 준수 여부를 검사합니다',
+        reason: 'YOLO (model_type=pid_class_aware)로 검출된 심볼의 규격 준수 여부를 검사합니다',
       },
       {
         from: 'pidanalyzer',
         field: 'connections',
         reason: '⭐ 심볼 연결 관계를 분석하여 설계 오류를 검출합니다',
+      },
+      {
+        from: 'paddleocr',
+        field: 'texts',
+        reason: '🚢 BWMS 규칙 검사에 필요한 텍스트 정보를 제공합니다 (Mixing Pump 용량 검증 등)',
       },
     ],
   },

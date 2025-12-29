@@ -194,7 +194,7 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
         min: 1000,
         max: 100000,
         step: 1000,
-        description: '최소 영역 크기 (픽셀²). 작은 영역 필터링',
+        description: '최소 영역 크기 (픽셀²). SIGNAL 영역은 5000 권장',
       },
       {
         name: 'visualize',

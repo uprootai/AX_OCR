@@ -62,12 +62,122 @@ parameters:
     default: bom_detector
     options:
       - engineering
-      - pid_symbol
-      - pid_class_agnostic
       - pid_class_aware
+      - pid_class_agnostic
       - bom_detector
-    description: "모델 선택: engineering(기계도면 14종), pid_symbol(P&ID 60종), pid_class_agnostic(범용), pid_class_aware(32종), bom_detector(전기패널 27종/파나시아)"
+    description: "모델 선택 - 용도에 맞는 모델을 선택하세요"
     formField: model_type
+
+# model_type 상세 설명
+modelTypes:
+  engineering:
+    name: "Engineering (기계도면)"
+    classes: 14
+    description: "기계도면 심볼 검출 - 치수, 텍스트 블록, GD&T 기호 등"
+    detectableSymbols:
+      - linear_dim       # 선형 치수
+      - angular_dim      # 각도 치수
+      - radius_dim       # 반지름 치수
+      - diameter_dim     # 직경 치수
+      - text_block       # 텍스트 블록
+      - tolerance_dim    # 공차 치수
+      - surface_finish   # 표면 거칠기
+      - flatness         # 평면도
+      - cylindricity     # 원통도
+      - parallelism      # 평행도
+      - perpendicularity # 직각도
+      - position         # 위치도
+      - reference_dim    # 참조 치수
+      - chamfer_dim      # 모따기 치수
+    recommendedParams:
+      confidence: 0.25
+      iou: 0.45
+      imgsz: 1280
+      use_sahi: false
+    useCases:
+      - "기계 설계 도면의 치수/공차 검출"
+      - "도면 정보 블록(title block) 추출"
+      - "GD&T 기호 인식 전처리"
+
+  pid_class_aware:
+    name: "P&ID Class-Aware (심볼 분류)"
+    classes: 32
+    description: "P&ID 심볼 검출 + 32개 클래스 분류 (밸브, 펌프, 계기 등)"
+    detectableSymbols:
+      - gate_valve       # 게이트 밸브
+      - globe_valve      # 글로브 밸브
+      - ball_valve       # 볼 밸브
+      - butterfly_valve  # 버터플라이 밸브
+      - check_valve      # 체크 밸브
+      - control_valve    # 컨트롤 밸브
+      - safety_valve     # 안전 밸브
+      - pump             # 펌프
+      - compressor       # 압축기
+      - heat_exchanger   # 열교환기
+      - tank             # 탱크
+      - vessel           # 용기
+      - pressure_gauge   # 압력 게이지
+      - temperature_gauge # 온도 게이지
+      - flow_meter       # 유량계
+      - level_indicator  # 레벨 표시기
+      # ... 32개 클래스
+    recommendedParams:
+      confidence: 0.25
+      iou: 0.45
+      imgsz: 640
+      use_sahi: true
+      slice_height: 512
+      slice_width: 512
+      overlap_ratio: 0.25
+    useCases:
+      - "P&ID 도면의 심볼 검출 및 분류"
+      - "PID Analyzer 입력 데이터 생성"
+      - "설비 목록(BOM) 자동 생성"
+    notes:
+      - "SAHI가 자동 활성화됩니다"
+      - "Line Detector와 함께 사용 권장"
+
+  pid_class_agnostic:
+    name: "P&ID Class-Agnostic (위치만)"
+    classes: 1
+    description: "P&ID 심볼 위치만 검출 (클래스 구분 없음)"
+    detectableSymbols:
+      - symbol           # 모든 심볼을 'symbol'로 검출
+    recommendedParams:
+      confidence: 0.15
+      iou: 0.40
+      imgsz: 640
+      use_sahi: true
+    useCases:
+      - "심볼 위치만 필요한 경우"
+      - "후처리로 분류할 때"
+      - "빠른 심볼 카운팅"
+
+  bom_detector:
+    name: "BOM Detector (전력 설비)"
+    classes: 27
+    description: "전력 설비 도면 심볼 검출 - 전기 패널, 변압기, 스위치 등"
+    detectableSymbols:
+      - transformer      # 변압기
+      - circuit_breaker  # 회로 차단기
+      - fuse             # 퓨즈
+      - switch           # 스위치
+      - relay            # 릴레이
+      - motor            # 모터
+      - generator        # 발전기
+      - meter            # 계량기
+      - panel            # 패널
+      - cable_tray       # 케이블 트레이
+      # ... 27개 클래스
+    recommendedParams:
+      confidence: 0.4
+      iou: 0.5
+      imgsz: 1024  # 또는 3520 (고해상도)
+      use_sahi: false
+    useCases:
+      - "전력 설비 도면 분석"
+      - "전기 패널 BOM 생성"
+      - "파나시아 프로젝트"
 
   - name: confidence
     type: number
@@ -174,13 +284,16 @@ i18n:
 
 examples:
   - 도면 이미지 → YOLO (engineering) → 14가지 기계 심볼 검출
-  - 도면 이미지 → YOLO (pid_symbol) → 60가지 P&ID 심볼 검출
+  - 도면 이미지 → YOLO (pid_class_aware) → 32가지 P&ID 심볼 검출 및 분류
+  - 도면 이미지 → YOLO (bom_detector) → 27가지 전력 설비 심볼 검출
 
 usageTips:
-  - "기계도면: model_type=engineering, confidence=0.25"
-  - "P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)"
-  - "전기패널/파나시아: model_type=bom_detector, confidence=0.40, iou=0.50, imgsz=3520"
+  - "기계도면: model_type=engineering, confidence=0.25, imgsz=1280"
+  - "P&ID 분석: model_type=pid_class_aware, confidence=0.25, use_sahi=true"
+  - "P&ID 위치만: model_type=pid_class_agnostic, confidence=0.15"
+  - "전력 설비: model_type=bom_detector, confidence=0.4, iou=0.5, imgsz=1024"
   - 검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 정밀 분석 가능
+  - P&ID 분석 시 Line Detector → PID Analyzer → Design Checker 파이프라인 권장
 
 # 리소스 요구사항
 resources:
@@ -196,8 +309,11 @@ resources:
     note: "GPU 대비 10배 느림"
   parameterImpact:
     - parameter: model_type
-      impact: "P&ID 모델 시 SAHI 자동 활성화"
-      examples: "engineering:빠름, pid_symbol:SAHI 사용"
+      impact: "P&ID 모델(pid_class_aware/agnostic) 시 SAHI 자동 활성화"
+      examples: "engineering:빠름, pid_class_aware:SAHI+분류, bom_detector:고해상도"
     - parameter: use_sahi
       impact: "SAHI 사용 시 처리시간 증가, 정확도 향상"
       examples: "SAHI 미사용:5초, SAHI:30초"
+    - parameter: imgsz
+      impact: "이미지 크기가 클수록 정확도 향상, VRAM 사용 증가"
+      examples: "640:1.5GB, 1280:2.5GB, 3520:6GB+"

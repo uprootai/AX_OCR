@@ -1,39 +1,38 @@
 """
 Knowledge API Server
-GraphRAG + VectorRAG 기반 도메인 지식 엔진
+GraphRAG + VectorRAG based domain knowledge engine
 
-포트: 5007
-기능:
-- Neo4j 그래프 DB 연동
-- GraphRAG (유사 부품/프로젝트 검색)
-- VectorRAG (FAISS 기반 유사도 검색)
-- ISO/ASME 규격 검증
-- 하이브리드 RAG
+Port: 5007
+Features:
+- Neo4j graph DB integration
+- GraphRAG (similar parts/projects search)
+- VectorRAG (FAISS-based similarity search)
+- ISO/ASME standard validation
+- Hybrid RAG
 """
 
 import os
 import logging
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from models.schemas import (
     HealthResponse,
-    GraphQueryRequest, GraphQueryResponse,
-    VectorSearchRequest, VectorSearchResponse,
-    HybridSearchRequest, HybridSearchResponse,
-    ComponentCreateRequest, ComponentResponse,
-    SimilarPartRequest, SimilarPartResponse,
-    StandardValidationRequest, StandardValidationResponse,
     APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
 )
-from services.neo4j_service import Neo4jService
-from services.graphrag_service import GraphRAGService
-from services.vectorrag_service import VectorRAGService
-from services.standard_validator import StandardValidator
+from services import (
+    Neo4jService,
+    GraphRAGService,
+    VectorRAGService,
+    StandardValidator,
+    set_services,
+    get_neo4j_service
+)
+from routers import graph_router, search_router, validation_router
 
 # Logging setup
 logging.basicConfig(
@@ -48,43 +47,23 @@ NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "ax_poc_2024")
 
-# Initialize FastAPI
-app = FastAPI(
-    title="Knowledge API",
-    description="GraphRAG + VectorRAG 기반 도메인 지식 엔진",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
-
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Global services
-neo4j_service: Optional[Neo4jService] = None
-graphrag_service: Optional[GraphRAGService] = None
-vectorrag_service: Optional[VectorRAGService] = None
-standard_validator: Optional[StandardValidator] = None
-
 
 # =====================
-# Startup/Shutdown Events
+# Lifespan
 # =====================
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize services on startup"""
-    global neo4j_service, graphrag_service, vectorrag_service, standard_validator
-
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize services on startup, cleanup on shutdown"""
+    # Startup
     logger.info("=" * 70)
     logger.info("🚀 Knowledge API Server Starting...")
     logger.info("=" * 70)
+
+    neo4j_service = None
+    graphrag_service = None
+    vectorrag_service = None
+    standard_validator = None
 
     # Initialize Neo4j
     try:
@@ -121,20 +100,47 @@ async def startup_event():
         logger.warning(f"⚠️ Standard Validator initialization failed: {e}")
         standard_validator = None
 
+    # Set global state
+    set_services(neo4j_service, graphrag_service, vectorrag_service, standard_validator)
+
     logger.info("=" * 70)
     logger.info(f"✅ Knowledge API ready on port {KNOWLEDGE_API_PORT}")
     logger.info("=" * 70)
 
+    yield
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    global neo4j_service
-
+    # Shutdown
     logger.info("👋 Shutting down Knowledge API...")
-
     if neo4j_service:
         await neo4j_service.close()
+
+
+# =====================
+# FastAPI App
+# =====================
+
+app = FastAPI(
+    title="Knowledge API",
+    description="GraphRAG + VectorRAG based domain knowledge engine",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan
+)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(graph_router)
+app.include_router(search_router)
+app.include_router(validation_router)
 
 
 # =====================
@@ -156,9 +162,13 @@ async def root():
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint"""
+    neo4j_service = get_neo4j_service()
     neo4j_status = neo4j_service is not None and await neo4j_service.is_connected()
-    graphrag_status = graphrag_service is not None
-    vectorrag_status = vectorrag_service is not None
+
+    from services.state import get_graphrag_service, get_vectorrag_service, get_standard_validator
+    graphrag_status = get_graphrag_service() is not None
+    vectorrag_status = get_vectorrag_service() is not None
+    validator_status = get_standard_validator() is not None
 
     return {
         "status": "healthy" if neo4j_status else "degraded",
@@ -169,18 +179,18 @@ async def health_check():
             "neo4j": "connected" if neo4j_status else "disconnected",
             "graphrag": "ready" if graphrag_status else "unavailable",
             "vectorrag": "ready" if vectorrag_status else "unavailable",
-            "standard_validator": "ready" if standard_validator else "unavailable"
+            "standard_validator": "ready" if validator_status else "unavailable"
         }
     }
 
 
 @app.get("/api/v1/info", response_model=APIInfoResponse)
 async def get_api_info():
-    """BlueprintFlow용 API 정보"""
+    """BlueprintFlow API info"""
     return APIInfoResponse(
         name="Knowledge API",
         version="1.0.0",
-        description="GraphRAG + VectorRAG 기반 도메인 지식 엔진",
+        description="GraphRAG + VectorRAG based domain knowledge engine",
         endpoints=[
             "/api/v1/graph/query",
             "/api/v1/graph/component",
@@ -195,7 +205,7 @@ async def get_api_info():
                 type="select",
                 options=["graphrag", "vectorrag", "hybrid"],
                 default="hybrid",
-                description="검색 유형 선택",
+                description="Search type selection",
                 required=False
             ),
             ParameterSchema(
@@ -205,7 +215,7 @@ async def get_api_info():
                 min=1,
                 max=20,
                 step=1,
-                description="검색 결과 개수",
+                description="Number of results",
                 required=False
             ),
             ParameterSchema(
@@ -215,14 +225,14 @@ async def get_api_info():
                 min=0.0,
                 max=1.0,
                 step=0.1,
-                description="유사도 임계값",
+                description="Similarity threshold",
                 required=False
             )
         ],
         input_schema=IOSchema(
             type="object",
             format="json",
-            description="검색 쿼리 또는 부품 정보",
+            description="Search query or part info",
             example={
                 "query": "SUS304 Ø50 H7",
                 "dimensions": ["50", "30", "10"],
@@ -233,7 +243,7 @@ async def get_api_info():
         output_schema=IOSchema(
             type="object",
             format="json",
-            description="검색 결과 및 유사 부품 정보",
+            description="Search results and similar parts",
             example={
                 "results": [
                     {
@@ -254,270 +264,6 @@ async def get_api_info():
             outputs=["search_results", "similar_parts", "validation_result"]
         )
     )
-
-
-# =====================
-# GraphRAG Endpoints
-# =====================
-
-@app.post("/api/v1/graph/query", response_model=GraphQueryResponse)
-async def graph_query(request: GraphQueryRequest):
-    """
-    Neo4j 그래프 쿼리 실행
-
-    Cypher 쿼리를 실행하거나 사전 정의된 쿼리 템플릿 사용
-    """
-    if not neo4j_service:
-        raise HTTPException(status_code=503, detail="Neo4j service unavailable")
-
-    try:
-        result = await neo4j_service.execute_query(
-            request.query,
-            request.parameters
-        )
-        return GraphQueryResponse(
-            status="success",
-            data=result,
-            query=request.query,
-            execution_time=0.0  # TODO: measure actual time
-        )
-    except Exception as e:
-        logger.error(f"Graph query failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/v1/graph/component", response_model=ComponentResponse)
-async def create_component(request: ComponentCreateRequest):
-    """
-    도면 컴포넌트를 그래프 DB에 저장
-
-    Component → Dimension → Tolerance → Process 관계 생성
-    """
-    if not neo4j_service:
-        raise HTTPException(status_code=503, detail="Neo4j service unavailable")
-
-    try:
-        component_id = await neo4j_service.create_component(
-            name=request.name,
-            part_number=request.part_number,
-            material=request.material,
-            dimensions=request.dimensions,
-            tolerances=request.tolerances,
-            processes=request.processes,
-            metadata=request.metadata
-        )
-        return ComponentResponse(
-            status="success",
-            component_id=component_id,
-            message=f"Component {request.name} created successfully"
-        )
-    except Exception as e:
-        logger.error(f"Component creation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# =====================
-# VectorRAG Endpoints
-# =====================
-
-@app.post("/api/v1/vector/search", response_model=VectorSearchResponse)
-async def vector_search(request: VectorSearchRequest):
-    """
-    FAISS 기반 벡터 유사도 검색
-
-    텍스트 임베딩으로 유사한 도면/부품 검색
-    """
-    if not vectorrag_service:
-        raise HTTPException(status_code=503, detail="VectorRAG service unavailable")
-
-    try:
-        results = await vectorrag_service.search(
-            query=request.query,
-            top_k=request.top_k,
-            threshold=request.similarity_threshold
-        )
-        return VectorSearchResponse(
-            status="success",
-            results=results,
-            query=request.query,
-            total_found=len(results)
-        )
-    except Exception as e:
-        logger.error(f"Vector search failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# =====================
-# Hybrid RAG Endpoints
-# =====================
-
-@app.post("/api/v1/hybrid/search", response_model=HybridSearchResponse)
-async def hybrid_search(request: HybridSearchRequest):
-    """
-    하이브리드 RAG 검색 (GraphRAG + VectorRAG)
-
-    그래프 탐색과 벡터 유사도를 결합한 검색
-    """
-    results = []
-
-    # GraphRAG 검색
-    if graphrag_service and request.use_graphrag:
-        try:
-            graph_results = await graphrag_service.search(
-                query=request.query,
-                dimensions=request.dimensions,
-                tolerance=request.tolerance,
-                material=request.material,
-                top_k=request.top_k
-            )
-            results.extend([{**r, "source": "graphrag"} for r in graph_results])
-        except Exception as e:
-            logger.warning(f"GraphRAG search failed: {e}")
-
-    # VectorRAG 검색
-    if vectorrag_service and request.use_vectorrag:
-        try:
-            vector_results = await vectorrag_service.search(
-                query=request.query,
-                top_k=request.top_k,
-                threshold=request.similarity_threshold
-            )
-            results.extend([{**r, "source": "vectorrag"} for r in vector_results])
-        except Exception as e:
-            logger.warning(f"VectorRAG search failed: {e}")
-
-    # 결과 병합 및 중복 제거
-    merged_results = _merge_search_results(
-        results,
-        graph_weight=request.graph_weight,
-        vector_weight=request.vector_weight
-    )
-
-    return HybridSearchResponse(
-        status="success",
-        results=merged_results[:request.top_k],
-        query=request.query,
-        total_found=len(merged_results),
-        sources_used={
-            "graphrag": request.use_graphrag,
-            "vectorrag": request.use_vectorrag
-        }
-    )
-
-
-# =====================
-# Similar Parts Endpoint
-# =====================
-
-@app.post("/api/v1/similar-parts", response_model=SimilarPartResponse)
-async def find_similar_parts(request: SimilarPartRequest):
-    """
-    유사 부품 검색 (PPT 6단계 비용 산정의 2단계)
-
-    GraphRAG로 비슷한 크기, 공차, 재질의 과거 프로젝트 검색
-    """
-    if not graphrag_service:
-        raise HTTPException(status_code=503, detail="GraphRAG service unavailable")
-
-    try:
-        similar_parts = await graphrag_service.find_similar_parts(
-            dimensions=request.dimensions,
-            tolerance=request.tolerance,
-            material=request.material,
-            top_k=request.top_k
-        )
-
-        return SimilarPartResponse(
-            status="success",
-            similar_parts=similar_parts,
-            query_info={
-                "dimensions": request.dimensions,
-                "tolerance": request.tolerance,
-                "material": request.material
-            },
-            total_found=len(similar_parts)
-        )
-    except Exception as e:
-        logger.error(f"Similar parts search failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# =====================
-# Standard Validation Endpoint
-# =====================
-
-@app.post("/api/v1/validate/standard", response_model=StandardValidationResponse)
-async def validate_standard(request: StandardValidationRequest):
-    """
-    ISO/ASME 규격 검증
-
-    - ISO 1101 GD&T 규격 검증
-    - ASME Y14.5 규격 검증
-    - 나사 규격 검증
-    - 표면조도 규격 검증
-    """
-    if not standard_validator:
-        raise HTTPException(status_code=503, detail="Standard validator unavailable")
-
-    try:
-        validation_result = await standard_validator.validate(
-            dimension=request.dimension,
-            tolerance=request.tolerance,
-            gdt_symbol=request.gdt_symbol,
-            surface_finish=request.surface_finish,
-            thread_spec=request.thread_spec
-        )
-
-        return StandardValidationResponse(
-            status="success",
-            is_valid=validation_result["is_valid"],
-            errors=validation_result.get("errors", []),
-            warnings=validation_result.get("warnings", []),
-            suggestions=validation_result.get("suggestions", []),
-            matched_standards=validation_result.get("matched_standards", [])
-        )
-    except Exception as e:
-        logger.error(f"Standard validation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# =====================
-# Helper Functions
-# =====================
-
-def _merge_search_results(
-    results: List[Dict],
-    graph_weight: float = 0.6,
-    vector_weight: float = 0.4
-) -> List[Dict]:
-    """검색 결과 병합 및 가중치 적용"""
-    merged = {}
-
-    for r in results:
-        key = r.get("part_id") or r.get("id") or str(r)
-        if key not in merged:
-            merged[key] = r.copy()
-            merged[key]["combined_score"] = 0.0
-
-        # 가중치 적용
-        source = r.get("source", "unknown")
-        score = r.get("similarity", r.get("score", 0.5))
-
-        if source == "graphrag":
-            merged[key]["combined_score"] += score * graph_weight
-        elif source == "vectorrag":
-            merged[key]["combined_score"] += score * vector_weight
-        else:
-            merged[key]["combined_score"] += score * 0.5
-
-    # 점수 기준 정렬
-    sorted_results = sorted(
-        merged.values(),
-        key=lambda x: x.get("combined_score", 0),
-        reverse=True
-    )
-
-    return sorted_results
 
 
 # =====================

@@ -43,6 +43,8 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
         symbols = []
         lines = []
         intersections = []
+        texts = []      # OCR 텍스트 (Valve Signal 추출용)
+        regions = []    # Line Detector 영역 (Valve Signal 추출용)
         image_base64 = ""
 
         # 직접 입력 확인 (단일 부모)
@@ -56,6 +58,14 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
             intersections = inputs.get("intersections", [])
         if "image" in inputs:
             image_base64 = inputs.get("image", "")
+        # OCR 텍스트 입력 (PaddleOCR 등에서)
+        if "texts" in inputs:
+            texts = inputs.get("texts", [])
+        if "text_results" in inputs:
+            texts = inputs.get("text_results", [])
+        # Line Detector 영역 입력
+        if "regions" in inputs:
+            regions = inputs.get("regions", [])
 
         # from_ prefix 입력 확인 (다중 부모 - Merge 패턴)
         for key, value in inputs.items():
@@ -71,6 +81,12 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
                 # 이미지 추출 (시각화용)
                 if not image_base64:
                     image_base64 = value.get("image") or value.get("visualization") or value.get("visualized_image", "")
+                # OCR 텍스트 추출 (PaddleOCR 등에서)
+                if not texts:
+                    texts = value.get("texts") or value.get("text_results", [])
+                # Line Detector 영역 추출
+                if not regions:
+                    regions = value.get("regions", [])
 
         # 입력 검증 - 필수 입력이 없으면 친절한 안내 메시지
         has_symbols = bool(symbols) and len(symbols) > 0
@@ -113,6 +129,8 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
             "symbols": symbols,
             "lines": lines,
             "intersections": intersections,
+            "texts": texts,          # OCR 텍스트 (Valve Signal 추출용)
+            "regions": regions,      # Line Detector 영역 (BWMS Signal 박스 등)
             "image_base64": image_base64 if visualize else None,
             "generate_bom": generate_bom,
             "generate_valve_list": generate_valve_list,
@@ -166,6 +184,8 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
             "symbols": symbols,  # YOLO에서 받은 symbols 전달
             "detections": symbols,  # 별칭
             "lines": lines,      # Line Detector에서 받은 lines 전달
+            "texts": texts,      # OCR 텍스트 패스스루
+            "regions": regions,  # Line Detector 영역 패스스루
             # P&ID Analyzer 결과
             "connections": data.get("connections", []),
             "graph": data.get("graph", {}),
@@ -316,6 +336,14 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
                     "type": "array",
                     "description": "교차점 정보"
                 },
+                "texts": {
+                    "type": "array",
+                    "description": "OCR 텍스트 결과 (PaddleOCR 등에서, Valve Signal 추출용)"
+                },
+                "regions": {
+                    "type": "array",
+                    "description": "Line Detector 영역 (점선 박스 등, BWMS Signal 영역)"
+                },
                 "image": {
                     "type": "string",
                     "description": "원본 이미지 (base64, 시각화용)"
@@ -329,6 +357,24 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
         return {
             "type": "object",
             "properties": {
+                # 패스스루 필드 (다음 노드에서 사용)
+                "symbols": {
+                    "type": "array",
+                    "description": "YOLO 검출 결과 (패스스루)"
+                },
+                "lines": {
+                    "type": "array",
+                    "description": "Line Detector 결과 (패스스루)"
+                },
+                "texts": {
+                    "type": "array",
+                    "description": "OCR 텍스트 (패스스루)"
+                },
+                "regions": {
+                    "type": "array",
+                    "description": "Line Detector 영역 (패스스루)"
+                },
+                # P&ID Analyzer 결과
                 "connections": {
                     "type": "array",
                     "description": "심볼 간 연결 관계"

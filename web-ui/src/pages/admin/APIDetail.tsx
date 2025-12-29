@@ -67,7 +67,7 @@ const HYPERPARAM_DEFINITIONS: Record<string, { key?: string; label: string; type
     { label: '신뢰도 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '검출 객체의 최소 신뢰도 (0-1)' },
     { label: 'IoU 임계값', type: 'number', min: 0, max: 1, step: 0.05, description: '겹치는 박스 제거 기준' },
     { label: '입력 이미지 크기', type: 'select', options: [{ value: '640', label: '640px (빠름)' }, { value: '1280', label: '1280px (균형)' }, { value: '1920', label: '1920px (정밀)' }], description: 'YOLO 입력 크기' },
-    { label: '모델 타입', type: 'select', options: [{ value: 'engineering', label: '기계도면 (14종)' }, { value: 'pid_symbol', label: 'P&ID 심볼 (60종)' }, { value: 'pid_class_agnostic', label: 'P&ID 범용' }, { value: 'pid_class_aware', label: 'P&ID 분류 (32종)' }], description: 'YOLO 모델 선택' },
+    { label: '모델 타입', type: 'select', options: [{ value: 'engineering', label: '기계도면 (14종)' }, { value: 'bom_detector', label: '전력설비 (27종)' }, { value: 'pid_class_aware', label: 'P&ID 분류 (32종)' }, { value: 'pid_class_agnostic', label: 'P&ID 위치만' }], description: 'YOLO 모델 선택' },
     { label: 'SAHI 슬라이싱', type: 'boolean', description: 'SAHI 슬라이싱 (P&ID 모델은 자동 활성화)' },
     { label: '슬라이스 크기', type: 'select', options: [{ value: '256', label: '256px (최정밀)' }, { value: '512', label: '512px (균형)' }, { value: '768', label: '768px' }, { value: '1024', label: '1024px (빠름)' }], description: 'SAHI 슬라이스 크기' },
     { label: '시각화 생성', type: 'boolean', description: '바운딩 박스 이미지 생성' },

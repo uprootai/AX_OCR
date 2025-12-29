@@ -1,0 +1,90 @@
+version: '1.0'
+product_type: ALL
+rules_count: 6
+rules:
+- rule_id: BWMS-001
+  name: G-2 Sampling Port 상류 위치
+  name_en: G-2 Sampling Port Upstream Position
+  severity: warning
+  check_type: position
+  category: bwms
+  equipment: G-2 Sampling Port
+  condition: upstream_of
+  condition_value: Main Line
+  description: G-2 Sampling Port는 주 배관 상류에 위치해야 합니다
+  suggestion: Sampling Port를 상류로 이동하세요
+  auto_checkable: true
+  standard: TECHCROSS BWMS Standard
+  product_type: ALL
+- rule_id: BWMS-004
+  name: FMU-ECU 순서 검증
+  name_en: FMU-ECU Sequence Validation
+  severity: error
+  check_type: sequence
+  category: bwms
+  equipment: FMU,ECU
+  condition: after
+  condition_value: ECU
+  description: FMU(유량계)는 ECU(전해조) 후단에 위치해야 합니다
+  suggestion: FMU를 ECU 후단(downstream)에 배치하세요
+  auto_checkable: true
+  standard: TECHCROSS BWMS Standard
+  product_type: ALL
+- rule_id: BWMS-005
+  name: GDS 위치 검증
+  name_en: GDS Position Validation
+  severity: error
+  check_type: position
+  category: bwms
+  equipment: GDS
+  condition: above
+  condition_value: ECU,HGU
+  description: GDS(가스감지센서)는 ECU 또는 HGU 상부에 위치해야 합니다
+  suggestion: GDS를 ECU 또는 HGU 상부에 배치하세요
+  auto_checkable: true
+  standard: TECHCROSS BWMS Standard
+  product_type: ALL
+- rule_id: BWMS-006
+  name: TSU-APU 거리 제한
+  name_en: TSU-APU Distance Limit
+  severity: warning
+  check_type: distance
+  category: bwms
+  equipment: TSU,APU
+  condition: max_distance
+  condition_value: 5m
+  na_condition: No Scale Info
+  description: TSU와 APU 간 거리는 5m 이내여야 합니다
+  suggestion: TSU와 APU 거리를 5m 이내로 조정하세요
+  auto_checkable: false
+  standard: TECHCROSS BWMS Standard
+  product_type: ALL
+- rule_id: BWMS-007
+  name: Mixing Pump 용량 검증
+  name_en: Mixing Pump Capacity Check
+  severity: warning
+  check_type: capacity
+  category: bwms
+  equipment: Mixing Pump
+  condition: ratio
+  condition_value: 4.3%
+  description: Mixing Pump 용량 = Ballast Pump × 4.3%
+  suggestion: Mixing Pump 용량을 확인하세요
+  auto_checkable: false
+  standard: TECHCROSS BWMS Standard
+  product_type: ECS
+- rule_id: BWMS-009
+  name: HYCHLOR 필터 위치
+  name_en: HYCHLOR Filter Position
+  severity: warning
+  check_type: position
+  category: bwms
+  equipment: Filter
+  condition: before
+  condition_value: HGU
+  na_condition: ECS 모델
+  description: HYCHLOR 필터는 HGU 전단에 위치해야 합니다
+  suggestion: 필터를 HGU 전단에 배치하세요
+  auto_checkable: true
+  standard: TECHCROSS BWMS Standard
+  product_type: HYCHLOR

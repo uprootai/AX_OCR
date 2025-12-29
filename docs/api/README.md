@@ -1,7 +1,7 @@
 # 🔌 API Documentation
 
-**Complete guide for all 17 APIs**
-> **최종 업데이트**: 2025-12-28 | **상태**: 17/17 healthy (100%)
+**Complete guide for all 18 APIs**
+> **최종 업데이트**: 2025-12-29 | **상태**: 18/18 healthy (100%)
 
 ---
 
@@ -40,8 +40,8 @@
 |-----|------|---------|--------|------|
 | **SkinModel** | 5003 | Tolerance analysis & GD&T validation | ✅ | [skinmodel/](skinmodel/) |
 | **PID Analyzer** | 5018 | P&ID connectivity & BOM | ✅ | [pid-analyzer/](pid-analyzer/) |
-| **Design Checker** | 5019 | P&ID design validation | ✅ | [design-checker/](design-checker/) |
-| **Blueprint AI BOM** | 5020 | Human-in-the-Loop BOM (v9.0) | ✅ | [blueprint-ai-bom/](blueprint-ai-bom/) |
+| **Design Checker** | 5019 | P&ID design validation + BWMS rules (v1.0) | ✅ | [design-checker/](design-checker/) |
+| **Blueprint AI BOM** | 5020 | Human-in-the-Loop BOM (v10.3) | ✅ | [blueprint-ai-bom/](blueprint-ai-bom/) |
 
 ### Knowledge & AI
 | API | Port | Purpose | Status | Docs |
@@ -113,10 +113,34 @@ Each API directory contains:
 
 ---
 
-**Total APIs**: 17 (all healthy)
+## 🛡️ Design Checker API (v1.0)
+
+**P&ID 도면 설계 오류 검출 및 규정 검증 API**
+
+| 기능 | 설명 |
+|------|------|
+| 📋 설계 규칙 | 20개 내장 규칙 (ISO 10628, ISA 5.1) |
+| ⚓ BWMS 규칙 | 7개 내장 + 동적 규칙 (TECHCROSS 전용) |
+| 📁 규칙 관리 | Excel 업로드, YAML 저장, 프로필 관리 |
+| 🔧 제품 필터 | ALL / ECS / HYCHLOR 타입별 규칙 |
+
+### 주요 엔드포인트
+
+| 엔드포인트 | 설명 |
+|-----------|------|
+| `POST /api/v1/check` | 통합 설계 검증 |
+| `POST /api/v1/check/bwms` | BWMS 전용 검증 |
+| `POST /api/v1/rules/disable` | 규칙 비활성화 |
+| `POST /api/v1/checklist/upload` | Excel 체크리스트 업로드 |
+
+**상세 문서**: [design-checker/parameters.md](design-checker/parameters.md)
+
+---
+
+**Total APIs**: 18 (all healthy)
 **Total Parameters Across All APIs**: 50+ parameters
 **Average Parameters Per API**: 4-6 parameters
 
 **See**: [../00_INDEX.md](../00_INDEX.md) for complete documentation map
 
-**Last Updated**: 2025-12-28
+**Last Updated**: 2025-12-29

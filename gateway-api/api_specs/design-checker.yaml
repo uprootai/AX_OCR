@@ -41,6 +41,10 @@ inputs:
     type: array
     required: false
     description: Line Detector 결과
+  - name: texts
+    type: array
+    required: false
+    description: OCR 텍스트 결과 (BWMS 규칙 검사에 필요)
 
 outputs:
   - name: violations
@@ -55,9 +59,18 @@ outputs:
 
 parameters:
   - name: categories
-    type: string
-    default: ""
-    description: 검사할 규칙 카테고리 (쉼표 구분, 빈값=전체)
+    type: select
+    options:
+      - all
+      - connectivity
+      - symbol
+      - labeling
+      - specification
+      - standard
+      - safety
+      - bwms
+    default: all
+    description: 검사할 규칙 카테고리 (all=전체)
   - name: severity_threshold
     type: select
     options:
@@ -66,6 +79,10 @@ parameters:
       - info
     default: info
     description: 보고할 최소 심각도
+  - name: include_bwms
+    type: boolean
+    default: true
+    description: BWMS 규칙 포함 여부 (TECHCROSS 전용 7개 규칙)
 
 i18n:
   ko:

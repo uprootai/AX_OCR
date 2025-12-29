@@ -112,6 +112,14 @@ export const BLUEPRINT_SAMPLES: SampleFile[] = [
     path: '/samples/sample9_blueprint_35.jpg',
     description: '제어판 도면 2 - BOM 부품 검출용',
     type: 'image'
+  },
+  {
+    id: 'sample-bwms',
+    name: 'BWMS P&ID (SIGNAL 영역)',
+    path: '/samples/bwms_pid_sample.png',
+    description: 'BWMS 시스템 P&ID - SIGNAL FOR BWMS 점선 영역 검출 테스트용',
+    type: 'image',
+    recommended: true
   }
 ];
 

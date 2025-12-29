@@ -21,7 +21,7 @@ P&ID 연결 분석 API - 심볼과 라인 연결 분석, BOM 생성
 ## Input Requirements
 
 이 API는 다음 데이터가 필요합니다:
-- YOLO-PID 심볼 검출 결과 (`detections`)
+- YOLO 심볼 검출 결과 (`detections`) - model_type=pid_class_aware 사용
 - Line Detector 라인 검출 결과 (`lines`)
 
 ## Output

@@ -1,0 +1,229 @@
+# Region Extraction Rules Configuration
+# 영역 기반 텍스트 추출 규칙 설정
+#
+# UI에서 수정 가능한 설정 파일입니다.
+# 새 규칙을 추가하거나 기존 규칙을 수정하여 다양한 P&ID 패턴을 지원할 수 있습니다.
+#
+# 작성일: 2025-12-29
+# 버전: 1.0
+
+version: "1.0"
+updated_at: "2025-12-29T00:00:00"
+
+rules:
+  # =====================
+  # BWMS (선박 평형수 처리) 규칙
+  # =====================
+
+  - id: valve_signal_bwms
+    name: Valve Signal List (BWMS)
+    description: SIGNAL FOR BWMS 점선 영역 내 밸브 ID 자동 추출
+    enabled: true
+    category: bwms
+    icon: valve
+    color: "#ef4444"
+
+    # 영역 매칭 조건
+    region_criteria:
+      line_styles:
+        - dashed
+        - dash_dot
+      min_area: 1000
+      max_area: null
+      aspect_ratio_min: null
+      aspect_ratio_max: null
+
+    # 영역 식별 텍스트 (이 텍스트가 있어야 해당 영역으로 인식)
+    region_text_patterns:
+      - pattern: "SIGNAL.*FOR.*BWMS"
+        case_insensitive: true
+        is_regex: true
+      - pattern: "SIGNAL FOR BWMS"
+        case_insensitive: true
+        is_regex: false
+      - pattern: "SIGNAL_FOR_BWMS"
+        case_insensitive: true
+        is_regex: false
+      - pattern: "SIGNAL FOR ECS"
+        case_insensitive: true
+        is_regex: false
+
+    # 추출할 패턴들 (priority가 높은 것 먼저 매칭)
+    extraction_patterns:
+      - type: valve_tag
+        regex: "^(BWV|BAV|BCV|BBV|BXV|BSV|BFV|BRV)\\d+[A-Z]?$"
+        description: "BWMS 밸브 태그 (BWV=Ball Valve, BAV=Butterfly Valve 등)"
+        priority: 10
+
+      - type: valve_tag
+        regex: "^(FCV|TCV|PCV|LCV|HCV|SCV|ACV)\\d+[A-Z]?$"
+        description: "일반 제어 밸브 (FCV=Flow Control, TCV=Temperature Control 등)"
+        priority: 5
+
+      - type: valve_tag
+        regex: "^[A-Z]{2,4}-?\\d{1,4}[A-Z]?$"
+        description: "일반 밸브 태그 패턴"
+        priority: 1
+
+    output_type: excel
+    output_filename_template: "BWMS_Valve_Signal_List_{timestamp}"
+
+  # =====================
+  # 알람 바이패스 규칙
+  # =====================
+
+  - id: alarm_bypass
+    name: Alarm By-pass Valves
+    description: ALARM BY-PASS 영역 내 밸브 추출
+    enabled: true
+    category: bwms
+    icon: bell
+    color: "#f59e0b"
+
+    region_criteria:
+      line_styles:
+        - dashed
+        - dash_dot
+      min_area: 800
+
+    region_text_patterns:
+      - pattern: "ALARM.*BY-?PASS"
+        case_insensitive: true
+        is_regex: true
+      - pattern: "ALARM BYPASS"
+        case_insensitive: true
+        is_regex: false
+
+    extraction_patterns:
+      - type: valve_tag
+        regex: "^[A-Z]{2,4}-?\\d{1,4}$"
+        description: "알람 바이패스 밸브"
+        priority: 5
+
+    output_type: list
+    output_filename_template: "Alarm_Bypass_{timestamp}"
+
+  # =====================
+  # 일반 시그널 영역 규칙
+  # =====================
+
+  - id: signal_region_general
+    name: Signal Region (General)
+    description: 일반 SIGNAL 영역 내 태그 추출
+    enabled: true
+    category: general
+    icon: tag
+    color: "#3b82f6"
+
+    region_criteria:
+      line_styles:
+        - dashed
+        - dash_dot
+        - dotted
+      min_area: 500
+
+    region_text_patterns:
+      - pattern: "SIGNAL"
+        case_insensitive: false
+        is_regex: false
+
+    extraction_patterns:
+      - type: tag
+        regex: "^[A-Z]{1,5}-?\\d{1,4}[A-Z]?$"
+        description: "일반 태그 패턴"
+        priority: 1
+
+    output_type: list
+    output_filename_template: "Signal_Tags_{timestamp}"
+
+  # =====================
+  # 선박 전용 영역 규칙 (확장 가능)
+  # =====================
+
+  - id: required_signal
+    name: Required Signal (BWMS)
+    description: REQUIRED 표시된 필수 신호 추출
+    enabled: true
+    category: bwms
+    icon: check-circle
+    color: "#22c55e"
+
+    region_criteria:
+      line_styles:
+        - dashed
+        - dash_dot
+      min_area: 500
+
+    region_text_patterns:
+      - pattern: "REQUIRED"
+        case_insensitive: true
+        is_regex: false
+      - pattern: "REQ'D"
+        case_insensitive: true
+        is_regex: false
+
+    extraction_patterns:
+      - type: valve_tag
+        regex: "^[A-Z]{2,4}-?\\d{1,4}$"
+        description: "필수 밸브/장비"
+        priority: 5
+
+    output_type: list
+    output_filename_template: "Required_Signals_{timestamp}"
+
+  # =====================
+  # 사용자 정의 규칙 예시 (비활성화 상태)
+  # =====================
+
+  - id: custom_template
+    name: Custom Rule Template
+    description: 사용자 정의 규칙 템플릿 (예시)
+    enabled: false  # 비활성화
+    category: custom
+    icon: settings
+    color: "#6b7280"
+
+    region_criteria:
+      line_styles:
+        - dashed
+      min_area: 1000
+
+    region_text_patterns:
+      - pattern: "YOUR_PATTERN_HERE"
+        case_insensitive: true
+        is_regex: false
+
+    extraction_patterns:
+      - type: custom_tag
+        regex: "^CUSTOM-\\d+$"
+        description: "사용자 정의 태그"
+        priority: 1
+
+    output_type: list
+    output_filename_template: "Custom_{timestamp}"
+
+# =====================
+# 규칙 작성 가이드
+# =====================
+#
+# 1. region_criteria (영역 조건):
+#    - line_styles: ["solid", "dashed", "dotted", "dash_dot"] 중 선택
+#    - min_area: 최소 영역 크기 (픽셀²), 작은 노이즈 필터링
+#    - max_area: 최대 영역 크기 (null = 무제한)
+#
+# 2. region_text_patterns (영역 식별 텍스트):
+#    - pattern: 매칭할 텍스트 또는 정규식
+#    - case_insensitive: 대소문자 무시 여부
+#    - is_regex: 정규식 사용 여부 (true면 패턴을 regex로 해석)
+#
+# 3. extraction_patterns (추출 패턴):
+#    - type: 추출 항목 유형 (valve_tag, equipment_tag, tag 등)
+#    - regex: 추출할 텍스트의 정규식 패턴
+#    - priority: 우선순위 (높을수록 먼저 매칭)
+#
+# 4. output_type: "list" (JSON) 또는 "excel" (Excel 파일)
+#
+# 팁:
+# - 새 규칙을 추가할 때 custom_template을 복사하여 수정하세요
+# - enabled: false로 설정하면 규칙이 비활성화됩니다
+# - API를 통해 규칙을 추가/수정/삭제할 수 있습니다

@@ -135,3 +135,23 @@ class PaddleOCRService:
             logger.warning("No OCR results returned")
 
         return detections
+
+
+# Global OCR service instance
+_ocr_service: Optional[PaddleOCRService] = None
+
+
+def get_ocr_service() -> Optional[PaddleOCRService]:
+    """Get global OCR service instance"""
+    return _ocr_service
+
+
+def set_ocr_service(service: Optional[PaddleOCRService]):
+    """Set global OCR service instance"""
+    global _ocr_service
+    _ocr_service = service
+
+
+def is_service_ready() -> bool:
+    """Check if OCR service is ready"""
+    return _ocr_service is not None and _ocr_service.model is not None

@@ -109,3 +109,162 @@ resources:
     minRam: 1024
     cores: 2
     note: "그래프 분석 - CPU로 빠름"
+
+# =====================
+# Additional Endpoints (Valve Signal List)
+# =====================
+
+additionalEndpoints:
+  # Region-based text extraction rules
+  - path: /api/v1/region-rules
+    method: GET
+    description: 영역 추출 규칙 목록 조회 (UI 편집 가능)
+
+  - path: /api/v1/region-rules/{rule_id}
+    method: GET
+    description: 특정 규칙 상세 조회
+
+  - path: /api/v1/region-rules
+    method: POST
+    description: 새 규칙 생성
+
+  - path: /api/v1/region-rules/{rule_id}
+    method: PUT
+    description: 규칙 업데이트
+
+  - path: /api/v1/region-rules/{rule_id}
+    method: DELETE
+    description: 규칙 삭제
+
+  # Region text extraction
+  - path: /api/v1/region-text/extract
+    method: POST
+    description: 영역 기반 텍스트 추출 (Line Detector regions + OCR texts)
+    parameters:
+      - name: regions
+        type: array
+        required: true
+        description: Line Detector 영역 목록
+      - name: texts
+        type: array
+        required: true
+        description: PaddleOCR 텍스트 목록
+      - name: rule_ids
+        type: array
+        required: false
+        description: 적용할 규칙 ID 목록 (null=모든 활성 규칙)
+      - name: text_margin
+        type: number
+        default: 30
+        description: 텍스트 매칭 마진 (픽셀)
+
+  # Valve Signal List (이미지 입력)
+  - path: /api/v1/valve-signal/extract
+    method: POST
+    contentType: multipart/form-data
+    description: Valve Signal List 추출 (이미지에서 직접 추출)
+    parameters:
+      - name: file
+        type: file
+        required: true
+        description: P&ID 도면 이미지
+      - name: rule_id
+        type: string
+        default: valve_signal_bwms
+        description: 적용할 규칙 ID
+      - name: language
+        type: string
+        default: en
+        description: OCR 언어
+
+  # Valve Signal List Excel 내보내기
+  - path: /api/v1/valve-signal/export-excel
+    method: POST
+    contentType: multipart/form-data
+    description: Valve Signal List Excel 내보내기
+    parameters:
+      - name: file
+        type: file
+        required: true
+        description: P&ID 도면 이미지
+      - name: rule_id
+        type: string
+        default: valve_signal_bwms
+        description: 적용할 규칙 ID
+      - name: project_name
+        type: string
+        default: Unknown Project
+        description: 프로젝트명
+      - name: drawing_no
+        type: string
+        default: N/A
+        description: 도면 번호
+      - name: language
+        type: string
+        default: en
+        description: OCR 언어
+
+# =====================
+# Region Rules Schema (for UI)
+# =====================
+
+regionRulesSchema:
+  rule:
+    id:
+      type: string
+      required: true
+      description: 규칙 고유 ID (예: valve_signal_bwms)
+    name:
+      type: string
+      required: true
+      description: 규칙 이름 (UI 표시용)
+    description:
+      type: string
+      description: 규칙 설명
+    enabled:
+      type: boolean
+      default: true
+      description: 규칙 활성화 여부
+    category:
+      type: string
+      default: general
+      options: [bwms, hvac, process, general, custom]
+      description: 규칙 카테고리
+    region_criteria:
+      line_styles:
+        type: array
+        default: [dashed, dash_dot]
+        options: [solid, dashed, dotted, dash_dot]
+        description: 매칭할 라인 스타일
+      min_area:
+        type: number
+        default: 1000
+        description: 최소 영역 크기 (픽셀²)
+    region_text_patterns:
+      type: array
+      description: 영역 식별 텍스트 패턴 목록
+      item:
+        pattern:
+          type: string
+          description: 매칭할 텍스트 (예: SIGNAL FOR BWMS)
+        case_insensitive:
+          type: boolean
+          default: true
+        is_regex:
+          type: boolean
+          default: false
+    extraction_patterns:
+      type: array
+      description: 추출할 텍스트 패턴 목록
+      item:
+        type:
+          type: string
+          description: 추출 항목 유형 (valve_tag, equipment_tag 등)
+        regex:
+          type: string
+          description: 정규식 패턴
+        description:
+          type: string
+        priority:
+          type: number
+          default: 0

@@ -16,6 +16,7 @@ import base64
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+from contextlib import asynccontextmanager
 import io
 
 import httpx
@@ -73,13 +74,86 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI
+
+# =====================
+# Lifespan
+# =====================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
+    # Startup
+    logger.info("=" * 70)
+    logger.info("🚀 Gateway API 시작")
+    logger.info("=" * 70)
+
+    registry = get_api_registry()
+
+    # Admin Router에 Registry 연결
+    set_api_registry(registry)
+
+    # API 자동 검색 (Docker 네트워크 내부 + localhost)
+    logger.info("🔍 API 자동 검색 시작...")
+
+    # Docker 컨테이너 이름으로 검색
+    docker_hosts = [
+        "yolo-api",
+        "paddleocr-api",
+        "edocr2-v2-api",
+        "edgnet-api",
+        "skinmodel-api",
+    ]
+
+    # Localhost에서도 검색
+    await registry.discover_apis(host="localhost")
+
+    # Docker 네트워크에서도 검색
+    for host in docker_hosts:
+        try:
+            apis = await registry.discover_apis(host=host)
+            if apis:
+                logger.info(f"✅ {host}에서 {len(apis)}개 API 발견")
+        except Exception as e:
+            logger.debug(f"⚠️ {host} 검색 실패: {e}")
+
+    # 백그라운드 헬스체크 시작
+    registry.start_health_check_background()
+
+    # 결과 자동 정리 스케줄러 시작
+    try:
+        from utils.result_manager import start_cleanup_scheduler
+        start_cleanup_scheduler()
+    except ImportError:
+        logger.warning("결과 자동 정리 기능을 사용할 수 없습니다")
+
+    logger.info("=" * 70)
+    logger.info(f"✅ Gateway API 준비 완료 (등록된 API: {len(registry.get_all_apis())}개)")
+    logger.info("=" * 70)
+
+    yield
+
+    # Shutdown
+    logger.info("🛑 Gateway API 종료")
+
+    # 결과 자동 정리 스케줄러 중지
+    try:
+        from utils.result_manager import stop_cleanup_scheduler
+        stop_cleanup_scheduler()
+    except ImportError:
+        pass
+
+
+# =====================
+# FastAPI App
+# =====================
+
 app = FastAPI(
     title="Gateway API",
     description="Integrated Orchestration Service for Engineering Drawing Processing",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS Configuration (개발 환경: 모든 origin 허용)
@@ -845,74 +919,6 @@ async def root():
         "timestamp": datetime.now().isoformat(),
         "services": services
     }
-
-
-# =====================
-# Startup/Shutdown Events
-# =====================
-
-@app.on_event("startup")
-async def startup_event():
-    """서버 시작 시 API 자동 검색 및 헬스체크 시작"""
-    logger.info("=" * 70)
-    logger.info("🚀 Gateway API 시작")
-    logger.info("=" * 70)
-
-    registry = get_api_registry()
-
-    # Admin Router에 Registry 연결
-    set_api_registry(registry)
-
-    # API 자동 검색 (Docker 네트워크 내부 + localhost)
-    logger.info("🔍 API 자동 검색 시작...")
-
-    # Docker 컨테이너 이름으로 검색
-    docker_hosts = [
-        "yolo-api",
-        "paddleocr-api",
-        "edocr2-v2-api",
-        "edgnet-api",
-        "skinmodel-api",
-    ]
-
-    # Localhost에서도 검색
-    await registry.discover_apis(host="localhost")
-
-    # Docker 네트워크에서도 검색
-    for host in docker_hosts:
-        try:
-            apis = await registry.discover_apis(host=host)
-            if apis:
-                logger.info(f"✅ {host}에서 {len(apis)}개 API 발견")
-        except Exception as e:
-            logger.debug(f"⚠️ {host} 검색 실패: {e}")
-
-    # 백그라운드 헬스체크 시작
-    registry.start_health_check_background()
-
-    # 결과 자동 정리 스케줄러 시작
-    try:
-        from utils.result_manager import start_cleanup_scheduler
-        start_cleanup_scheduler()
-    except ImportError:
-        logger.warning("결과 자동 정리 기능을 사용할 수 없습니다")
-
-    logger.info("=" * 70)
-    logger.info(f"✅ Gateway API 준비 완료 (등록된 API: {len(registry.get_all_apis())}개)")
-    logger.info("=" * 70)
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """서버 종료"""
-    logger.info("🛑 Gateway API 종료")
-
-    # 결과 자동 정리 스케줄러 중지
-    try:
-        from utils.result_manager import stop_cleanup_scheduler
-        stop_cleanup_scheduler()
-    except ImportError:
-        pass
 
 
 # =====================

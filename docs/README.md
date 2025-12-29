@@ -1,7 +1,7 @@
 # AX BlueprintFlow Documentation
 
 > 기계 도면 자동 분석 및 제조 견적 생성 시스템 문서
-> **최종 업데이트**: 2025-12-24 | **버전**: v9.0
+> **최종 업데이트**: 2025-12-28 | **버전**: v10.0
 
 ---
 
@@ -73,8 +73,7 @@ docs/
 
 | Category | Service | Port | Parameters |
 |----------|---------|------|------------|
-| Detection | YOLO | 5005 | [yolo/parameters.md](api/yolo/parameters.md) |
-| Detection | YOLO-PID | 5017 | [yolo-pid/parameters.md](api/yolo-pid/parameters.md) |
+| Detection | YOLO | 5005 | [yolo/parameters.md](api/yolo/parameters.md) (model_type으로 P&ID 지원) |
 | OCR | eDOCr2 | 5002 | [edocr2/parameters.md](api/edocr2/parameters.md) |
 | OCR | PaddleOCR | 5006 | [paddleocr/parameters.md](api/paddleocr/parameters.md) |
 | OCR | Tesseract | 5008 | [tesseract/parameters.md](api/tesseract/parameters.md) |

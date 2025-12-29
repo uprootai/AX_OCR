@@ -15,6 +15,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
@@ -213,24 +214,6 @@ except ImportError as e:
     EDOCR_AVAILABLE = False
     logger.warning(f"⚠️ eDOCr v1 not available: {e}")
 
-# Initialize FastAPI
-app = FastAPI(
-    title="eDOCr v1 API",
-    description="Engineering Drawing OCR Service (eDOCr v1)",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
-
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
-
 # Directories
 BASE_DIR = Path(__file__).parent
 UPLOAD_DIR = BASE_DIR / "uploads"
@@ -254,10 +237,19 @@ alphabet_infoblock = string.digits + string.ascii_letters + ',.:-/'
 alphabet_gdts = string.digits + ',.⌀ABCD' + GDT_symbols
 
 
-@app.on_event("startup")
-async def load_models():
-    """Load eDOCr v1 models on startup"""
+# =====================
+# Lifespan
+# =====================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
     global model_infoblock, model_dimensions, model_gdts
+
+    # Startup
+    logger.info("=" * 70)
+    logger.info("🚀 eDOCr v1 API Server Starting...")
+    logger.info("=" * 70)
 
     # Configure GPU memory growth
     try:
@@ -281,35 +273,62 @@ async def load_models():
 
     if not EDOCR_AVAILABLE:
         logger.warning("⚠️ eDOCr v1 not available - running in mock mode")
-        return
+    else:
+        try:
+            logger.info("Loading eDOCr v1 models...")
 
-    try:
-        logger.info("Loading eDOCr v1 models...")
+            # Models auto-download from GitHub Releases
+            model_infoblock = keras_tools.download_and_verify(
+                url="https://github.com/javvi51/eDOCr/releases/download/v1.0.0/recognizer_infoblock.h5",
+                filename="recognizer_infoblock.h5",
+                sha256="e0a317e07ce75235f67460713cf1b559e02ae2282303eec4a1f76ef211fcb8e8",
+            )
 
-        # Models auto-download from GitHub Releases
-        model_infoblock = keras_tools.download_and_verify(
-            url="https://github.com/javvi51/eDOCr/releases/download/v1.0.0/recognizer_infoblock.h5",
-            filename="recognizer_infoblock.h5",
-            sha256="e0a317e07ce75235f67460713cf1b559e02ae2282303eec4a1f76ef211fcb8e8",
-        )
+            model_dimensions = keras_tools.download_and_verify(
+                url="https://github.com/javvi51/eDOCr/releases/download/v1.0.0/recognizer_dimensions.h5",
+                filename="recognizer_dimensions.h5",
+                sha256="a1c27296b1757234a90780ccc831762638b9e66faf69171f5520817130e05b8f",
+            )
 
-        model_dimensions = keras_tools.download_and_verify(
-            url="https://github.com/javvi51/eDOCr/releases/download/v1.0.0/recognizer_dimensions.h5",
-            filename="recognizer_dimensions.h5",
-            sha256="a1c27296b1757234a90780ccc831762638b9e66faf69171f5520817130e05b8f",
-        )
+            model_gdts = keras_tools.download_and_verify(
+                url="https://github.com/javvi51/eDOCr/releases/download/v1.0.0/recognizer_gdts.h5",
+                filename="recognizer_gdts.h5",
+                sha256="58acf6292a43ff90a344111729fc70cf35f0c3ca4dfd622016456c0b29ef2a46",
+            )
 
-        model_gdts = keras_tools.download_and_verify(
-            url="https://github.com/javvi51/eDOCr/releases/download/v1.0.0/recognizer_gdts.h5",
-            filename="recognizer_gdts.h5",
-            sha256="58acf6292a43ff90a344111729fc70cf35f0c3ca4dfd622016456c0b29ef2a46",
-        )
+            logger.info("✅ eDOCr v1 models loaded successfully!")
 
-        logger.info("✅ eDOCr v1 models loaded successfully!")
+        except Exception as e:
+            logger.error(f"❌ Failed to load eDOCr v1 models: {e}")
+            raise
 
-    except Exception as e:
-        logger.error(f"❌ Failed to load eDOCr v1 models: {e}")
-        raise
+    yield
+
+    # Shutdown
+    logger.info("👋 Shutting down eDOCr v1 API...")
+
+
+# =====================
+# FastAPI App
+# =====================
+
+app = FastAPI(
+    title="eDOCr v1 API",
+    description="Engineering Drawing OCR Service (eDOCr v1)",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan
+)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 
 # Pydantic models

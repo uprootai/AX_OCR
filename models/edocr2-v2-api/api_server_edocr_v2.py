@@ -15,6 +15,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
@@ -237,24 +238,6 @@ except ImportError as e:
     EDOCR2_AVAILABLE = False
     logger.warning(f"⚠️ eDOCr v2 not available: {e}")
 
-# Initialize FastAPI
-app = FastAPI(
-    title="eDOCr v2 API",
-    description="Engineering Drawing OCR Service (eDOCr v2 - Advanced)",
-    version="2.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
-
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
-
 # Directories
 BASE_DIR = Path(__file__).parent
 MODELS_DIR = BASE_DIR / "models"
@@ -272,62 +255,98 @@ detector = None
 alphabet_dim = None
 
 
-@app.on_event("startup")
-async def load_models():
-    """Load eDOCr v2 models on startup"""
+# =====================
+# Lifespan
+# =====================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
     global recognizer_gdt, recognizer_dim, detector, alphabet_dim
+
+    # Startup
+    logger.info("=" * 70)
+    logger.info("🚀 eDOCr v2 API Server Starting...")
+    logger.info("=" * 70)
 
     if not EDOCR2_AVAILABLE:
         logger.warning("⚠️ eDOCr v2 not available - running in mock mode")
-        return
+    else:
+        try:
+            logger.info("Loading eDOCr v2 models...")
 
-    try:
-        logger.info("Loading eDOCr v2 models...")
+            # Configure GPU memory growth and limits
+            gpus = tf.config.list_physical_devices('GPU')
+            if gpus:
+                try:
+                    for gpu in gpus:
+                        # Enable memory growth to avoid OOM errors
+                        tf.config.experimental.set_memory_growth(gpu, True)
 
-        # Configure GPU memory growth and limits
-        gpus = tf.config.list_physical_devices('GPU')
-        if gpus:
-            try:
-                for gpu in gpus:
-                    # Enable memory growth to avoid OOM errors
-                    tf.config.experimental.set_memory_growth(gpu, True)
+                        # Set memory limit to 5GB (leaving room for v1 API)
+                        tf.config.set_logical_device_configuration(
+                            gpu,
+                            [tf.config.LogicalDeviceConfiguration(memory_limit=5120)]
+                        )
+                    logger.info(f"✅ Configured {len(gpus)} GPU(s) with 5GB memory limit and growth enabled")
+                except RuntimeError as e:
+                    # GPU already initialized, memory growth must be set at program startup
+                    logger.warning(f"⚠️ GPU configuration warning: {e}")
+            else:
+                logger.warning("⚠️ No GPU found, running on CPU")
 
-                    # Set memory limit to 5GB (leaving room for v1 API)
-                    tf.config.set_logical_device_configuration(
-                        gpu,
-                        [tf.config.LogicalDeviceConfiguration(memory_limit=5120)]
-                    )
-                logger.info(f"✅ Configured {len(gpus)} GPU(s) with 5GB memory limit and growth enabled")
-            except RuntimeError as e:
-                # GPU already initialized, memory growth must be set at program startup
-                logger.warning(f"⚠️ GPU configuration warning: {e}")
-        else:
-            logger.warning("⚠️ No GPU found, running on CPU")
+            # Model paths
+            gdt_model = str(MODELS_DIR / 'recognizer_gdts.keras')
+            dim_model = str(MODELS_DIR / 'recognizer_dimensions_2.keras')
 
-        # Model paths
-        gdt_model = str(MODELS_DIR / 'recognizer_gdts.keras')
-        dim_model = str(MODELS_DIR / 'recognizer_dimensions_2.keras')
+            # Load recognizers
+            logger.info(f"Loading GDT recognizer from {gdt_model}")
+            alphabet_gdt = tools.ocr_pipelines.read_alphabet(gdt_model)
+            recognizer_gdt = Recognizer(alphabet=alphabet_gdt)
+            recognizer_gdt.model.load_weights(gdt_model)
 
-        # Load recognizers
-        logger.info(f"Loading GDT recognizer from {gdt_model}")
-        alphabet_gdt = tools.ocr_pipelines.read_alphabet(gdt_model)
-        recognizer_gdt = Recognizer(alphabet=alphabet_gdt)
-        recognizer_gdt.model.load_weights(gdt_model)
+            logger.info(f"Loading Dimensions recognizer from {dim_model}")
+            alphabet_dim = tools.ocr_pipelines.read_alphabet(dim_model)
+            recognizer_dim = Recognizer(alphabet=alphabet_dim)
+            recognizer_dim.model.load_weights(dim_model)
 
-        logger.info(f"Loading Dimensions recognizer from {dim_model}")
-        alphabet_dim = tools.ocr_pipelines.read_alphabet(dim_model)
-        recognizer_dim = Recognizer(alphabet=alphabet_dim)
-        recognizer_dim.model.load_weights(dim_model)
+            # Load detector
+            logger.info("Loading Detector")
+            detector = Detector()
 
-        # Load detector
-        logger.info("Loading Detector")
-        detector = Detector()
+            logger.info("✅ eDOCr v2 models loaded successfully!")
 
-        logger.info("✅ eDOCr v2 models loaded successfully!")
+        except Exception as e:
+            logger.error(f"❌ Failed to load eDOCr v2 models: {e}")
+            raise
 
-    except Exception as e:
-        logger.error(f"❌ Failed to load eDOCr v2 models: {e}")
-        raise
+    yield
+
+    # Shutdown
+    logger.info("👋 Shutting down eDOCr v2 API...")
+
+
+# =====================
+# FastAPI App
+# =====================
+
+app = FastAPI(
+    title="eDOCr v2 API",
+    description="Engineering Drawing OCR Service (eDOCr v2 - Advanced)",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan
+)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 
 def allowed_file(filename: str) -> bool:

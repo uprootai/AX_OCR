@@ -38,6 +38,7 @@ class DesignCheckerExecutor(BaseNodeExecutor):
         symbols = []
         connections = []
         lines = []
+        texts = []
 
         # 직접 입력 확인 (단일 부모)
         if "detections" in inputs:
@@ -48,6 +49,10 @@ class DesignCheckerExecutor(BaseNodeExecutor):
             connections = inputs.get("connections", [])
         if "lines" in inputs:
             lines = inputs.get("lines", [])
+        if "texts" in inputs:
+            texts = inputs.get("texts", [])
+        if "text_results" in inputs:
+            texts = inputs.get("text_results", [])
 
         # from_ prefix 입력 확인 (다중 부모 - Merge 패턴)
         for key, value in inputs.items():
@@ -58,6 +63,10 @@ class DesignCheckerExecutor(BaseNodeExecutor):
                     connections = value.get("connections", [])
                 if "lines" in value and not lines:
                     lines = value.get("lines", [])
+                if "texts" in value and not texts:
+                    texts = value.get("texts", [])
+                if "text_results" in value and not texts:
+                    texts = value.get("text_results", [])
 
         # 입력 검증
         has_symbols = bool(symbols) and len(symbols) > 0
@@ -113,14 +122,17 @@ class DesignCheckerExecutor(BaseNodeExecutor):
         # 파라미터 추출
         categories = self.parameters.get("categories", "")
         severity_threshold = self.parameters.get("severity_threshold", "info")
+        include_bwms = self.parameters.get("include_bwms", True)
 
         # Form data로 JSON 문자열 전송
         form_data = {
             "symbols": json.dumps(symbols),
             "connections": json.dumps(connections),
             "lines": json.dumps(lines),
+            "texts": json.dumps(texts),
             "categories": categories,
-            "severity_threshold": severity_threshold
+            "severity_threshold": severity_threshold,
+            "include_bwms": str(include_bwms).lower()  # bool을 문자열로 변환
         }
 
         # API 호출
@@ -194,6 +206,10 @@ class DesignCheckerExecutor(BaseNodeExecutor):
                 "lines": {
                     "type": "array",
                     "description": "Line Detector 결과"
+                },
+                "texts": {
+                    "type": "array",
+                    "description": "OCR 텍스트 결과 (BWMS 규칙 검사용)"
                 }
             },
             "required": ["symbols", "connections"]

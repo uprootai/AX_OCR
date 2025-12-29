@@ -35,11 +35,10 @@ export const detectionNodes: Record<string, NodeDefinition> = {
         options: [
           'bom_detector',
           'engineering',
-          'pid_symbol',
-          'pid_class_agnostic',
           'pid_class_aware',
+          'pid_class_agnostic',
         ],
-        description: '모델 선택: bom_detector(전력설비 27종), engineering(기계도면 14종), pid_symbol(P&ID 60종)',
+        description: '모델 선택: bom_detector(전력설비 27종), engineering(기계도면 14종), pid_class_aware(P&ID 32종 분류), pid_class_agnostic(P&ID 위치만)',
       },
       {
         name: 'confidence',
@@ -117,14 +116,14 @@ export const detectionNodes: Record<string, NodeDefinition> = {
     ],
     examples: [
       '도면 이미지 → YOLO (engineering) → 14가지 기계 심볼 검출',
-      '도면 이미지 → YOLO (pid_symbol) → 60가지 P&ID 심볼 검출',
+      '도면 이미지 → YOLO (pid_class_aware) → 32가지 P&ID 심볼 검출 및 분류',
       '전력 설비 도면 → YOLO (bom_detector) → 27가지 전력 설비 심볼 검출 → BOM 생성',
     ],
     usageTips: [
-      '기계도면: model_type=engineering, confidence=0.25',
-      'P&ID: model_type=pid_symbol, confidence=0.1 (SAHI 자동)',
+      '기계도면: model_type=engineering, confidence=0.25, imgsz=1280',
+      'P&ID 분류: model_type=pid_class_aware, confidence=0.25, use_sahi=true',
+      'P&ID 위치만: model_type=pid_class_agnostic, confidence=0.15',
       '전력 설비: model_type=bom_detector, confidence=0.4, iou=0.5, imgsz=1024',
-      '검출된 영역을 eDOCr2나 PaddleOCR의 입력으로 사용하면 해당 영역만 정밀 분석할 수 있습니다',
     ],
     recommendedInputs: [
       {

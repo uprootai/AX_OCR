@@ -45,7 +45,7 @@ async def call_yolo_detect(
         iou_threshold: IoU 임계값
         imgsz: 이미지 크기
         visualize: 시각화 생성 여부
-        model_type: 모델 타입 (bom_detector, engineering, pid_symbol 등)
+        model_type: 모델 타입 (bom_detector, engineering, pid_class_aware 등)
         task: 작업 종류 (detect/segment)
         use_sahi: SAHI 슬라이싱 사용 여부
         slice_height: SAHI 슬라이스 높이
