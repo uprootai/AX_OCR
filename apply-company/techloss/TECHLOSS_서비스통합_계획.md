@@ -25,8 +25,8 @@
 │  │  Detection      │   │  OCR            │   │  Analysis           │  │
 │  │  ─────────────  │   │  ─────────────  │   │  ─────────────────  │  │
 │  │  YOLO (:5005)   │   │  eDOCr2 (:5002) │   │  PID Analyzer       │  │
-│  │  YOLO-PID       │   │  PaddleOCR      │   │    (:5018)          │  │
-│  │    (:5017)      │   │    (:5006)      │   │  Design Checker     │  │
+│  │  (P&ID 모드     │   │  PaddleOCR      │   │    (:5018)          │  │
+│  │   지원)         │   │    (:5006)      │   │  Design Checker     │  │
 │  │  Line Detector  │   │  OCR Ensemble   │   │    (:5019)          │  │
 │  │    (:5016)      │   │    (:5011)      │   │  Blueprint AI BOM   │  │
 │  └─────────────────┘   └─────────────────┘   │    (:5020)          │  │
@@ -38,14 +38,14 @@
 ### 1.2 현재 BlueprintFlow 노드 체계
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│                  현재 BlueprintFlow 노드 (21개)               │
+│                  현재 BlueprintFlow 노드 (20개)               │
 ├───────────────────────────────────────────────────────────────┤
 │                                                               │
 │  Input          Detection        OCR           Analysis       │
 │  ┌─────────┐   ┌──────────┐   ┌──────────┐   ┌────────────┐  │
 │  │ Image   │   │ YOLO     │   │ eDOCr2   │   │ SkinModel  │  │
-│  │ Input   │   │ YOLO-PID │   │ PaddleOCR│   │ PID Analyz.│  │
-│  │ Text    │   │ Line Det.│   │ Tesseract│   │ Design Chk │  │
+│  │ Input   │   │ (P&ID    │   │ PaddleOCR│   │ PID Analyz.│  │
+│  │ Text    │   │  모드)   │   │ Tesseract│   │ Design Chk │  │
 │  │ Input   │   │ EDGNet   │   │ TrOCR    │   │ Blueprint  │  │
 │  └─────────┘   └──────────┘   │ Ensemble │   │ AI BOM     │  │
 │                               └──────────┘   └────────────┘  │
@@ -105,10 +105,10 @@
 │  │                        API Services Layer                            │  │
 │  │                                                                      │  │
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────────┐ │  │
-│  │  │  YOLO-PID  │  │    OCR     │  │    PID     │  │ BWMS Checker   │ │  │
+│  │  │ YOLO P&ID  │  │    OCR     │  │    PID     │  │ BWMS Checker   │ │  │
 │  │  │  Symbol    │  │  Ensemble  │  │  Analyzer  │  │    (NEW)       │ │  │
 │  │  │  Detector  │  │            │  │            │  │                │ │  │
-│  │  │  (:5017)   │  │  (:5011)   │  │  (:5018)   │  │   (:5021)      │ │  │
+│  │  │  (:5005)   │  │  (:5011)   │  │  (:5018)   │  │   (:5021)      │ │  │
 │  │  ├────────────┤  ├────────────┤  ├────────────┤  ├────────────────┤ │  │
 │  │  │ 30 classes │  │ 4 engines  │  │ Connection │  │ TECHCROSS      │ │  │
 │  │  │ + BWMS tag │  │ weighted   │  │ Analysis   │  │ Design Rules   │ │  │
@@ -138,7 +138,7 @@
 │  │                                                                       │ │
 │  │  입력                                                                 │ │
 │  │  ────                                                                 │ │
-│  │  • symbols: YOLO-PID 검출 결과                                        │ │
+│  │  • symbols: YOLO (P&ID 모드) 검출 결과                                 │ │
 │  │  • connections: PID Analyzer 연결 분석 결과                            │ │
 │  │  • ocr_texts: OCR Ensemble 텍스트 결과                                │ │
 │  │  • lines: Line Detector 라인 결과                                     │ │
@@ -311,8 +311,8 @@
 │  │                     병렬 처리 레이어                                 │   │
 │  │                                                                     │   │
 │  │  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐           │   │
-│  │  │   YOLO-PID    │  │  Line Det.    │  │  OCR Ensemble │           │   │
-│  │  │   (:5017)     │  │   (:5016)     │  │   (:5011)     │           │   │
+│  │  │  YOLO P&ID    │  │  Line Det.    │  │  OCR Ensemble │           │   │
+│  │  │   (:5005)     │  │   (:5016)     │  │   (:5011)     │           │   │
 │  │  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘           │   │
 │  │          │                  │                  │                   │   │
 │  │          ▼                  ▼                  ▼                   │   │
@@ -446,7 +446,7 @@ inputs:
   - name: symbols
     type: Detection[]
     required: true
-    description: YOLO-PID 검출 결과
+    description: YOLO (P&ID 모드) 검출 결과
   - name: lines
     type: Line[]
     required: true
@@ -859,7 +859,7 @@ i18n:
 │  100% 재사용 (수정 없음)                                                    │
 │  ━━━━━━━━━━━━━━━━━━━━━━                                                       │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  • YOLO-PID (:5017) - P&ID 심볼 검출 그대로 사용                    │   │
+│  │  • YOLO (:5005, P&ID 모드) - P&ID 심볼 검출 그대로 사용             │   │
 │  │  • Line Detector (:5016) - 라인 검출 그대로 사용                    │   │
 │  │  • OCR Ensemble (:5011) - 텍스트 인식 그대로 사용                   │   │
 │  │  • ESRGAN (:5010) - 이미지 업스케일 (필요시)                        │   │
@@ -933,7 +933,7 @@ i18n:
 
 | 영역 | 통합 방식 | 재사용율 |
 |------|----------|---------|
-| **심볼 검출** | YOLO-PID 그대로 사용 + OCR 패턴 매칭 | 100% |
+| **심볼 검출** | YOLO (P&ID 모드) 그대로 사용 + OCR 패턴 매칭 | 100% |
 | **연결 분석** | PID Analyzer 그대로 사용 | 100% |
 | **규칙 검증** | 신규 BWMS Checker API | 신규 |
 | **UI** | 신규 BWMS Checker 페이지 | 신규 |

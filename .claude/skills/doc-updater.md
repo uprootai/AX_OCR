@@ -117,7 +117,7 @@ web-ui/src/pages/admin/APIDetail.tsx                   # Dashboard 설정 페이
 **예시 경고**:
 ```
 ⚠️ Dashboard 동기화 필요:
-- API 'yolo_pid'가 api_specs/yolo-pid.yaml에 정의되었지만:
+- API 'new_api'가 api_specs/new-api.yaml에 정의되었지만:
   - APIDetail.tsx의 DEFAULT_APIS에 없음
   - APIDetail.tsx의 HYPERPARAM_DEFINITIONS에 없음
 ```

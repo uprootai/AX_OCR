@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-**5분 안에 프로젝트 파악하기** | 최종 업데이트: 2025-12-26
+**5분 안에 프로젝트 파악하기** | 최종 업데이트: 2025-12-28
 
 ---
 
@@ -17,7 +17,7 @@
 ## Architecture (30초 이해)
 
 ```
-Web UI (React 19) → Gateway API → [ 19개 AI API 서비스 ]
+Web UI (React 19) → Gateway API → [ 18개 AI API 서비스 ]
      :5173              :8000         :5002-5020
 ```
 
@@ -26,13 +26,12 @@ Web UI (React 19) → Gateway API → [ 19개 AI API 서비스 ]
 
 ---
 
-## API Services (20개)
+## API Services (19개)
 
 | 카테고리 | 서비스 | 포트 | 용도 |
 |----------|--------|------|------|
 | **Orchestrator** | Gateway | 8000 | API 오케스트레이터 |
-| **Detection** | YOLO | 5005 | 14가지 심볼 검출 |
-| **Detection** | YOLO-PID | 5017 | P&ID 60종 심볼 |
+| **Detection** | YOLO | 5005 | 통합 검출 (model_type으로 P&ID 지원) |
 | **OCR** | eDOCr2 | 5002 | 한국어 치수 |
 | **OCR** | PaddleOCR | 5006 | 다국어 OCR |
 | **OCR** | Tesseract | 5008 | 문서 OCR |

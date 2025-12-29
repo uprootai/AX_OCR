@@ -8,10 +8,10 @@
 
 ### 1순위: P&ID 심볼/텍스트 인식 기반 구축
 
-- YOLO-PID 모델에 BWMS 장비 8종 클래스 추가 (ECU, FMU, ANU, TSU, APU, GDS, EWU, CPC)
+- YOLO (model_type=pid_class_aware) 모델에 BWMS 장비 8종 클래스 추가 (ECU, FMU, ANU, TSU, APU, GDS, EWU, CPC)
 - OCR로 장비명/밸브ID 텍스트 추출
 - "SIGNAL FOR BWMS" 라벨 감지
-- 기존 기능 활용: YOLO-PID, OCR Ensemble, Line Detector
+- 기존 기능 활용: YOLO (P&ID 모드), OCR Ensemble, Line Detector
 
 ### 2순위: Equipment List 자동 생성 (1-3)
 

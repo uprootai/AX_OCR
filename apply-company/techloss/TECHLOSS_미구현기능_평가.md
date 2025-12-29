@@ -13,7 +13,7 @@
 | PID Analyzer | `models/pid-analyzer-api/api_server.py` (1033줄) | 일반 기능 구현됨 |
 | Design Checker | `models/design-checker-api/api_server.py` (824줄) | **BWMS 규칙 없음** |
 | Line Detector | `models/line-detector-api/api_server.py` (1007줄) | 완전 구현됨 |
-| YOLO-PID | `models/yolo-pid-api/api_server.py` (555줄) | 30개 일반 클래스 |
+| YOLO (P&ID) | `models/yolo-api/api_server.py` (model_type=pid_class_aware) | 32개 클래스 |
 | OCR Ensemble | `models/ocr-ensemble-api/api_server.py` (649줄) | 완전 구현됨 |
 | YOLO 모델 | `models/yolo-api/models/model_registry.yaml` | **BWMS 장비 없음** |
 
@@ -147,7 +147,7 @@ Category: 배관 검토
 
 | 기능 | 컴포넌트 | 상태 | TECHCROSS 활용 |
 |------|----------|------|---------------|
-| P&ID 심볼 검출 | YOLO-PID | ✅ | 일반 심볼 검출 가능 |
+| P&ID 심볼 검출 | YOLO (model_type=pid_class_aware) | ✅ | 일반 심볼 검출 가능 |
 | 라인 검출 | Line Detector | ✅ | 배관 경로 추출 가능 |
 | OCR | OCR Ensemble | ✅ | 텍스트 인식 가능 |
 | 심볼 연결 분석 | PID Analyzer | ✅ | 연결 관계 파악 가능 |

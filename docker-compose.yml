@@ -588,6 +588,8 @@ services:
     volumes:
       - ./models/pid-analyzer-api/uploads:/tmp/pid-analyzer/uploads
       - ./models/pid-analyzer-api/results:/tmp/pid-analyzer/results
+      # Region rules 설정 파일 마운트 (UI에서 동적 수정 가능)
+      - ./models/pid-analyzer-api/region_rules.yaml:/app/region_rules.yaml
     environment:
       - PID_ANALYZER_PORT=5018
       - PYTHONUNBUFFERED=1
@@ -613,6 +615,7 @@ services:
     volumes:
       - ./models/design-checker-api/uploads:/tmp/design-checker/uploads
       - ./models/design-checker-api/results:/tmp/design-checker/results
+      - ./models/design-checker-api/config:/app/config
     environment:
       - DESIGN_CHECKER_PORT=5019
       - PYTHONUNBUFFERED=1

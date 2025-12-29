@@ -1,8 +1,10 @@
 """
-Phase 1.1: YOLO-PID Confidence Tuning Experiment
+Phase 1.1: YOLO (P&ID Mode) Confidence Tuning Experiment
 P&ID 심볼 검출 최적 confidence 값 탐색
 
 실행: python phase1_confidence_tuning.py
+
+Note: YOLO 통합 API 사용 (model_type=pid_class_aware)
 """
 import requests
 import json
@@ -13,8 +15,8 @@ import cv2
 import numpy as np
 import base64
 
-# 설정
-API_URL = "http://localhost:5017/api/v1/process"
+# 설정 - YOLO 통합 API (model_type으로 P&ID 모드 선택)
+API_URL = "http://localhost:5005/api/v1/detect"
 SAMPLE_IMAGE = Path(__file__).parent.parent.parent / "web-ui/public/samples/pid_detection_optimized.png"
 
 # Ground Truth (내가 직접 P&ID에서 확인한 값)
@@ -38,11 +40,12 @@ def test_confidence(confidence: float, slice_size: int = 512) -> dict:
             API_URL,
             files={"file": f},
             data={
+                "model_type": "pid_class_aware",  # P&ID 심볼 분류 모드
                 "confidence": str(confidence),
                 "slice_height": str(slice_size),
                 "slice_width": str(slice_size),
                 "overlap_ratio": "0.25",
-                "class_agnostic": "false",
+                "use_sahi": "true",  # P&ID는 SAHI 권장
                 "visualize": "false"
             },
             timeout=120
@@ -108,7 +111,7 @@ def calculate_metrics(result: dict) -> dict:
 def run_experiment():
     """Confidence 값 범위에서 최적값 탐색"""
     print("=" * 60)
-    print("Phase 1.1: YOLO-PID Confidence Tuning Experiment")
+    print("Phase 1.1: YOLO (P&ID Mode) Confidence Tuning Experiment")
     print("=" * 60)
     print(f"\nSample Image: {SAMPLE_IMAGE}")
     print(f"Ground Truth: ~{GROUND_TRUTH['total_symbols']} symbols\n")

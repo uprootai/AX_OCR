@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-27
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-29
 > 모든 문서: <100줄, 모듈식 구조, 계층적 구성
 
 ---
@@ -557,7 +557,8 @@ resources:
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
-| **16.0** | **2025-12-28** | **Line Detector v1.1**: 라인 스타일 분류 (실선/점선/일점쇄선 등 6종), 점선 박스 영역 검출 (SIGNAL FOR BWMS 등), 라인 용도 분류 (ISO 10628 기반), 테스트 16개 통과 |
+| **17.0** | **2025-12-29** | **Design Checker v1.0 리팩토링**: api_server.py 1,482줄→167줄 분리, BWMS 규칙 관리 시스템 (Excel 업로드, YAML 저장, 프로필 관리), lifespan 패턴 적용, 20개 엔드포인트 |
+| 16.0 | 2025-12-28 | Line Detector v1.1: 라인 스타일 분류 (실선/점선/일점쇄선 등 6종), 점선 박스 영역 검출 (SIGNAL FOR BWMS 등), 라인 용도 분류 (ISO 10628 기반), 테스트 16개 통과 |
 | 15.0 | 2025-12-27 | Blueprint AI BOM v10.3: 장기 로드맵 4/4 기능 완전 구현 (VLM 분류, 노트 추출, 영역 세분화, 리비전 비교), 테스트 59개 통과 |
 | 14.0 | 2025-12-26 | GPU Override 시스템: docker-compose.override.yml 기반 동적 GPU 설정, Dashboard GPU 토글 버그 수정 |
 | 13.0 | 2025-12-26 | 모듈화 리팩토링: 1000줄 제한 규칙, WorkflowPage 595줄로 분리, LLM 최적화 가이드 추가 |
@@ -602,6 +603,68 @@ resources:
 | **총계** | **59개** | **✅ 통과** |
 
 **문서**: [blueprint-ai-bom/docs/](blueprint-ai-bom/docs/README.md)
+
+---
+
+## Design Checker API (v1.0)
+
+**P&ID 도면 설계 오류 검출 및 규정 검증 API**
+
+### 아키텍처 (리팩토링 완료)
+
+```
+models/design-checker-api/
+├── api_server.py       (167줄)  # FastAPI 앱, lifespan
+├── schemas.py          (81줄)   # Pydantic 모델
+├── constants.py        (219줄)  # 규칙 정의 (20개)
+├── checker.py          (354줄)  # 설계 검증 로직
+├── bwms_rules.py       (822줄)  # BWMS 규칙 (7+동적)
+├── rule_loader.py      (260줄)  # YAML 기반 규칙 관리
+├── excel_parser.py     (210줄)  # 체크리스트 Excel 파싱
+└── routers/
+    ├── check_router.py    (220줄)  # /api/v1/check
+    ├── rules_router.py    (295줄)  # /api/v1/rules/*
+    └── checklist_router.py (311줄) # /api/v1/checklist/*
+```
+
+### 핵심 기능
+
+| 기능 | 설명 |
+|------|------|
+| 설계 검증 | 20개 규칙 (connectivity, symbol, labeling 등) |
+| BWMS 검증 | 7개 내장 규칙 + 동적 규칙 |
+| 규칙 관리 | Excel 업로드, YAML 저장, 프로필 관리 |
+| 제품 필터 | ALL / ECS / HYCHLOR 타입별 규칙 |
+
+### 엔드포인트 (20개)
+
+| 그룹 | 수량 | 주요 엔드포인트 |
+|------|------|----------------|
+| Health | 3개 | /health, /api/v1/info |
+| Check | 3개 | /api/v1/check, /api/v1/check/bwms |
+| Rules | 7개 | /api/v1/rules, /disable, /enable |
+| Checklist | 5개 | /upload, /template, /current |
+| Profile | 2개 | /activate, /deactivate |
+
+### 지원 표준
+
+| 표준 | 설명 |
+|------|------|
+| **ISO 10628** | P&ID 표준 |
+| **ISA 5.1** | 계기 심볼 표준 |
+| **TECHCROSS BWMS** | 선박평형수처리시스템 규정 |
+
+### 규칙 파일 구조
+
+```
+config/
+├── common/          # 공통 규칙
+├── ecs/             # ECS 제품 전용
+├── hychlor/         # HYCHLOR 제품 전용
+└── custom/          # 사용자 정의
+```
+
+**문서**: [docs/api/design-checker/](docs/api/design-checker/)
 
 ---
 

@@ -122,3 +122,4 @@ models/*/training/datasets/**/checkpoints/
 # Offline model bundles (large files for on-premise deployment)
 offline_models/
 
+apply-company/techloss/test_output/
