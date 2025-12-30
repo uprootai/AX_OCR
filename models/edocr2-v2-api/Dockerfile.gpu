@@ -52,6 +52,7 @@ COPY edocr2_src/models/ /models/
 
 # Copy application code
 COPY api_server.py .
+COPY routers/ ./routers/
 COPY gpu_preprocessing.py .
 COPY models/ ./models/
 COPY services/ ./services/
