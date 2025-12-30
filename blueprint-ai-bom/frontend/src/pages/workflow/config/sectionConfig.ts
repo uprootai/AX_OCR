@@ -38,12 +38,19 @@ export const ALL_FEATURES_DISABLED: SectionVisibility = {
 /**
  * Feature 의존성 정의
  * key: feature ID, value: 필수 의존 feature 목록
+ *
+ * 2025-12-30: P2 일관성 작업 - 누락된 의존성 추가
  */
 export const FEATURE_DEPENDENCIES: Record<string, { requires?: string[]; requiresAtLeastOne?: string[] }> = {
+  // === 기본 검출 ===
   // 검증 기능은 검출 기능 필요
   symbol_verification: { requires: ['symbol_detection'] },
   dimension_verification: { requires: ['dimension_ocr'] },
 
+  // GT 비교는 심볼 검출 필요 (검출 결과와 정답 비교)
+  gt_comparison: { requires: ['symbol_detection'] },
+
+  // === GD&T/기계 ===
   // GD&T/기계 기능은 심볼 검출 필요
   gdt_parsing: { requires: ['symbol_detection'] },
   welding_symbol_parsing: { requires: ['symbol_detection'] },
@@ -52,11 +59,15 @@ export const FEATURE_DEPENDENCIES: Record<string, { requires?: string[]; require
   // 관계 추출은 심볼+치수 필요
   relation_extraction: { requires: ['symbol_detection', 'dimension_ocr'] },
 
-  // 벌룬 매칭은 심볼+치수 필요
-  balloon_matching: { requires: ['symbol_detection', 'dimension_ocr'] },
-
+  // === P&ID ===
   // P&ID 연결성은 라인 검출 권장
   pid_connectivity: { requiresAtLeastOne: ['line_detection', 'symbol_detection'] },
+
+  // 산업 장비 태그 인식: 심볼 검출 또는 P&ID 연결성 필요
+  industry_equipment_detection: { requiresAtLeastOne: ['symbol_detection', 'pid_connectivity'] },
+
+  // 장비 목록 내보내기: 장비 검출 필요
+  equipment_list_export: { requires: ['industry_equipment_detection'] },
 
   // P&ID 분석 기능은 연결성 또는 심볼 검출 필요
   pid_valve_detection: { requiresAtLeastOne: ['pid_connectivity', 'symbol_detection'] },
@@ -69,6 +80,16 @@ export const FEATURE_DEPENDENCIES: Record<string, { requires?: string[]; require
   techcross_equipment: { requiresAtLeastOne: ['pid_connectivity', 'symbol_detection'] },
   techcross_checklist: { requiresAtLeastOne: ['pid_connectivity', 'symbol_detection'] },
   techcross_deviation: { requiresAtLeastOne: ['pid_connectivity', 'symbol_detection'] },
+
+  // === BOM 생성 ===
+  // BOM 생성: 심볼 검출 필요 (치수 OCR은 선택)
+  bom_generation: { requires: ['symbol_detection'] },
+
+  // 벌룬 매칭은 심볼+치수 필요
+  balloon_matching: { requires: ['symbol_detection', 'dimension_ocr'] },
+
+  // 수량 추출: 치수 OCR 필요 (수량 텍스트 인식)
+  quantity_extraction: { requires: ['dimension_ocr'] },
 };
 
 /**

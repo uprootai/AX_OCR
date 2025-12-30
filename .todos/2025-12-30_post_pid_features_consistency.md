@@ -14,7 +14,7 @@
 | 테스트 커버리지 | 4개 라우터 | P1 | ✅ 완료 |
 | Feature 정의 불일치 | 5개 항목 | P1 | ✅ 완료 |
 | usePIDFeaturesHandlers 훅 사용 | 1개 | P1 | ✅ 완료 |
-| Feature 의존성 누락 | 6개 feature | P2 | 📋 대기 |
+| Feature 의존성 누락 | 5개 feature | P2 | ✅ 완료 |
 
 ---
 
@@ -155,17 +155,17 @@ POST /{session_id}/export               # Excel 내보내기
 
 | Feature | 필요한 의존성 (추정) | 현재 상태 |
 |---------|---------------------|----------|
-| industry_equipment_detection | `symbol_detection` 또는 `pid_connectivity` | 미정의 |
-| equipment_list_export | `industry_equipment_detection` | 미정의 |
-| gt_comparison | `symbol_detection` | 미정의 |
-| bom_generation | `symbol_detection`, `dimension_ocr` | 미정의 |
+| industry_equipment_detection | `symbol_detection` 또는 `pid_connectivity` | ✅ 추가됨 |
+| equipment_list_export | `industry_equipment_detection` | ✅ 추가됨 |
+| gt_comparison | `symbol_detection` | ✅ 추가됨 |
+| bom_generation | `symbol_detection` | ✅ 추가됨 |
 | title_block_ocr | (없음 - 독립 기능) | OK |
-| quantity_extraction | `dimension_ocr` | 미정의 |
+| quantity_extraction | `dimension_ocr` | ✅ 추가됨 |
 
-### 권장 추가 의존성
+### 추가된 의존성 (2025-12-30)
 
 ```typescript
-// sectionConfig.ts의 FEATURE_DEPENDENCIES에 추가
+// sectionConfig.ts의 FEATURE_DEPENDENCIES에 추가됨
 industry_equipment_detection: { requiresAtLeastOne: ['symbol_detection', 'pid_connectivity'] },
 equipment_list_export: { requires: ['industry_equipment_detection'] },
 gt_comparison: { requires: ['symbol_detection'] },
@@ -173,10 +173,10 @@ bom_generation: { requires: ['symbol_detection'] },
 quantity_extraction: { requires: ['dimension_ocr'] },
 ```
 
-### 작업 체크리스트
+### 작업 체크리스트 (2025-12-30 완료)
 
-- [ ] FEATURE_DEPENDENCIES에 위 의존성 추가
-- [ ] 의존성 추가 후 UI 테스트 (경고 배너 확인)
+- [x] FEATURE_DEPENDENCIES에 위 의존성 추가 ✅
+- [x] 의존성 추가 후 빌드 확인 ✅
 
 ---
 
