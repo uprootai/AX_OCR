@@ -47,19 +47,19 @@ COPY routers/ /app/routers/
 COPY services/ /app/services/  # services가 있는 경우
 ```
 
-### 작업 체크리스트
+### 작업 체크리스트 (2025-12-30 완료)
 
-- [ ] design-checker-api Dockerfile 수정
-- [ ] doctr-api Dockerfile 수정
-- [ ] easyocr-api Dockerfile 수정
-- [ ] esrgan-api Dockerfile 수정
-- [ ] knowledge-api Dockerfile 수정
-- [ ] line-detector-api Dockerfile 수정
-- [ ] ocr-ensemble-api Dockerfile 수정
-- [ ] pid-analyzer-api Dockerfile 수정
-- [ ] surya-ocr-api Dockerfile 수정
-- [ ] tesseract-api Dockerfile 수정
-- [ ] trocr-api Dockerfile 수정
+- [x] design-checker-api Dockerfile 수정 ✅
+- [x] doctr-api Dockerfile 수정 ✅
+- [x] easyocr-api Dockerfile 수정 ✅
+- [x] esrgan-api Dockerfile 수정 ✅
+- [x] knowledge-api Dockerfile 수정 ✅
+- [x] line-detector-api Dockerfile 수정 ✅
+- [x] ocr-ensemble-api Dockerfile 수정 ✅
+- [x] pid-analyzer-api Dockerfile 수정 ✅
+- [x] surya-ocr-api Dockerfile 수정 ✅
+- [x] tesseract-api Dockerfile 수정 ✅
+- [x] trocr-api Dockerfile 수정 ✅
 
 ---
 
@@ -83,9 +83,9 @@ COPY services/ /app/services/  # services가 있는 경우
 | tesseract-api | ✅ | ❌ | **필요** |
 | trocr-api | ✅ | ❌ | **필요** |
 
-### 작업 체크리스트
+### 작업 체크리스트 (2025-12-30 완료)
 
-- [ ] 위 API들의 Dockerfile에 `COPY services/ /app/services/` 추가
+- [x] 위 API들의 Dockerfile에 `COPY services/ /app/services/` 추가 ✅
 
 ---
 
