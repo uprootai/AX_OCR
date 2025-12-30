@@ -284,7 +284,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
     implementationStatus: 'implemented',
-    implementationLocation: 'blueprint-ai-bom/techcross_router.py',
+    implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py',
   },
   techcross_equipment: {
     key: 'techcross_equipment',
@@ -298,7 +298,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
     implementationStatus: 'implemented',
-    implementationLocation: 'blueprint-ai-bom/techcross_router.py',
+    implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py',
   },
   techcross_checklist: {
     key: 'techcross_checklist',
@@ -312,7 +312,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
     implementationStatus: 'implemented',
-    implementationLocation: 'blueprint-ai-bom/techcross_router.py',
+    implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py',
   },
   techcross_deviation: {
     key: 'techcross_deviation',
@@ -326,7 +326,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeBgClass: 'bg-gray-100 dark:bg-gray-900/30',
     badgeTextClass: 'text-gray-700 dark:text-gray-300',
     implementationStatus: 'planned',
-    implementationLocation: 'blueprint-ai-bom/techcross_router.py (향후 구현)',
+    implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py (향후 구현)',
   },
 
   // === BOM 생성 ===

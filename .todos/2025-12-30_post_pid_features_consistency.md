@@ -8,12 +8,13 @@
 
 ## 요약
 
-| 카테고리 | 항목 수 | 우선순위 |
-|----------|---------|----------|
-| Dockerfile 일관성 | 11개 API | P0 |
-| 테스트 커버리지 | 4개 라우터 | P1 |
-| Feature 정의 불일치 | 5개 항목 | P1 |
-| Feature 의존성 누락 | 6개 feature | P2 |
+| 카테고리 | 항목 수 | 우선순위 | 상태 |
+|----------|---------|----------|------|
+| Dockerfile 일관성 | 11개 API | P0 | ✅ 완료 |
+| 테스트 커버리지 | 4개 라우터 | P1 | ✅ 완료 |
+| Feature 정의 불일치 | 5개 항목 | P1 | ✅ 완료 |
+| usePIDFeaturesHandlers 훅 사용 | 1개 | P1 | ✅ 완료 |
+| Feature 의존성 누락 | 6개 feature | P2 | 📋 대기 |
 
 ---
 
@@ -108,15 +109,15 @@ POST /{session_id}/verify/bulk          # 대량 검증
 POST /{session_id}/export               # Excel 내보내기
 ```
 
-### 작업 체크리스트
+### 작업 체크리스트 (2025-12-30 완료)
 
-- [ ] `tests/test_pid_features_api.py` 생성
-- [ ] Valve Signal 검출 테스트 작성
-- [ ] Equipment 검출 테스트 작성
-- [ ] Checklist 검증 테스트 작성
-- [ ] Deviation 분석 테스트 작성
-- [ ] 검증 큐/워크플로우 테스트 작성
-- [ ] Export 테스트 작성
+- [x] `tests/test_pid_features_api.py` 생성 ✅
+- [x] Valve Signal 검출 테스트 작성 ✅
+- [x] Equipment 검출 테스트 작성 ✅
+- [x] Checklist 검증 테스트 작성 ✅
+- [x] Deviation 분석 테스트 작성 ✅
+- [x] 검증 큐/워크플로우 테스트 작성 ✅
+- [x] Export 테스트 작성 ✅
 
 ---
 
@@ -136,11 +137,11 @@ POST /{session_id}/export               # Excel 내보내기
 | techcross_deviation | `blueprint-ai-bom/techcross_router.py (향후 구현)` | `pid_features_router.py` | **필요** |
 | industry_equipment_detection | `pid-analyzer-api/equipment_analyzer.py` | (확인 필요) | 검토 |
 
-### 작업 체크리스트
+### 작업 체크리스트 (2025-12-30 완료)
 
-- [ ] featureDefinitions.ts의 implementationLocation 필드 수정
+- [x] featureDefinitions.ts의 implementationLocation 필드 수정 ✅
   - `techcross_*` → `blueprint-ai-bom/routers/pid_features_router.py`
-- [ ] 동기화 대상 확인: blueprint-ai-bom에 동일 파일 존재 여부
+- [x] 동기화 대상 확인: blueprint-ai-bom에 동일 파일 존재 여부 ✅
 
 ---
 
@@ -241,10 +242,12 @@ import { usePIDFeaturesHandlers } from './workflow';
 const pidHandlers = usePIDFeaturesHandlers(sessionId, ...);
 ```
 
-### 작업 체크리스트
+### 작업 체크리스트 (2025-12-30 완료)
 
-- [ ] WorkflowPage.tsx에서 usePIDFeaturesHandlers 사용 여부 확인
-- [ ] 미사용 시 PIDFeaturesSection에 연결
+- [x] WorkflowPage.tsx에서 usePIDFeaturesHandlers 사용 여부 확인 ✅
+  - `WorkflowPage.tsx:39`에서 import됨
+  - `WorkflowPage.tsx:108`에서 `const pidFeatures = usePIDFeaturesHandlers();`로 호출됨
+- [x] 미사용 시 PIDFeaturesSection에 연결 → 정상 사용 중으로 확인됨 ✅
 
 ---
 
