@@ -20,7 +20,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
-COPY . .
+COPY api_server.py .
+COPY routers/ ./routers/
+COPY services/ ./services/
 
 # Expose port
 EXPOSE 5008

@@ -18,7 +18,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Application
-COPY . .
+COPY api_server.py .
+COPY routers/ ./routers/
+COPY services/ ./services/
 
 # Environment
 ENV PYTHONPATH=/app

@@ -13,7 +13,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
-COPY . .
+COPY api_server.py .
+COPY routers/ ./routers/
+COPY services/ ./services/
+COPY models/ ./models/
+COPY utils/ ./utils/
 
 # Create directories
 RUN mkdir -p /app/data /app/indexes

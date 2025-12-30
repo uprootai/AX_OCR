@@ -16,7 +16,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
-COPY . .
+COPY api_server.py .
+COPY routers/ ./routers/
+COPY services/ ./services/
 
 # 포트 노출
 EXPOSE 5016

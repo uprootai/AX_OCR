@@ -19,7 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 #     VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-base-printed')"
 
 # Copy application
-COPY . .
+COPY api_server.py .
+COPY routers/ ./routers/
+COPY services/ ./services/
 
 # Create cache directory for models
 RUN mkdir -p /root/.cache/huggingface

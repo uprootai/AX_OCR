@@ -16,7 +16,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
-COPY . .
+COPY api_server.py .
+COPY schemas.py .
+COPY constants.py .
+COPY checker.py .
+COPY bwms_rules.py .
+COPY rule_loader.py .
+COPY excel_parser.py .
+COPY routers/ ./routers/
+COPY config/ ./config/
+COPY templates/ ./templates/
 
 # 포트 노출
 EXPOSE 5019

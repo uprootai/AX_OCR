@@ -25,7 +25,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # RUN pip install --no-cache-dir basicsr realesrgan
 
 # Copy application
-COPY . .
+COPY api_server.py .
+COPY routers/ ./routers/
+COPY services/ ./services/
 
 # Create weights directory
 RUN mkdir -p /app/weights
