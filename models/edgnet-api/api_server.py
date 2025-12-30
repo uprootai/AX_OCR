@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import torch
 
-from trained_models.schemas import HealthResponse
+from models.schemas import HealthResponse
 from services import (
     EDGNetInferenceService,
     UNetInferenceService,

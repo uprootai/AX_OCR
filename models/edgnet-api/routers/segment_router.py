@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 
-from trained_models.schemas import SegmentResponse, VectorizeResponse
+from models.schemas import SegmentResponse, VectorizeResponse
 from models.schemas import (
     UNetSegmentResponse,
     APIInfoResponse,

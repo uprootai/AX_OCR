@@ -33,14 +33,13 @@ COPY trained_models/ /trained_models/
 COPY api_server.py .
 COPY routers/ ./routers/
 # models/ contains schemas.py and UNet models
-# Copy to both trained_models/ and models/ for api_server.py imports
-COPY models/ ./trained_models/
 COPY models/ ./models/
 COPY services/ ./services/
 COPY utils/ ./utils/
 
-# Create directories
-RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results
+# Create directories and clean pycache
+RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results && \
+    find /app -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 # Set Python path
 ENV PYTHONPATH=/app

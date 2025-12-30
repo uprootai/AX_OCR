@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api_server.py .
 COPY schemas.py .
 COPY routers/ ./routers/
+COPY services/ ./services/
 
 # Create upload directory
 RUN mkdir -p /tmp/vl-api/uploads
