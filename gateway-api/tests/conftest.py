@@ -1,13 +1,15 @@
 """
 Pytest Configuration and Fixtures
 Gateway API 테스트를 위한 공통 설정 및 픽스처
+
+2025-12-30: httpx 0.28+ 호환성을 위해 ASGITransport 사용으로 변경
 """
 import sys
 import pytest
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Generator, AsyncGenerator
+import httpx
 from httpx import AsyncClient
-from fastapi.testclient import TestClient
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -23,15 +25,24 @@ def test_app():
 
 
 @pytest.fixture(scope="function")
-def client(test_app) -> TestClient:
-    """Synchronous test client"""
-    return TestClient(test_app)
+async def client(test_app) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Test client using httpx.ASGITransport (async)
+    Compatible with httpx 0.28+ (ASGITransport only supports async)
+
+    Note: All tests using this fixture must be async (use @pytest.mark.asyncio)
+    """
+    transport = httpx.ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
 
 
+# Alias for backward compatibility
 @pytest.fixture(scope="function")
 async def async_client(test_app) -> AsyncGenerator[AsyncClient, None]:
-    """Asynchronous test client"""
-    async with AsyncClient(app=test_app, base_url="http://test") as ac:
+    """Asynchronous test client using httpx.ASGITransport (alias for client)"""
+    transport = httpx.ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 
