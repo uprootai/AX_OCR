@@ -540,6 +540,206 @@ class BWMSChecker:
 
         return violations
 
+    def check_bwms_001_g2_sampling_port(
+        self,
+        equipment_map: Dict[str, BWMSEquipment],
+        symbols: List[Dict],
+        texts: Optional[List[Dict]] = None
+    ) -> List[BWMSViolation]:
+        """BWMS-001: G-2 Sampling Port가 상류(upstream)에 위치하는지 검증
+
+        P&ID에서 G-2 Sampling Port는 ECU 전단(upstream)에 위치해야 합니다.
+        G-2는 처리 전 선박평형수 샘플을 채취하는 포트입니다.
+        """
+        violations = []
+        rule = self.rules["BWMS-001"]
+
+        # ECU 찾기
+        ecu_list = [eq for eq in equipment_map.values() if eq.equipment_type == BWMSEquipmentType.ECU]
+
+        if not ecu_list:
+            logger.debug("ECU not found, skipping BWMS-001 check")
+            return violations
+
+        # G-2 Sampling Port 텍스트 찾기
+        g2_ports = []
+
+        # 심볼에서 찾기
+        for symbol in symbols:
+            label = str(symbol.get("label", "") or symbol.get("text", "")).upper()
+            if "G-2" in label or "G2" in label or "SAMPLING" in label:
+                g2_ports.append({
+                    "id": symbol.get("id", "G2"),
+                    "x": symbol.get("x", symbol.get("center", [0, 0])[0] if isinstance(symbol.get("center"), list) else 0),
+                    "y": symbol.get("y", symbol.get("center", [0, 0])[1] if isinstance(symbol.get("center"), list) else 0),
+                    "label": label
+                })
+
+        # OCR 텍스트에서 찾기
+        if texts:
+            for text in texts:
+                text_content = str(text.get("text", "")).upper()
+                if "G-2" in text_content or ("SAMPLING" in text_content and "PORT" in text_content):
+                    bbox = text.get("bbox", [[0, 0], [0, 0], [0, 0], [0, 0]])
+                    # bbox는 4개 점 좌표 [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+                    if bbox and len(bbox) >= 4:
+                        x = (bbox[0][0] + bbox[2][0]) / 2
+                        y = (bbox[0][1] + bbox[2][1]) / 2
+                    else:
+                        x, y = 0, 0
+                    g2_ports.append({
+                        "id": f"G2_ocr_{len(g2_ports)}",
+                        "x": x,
+                        "y": y,
+                        "label": text_content
+                    })
+
+        if not g2_ports:
+            # G-2 없으면 경고 없이 스킵 (있어야 하는 건 아님)
+            logger.debug("G-2 Sampling Port not found, skipping BWMS-001 check")
+            return violations
+
+        # 각 G-2가 ECU 전단(upstream = 왼쪽)에 있는지 확인
+        for ecu in ecu_list:
+            for g2 in g2_ports:
+                # G-2가 ECU 오른쪽에 있으면 위반
+                if g2["x"] > ecu.x:
+                    violations.append(BWMSViolation(
+                        rule_id=rule["id"],
+                        rule_name=rule["name"],
+                        rule_name_en=rule["name_en"],
+                        description=rule["description"],
+                        severity=rule["severity"],
+                        standard=rule["standard"],
+                        location={"x": g2["x"], "y": g2["y"]},
+                        affected_elements=[g2["id"], ecu.id],
+                        suggestion=f"G-2 Sampling Port '{g2['label']}'를 ECU '{ecu.label}' 전단(upstream)으로 이동하세요."
+                    ))
+
+        return violations
+
+    def check_bwms_006_tsu_apu_distance(
+        self,
+        equipment_map: Dict[str, BWMSEquipment],
+        scale_factor: float = 1.0  # 픽셀당 미터 (기본값: 스케일 없음)
+    ) -> List[BWMSViolation]:
+        """BWMS-006: TSU와 APU 간 거리가 5m 이내인지 검증
+
+        TRO Sensor Unit(TSU)과 Air Pump Unit(APU)은 가까이 배치되어야 합니다.
+        스케일 정보가 없으면 픽셀 기준 거리로 경고 (추정치).
+        """
+        violations = []
+        rule = self.rules["BWMS-006"]
+
+        # TSU, APU 찾기
+        tsu_list = [eq for eq in equipment_map.values() if eq.equipment_type == BWMSEquipmentType.TSU]
+        apu_list = [eq for eq in equipment_map.values() if eq.equipment_type == BWMSEquipmentType.APU]
+
+        if not tsu_list or not apu_list:
+            logger.debug("TSU or APU not found, skipping BWMS-006 check")
+            return violations
+
+        # 5m 제한 (스케일이 없으면 픽셀 기준 500px를 대략 5m로 가정)
+        max_distance_m = 5.0
+        max_distance_px = 500 if scale_factor == 1.0 else max_distance_m / scale_factor
+
+        import math
+        for tsu in tsu_list:
+            for apu in apu_list:
+                distance_px = math.sqrt((tsu.x - apu.x)**2 + (tsu.y - apu.y)**2)
+
+                if distance_px > max_distance_px:
+                    distance_m = distance_px * scale_factor if scale_factor != 1.0 else distance_px / 100  # 픽셀 기준 추정
+                    violations.append(BWMSViolation(
+                        rule_id=rule["id"],
+                        rule_name=rule["name"],
+                        rule_name_en=rule["name_en"],
+                        description=rule["description"],
+                        severity=rule["severity"],
+                        standard=rule["standard"],
+                        location={"x": (tsu.x + apu.x) / 2, "y": (tsu.y + apu.y) / 2},
+                        affected_elements=[tsu.id, apu.id],
+                        suggestion=f"TSU '{tsu.label}'와 APU '{apu.label}' 거리가 {distance_m:.1f}m로 추정됩니다. 5m 이내로 배치하세요. (스케일 정보 필요)"
+                    ))
+
+        return violations
+
+    def check_bwms_007_mixing_pump_capacity(
+        self,
+        equipment_map: Dict[str, BWMSEquipment],
+        symbols: List[Dict],
+        texts: Optional[List[Dict]] = None
+    ) -> List[BWMSViolation]:
+        """BWMS-007: Mixing Pump 용량이 Ballast Pump의 4.3%인지 검증
+
+        Mixing Pump의 용량(m³/h)이 Ballast Pump의 4.3%와 일치해야 합니다.
+        OCR 텍스트에서 용량 정보를 추출하여 비교합니다.
+        """
+        violations = []
+        rule = self.rules["BWMS-007"]
+
+        # Pump 관련 텍스트에서 용량 추출
+        pump_specs = {}  # {"pump_name": capacity_m3h}
+
+        # 용량 패턴: 숫자 m³/h 또는 숫자 m3/h
+        capacity_pattern = re.compile(r"(\d+(?:\.\d+)?)\s*(?:m[³3]/h|m3/h|CMH)", re.IGNORECASE)
+
+        if texts:
+            for text in texts:
+                text_content = str(text.get("text", "")).upper()
+
+                # Mixing Pump 또는 Ballast Pump 텍스트 찾기
+                is_mixing = "MIXING" in text_content and "PUMP" in text_content
+                is_ballast = "BALLAST" in text_content and "PUMP" in text_content
+
+                if is_mixing or is_ballast:
+                    match = capacity_pattern.search(text_content)
+                    if match:
+                        capacity = float(match.group(1))
+                        pump_type = "mixing_pump" if is_mixing else "ballast_pump"
+                        pump_specs[pump_type] = capacity
+
+        # 심볼 라벨에서도 검색
+        for symbol in symbols:
+            label = str(symbol.get("label", "")).upper()
+            if "PUMP" in label:
+                is_mixing = "MIXING" in label or "MIX" in label
+                is_ballast = "BALLAST" in label or "BL" in label
+
+                if is_mixing or is_ballast:
+                    match = capacity_pattern.search(label)
+                    if match:
+                        capacity = float(match.group(1))
+                        pump_type = "mixing_pump" if is_mixing else "ballast_pump"
+                        if pump_type not in pump_specs:
+                            pump_specs[pump_type] = capacity
+
+        # 두 펌프 모두 있어야 비교 가능
+        if "mixing_pump" not in pump_specs or "ballast_pump" not in pump_specs:
+            logger.debug("Mixing Pump or Ballast Pump capacity not found in OCR, skipping BWMS-007 check")
+            return violations
+
+        mixing_capacity = pump_specs["mixing_pump"]
+        ballast_capacity = pump_specs["ballast_pump"]
+        expected_mixing = ballast_capacity * 0.043  # 4.3%
+
+        # 허용 오차 ±10%
+        tolerance = 0.1
+        if abs(mixing_capacity - expected_mixing) / expected_mixing > tolerance:
+            violations.append(BWMSViolation(
+                rule_id=rule["id"],
+                rule_name=rule["name"],
+                rule_name_en=rule["name_en"],
+                description=rule["description"],
+                severity=rule["severity"],
+                standard=rule["standard"],
+                location={"x": 0, "y": 0},
+                affected_elements=["Mixing Pump", "Ballast Pump"],
+                suggestion=f"Mixing Pump 용량({mixing_capacity}m³/h)이 Ballast Pump({ballast_capacity}m³/h)의 4.3%({expected_mixing:.1f}m³/h)와 일치하지 않습니다."
+            ))
+
+        return violations
+
     def _should_apply_rule(self, rule: Dict, equipment_map: Dict[str, Any]) -> bool:
         """규칙이 현재 시스템 타입에 적용되어야 하는지 확인"""
         product_type = rule.get('product_type', 'ALL')
@@ -778,11 +978,20 @@ class BWMSChecker:
         # 3. 각 규칙 검사 실행
         rules_to_check = enabled_rules or list(self.rules.keys())
 
+        if "BWMS-001" in rules_to_check:
+            all_violations.extend(self.check_bwms_001_g2_sampling_port(equipment_map, symbols, texts))
+
         if "BWMS-004" in rules_to_check:
             all_violations.extend(self.check_bwms_004_fmu_ecu_sequence(equipment_map))
 
         if "BWMS-005" in rules_to_check:
             all_violations.extend(self.check_bwms_005_gds_position(equipment_map))
+
+        if "BWMS-006" in rules_to_check:
+            all_violations.extend(self.check_bwms_006_tsu_apu_distance(equipment_map))
+
+        if "BWMS-007" in rules_to_check:
+            all_violations.extend(self.check_bwms_007_mixing_pump_capacity(equipment_map, symbols, texts))
 
         if "BWMS-008" in rules_to_check:
             all_violations.extend(self.check_bwms_008_ecs_valve_position(equipment_map, symbols))

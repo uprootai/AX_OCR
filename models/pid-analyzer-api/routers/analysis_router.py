@@ -72,6 +72,8 @@ async def get_info():
         "inputs": [
             {"name": "symbols", "type": "Detection[]", "required": True, "description": "YOLO 검출 결과 (model_type=pid_class_aware)"},
             {"name": "lines", "type": "LineSegment[]", "required": True, "description": "Line Detector 결과"},
+            {"name": "texts", "type": "OCRText[]", "required": False, "description": "OCR 텍스트 결과 (PaddleOCR, SIGNAL FOR BWMS 영역 밸브 추출용)"},
+            {"name": "regions", "type": "Region[]", "required": False, "description": "Line Detector 영역 (점선 박스, BWMS Signal 영역)"},
             {"name": "image", "type": "Image", "required": False, "description": "원본 이미지 (시각화용)"}
         ],
         "outputs": [
@@ -96,6 +98,8 @@ async def analyze(
     symbols: List[Dict] = Body(..., description="YOLO 검출 결과 (model_type=pid_class_aware)"),
     lines: List[Dict] = Body(default=[], description="Line Detector 결과"),
     intersections: List[Dict] = Body(default=[], description="교차점 정보"),
+    texts: List[Dict] = Body(default=[], description="OCR 텍스트 결과 (PaddleOCR 등)"),
+    regions: List[Dict] = Body(default=[], description="Line Detector 영역 (점선 박스 등)"),
     image_base64: Optional[str] = Body(default=None, description="원본 이미지 (Base64)"),
     should_generate_bom: bool = Body(default=True, alias="generate_bom"),
     should_generate_valve_list: bool = Body(default=True, alias="generate_valve_list"),
@@ -117,6 +121,12 @@ async def analyze(
     start_time = time.time()
 
     try:
+        # 심볼 전처리: ID가 없는 경우 자동 할당
+        for i, sym in enumerate(symbols):
+            if 'id' not in sym:
+                class_name = sym.get('class_name', sym.get('label', 'symbol'))
+                sym['id'] = f"{class_name}_{i+1}"
+
         logger.info(f"Analyzing P&ID: {len(symbols)} symbols, {len(lines)} lines, OCR={enable_ocr}")
 
         # OCR 기반 계기 검출 (이미지가 있고 enable_ocr이 True인 경우)
@@ -147,11 +157,46 @@ async def analyze(
             bom_result = generate_bom(merged_symbols)
             logger.info(f"Generated BOM with {len(bom_result)} items")
 
-        # 밸브 시그널 리스트 (병합된 심볼 사용)
+        # 밸브 시그널 리스트
+        # 1순위: OCR 텍스트 + Line Detector 영역 기반 추출 (SIGNAL FOR BWMS 영역)
+        # 2순위: YOLO 심볼 기반 추출 (기존 방식)
         valve_list_result = []
+        region_valve_extraction = {}
         if should_generate_valve_list:
-            valve_list_result = generate_valve_signal_list(merged_symbols, connections)
-            logger.info(f"Generated valve list with {len(valve_list_result)} items")
+            # OCR + Region 기반 추출 시도
+            if texts:
+                try:
+                    from region_extractor import get_extractor
+                    extractor = get_extractor()
+                    region_result = extractor.extract(
+                        regions=regions,
+                        texts=texts,
+                        rule_ids=["valve_signal_bwms"],
+                        region_expand_margin=150  # 영역 확장 마진
+                    )
+                    region_valves = region_result.get("all_extracted_items", [])
+                    if region_valves:
+                        # Region 기반 추출 결과를 valve_list 형식으로 변환
+                        for i, valve in enumerate(region_valves):
+                            valve_list_result.append({
+                                "item_no": i + 1,
+                                "tag_number": valve.get("id", f"V-{i+1:03d}"),
+                                "valve_type": valve.get("type", "valve_tag"),
+                                "korean_name": "BWMS 밸브",
+                                "position": valve.get("center", [0, 0]),
+                                "signal_type": "SIGNAL FOR BWMS",
+                                "confidence": valve.get("confidence", 0.0),
+                                "source": "ocr_region"
+                            })
+                        region_valve_extraction = region_result.get("statistics", {})
+                        logger.info(f"Region-based valve extraction: {len(valve_list_result)} valves from OCR")
+                except Exception as e:
+                    logger.warning(f"Region-based valve extraction failed: {e}")
+
+            # Region 기반 추출 결과가 없으면 YOLO 심볼 기반 추출
+            if not valve_list_result:
+                valve_list_result = generate_valve_signal_list(merged_symbols, connections)
+                logger.info(f"Symbol-based valve list: {len(valve_list_result)} items")
 
         # 장비 리스트 (병합된 심볼 사용)
         equipment_list_result = []
@@ -187,9 +232,13 @@ async def analyze(
                 "total_symbols": len(merged_symbols),
                 "yolo_symbols": len(symbols),
                 "ocr_instruments": len(ocr_instruments),
+                "ocr_texts": len(texts),
+                "line_detector_regions": len(regions),
                 "total_connections": len(connections),
                 "bom_items": len(bom_result),
                 "valves": len(valve_list_result),
+                "valve_extraction_method": "ocr_region" if region_valve_extraction else "symbol_based",
+                "region_valve_stats": region_valve_extraction,
                 "equipment": len(equipment_list_result),
                 "connections_by_color_type": {
                     color_type: len([c for c in connections if c.get('color_type') == color_type])
