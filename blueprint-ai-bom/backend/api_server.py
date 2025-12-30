@@ -38,6 +38,7 @@ from routers.relation_router import router as relation_router_api, set_relation_
 from routers.feedback_router import router as feedback_router_api, set_feedback_services
 from routers.midterm_router import router as midterm_router_api, set_session_service as set_midterm_session_service
 from routers.longterm_router import router as longterm_router_api, set_session_service as set_longterm_session_service
+from routers.pid_features_router import router as pid_features_router_api, set_pid_features_service
 from routers.settings_router import router as settings_router_api
 from schemas.session import SessionCreate, SessionResponse
 from services.session_service import SessionService
@@ -65,8 +66,8 @@ CONFIG_DIR.mkdir(exist_ok=True)
 # FastAPI 앱 생성
 app = FastAPI(
     title="Blueprint AI BOM API",
-    description="AI 기반 도면 분석 및 BOM 생성 솔루션",
-    version="8.0.0",  # Phase 8: 피드백 루프 파이프라인
+    description="AI 기반 도면 분석 및 BOM 생성 솔루션 + P&ID 분석 기능",
+    version="10.6.0",  # v10.6: P&ID 분석 기능 (밸브, 장비, 체크리스트)
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -112,6 +113,7 @@ set_relation_services(session_service, line_detector_service)  # Phase 2: 치수
 set_feedback_services(session_service)  # Phase 8: 피드백 루프
 set_midterm_session_service(session_service)  # 중기 로드맵: 용접, 거칠기, 수량, 벌룬
 set_longterm_session_service(session_service)  # 장기 로드맵: 영역, 노트, 리비전, VLM
+set_pid_features_service(session_service)  # P&ID 분석 기능: 밸브, 장비, 체크리스트
 
 # 라우터 등록 (prefix 없이 - 라우터 내부에 이미 prefix 있음)
 app.include_router(session_router_api, tags=["Session"])
@@ -129,6 +131,7 @@ app.include_router(relation_router_api, tags=["Relations"])  # Phase 2: 치수�
 app.include_router(feedback_router_api, tags=["Feedback"])  # Phase 8: 피드백 루프
 app.include_router(midterm_router_api, tags=["Mid-term Features"])  # 중기 로드맵: 용접, 거칠기, 수량, 벌룬
 app.include_router(longterm_router_api, tags=["Long-term Features"])  # 장기 로드맵: 영역, 노트, 리비전, VLM
+app.include_router(pid_features_router_api, tags=["P&ID Features"])  # P&ID 분석 기능: 밸브, 장비, 체크리스트
 app.include_router(settings_router_api, tags=["Settings"])  # API 키 설정
 
 

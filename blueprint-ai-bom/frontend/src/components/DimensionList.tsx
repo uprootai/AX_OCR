@@ -77,7 +77,6 @@ function CroppedDimensionImage({
 
   useEffect(() => {
     if (!imageData || !imageSize) {
-      setCroppedSrc(null);
       return;
     }
 
@@ -87,15 +86,19 @@ function CroppedDimensionImage({
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      setCroppedSrc(null);
       return;
     }
+
+    // Reset on dependency change
+    let isCancelled = false;
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.src = imageData;
 
     function cropImage() {
+      if (isCancelled) return;
+
       const cropX = Math.max(0, Math.floor(x1) - padding);
       const cropY = Math.max(0, Math.floor(y1) - padding);
       const cropW = Math.min(imageSize.width - cropX, Math.floor(x2 - x1) + padding * 2);
@@ -112,10 +115,10 @@ function CroppedDimensionImage({
 
       try {
         const dataUrl = canvas.toDataURL('image/png');
-        setCroppedSrc(dataUrl);
+        if (!isCancelled) setCroppedSrc(dataUrl);
       } catch (e) {
         logger.error('Failed to crop dimension image:', e);
-        setCroppedSrc(null);
+        if (!isCancelled) setCroppedSrc(null);
       }
     }
 
@@ -123,8 +126,12 @@ function CroppedDimensionImage({
       cropImage();
     } else {
       img.onload = cropImage;
-      img.onerror = () => setCroppedSrc(null);
+      img.onerror = () => { if (!isCancelled) setCroppedSrc(null); };
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [imageData, imageSize, bbox]);
 
   if (!croppedSrc) {

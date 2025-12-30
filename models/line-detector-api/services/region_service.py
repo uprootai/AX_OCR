@@ -47,11 +47,12 @@ def find_dashed_regions(image: np.ndarray, lines: List[Dict],
             cv2.line(mask, pt1, pt2, 255, 3)
 
     # 형태학적 연산으로 갭 연결
-    kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+    # 더 큰 커널 사용 (15x15 → 25x25)하여 점선 갭 연결 개선
+    kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
     mask_closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
 
-    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-    mask_dilated = cv2.dilate(mask_closed, kernel_dilate, iterations=2)
+    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+    mask_dilated = cv2.dilate(mask_closed, kernel_dilate, iterations=3)
 
     # 윤곽선 검출
     contours, hierarchy = cv2.findContours(mask_dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

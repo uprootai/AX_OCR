@@ -29,6 +29,7 @@ export const FEATURE_GROUPS = {
   BASIC_DETECTION: '기본 검출',
   GDT_MECHANICAL: 'GD&T / 기계',
   PID: 'P&ID',
+  TECHCROSS: 'TECHCROSS BWMS',
   BOM_GENERATION: 'BOM 생성',
   LONG_TERM: '장기 로드맵',
 } as const;
@@ -268,6 +269,64 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-rose-700 dark:text-rose-300',
     implementationStatus: 'implemented',
     implementationLocation: 'pid-analyzer-api/equipment_analyzer.py',
+  },
+
+  // === TECHCROSS BWMS (1-1 ~ 1-4) ===
+  techcross_valve_signal: {
+    key: 'techcross_valve_signal',
+    icon: '🎛️',
+    label: 'Valve Signal List',
+    group: FEATURE_GROUPS.TECHCROSS,
+    hint: '1-2: BWMS 밸브 추출',
+    description:
+      'P&ID 도면에서 "SIGNAL FOR BWMS" 영역의 밸브 ID를 자동 추출합니다. Human-in-the-Loop으로 검토/승인 후 Excel 내보내기.',
+    recommendedNodes: ['blueprint-ai-bom', 'pid-analyzer', 'line-detector'],
+    badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
+    badgeTextClass: 'text-orange-700 dark:text-orange-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'blueprint-ai-bom/techcross_router.py',
+  },
+  techcross_equipment: {
+    key: 'techcross_equipment',
+    icon: '⚙️',
+    label: 'Equipment List',
+    group: FEATURE_GROUPS.TECHCROSS,
+    hint: '1-3: BWMS 장비 검출',
+    description:
+      'P&ID 도면에서 BWMS 장비 태그(ECU, FMU, ANU, TSU, APU, GDS 등)를 검출합니다. 검증 후 Equipment List Excel 내보내기.',
+    recommendedNodes: ['blueprint-ai-bom', 'pid-analyzer', 'paddleocr'],
+    badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
+    badgeTextClass: 'text-orange-700 dark:text-orange-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'blueprint-ai-bom/techcross_router.py',
+  },
+  techcross_checklist: {
+    key: 'techcross_checklist',
+    icon: '✅',
+    label: 'BWMS Checklist',
+    group: FEATURE_GROUPS.TECHCROSS,
+    hint: '1-1: 60개 항목 검증',
+    description:
+      'TECHCROSS BWMS 60개 체크리스트 항목을 자동 검증합니다. AI 판정 후 Human-in-the-Loop으로 최종 승인. FMU-ECU 순서, TSU-APU 거리 등 규칙 검사.',
+    recommendedNodes: ['blueprint-ai-bom', 'design-checker', 'yolo'],
+    badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
+    badgeTextClass: 'text-orange-700 dark:text-orange-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'blueprint-ai-bom/techcross_router.py',
+  },
+  techcross_deviation: {
+    key: 'techcross_deviation',
+    icon: '📝',
+    label: 'Deviation List',
+    group: FEATURE_GROUPS.TECHCROSS,
+    hint: '1-4: POR 대비 편차',
+    description:
+      'POR(Purchase Order Requirement) 대비 편차 항목을 관리합니다. 구매자 결정사항 입력 및 추적.',
+    recommendedNodes: ['blueprint-ai-bom'],
+    badgeBgClass: 'bg-gray-100 dark:bg-gray-900/30',
+    badgeTextClass: 'text-gray-700 dark:text-gray-300',
+    implementationStatus: 'planned',
+    implementationLocation: 'blueprint-ai-bom/techcross_router.py (향후 구현)',
   },
 
   // === BOM 생성 ===

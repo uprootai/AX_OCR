@@ -20,6 +20,9 @@ from .analysis import (
 from .midterm_router import router as midterm_router
 from .longterm_router import router as longterm_router
 
+# P&ID 분석 기능
+from .pid_features_router import router as pid_features_router
+
 __all__ = [
     "session_router",
     "detection_router",
@@ -36,4 +39,6 @@ __all__ = [
     # Roadmap routers
     "midterm_router",
     "longterm_router",
+    # P&ID 분석
+    "pid_features_router",
 ]

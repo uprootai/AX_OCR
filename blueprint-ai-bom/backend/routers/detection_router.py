@@ -266,6 +266,9 @@ async def import_bulk_detections(session_id: str, request: BulkImportRequest):
                 bbox=det.bbox.model_dump(),
                 confidence=det.confidence
             )
+            # label 필드 보존 (BWMS 장비 인식에 필요)
+            if hasattr(det, 'label') and det.label:
+                new_detection["label"] = det.label
             # 초기 상태에 따라 verification_status 설정
             new_detection["verification_status"] = initial_status_value
             if initial_status_value != "manual":

@@ -139,7 +139,7 @@ export function APIKeySettings({ isOpen, onClose }: APIKeySettingsProps) {
         apiKeys[provider] || undefined
       );
       setTestResults((prev) => ({ ...prev, [provider]: result }));
-    } catch (err) {
+    } catch {
       setTestResults((prev) => ({
         ...prev,
         [provider]: {

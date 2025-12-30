@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-29
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2025-12-30
 > 모든 문서: <100줄, 모듈식 구조, 계층적 구성
 
 ---
@@ -18,7 +18,7 @@
 | **기술 스택** | FastAPI + React 19 + YOLO v11 + eDOCr2 + Docker |
 | **프론트엔드** | http://localhost:5173 |
 | **백엔드** | http://localhost:8000 |
-| **Blueprint AI BOM** | http://localhost:5020 (v10.3) |
+| **Blueprint AI BOM** | http://localhost:5020 (v10.5) |
 | **상태** | ✅ 전체 정상 (18/18 API healthy) |
 
 ---
@@ -557,7 +557,8 @@ resources:
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
-| **17.0** | **2025-12-29** | **Design Checker v1.0 리팩토링**: api_server.py 1,482줄→167줄 분리, BWMS 규칙 관리 시스템 (Excel 업로드, YAML 저장, 프로필 관리), lifespan 패턴 적용, 20개 엔드포인트 |
+| **18.0** | **2025-12-30** | **TECHCROSS Human-in-the-Loop 워크플로우**: Blueprint AI BOM v10.5에 TECHCROSS 1-1~1-4 통합, Valve Signal/Equipment/Checklist 검증, Active Learning 기반 검증 큐, Excel 내보내기 |
+| 17.0 | 2025-12-29 | Design Checker v1.0 리팩토링: api_server.py 1,482줄→167줄 분리, BWMS 규칙 관리 시스템 (Excel 업로드, YAML 저장, 프로필 관리), lifespan 패턴 적용, 20개 엔드포인트 |
 | 16.0 | 2025-12-28 | Line Detector v1.1: 라인 스타일 분류 (실선/점선/일점쇄선 등 6종), 점선 박스 영역 검출 (SIGNAL FOR BWMS 등), 라인 용도 분류 (ISO 10628 기반), 테스트 16개 통과 |
 | 15.0 | 2025-12-27 | Blueprint AI BOM v10.3: 장기 로드맵 4/4 기능 완전 구현 (VLM 분류, 노트 추출, 영역 세분화, 리비전 비교), 테스트 59개 통과 |
 | 14.0 | 2025-12-26 | GPU Override 시스템: docker-compose.override.yml 기반 동적 GPU 설정, Dashboard GPU 토글 버그 수정 |
@@ -574,7 +575,7 @@ resources:
 
 ---
 
-## Blueprint AI BOM (v10.3)
+## Blueprint AI BOM (v10.5)
 
 **Human-in-the-Loop 도면 BOM 생성 시스템**
 
@@ -594,6 +595,26 @@ resources:
 | 📋 노트 추출 | ✅ 완료 | LLM + 정규식 폴백 |
 | 🗺️ 영역 세분화 | ✅ 완료 | 휴리스틱 + VLM 하이브리드 |
 | 🔄 리비전 비교 | ✅ 완료 | SSIM + 데이터 + VLM |
+
+### TECHCROSS 워크플로우 (v10.5 신규) ✅
+| 요구사항 | 기능 | 상태 | 구현 |
+|----------|------|------|------|
+| 1-1 | BWMS Checklist | ✅ 완료 | Design Checker 연동, 60개 항목 |
+| 1-2 | Valve Signal List | ✅ 완료 | PID Analyzer 연동, Human-in-the-Loop |
+| 1-3 | Equipment List | ✅ 완료 | PID Analyzer 연동, Human-in-the-Loop |
+| 1-4 | Deviation List | 📋 계획됨 | 향후 구현 예정 |
+
+#### TECHCROSS 엔드포인트 (10개)
+| 그룹 | 엔드포인트 | 설명 |
+|------|------------|------|
+| Valve Signal | `POST /{session_id}/valve-signal/detect` | 밸브 신호 검출 |
+| Equipment | `POST /{session_id}/equipment/detect` | 장비 검출 |
+| Checklist | `POST /{session_id}/checklist/check` | 체크리스트 검증 |
+| Verification | `GET /{session_id}/verify/queue` | 검증 큐 조회 |
+| Verification | `POST /{session_id}/verify` | 단일 항목 검증 |
+| Verification | `POST /{session_id}/verify/bulk` | 대량 검증 |
+| Export | `POST /{session_id}/export` | Excel 내보내기 |
+| Summary | `GET /{session_id}/summary` | 워크플로우 요약 |
 
 ### 테스트 현황
 | 테스트 | 수량 | 상태 |

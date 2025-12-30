@@ -54,6 +54,11 @@ export interface SectionVisibility {
   notesExtraction: boolean;
   revisionComparison: boolean;
   vlmAutoClassification: boolean;
+  // P&ID 분석 기능
+  valveSignalList: boolean;      // pid_valve_detection
+  equipmentList: boolean;        // pid_equipment_detection
+  bwmsChecklist: boolean;        // pid_design_checklist (내부 변수명 유지)
+  deviationList: boolean;        // pid_deviation_analysis
 }
 
 // Line detection

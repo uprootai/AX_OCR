@@ -792,7 +792,8 @@ async def vlm_classify_drawing(
             ],
             "pid": [
                 "symbol_detection", "line_detection", "pid_connectivity",
-                "bom_generation"
+                "pid_valve_detection", "pid_equipment_detection", "pid_design_checklist",
+                "pid_deviation_analysis", "bom_generation"
             ],
             "electrical": [
                 "symbol_detection", "dimension_ocr", "bom_generation"

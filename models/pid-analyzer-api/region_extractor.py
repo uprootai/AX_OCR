@@ -460,6 +460,10 @@ class RegionTextExtractor:
 
     def _region_matches_criteria(self, region: Dict[str, Any], criteria: RegionCriteria) -> bool:
         """영역이 기준과 매칭되는지 확인"""
+        # 가상 영역은 항상 통과 (이미 텍스트 패턴 매칭됨)
+        if region.get("is_virtual"):
+            return True
+
         # 라인 스타일 확인 - 여러 필드명 지원
         region_style = region.get("line_style") or region.get("enclosing_line_style") or region.get("style", "unknown")
 
@@ -604,7 +608,10 @@ class RegionTextExtractor:
         patterns: List[ExtractionPattern],
         exclude_texts: List[str] = None
     ) -> List[Dict[str, Any]]:
-        """텍스트에서 패턴에 매칭되는 항목 추출"""
+        """텍스트에서 패턴에 매칭되는 항목 추출
+
+        개선: 공백으로 분리된 여러 밸브도 처리 (예: "BAV29 BAV34")
+        """
         if exclude_texts is None:
             exclude_texts = []
 
@@ -622,41 +629,150 @@ class RegionTextExtractor:
                 continue
 
             # 너무 긴 텍스트는 제외 (일반적으로 태그는 짧음)
-            if len(text) > 20:
+            if len(text) > 30:  # 증가: 여러 밸브가 결합된 경우 대응
                 continue
 
-            for pattern in sorted_patterns:
-                match_result = pattern.match(text)
-                if match_result:
-                    matched_text = match_result["matched_text"]
+            # 공백으로 분리하여 각 부분을 개별 매칭 시도
+            text_parts = text.split()
 
-                    if matched_text not in seen:
-                        seen.add(matched_text)
+            for part in text_parts:
+                part = part.strip()
+                if not part:
+                    continue
 
-                        # 텍스트 위치 정보 추출
-                        center = self._get_text_center(text_item)
-                        bbox = text_item.get("bbox", text_item.get("box", []))
+                for pattern in sorted_patterns:
+                    match_result = pattern.match(part)
+                    if match_result:
+                        matched_text = match_result["matched_text"]
 
-                        extracted.append({
-                            "id": matched_text,
-                            "type": pattern.type,
-                            "matched_text": matched_text,
-                            "original_text": text,
-                            "confidence": text_item.get("confidence", 1.0),
-                            "center": center,
-                            "bbox": bbox,
-                            "pattern_description": pattern.description,
-                        })
-                    break  # 한 텍스트당 하나의 패턴만 매칭
+                        if matched_text not in seen:
+                            seen.add(matched_text)
+
+                            # 텍스트 위치 정보 추출
+                            center = self._get_text_center(text_item)
+                            bbox = text_item.get("bbox", text_item.get("box", []))
+
+                            extracted.append({
+                                "id": matched_text,
+                                "type": pattern.type,
+                                "matched_text": matched_text,
+                                "original_text": text,
+                                "confidence": text_item.get("confidence", 1.0),
+                                "center": center,
+                                "bbox": bbox,
+                                "pattern_description": pattern.description,
+                            })
+                        break  # 한 부분당 하나의 패턴만 매칭
 
         return extracted
+
+    def _find_text_based_regions(
+        self,
+        texts: List[Dict],
+        patterns: List[RegionTextPattern],
+        region_size: Tuple[int, int] = (500, 300)
+    ) -> List[Dict]:
+        """
+        OCR 텍스트에서 패턴을 찾아 가상 영역 생성
+
+        Line Detector가 영역을 검출하지 못한 경우의 폴백으로 사용
+        개선: "SIGNAL"과 "FOR BWMS"가 분리된 경우도 처리
+
+        Args:
+            texts: OCR 텍스트 목록
+            patterns: 영역 식별 패턴
+            region_size: 가상 영역 크기 (width, height)
+        """
+        virtual_regions = []
+        used_positions = set()  # 중복 방지 (y좌표 기반)
+
+        # 1단계: 개별 텍스트가 패턴에 매칭되는 경우
+        for text_item in texts:
+            text = text_item.get("text", "")
+
+            for pattern in patterns:
+                if pattern.matches(text):
+                    center = self._get_text_center(text_item)
+                    if center:
+                        cx, cy = center
+                        # 비슷한 y 위치에 이미 영역이 있으면 건너뜀
+                        y_key = int(cy / 50) * 50
+                        if y_key in used_positions:
+                            continue
+                        used_positions.add(y_key)
+
+                        w, h = region_size
+
+                        virtual_region = {
+                            "bbox": [cx - w/2, cy, cx + w/2, cy + h],
+                            "line_style": "dashed",
+                            "enclosing_line_style": "dashed",
+                            "style": "dashed",
+                            "area": w * h,
+                            "is_virtual": True,
+                            "source_text": text
+                        }
+                        virtual_regions.append(virtual_region)
+                        logger.info(f"Created virtual region from text '{text}' at {center}")
+                        break
+
+        # 2단계: "SIGNAL"과 "FOR BWMS"가 분리된 경우 처리
+        # SIGNAL 텍스트를 먼저 찾고, 근처에 FOR BWMS가 있는지 확인
+        signal_texts = []
+        for_bwms_texts = []
+
+        for text_item in texts:
+            text = text_item.get("text", "").upper()
+            center = self._get_text_center(text_item)
+            if not center:
+                continue
+
+            if "SIGNAL" in text and "FOR" not in text and "BWMS" not in text:
+                signal_texts.append({"text": text_item.get("text", ""), "center": center})
+            elif ("FOR" in text and "BWMS" in text) or "FORBWMS" in text.replace(" ", ""):
+                for_bwms_texts.append({"text": text_item.get("text", ""), "center": center})
+
+        # SIGNAL과 FOR BWMS가 y 좌표 기준 50픽셀 이내에 있으면 결합
+        for signal in signal_texts:
+            sx, sy = signal["center"]
+            y_key = int(sy / 50) * 50
+
+            # 이미 처리된 위치면 건너뜀
+            if y_key in used_positions:
+                continue
+
+            for for_bwms in for_bwms_texts:
+                fx, fy = for_bwms["center"]
+                if abs(sy - fy) < 50:  # 같은 줄에 있음
+                    used_positions.add(y_key)
+                    w, h = region_size
+
+                    # 두 텍스트의 중간점 사용
+                    mid_x = (sx + fx) / 2
+                    mid_y = min(sy, fy)
+
+                    virtual_region = {
+                        "bbox": [mid_x - w/2, mid_y, mid_x + w/2, mid_y + h],
+                        "line_style": "dashed",
+                        "enclosing_line_style": "dashed",
+                        "style": "dashed",
+                        "area": w * h,
+                        "is_virtual": True,
+                        "source_text": f"{signal['text']} {for_bwms['text']}"
+                    }
+                    virtual_regions.append(virtual_region)
+                    logger.info(f"Created combined virtual region from '{signal['text']}' + '{for_bwms['text']}' at y={mid_y}")
+                    break
+
+        return virtual_regions
 
     def extract(
         self,
         regions: List[Dict],
         texts: List[Dict],
         rule_ids: List[str] = None,
-        text_margin: float = 30
+        text_margin: float = 30,
+        region_expand_margin: float = 150
     ) -> Dict[str, Any]:
         """
         영역에서 규칙에 따라 텍스트 추출
@@ -666,6 +782,7 @@ class RegionTextExtractor:
             texts: PaddleOCR에서 검출된 텍스트 목록
             rule_ids: 적용할 규칙 ID 목록 (None이면 활성화된 모든 규칙)
             text_margin: 텍스트 매칭 시 마진 (픽셀)
+            region_expand_margin: 매칭된 영역 확장 마진 (픽셀) - 영역 외 밸브 캡처용
 
         Returns:
             추출 결과 (규칙별 매칭 영역 및 추출 항목)
@@ -687,6 +804,21 @@ class RegionTextExtractor:
 
         results_by_rule = {}
 
+        # 가상 영역 생성을 위한 텍스트 기반 폴백 준비
+        # Line Detector가 영역을 찾지 못한 경우만 폴백 사용
+        all_virtual_regions = []
+        if len(regions) == 0:
+            logger.info("No regions from Line Detector, using text-based virtual regions")
+            for rule in rules:
+                if rule.region_text_patterns:
+                    virtual_regions = self._find_text_based_regions(
+                        texts,
+                        rule.region_text_patterns,
+                        region_size=(600, 400)  # 더 큰 영역으로 밸브 캡처
+                    )
+                    all_virtual_regions.extend(virtual_regions)
+            logger.info(f"Created {len(all_virtual_regions)} virtual regions from OCR text")
+
         for rule in rules:
             matched_regions = []
             logger.info(f"Processing rule: {rule.id}")
@@ -694,18 +826,31 @@ class RegionTextExtractor:
             texts_found = 0
             pattern_matched = 0
 
-            for region_idx, region in enumerate(regions):
+            # Line Detector 영역 + 가상 영역 결합
+            combined_regions = list(regions) + all_virtual_regions
+            logger.info(f"Processing {len(regions)} detector regions + {len(all_virtual_regions)} virtual regions")
+
+            for region_idx, region in enumerate(combined_regions):
                 # 1. 영역이 기준에 맞는지 확인
                 if not self._region_matches_criteria(region, rule.region_criteria):
                     continue
                 criteria_passed += 1
 
-                # 2. 영역 내 텍스트 찾기
+                # 2. 영역 내 텍스트 찾기 (영역 확장 마진 적용)
                 region_bbox = region.get("bbox", region.get("bounding_box", []))
                 if len(region_bbox) < 4:
                     continue
 
-                texts_in_region = self._find_texts_in_region(region_bbox, texts, text_margin)
+                # 영역 확장 (상하좌우 모두 마진 추가)
+                # P&ID에서 밸브들이 영역 외곽에 배치될 수 있음
+                expanded_bbox = [
+                    region_bbox[0] - region_expand_margin * 2,  # 왼쪽 확장 (더 크게)
+                    region_bbox[1] - region_expand_margin,       # 위쪽 확장
+                    region_bbox[2] + region_expand_margin * 2,   # 오른쪽 확장 (더 크게)
+                    region_bbox[3] + region_expand_margin        # 아래쪽 확장
+                ]
+
+                texts_in_region = self._find_texts_in_region(expanded_bbox, texts, text_margin)
 
                 if not texts_in_region:
                     continue
@@ -714,15 +859,21 @@ class RegionTextExtractor:
                 logger.debug(f"Region {region_idx} texts: {text_contents[:5]}")
 
                 # 3. 텍스트 패턴 매칭 확인
-                matches, matched_pattern_texts = self._region_matches_text_patterns(
-                    texts_in_region,
-                    rule.region_text_patterns
-                )
+                # 가상 영역은 이미 텍스트 패턴 기반으로 생성됨
+                if region.get("is_virtual"):
+                    matches = True
+                    matched_pattern_texts = [region.get("source_text", "")]
+                else:
+                    matches, matched_pattern_texts = self._region_matches_text_patterns(
+                        texts_in_region,
+                        rule.region_text_patterns
+                    )
 
                 if not matches:
                     continue
                 pattern_matched += 1
-                logger.info(f"Region {region_idx} matched patterns: {matched_pattern_texts}")
+                is_virtual_tag = " (virtual)" if region.get("is_virtual") else ""
+                logger.info(f"Region {region_idx}{is_virtual_tag} matched patterns: {matched_pattern_texts}")
 
                 # 4. 추출 패턴 적용
                 extracted_items = self._extract_from_texts(
@@ -779,6 +930,8 @@ class RegionTextExtractor:
             "all_extracted_items": list(unique_items.values()),
             "statistics": {
                 "total_regions": len(regions),
+                "virtual_regions": len(all_virtual_regions),
+                "combined_regions": len(regions) + len(all_virtual_regions),
                 "total_texts": len(texts),
                 "rules_applied": len(rules),
                 "rules_matched": len(results_by_rule),

@@ -272,7 +272,10 @@ async def extract_valve_signal_list(
                 )
 
             line_result = line_response.json()
-            regions = line_result.get("data", {}).get("regions", [])
+            # Line Detector 응답: {"regions": [...]} 또는 {"data": {"regions": [...]}}
+            regions = line_result.get("regions", [])
+            if not regions:
+                regions = line_result.get("data", {}).get("regions", [])
 
             logger.info(f"Line Detector: {len(regions)} regions detected")
 
@@ -290,11 +293,18 @@ async def extract_valve_signal_list(
                 )
 
             ocr_result = ocr_response.json()
+            # PaddleOCR 형식: { "detections": [...] } 또는 { "results": [...] }
+            # EasyOCR 형식: { "data": { "texts": [...] } }
             texts = ocr_result.get("detections", [])
             if not texts:
+                texts = ocr_result.get("results", [])
+            if not texts:
                 texts = ocr_result.get("texts", [])
+            if not texts:
+                # EasyOCR 형식 처리
+                texts = ocr_result.get("data", {}).get("texts", [])
 
-            logger.info(f"PaddleOCR: {len(texts)} texts detected")
+            logger.info(f"OCR: {len(texts)} texts detected")
 
         # 3. Region Text Extraction
         extractor = get_extractor()
@@ -388,9 +398,15 @@ async def export_valve_signal_excel(
                 )
 
             ocr_result = ocr_response.json()
+            # PaddleOCR 형식: { "detections": [...] } 또는 { "results": [...] }
+            # EasyOCR 형식: { "data": { "texts": [...] } }
             texts = ocr_result.get("detections", [])
             if not texts:
+                texts = ocr_result.get("results", [])
+            if not texts:
                 texts = ocr_result.get("texts", [])
+            if not texts:
+                texts = ocr_result.get("data", {}).get("texts", [])
 
         # 3. Region Text Extraction
         extractor = get_extractor()

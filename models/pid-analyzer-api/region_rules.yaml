@@ -34,10 +34,19 @@ rules:
       aspect_ratio_max: null
 
     # 영역 식별 텍스트 (이 텍스트가 있어야 해당 영역으로 인식)
+    # OCR 오류 허용 패턴 포함 (S가 Sf, St, 5 등으로 오인식되는 경우)
     region_text_patterns:
       - pattern: "SIGNAL.*FOR.*BWMS"
         case_insensitive: true
         is_regex: true
+      - pattern: "S.GNAL.*FOR.*BWMS"
+        case_insensitive: true
+        is_regex: true
+        description: "OCR 오류 허용 (SI→Sf, ST 등)"
+      - pattern: "S[a-z]?GNAL.*FOR.*BWMS"
+        case_insensitive: true
+        is_regex: true
+        description: "OCR 오류 허용 (SIGNAL→SfGNAL, STGNAL 등)"
       - pattern: "SIGNAL FOR BWMS"
         case_insensitive: true
         is_regex: false
@@ -47,6 +56,32 @@ rules:
       - pattern: "SIGNAL FOR ECS"
         case_insensitive: true
         is_regex: false
+      - pattern: "FOR BWMS"
+        case_insensitive: true
+        is_regex: false
+        description: "부분 매칭 (SIGNAL이 누락된 경우)"
+      # OCR 오류 허용 - 더 관대한 패턴
+      - pattern: "FOR.*B.*W.*[SM]"
+        case_insensitive: true
+        is_regex: true
+        description: "OCR 오류 허용 (FOR BWMS 변형)"
+      - pattern: "FO.*BW"
+        case_insensitive: true
+        is_regex: true
+        description: "OCR 오류 허용 (FORBWS, FoRawws 등)"
+      - pattern: "SIGNAL$"
+        case_insensitive: true
+        is_regex: true
+        description: "SIGNAL만 있어도 매칭 (FOR BWMS가 분리된 경우)"
+      # ALARM BY-PASS 영역도 포함 (두 영역 모두 처리)
+      - pattern: "ALARM.*BY-?PASS"
+        case_insensitive: true
+        is_regex: true
+        description: "ALARM BY-PASS 영역"
+      - pattern: "BY-?PASS"
+        case_insensitive: true
+        is_regex: true
+        description: "부분 매칭 (ALARM이 누락된 경우)"
 
     # 추출할 패턴들 (priority가 높은 것 먼저 매칭)
     extraction_patterns:

@@ -593,6 +593,8 @@ services:
     environment:
       - PID_ANALYZER_PORT=5018
       - PYTHONUNBUFFERED=1
+      # EasyOCR 사용 (PaddleOCR 대비 안정적, CPU 모드)
+      - PADDLEOCR_API_URL=http://easyocr-api:5015/api/v1/ocr
     networks:
       - ax_poc_network
     restart: unless-stopped

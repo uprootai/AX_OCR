@@ -20,3 +20,7 @@ export { useGDTHandlers } from './useGDTHandlers';
 export { useDimensionHandlers } from './useDimensionHandlers';
 export { useRelationHandlers } from './useRelationHandlers';
 export { useTitleBlockHandlers } from './useTitleBlockHandlers';
+
+// P&ID 분석 훅
+export { usePIDFeaturesHandlers, useBWMSHandlers } from './usePIDFeaturesHandlers';
+export type { UIValveItem, UIEquipmentItem, UIChecklistItem, UIDeviationItem } from './usePIDFeaturesHandlers';

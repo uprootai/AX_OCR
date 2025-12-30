@@ -13,7 +13,16 @@ export type {
 } from './types/workflow';
 
 // Config
-export { DRAWING_TYPE_SECTIONS, getSectionVisibility, ITEMS_PER_PAGE } from './config/sectionConfig';
+export {
+  DRAWING_TYPE_SECTIONS,
+  getSectionVisibility,
+  ITEMS_PER_PAGE,
+  // Feature 의존성 검증
+  FEATURE_DEPENDENCIES,
+  validateFeatureDependencies,
+  ALL_FEATURES_DISABLED,
+} from './config/sectionConfig';
+export type { DependencyValidationResult } from './config/sectionConfig';
 
 // Hooks
 export {
@@ -29,8 +38,12 @@ export {
   useDimensionHandlers,
   useRelationHandlers,
   useTitleBlockHandlers,
+  // P&ID 분석 핸들러
+  usePIDFeaturesHandlers,
+  useBWMSHandlers,  // 하위 호환성
 } from './hooks';
 export type { WorkflowState, ClassExample, ClassificationData, LineData, IntersectionData, ManualLabelState } from './hooks';
+export type { UIValveItem, UIEquipmentItem, UIChecklistItem } from './hooks';
 
 // Components
 export { WorkflowSidebar } from './components/WorkflowSidebar';
@@ -54,3 +67,4 @@ export { ReferenceDrawingSection } from './sections/ReferenceDrawingSection';
 export { DrawingInfoSection } from './sections/DrawingInfoSection';
 export { ActiveFeaturesSection } from './sections/ActiveFeaturesSection';
 export { VLMClassificationSection } from './sections/VLMClassificationSection';
+export { PIDFeaturesSection, BWMSSection } from './sections/PIDFeaturesSection';

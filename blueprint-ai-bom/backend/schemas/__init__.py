@@ -215,6 +215,40 @@ from .longterm import (
     ExtractedNoteUpdate,
     LongtermFeatureResponse,
 )
+from .pid_features import (
+    # P&ID 분석 기능
+    PIDFeature,
+    VerificationStatus as PIDVerificationStatus,
+    # Valve Detection
+    ValveCategory,
+    ValveItem,
+    ValveDetectionRequest,
+    ValveDetectionResponse,
+    # Equipment Detection
+    EquipmentType,
+    EquipmentItem,
+    EquipmentDetectionRequest,
+    EquipmentDetectionResponse,
+    # Design Checklist
+    ChecklistStatus,
+    ChecklistItem,
+    ChecklistRequest as ChecklistCheckRequest,
+    ChecklistResponse as ChecklistCheckResponse,
+    # Deviation Analysis
+    DeviationCategory,
+    DeviationSeverity,
+    DeviationSource,
+    DeviationItem,
+    DeviationAnalysisRequest,
+    DeviationAnalysisResponse,
+    # Verification
+    PIDVerifyRequest,
+    PIDBulkVerifyRequest,
+    PIDVerificationQueue,
+    # Export
+    PIDExportRequest,
+    PIDExportResponse,
+)
 
 __all__ = [
     # Session
@@ -397,4 +431,32 @@ __all__ = [
     "DrawingRegionUpdate",
     "ExtractedNoteUpdate",
     "LongtermFeatureResponse",
+    # P&ID 분석 기능
+    "PIDFeature",
+    "PIDVerificationStatus",
+    "ValveCategory",
+    "ValveItem",
+    "ValveDetectionRequest",
+    "ValveDetectionResponse",
+    "EquipmentType",
+    "EquipmentItem",
+    "EquipmentDetectionRequest",
+    "EquipmentDetectionResponse",
+    "ChecklistStatus",
+    "ChecklistItem",
+    "ChecklistCheckRequest",
+    "ChecklistCheckResponse",
+    # Deviation Analysis
+    "DeviationCategory",
+    "DeviationSeverity",
+    "DeviationSource",
+    "DeviationItem",
+    "DeviationAnalysisRequest",
+    "DeviationAnalysisResponse",
+    # Verification & Export
+    "PIDVerifyRequest",
+    "PIDBulkVerifyRequest",
+    "PIDVerificationQueue",
+    "PIDExportRequest",
+    "PIDExportResponse",
 ]

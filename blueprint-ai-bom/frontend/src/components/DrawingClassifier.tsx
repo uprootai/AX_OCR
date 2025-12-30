@@ -200,7 +200,7 @@ export function DrawingClassifier({
   }, [sessionId, classification, apiBaseUrl, onPresetApply]);
 
   // 수동 도면 타입 선택
-  const handleManualSelect = useCallback((drawingType: DrawingType) => {
+  const handleManualSelect = useCallback(async (drawingType: DrawingType) => {
     // 간단한 매핑
     const presetMap: Record<DrawingType, string> = {
       mechanical_part: 'dimension_extraction',
@@ -211,18 +211,36 @@ export function DrawingClassifier({
       unknown: 'general'
     };
 
+    const presetName = presetMap[drawingType];
+
     const result: ClassificationResult = {
       drawing_type: drawingType,
       confidence: 1.0,
-      suggested_preset: presetMap[drawingType],
+      suggested_preset: presetName,
       regions: [],
       analysis_notes: '수동 선택됨',
       provider: 'manual'
     };
 
     setClassification(result);
-    onClassificationComplete?.(result, { name: presetMap[drawingType], description: '', nodes: [] } as PresetConfig);
-  }, [onClassificationComplete]);
+
+    // 수동 선택 시에도 프리셋 자동 적용 (세션의 features 설정)
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/classification/apply-preset/${sessionId}?preset_name=${presetName}`,
+        { method: 'POST' }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        logger.log('Manual preset applied:', presetName, data);
+        onPresetApply?.(presetName);
+      }
+    } catch (err) {
+      logger.error('Failed to apply preset:', err);
+    }
+
+    onClassificationComplete?.(result, { name: presetName, description: '', nodes: [] } as PresetConfig);
+  }, [sessionId, apiBaseUrl, onClassificationComplete, onPresetApply]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

@@ -24,6 +24,7 @@ import {
   type Dimension,
   // Config
   getSectionVisibility,
+  validateFeatureDependencies,
   ITEMS_PER_PAGE,
   // Hooks
   useWorkflowState,
@@ -35,6 +36,7 @@ import {
   useGDTHandlers,
   useRelationHandlers,
   useTitleBlockHandlers,
+  usePIDFeaturesHandlers,
   // Components
   WorkflowSidebar,
   ImageModal,
@@ -55,6 +57,7 @@ import {
   DrawingInfoSection,
   ActiveFeaturesSection,
   VLMClassificationSection,
+  PIDFeaturesSection,
 } from './workflow';
 
 export function WorkflowPage() {
@@ -102,6 +105,7 @@ export function WorkflowPage() {
   // Feature hooks
   const midTermFeatures = useMidTermFeatures();
   const longTermFeatures = useLongTermFeatures();
+  const pidFeatures = usePIDFeaturesHandlers();
 
   // Handler hooks
   const analysisHandlers = useAnalysisHandlers({
@@ -251,6 +255,14 @@ export function WorkflowPage() {
   // Section visibility
   const visibility = getSectionVisibility(effectiveDrawingType, effectiveFeatures);
 
+  // Feature dependency validation
+  const dependencyValidation = useMemo(() => {
+    if (!effectiveFeatures || effectiveFeatures.length === 0) {
+      return { valid: true, warnings: [] };
+    }
+    return validateFeatureDependencies(effectiveFeatures);
+  }, [effectiveFeatures]);
+
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <WorkflowSidebar
@@ -293,6 +305,31 @@ export function WorkflowPage() {
             </div>
           )}
 
+          {/* Feature Dependency Warnings */}
+          {!dependencyValidation.valid && dependencyValidation.warnings.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700 rounded-lg px-4 py-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-1">
+                    ⚠️ Feature 의존성 경고
+                  </h4>
+                  <ul className="text-sm text-amber-700 dark:text-amber-400 space-y-1">
+                    {dependencyValidation.warnings.map((warning, index) => (
+                      <li key={index} className="flex items-start gap-1">
+                        <span className="text-amber-500">•</span>
+                        <span>{warning.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
+                    💡 Builder에서 필수 기능을 추가하거나, 위 기능의 결과가 제한될 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Title */}
           <div className="text-center mb-2">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🎯 AI 기반 BOM 추출 결과</h1>
@@ -331,7 +368,13 @@ export function WorkflowPage() {
               showClassifier={state.showClassifier}
               classification={state.classification}
               onClassificationComplete={state.setClassification}
-              onPresetApply={() => state.setShowAnalysisOptions(true)}
+              onPresetApply={() => {
+                state.setShowAnalysisOptions(true);
+                // 프리셋 적용 후 세션 새로고침 (features 반영)
+                if (currentSession?.session_id) {
+                  loadSession(currentSession.session_id);
+                }
+              }}
               onShowClassifierChange={state.setShowClassifier}
             />
           )}
@@ -547,6 +590,31 @@ export function WorkflowPage() {
             isVlmClassifying={longTermFeatures.isVlmClassifying}
             onVlmClassify={() => longTermFeatures.handleVlmClassify(currentSession?.session_id || '')}
           />
+
+          {/* P&ID 분석 (features 기반 동적 렌더링) */}
+          {(visibility.valveSignalList || visibility.equipmentList || visibility.bwmsChecklist || visibility.deviationList) && (
+            <PIDFeaturesSection
+              sessionId={currentSession?.session_id || null}
+              visibility={visibility}
+              valves={pidFeatures.valves}
+              isDetectingValves={pidFeatures.isDetectingValves}
+              onDetectValves={() => pidFeatures.handleDetectValves(currentSession?.session_id || '')}
+              onVerifyValve={(id, status) => pidFeatures.handleVerifyValve(currentSession?.session_id || '', id, status)}
+              equipment={pidFeatures.equipment}
+              isDetectingEquipment={pidFeatures.isDetectingEquipment}
+              onDetectEquipment={() => pidFeatures.handleDetectEquipment(currentSession?.session_id || '')}
+              onVerifyEquipment={(id, status) => pidFeatures.handleVerifyEquipment(currentSession?.session_id || '', id, status)}
+              checklistItems={pidFeatures.checklistItems}
+              isCheckingDesign={pidFeatures.isCheckingDesign}
+              onCheckDesign={() => pidFeatures.handleCheckDesign(currentSession?.session_id || '')}
+              onVerifyChecklist={(id, status) => pidFeatures.handleVerifyChecklist(currentSession?.session_id || '', id, status)}
+              deviations={pidFeatures.deviations}
+              isAnalyzingDeviations={pidFeatures.isAnalyzingDeviations}
+              onAnalyzeDeviations={() => pidFeatures.handleAnalyzeDeviations(currentSession?.session_id || '')}
+              onVerifyDeviation={(id, status) => pidFeatures.handleVerifyDeviation(currentSession?.session_id || '', id, status)}
+              onExport={(type) => pidFeatures.handleExport(currentSession?.session_id || '', type)}
+            />
+          )}
 
           {/* 최종 결과 */}
           {state.verificationFinalized && imageData && imageSize && (stats.approved + stats.manual) > 0 && (

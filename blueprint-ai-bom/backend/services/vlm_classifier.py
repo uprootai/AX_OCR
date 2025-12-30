@@ -599,7 +599,12 @@ PRESET_PIPELINES = {
         "yolo_model_type": "pid_class_aware",
         "yolo_confidence": 0.15,
         "enable_connectivity": True,
-        "enable_bom": True
+        "enable_bom": True,
+        "features": [
+            "symbol_detection", "line_detection", "pid_connectivity",
+            "pid_valve_detection", "pid_equipment_detection", "pid_design_checklist",
+            "pid_deviation_analysis", "bom_generation"
+        ]
     },
     "assembly_analysis": {
         "name": "조립도 분석 파이프라인",

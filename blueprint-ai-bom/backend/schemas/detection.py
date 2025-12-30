@@ -96,6 +96,7 @@ class ManualDetection(BaseModel):
     class_name: str
     bbox: BoundingBox
     confidence: float = 1.0  # YOLO에서 가져올 때 실제 신뢰도 전달, 수동 추가 시 1.0
+    label: Optional[str] = None  # BWMS 장비 라벨 (ECU-1, FMU-1 등)
 
 
 class BulkImportRequest(BaseModel):

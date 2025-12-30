@@ -232,16 +232,21 @@ async def apply_preset_to_session(
     analysis_options["preset_name"] = preset_name
     analysis_options["nodes"] = config.get("nodes", [])
 
+    # features 배열 업데이트 (P&ID 분석 등 기능 활성화를 위해)
+    features = config.get("features", [])
+
     session_service.update_session(session_id, {
         "analysis_options": analysis_options,
-        "applied_preset": preset_name
+        "applied_preset": preset_name,
+        "features": features  # 기능 목록 추가
     })
 
     return {
         "session_id": session_id,
         "applied_preset": preset_name,
         "config": config,
-        "analysis_options": analysis_options
+        "analysis_options": analysis_options,
+        "features": features
     }
 
 
