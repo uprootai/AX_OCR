@@ -24,8 +24,9 @@
 | 카테고리 | 항목 수 | 우선순위 | 상태 |
 |----------|---------|----------|------|
 | featureDefinitions.ts 동기화 | 6개 feature | P1 | ✅ 완료 |
-| sectionConfig.ts 동기화 | 1개 파일 | P2 | 검토 필요 |
-| edgnet_src/Dockerfile 패턴 | 1개 | P3 | 검토 필요 |
+| sectionConfig.ts 동기화 | 1개 파일 | P2 | ✅ 검토 완료 (불필요) |
+| edgnet_src/Dockerfile 패턴 | 1개 | P3 | ✅ 조치 불필요 |
+| **P1~P2 파일 분리** | **9개 파일** | **P1/P2** | **✅ 모두 완료** |
 
 ---
 
@@ -91,61 +92,58 @@ export const FEATURE_GROUPS = {
 
 ---
 
-## 2. [P2] sectionConfig.ts 동기화 검토
+## 2. [P2] sectionConfig.ts 동기화 검토 (2025-12-31 완료)
 
-### 문제
+### 검토 결과: 동기화 불필요
 
-`blueprint-ai-bom/frontend/src/pages/workflow/config/sectionConfig.ts`에는
-FEATURE_DEPENDENCIES와 FEATURE_ALIASES가 정의되어 있음.
+`blueprint-ai-bom/frontend/src/pages/workflow/config/sectionConfig.ts`는
+**blueprint-ai-bom 전용** 설정 파일임.
 
-이 파일이 web-ui의 어떤 파일과 대응되는지 확인 필요.
+### 구조적 차이
 
-### 현재 상태
+| 프로젝트 | 페이지 구조 | sectionConfig |
+|----------|-------------|---------------|
+| web-ui | BlueprintFlow (blueprintflow/) | ❌ 없음 |
+| blueprint-ai-bom | WorkflowPage (workflow/) | ✅ 전용 |
 
-blueprint-ai-bom sectionConfig.ts에 정의된 의존성:
-- TECHCROSS features 의존성 포함
-- FEATURE_ALIASES에 techcross_* → pid_* 매핑 포함
+### 확인 결과
 
-### 확인 사항
-
-- [ ] web-ui에 동일한 의존성 정의 파일이 있는지 확인
-- [ ] 있다면 동기화 상태 검토
-- [ ] 없다면 blueprint-ai-bom 전용으로 유지
-
----
-
-## 3. [P3] edgnet_src/Dockerfile COPY 패턴
-
-### 문제
-
-`models/edgnet-api/edgnet_src/Dockerfile`에서 `COPY . .` 패턴 사용 중.
-다른 API들은 명시적 COPY를 사용하도록 수정됨.
-
-### 분석
-
-```dockerfile
-# models/edgnet-api/edgnet_src/Dockerfile:28
-COPY . .
-```
+- [x] web-ui에 동일한 의존성 정의 파일이 있는지 확인 → **없음**
+- [x] web-ui에 WorkflowPage가 없음 → BlueprintFlow 사용
+- [x] sectionConfig.ts는 **blueprint-ai-bom 전용**으로 유지
 
 ### 결론
 
-이 Dockerfile은 **pipeline 테스트용**으로, API 서버용이 아님:
-- `CMD ["python", "pipeline.py", "--help"]`
+**동기화 불필요** - 두 프로젝트의 아키텍처가 다름:
+- web-ui: BlueprintFlow 기반 노드 편집기
+- blueprint-ai-bom: WorkflowPage 기반 Human-in-the-Loop UI
 
-**메인 API Dockerfile**(`models/edgnet-api/Dockerfile`)은 이미 명시적 COPY 사용 중:
-```dockerfile
-COPY api_server.py .
-COPY routers/ ./routers/
-COPY models/ ./models/
-COPY services/ ./services/
-COPY utils/ ./utils/
-```
+---
 
-### 조치
+## 3. [P3] edgnet_src/Dockerfile COPY 패턴 (2025-12-31 검토 완료)
 
-- [ ] 선택적: edgnet_src/Dockerfile도 명시적 COPY로 변경 (일관성)
-- [x] API 서버 Dockerfile은 이미 수정됨 - 조치 불필요
+### 검토 결과: 조치 불필요
+
+`models/edgnet-api/edgnet_src/Dockerfile`은 **pipeline 테스트용**이므로 수정 불필요.
+
+### 분석
+
+| 파일 | 용도 | COPY 패턴 | 조치 |
+|------|------|-----------|------|
+| `edgnet_src/Dockerfile` | pipeline 테스트 | `COPY . .` | 유지 |
+| `Dockerfile` (메인) | API 서버 | 명시적 COPY | ✅ 이미 수정됨 |
+
+### 결론
+
+- **메인 API Dockerfile**은 이미 명시적 COPY 사용 중
+- **edgnet_src/Dockerfile**은 pipeline 테스트용 (`CMD ["python", "pipeline.py", "--help"]`)
+- 실제 서비스에 영향 없음 → **조치 불필요**
+
+### 체크리스트
+
+- [x] API 서버 Dockerfile 확인 - 명시적 COPY 사용 중 ✅
+- [x] edgnet_src/Dockerfile 용도 확인 - pipeline 테스트용 ✅
+- [x] 조치 불필요로 결정 ✅
 
 ---
 

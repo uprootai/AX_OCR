@@ -33,6 +33,10 @@ export const ALL_FEATURES_DISABLED: SectionVisibility = {
   equipmentList: false,
   bwmsChecklist: false,
   deviationList: false,
+  // 추가 기능 (2025-12-31 P1 매핑 완성)
+  gtComparison: false,
+  bomGeneration: false,
+  industryEquipmentDetection: false,
 };
 
 /**
@@ -193,6 +197,10 @@ const featuresToVisibility = (features: string[]): SectionVisibility => {
     equipmentList: hasFeature('pid_equipment_detection') || features.includes('techcross_equipment'),
     bwmsChecklist: hasFeature('pid_design_checklist') || features.includes('techcross_checklist'),
     deviationList: hasFeature('pid_deviation_analysis') || features.includes('techcross_deviation'),
+    // 추가 기능 (2025-12-31 P1 매핑 완성)
+    gtComparison: hasFeature('gt_comparison'),
+    bomGeneration: hasFeature('bom_generation'),
+    industryEquipmentDetection: hasFeature('industry_equipment_detection'),
   };
 };
 
@@ -224,6 +232,7 @@ export const ALL_AVAILABLE_FEATURES = [
   { id: 'symbol_detection', label: '🎯 심볼 검출', group: '기본 검출' },
   { id: 'dimension_ocr', label: '📏 치수 OCR', group: '기본 검출' },
   { id: 'line_detection', label: '📐 선 검출', group: '기본 검출' },
+  { id: 'gt_comparison', label: '📊 GT 비교', group: '기본 검출' },
   // GD&T / 기계
   { id: 'gdt_parsing', label: '🔧 GD&T 파싱', group: 'GD&T / 기계' },
   { id: 'relation_extraction', label: '🔗 심볼-치수 관계', group: 'GD&T / 기계' },
@@ -231,12 +240,14 @@ export const ALL_AVAILABLE_FEATURES = [
   { id: 'surface_roughness_parsing', label: '🔲 표면 거칠기 파싱', group: 'GD&T / 기계' },
   // P&ID
   { id: 'pid_connectivity', label: '🔀 P&ID 연결성', group: 'P&ID' },
+  { id: 'industry_equipment_detection', label: '🏭 장비 태그 인식', group: 'P&ID' },
   // P&ID 분석
   { id: 'pid_valve_detection', label: '🎛️ 밸브 검출', group: 'P&ID 분석' },
   { id: 'pid_equipment_detection', label: '⚙️ 장비 검출', group: 'P&ID 분석' },
   { id: 'pid_design_checklist', label: '✅ 설계 체크리스트', group: 'P&ID 분석' },
   { id: 'pid_deviation_analysis', label: '📝 편차 분석', group: 'P&ID 분석' },
   // BOM 생성
+  { id: 'bom_generation', label: '📋 BOM 생성', group: 'BOM 생성' },
   { id: 'title_block_ocr', label: '📝 표제란 OCR', group: 'BOM 생성' },
   { id: 'quantity_extraction', label: '🔢 수량 추출', group: 'BOM 생성' },
   { id: 'balloon_matching', label: '🎈 벌룬 매칭', group: 'BOM 생성' },

@@ -68,6 +68,72 @@ parameters:
     description: "모델 선택 - 용도에 맞는 모델을 선택하세요"
     formField: model_type
 
+  - name: confidence
+    type: number
+    default: 0.4
+    min: 0.05
+    max: 1
+    step: 0.05
+    description: "검출 신뢰도 임계값 (bom_detector: 0.4, P&ID: 0.1, engineering: 0.25)"
+
+  - name: iou
+    type: number
+    default: 0.5
+    min: 0
+    max: 1
+    step: 0.05
+    description: "NMS IoU 임계값 (bom_detector: 0.5 권장)"
+
+  - name: imgsz
+    type: number
+    default: 1024
+    min: 320
+    max: 3520
+    step: 32
+    description: "입력 이미지 크기 (bom_detector는 3520 권장)"
+
+  - name: use_sahi
+    type: boolean
+    default: false
+    description: "SAHI 슬라이싱 활성화 (P&ID 모델은 자동 활성화)"
+
+  - name: slice_height
+    type: number
+    default: 512
+    min: 256
+    max: 2048
+    step: 128
+    description: "SAHI 슬라이스 높이"
+
+  - name: slice_width
+    type: number
+    default: 512
+    min: 256
+    max: 2048
+    step: 128
+    description: "SAHI 슬라이스 너비"
+
+  - name: overlap_ratio
+    type: number
+    default: 0.25
+    min: 0.1
+    max: 0.5
+    step: 0.05
+    description: "SAHI 슬라이스 오버랩 비율"
+
+  - name: visualize
+    type: boolean
+    default: true
+    description: "결과 시각화 이미지 생성"
+
+  - name: task
+    type: select
+    default: detect
+    options:
+      - detect
+      - segment
+    description: "작업 유형 (detect/segment)"
+
 # model_type 상세 설명
 modelTypes:
   engineering:
@@ -179,72 +245,6 @@ modelTypes:
       - "전기 패널 BOM 생성"
       - "파나시아 프로젝트"
 
-  - name: confidence
-    type: number
-    default: 0.4  # Streamlit 동일 (bom_detector 기준)
-    min: 0.05
-    max: 1
-    step: 0.05
-    description: "검출 신뢰도 임계값 (bom_detector: 0.4, P&ID: 0.1, engineering: 0.25)"
-
-  - name: iou
-    type: number
-    default: 0.5  # Streamlit 동일
-    min: 0
-    max: 1
-    step: 0.05
-    description: "NMS IoU 임계값 (bom_detector: 0.5 권장)"
-
-  - name: imgsz
-    type: number
-    default: 1024
-    min: 320
-    max: 3520
-    step: 32
-    description: 입력 이미지 크기 (bom_detector는 3520 권장)
-
-  - name: use_sahi
-    type: boolean
-    default: false
-    description: SAHI 슬라이싱 활성화 (P&ID 모델은 자동 활성화)
-
-  - name: slice_height
-    type: number
-    default: 512
-    min: 256
-    max: 2048
-    step: 128
-    description: SAHI 슬라이스 높이
-
-  - name: slice_width
-    type: number
-    default: 512
-    min: 256
-    max: 2048
-    step: 128
-    description: SAHI 슬라이스 너비
-
-  - name: overlap_ratio
-    type: number
-    default: 0.25
-    min: 0.1
-    max: 0.5
-    step: 0.05
-    description: SAHI 슬라이스 오버랩 비율
-
-  - name: visualize
-    type: boolean
-    default: true
-    description: 결과 시각화 이미지 생성
-
-  - name: task
-    type: select
-    default: detect
-    options:
-      - detect
-      - segment
-    description: 작업 유형 (detect/segment)
-
 mappings:
   output:
     detections: data.detections
@@ -286,6 +286,70 @@ examples:
   - 도면 이미지 → YOLO (engineering) → 14가지 기계 심볼 검출
   - 도면 이미지 → YOLO (pid_class_aware) → 32가지 P&ID 심볼 검출 및 분류
   - 도면 이미지 → YOLO (bom_detector) → 27가지 전력 설비 심볼 검출
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기계도면 심볼 검출"
+      description: "engineering 모델로 기계도면 심볼 검출"
+      formData:
+        file: "drawing.png"
+        model_type: "engineering"
+        confidence: 0.25
+        iou: 0.45
+        imgsz: 1280
+        visualize: true
+
+    - name: "P&ID 심볼 분류"
+      description: "P&ID 도면에서 밸브, 펌프 등 심볼 검출 및 분류"
+      formData:
+        file: "pid_diagram.png"
+        model_type: "pid_class_aware"
+        confidence: 0.25
+        iou: 0.45
+        imgsz: 640
+        use_sahi: true
+        slice_height: 512
+        slice_width: 512
+
+    - name: "전력 설비 BOM"
+      description: "전력 설비 도면에서 변압기, 스위치 등 검출"
+      formData:
+        file: "electrical_panel.png"
+        model_type: "bom_detector"
+        confidence: 0.4
+        iou: 0.5
+        imgsz: 1024
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          detections:
+            - bbox: [100, 200, 150, 250]
+              class_name: "gate_valve"
+              class_id: 0
+              confidence: 0.92
+              center: [125, 225]
+            - bbox: [300, 400, 380, 480]
+              class_name: "pump"
+              class_id: 7
+              confidence: 0.88
+              center: [340, 440]
+          total_detections: 2
+          class_counts:
+            gate_valve: 1
+            pump: 1
+          visualized_image: "data:image/jpeg;base64,/9j/..."
+        processing_time: 1.23
+
+    - name: "에러 응답"
+      statusCode: 400
+      response:
+        status: "error"
+        message: "Invalid file format. Only JPG, PNG, PDF supported."
 
 usageTips:
   - "기계도면: model_type=engineering, confidence=0.25, imgsz=1280"

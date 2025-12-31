@@ -59,6 +59,10 @@ export interface SectionVisibility {
   equipmentList: boolean;        // pid_equipment_detection
   bwmsChecklist: boolean;        // pid_design_checklist (내부 변수명 유지)
   deviationList: boolean;        // pid_deviation_analysis
+  // 추가 기능 (2025-12-31 P1 매핑 완성)
+  gtComparison: boolean;              // gt_comparison - GT 비교
+  bomGeneration: boolean;             // bom_generation - BOM 생성
+  industryEquipmentDetection: boolean; // industry_equipment_detection - 산업 장비 검출
 }
 
 // Line detection

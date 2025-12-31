@@ -179,7 +179,7 @@ export function SymbolVerificationSection({
             onChange={(e) => setShowRefImages(e.target.checked)}
             className="rounded"
           />
-          <span className="text-sm">📚 참조 이미지 표시</span>
+          <span className="text-sm">📚 참조 도면 표시</span>
           <InfoTooltip content={FEATURE_TOOLTIPS.showReference.description} position="bottom" iconSize={12} />
         </label>
         <div className="flex items-center">

@@ -213,7 +213,7 @@ regionRulesSchema:
     id:
       type: string
       required: true
-      description: 규칙 고유 ID (예: valve_signal_bwms)
+      description: "규칙 고유 ID (예: valve_signal_bwms)"
     name:
       type: string
       required: true
@@ -246,7 +246,7 @@ regionRulesSchema:
       item:
         pattern:
           type: string
-          description: 매칭할 텍스트 (예: SIGNAL FOR BWMS)
+          description: "매칭할 텍스트 (예: SIGNAL FOR BWMS)"
         case_insensitive:
           type: boolean
           default: true
@@ -268,3 +268,82 @@ regionRulesSchema:
         priority:
           type: number
           default: 0
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "P&ID 연결성 분석"
+      description: "심볼과 라인 데이터로 연결 관계 분석"
+      body:
+        symbols:
+          - id: "valve-1"
+            class_name: "gate_valve"
+            bbox: [100, 200, 150, 250]
+            confidence: 0.92
+          - id: "pump-1"
+            class_name: "pump"
+            bbox: [300, 200, 400, 300]
+            confidence: 0.88
+        lines:
+          - id: "line-1"
+            points: [[150, 225], [300, 225]]
+            color_type: "process"
+            pipe_type: "main"
+        generate_bom: true
+        generate_valve_list: true
+        visualize: true
+
+    - name: "Valve Signal List 추출"
+      endpoint: "/api/v1/valve-signal/extract"
+      description: "P&ID 이미지에서 밸브 시그널 리스트 추출"
+      formData:
+        file: "pid_bwms.png"
+        rule_id: "valve_signal_bwms"
+        language: "en"
+
+  responseExamples:
+    - name: "분석 성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          connections:
+            - source_id: "valve-1"
+              target_id: "pump-1"
+              line_id: "line-1"
+              color_type: "process"
+              pipe_type: "main"
+              direction: "flow"
+          graph:
+            nodes: ["valve-1", "pump-1"]
+            edges:
+              - source: "valve-1"
+                target: "pump-1"
+          bom:
+            - tag: "V-001"
+              type: "Gate Valve"
+              size: "DN50"
+              material: "SUS304"
+            - tag: "P-001"
+              type: "Centrifugal Pump"
+              capacity: "100 m³/h"
+          valve_list:
+            - tag: "BWV-101"
+              type: "Ball Valve"
+              position: "NO"
+              signal: "XS-101"
+          statistics:
+            total_symbols: 2
+            total_connections: 1
+            connections_by_color_type:
+              process: 1
+            connections_by_pipe_type:
+              main: 1
+        processing_time: 3.21
+
+    - name: "Valve Signal Excel 응답"
+      endpoint: "/api/v1/valve-signal/export-excel"
+      statusCode: 200
+      response:
+        content_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename: "valve_signal_list_project_drawing.xlsx"

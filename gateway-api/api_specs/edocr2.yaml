@@ -120,6 +120,61 @@ examples:
   - 공차 정보 파싱
   - 부품표 데이터 추출
 
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 치수 추출"
+      description: "기계도면에서 치수와 GD&T 추출"
+      formData:
+        file: "drawing.png"
+        version: "v2"
+        language: "ko+en"
+        extract_dimensions: true
+        extract_gdt: true
+        visualize: true
+
+    - name: "테이블 포함 추출"
+      description: "BOM 테이블이 포함된 도면 분석"
+      formData:
+        file: "bom_drawing.png"
+        version: "v2"
+        language: "ko+en"
+        extract_dimensions: true
+        extract_tables: true
+        visualize: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          dimensions:
+            - value: "50.0"
+              tolerance: "±0.1"
+              unit: "mm"
+              bbox: [100, 200, 200, 230]
+              type: "linear"
+            - value: "Ø25"
+              tolerance: "H7"
+              unit: "mm"
+              bbox: [300, 150, 380, 180]
+              type: "diameter"
+          gdt_symbols:
+            - symbol: "⌖"
+              type: "position"
+              tolerance: "0.05"
+              datum: ["A", "B"]
+              bbox: [400, 300, 500, 350]
+          text_blocks:
+            - text: "PART NAME"
+              bbox: [50, 50, 200, 80]
+              confidence: 0.95
+          drawing_number: "DWG-001"
+          material: "SUS304"
+          visualized_image: "data:image/jpeg;base64,..."
+        processing_time: 2.45
+
 usageTips:
   - YOLO와 함께 사용하면 정확도가 높아집니다
   - 한글+영어 혼합 도면은 ko+en 언어 사용

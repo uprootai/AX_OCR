@@ -338,7 +338,7 @@ export function WorkflowPage() {
             )}
           </div>
 
-          {/* 참조 도면 */}
+          {/* 원본 도면 */}
           {imageData && (
             <ReferenceDrawingSection
               imageData={imageData}

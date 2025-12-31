@@ -1,9 +1,9 @@
 # TECHCROSS BWMS P&ID 요구사항 심층 분석
 
-> **작성일**: 2025-12-29
+> **작성일**: 2025-12-29 | **최종 업데이트**: 2025-12-31
 > **프로젝트**: TECHCROSS 선박평형수처리장치(BWMS) P&ID 도면 자동 검토 시스템
 > **담당**: TECHCROSS 기본설계팀
-> **상태**: 분석 완료, 개발 착수 대기
+> **상태**: ✅ 1-1, 1-2, 1-3 완료 (v10.5) | ⏳ 1-4 POR 대기
 
 ---
 
@@ -122,14 +122,31 @@ HYCHLOR 시스템 추가:
 
 ---
 
-## 2. 요구사항별 구현 현황
+## 2. 요구사항별 구현 현황 (v10.5 기준)
 
-| 요구사항 | 구현 상태 | 완성도 | 다음 단계 |
+| 요구사항 | 구현 상태 | 완성도 | 구현 위치 |
 |----------|----------|--------|----------|
-| **1-1 체크리스트** | ⚠️ 부분 | 20% | BWMS 규칙 9개 추가 |
-| **1-2 Valve Signal List** | ✅ **완료** | 100% | UI 규칙 편집기 (선택사항) |
-| **1-3 Equipment List** | ✅ **완료** | 100% | - |
-| **1-4 Deviation List** | ⏳ 보류 | 0% | POR 문서 확보 |
+| **1-1 체크리스트** | ✅ **완료** | 100% | `pid_features_router.py` - BWMS 60개 항목 |
+| **1-2 Valve Signal List** | ✅ **완료** | 100% | `pid_features_router.py` - Human-in-the-Loop |
+| **1-3 Equipment List** | ✅ **완료** | 100% | `pid_features_router.py` - Human-in-the-Loop |
+| **1-4 Deviation List** | ⏳ 보류 | 0% | POR 문서 확보 대기 |
+
+### 2.0 v10.5 구현 완료 내역 (2025-12-30~31)
+
+**백엔드** (`blueprint-ai-bom/backend/routers/pid_features_router.py` - 1,101줄):
+- `POST /{session_id}/valve-signal/detect` - 밸브 신호 검출
+- `POST /{session_id}/equipment/detect` - 장비 검출
+- `POST /{session_id}/checklist/check` - 체크리스트 검증 (60개 항목)
+- `GET /{session_id}/verify/queue` - Human-in-the-Loop 검증 큐
+- `POST /{session_id}/verify` - 단일 항목 검증
+- `POST /{session_id}/verify/bulk` - 대량 검증
+- `POST /{session_id}/export` - Excel 내보내기
+
+**프론트엔드** (`blueprint-ai-bom/frontend/src/pages/workflow/`):
+- `hooks/usePIDFeaturesHandlers.ts` (356줄) - API 호출 훅
+- `sections/PIDFeaturesSection.tsx` - UI 컴포넌트
+
+**테스트**: 98개 통과 (30개 pid_features_api 테스트 포함)
 
 ### 2.1 Valve Signal List API 구현 완료 (2025-12-29)
 

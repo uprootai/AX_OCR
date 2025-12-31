@@ -1,6 +1,6 @@
 /**
- * ReferencePanel - 클래스별 참조 이미지 패널
- * Streamlit의 심볼 참조 기능과 동일
+ * ReferencePanel - 클래스별 참조 도면 패널
+ * AI가 인식하지 못했거나 틀린 부분을 작업자가 육안으로 최종 결정하기 위한 참조 도면
  */
 
 import { useState, useEffect } from 'react';
@@ -38,7 +38,7 @@ export function ReferencePanel({ onClose }: ReferencePanelProps) {
         setExamples(data.examples || []);
       } catch (err) {
         logger.error('Failed to load class examples:', err);
-        setError('참조 이미지를 불러오는데 실패했습니다.');
+        setError('참조 도면을 불러오는데 실패했습니다.');
       } finally {
         setIsLoading(false);
       }
@@ -69,7 +69,7 @@ export function ReferencePanel({ onClose }: ReferencePanelProps) {
     <aside className="w-80 bg-white border-l border-gray-200 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">참조 이미지</h2>
+        <h2 className="text-lg font-semibold text-gray-900">참조 도면</h2>
         <button
           onClick={onClose}
           className="p-1 hover:bg-gray-100 rounded"
@@ -111,7 +111,7 @@ export function ReferencePanel({ onClose }: ReferencePanelProps) {
             {searchQuery ? (
               <p>"{searchQuery}"에 해당하는 클래스가 없습니다.</p>
             ) : (
-              <p>참조 이미지가 없습니다.</p>
+              <p>참조 도면이 없습니다.</p>
             )}
           </div>
         ) : (

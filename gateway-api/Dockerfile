@@ -28,6 +28,7 @@ COPY services/ ./services/
 COPY blueprintflow/ ./blueprintflow/
 COPY api_specs/ ./api_specs/
 COPY routers/ ./routers/
+COPY constants/ ./constants/
 
 # Create directories
 RUN mkdir -p /tmp/gateway/uploads /tmp/gateway/results

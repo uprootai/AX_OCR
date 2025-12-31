@@ -42,7 +42,7 @@ interface WorkflowSidebarProps {
   showAnalysisOptions: boolean;
   setShowAnalysisOptions: (show: boolean) => void;
   // Sessions
-  currentSession: { session_id: string; filename: string } | null;
+  currentSession: { session_id: string; filename: string; features?: string[] } | null;
   sessions: Session[];
   detectionCount: number;
   // Handlers
@@ -273,6 +273,11 @@ export function WorkflowSidebar({
               <span className="flex items-center space-x-2 text-purple-700 dark:text-purple-300">
                 <Ruler className="w-4 h-4" />
                 <span className="text-sm">분석 옵션</span>
+                {currentSession?.features && currentSession.features.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-700">
+                    Builder 설정
+                  </span>
+                )}
               </span>
               {showAnalysisOptions ? <ChevronDown className="w-4 h-4 text-purple-600" /> : <ChevronRight className="w-4 h-4 text-purple-600" />}
             </button>

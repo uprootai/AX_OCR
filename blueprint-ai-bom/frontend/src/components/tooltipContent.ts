@@ -4,9 +4,9 @@
  */
 
 export const FEATURE_TOOLTIPS = {
-  // 참조 도면 섹션
+  // 원본 도면 섹션
   referenceDrawing: {
-    title: '📐 참조 도면',
+    title: '📐 원본 도면',
     description: '업로드된 도면 이미지 정보입니다. 이미지 크기, 검출된 심볼 수, 검증 현황을 확인할 수 있습니다.',
   },
   imageSize: {
@@ -80,8 +80,8 @@ export const FEATURE_TOOLTIPS = {
     description: 'Ground Truth 바운딩박스를 도면 위에 오버레이로 표시합니다. 녹색으로 표시됩니다.',
   },
   showReference: {
-    title: '참조 이미지 표시',
-    description: '각 심볼 클래스의 참조 이미지를 표시합니다. 심볼 식별에 도움이 됩니다.',
+    title: '참조 도면 표시',
+    description: '각 심볼 클래스의 참조 도면을 표시합니다. AI가 인식하지 못했거나 틀린 부분을 작업자가 육안으로 최종 결정하는 데 도움이 됩니다.',
   },
   manualLabel: {
     title: '수작업 라벨 추가',
@@ -140,5 +140,37 @@ export const FEATURE_TOOLTIPS = {
   sessionManagement: {
     title: '세션 관리',
     description: '작업 세션을 관리합니다. 각 도면은 고유한 세션 ID를 가지며, 세션에는 검출 결과, 검증 상태, BOM 데이터가 저장됩니다.',
+  },
+
+  // GT 비교 (2025-12-31 추가)
+  gtComparison: {
+    title: '📊 GT 비교',
+    description: 'Ground Truth(정답 데이터)와 검출 결과를 비교하여 정밀도, 재현율, F1 스코어를 계산합니다.',
+  },
+  gtUpload: {
+    title: 'GT 파일 업로드',
+    description: 'Ground Truth 파일을 업로드합니다. JSON 또는 XML 형식을 지원합니다.',
+  },
+  gtMetrics: {
+    title: 'GT 비교 메트릭',
+    description: 'TP(정답 검출), FP(오검출), FN(미검출) 수와 정밀도, 재현율, F1 스코어를 표시합니다.',
+  },
+
+  // 산업 장비 태그 인식 (2025-12-31 추가)
+  industryEquipment: {
+    title: '🏭 장비 태그 인식',
+    description: 'P&ID 도면에서 산업별 장비 태그(ECU-001, FMU-002, PUMP-101 등)를 OCR과 패턴 매칭으로 자동 인식합니다.',
+  },
+  equipmentProfile: {
+    title: '산업 프로파일',
+    description: '장비 태그 인식에 사용할 산업 프로파일을 선택합니다. BWMS, 일반 공정, 발전/전력 등을 지원합니다.',
+  },
+  equipmentVerify: {
+    title: '장비 검증',
+    description: '인식된 장비 태그를 검증합니다. 검증된 태그만 장비 목록 내보내기에 포함됩니다.',
+  },
+  equipmentExport: {
+    title: '장비 목록 내보내기',
+    description: '검증된 장비 태그를 Excel, CSV, JSON 형식으로 내보냅니다.',
   },
 };

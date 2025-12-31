@@ -1,5 +1,5 @@
 /**
- * ReferenceDrawingSection - 참조 도면 섹션
+ * ReferenceDrawingSection - 원본 도면 섹션
  * 업로드된 도면 이미지와 기본 정보를 표시
  */
 
@@ -24,7 +24,7 @@ export function ReferenceDrawingSection({
   return (
     <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
       <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-1">
-        📐 참조 도면
+        📐 원본 도면
         <InfoTooltip content={FEATURE_TOOLTIPS.referenceDrawing.description} position="right" />
       </h2>
       <div className="flex gap-4">
