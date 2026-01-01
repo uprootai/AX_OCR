@@ -8,17 +8,17 @@ test.describe('P&ID Analysis Nodes', () => {
   });
 
   test('should display P&ID nodes in palette', async ({ page }) => {
-    // Check for Line Detector in Segmentation category
-    const segmentationSection = page.locator('text=/Segmentation|세그멘테이션/i');
-    await expect(segmentationSection.first()).toBeVisible();
+    // Check for Segmentation category (contains Line Detector)
+    const segmentationSection = page.locator('h3:has-text("Segmentation")');
+    await expect(segmentationSection.first()).toBeVisible({ timeout: 5000 });
 
-    // Check for YOLO in Detection category (handles P&ID via model_type)
-    const detectionSection = page.locator('text=/Detection|검출/i');
-    await expect(detectionSection.first()).toBeVisible();
+    // Check for Detection category (contains YOLO)
+    const detectionSection = page.locator('h3:has-text("Detection")');
+    await expect(detectionSection.first()).toBeVisible({ timeout: 5000 });
 
-    // Check for P&ID Analyzer in Analysis category
-    const analysisSection = page.locator('text=/Analysis|분석/i');
-    await expect(analysisSection.first()).toBeVisible();
+    // Check for Analysis category (contains P&ID Analyzer)
+    const analysisSection = page.locator('h3:has-text("Analysis")');
+    await expect(analysisSection.first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should display Line Detector node', async ({ page }) => {

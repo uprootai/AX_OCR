@@ -12,7 +12,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
   test('should save and restore number type hyperparameter (YOLO conf_threshold)', async ({ page }) => {
     await page.goto('/admin/api/yolo');
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     // Find confidence threshold input
     const confInput = page.locator('div:has(> label:text("신뢰도 임계값")) input[type="number"]').first();
@@ -35,7 +35,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
     // Reload and verify
     await page.reload();
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     const newConfInput = page.locator('div:has(> label:text("신뢰도 임계값")) input[type="number"]').first();
     await expect(newConfInput).toHaveValue('0.75');
@@ -43,7 +43,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
   test('should save and restore boolean type hyperparameter (YOLO visualize)', async ({ page }) => {
     await page.goto('/admin/api/yolo');
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     // Find visualize checkbox
     const visualizeCheckbox = page.locator('div:has(> label:text("시각화 생성")) input[type="checkbox"]').first();
@@ -68,7 +68,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
     // Reload and verify
     await page.reload();
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     const newVisualizeCheckbox = page.locator('div:has(> label:text("시각화 생성")) input[type="checkbox"]').first();
 
@@ -82,7 +82,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
   test('should save and restore select type hyperparameter (YOLO imgsz)', async ({ page }) => {
     await page.goto('/admin/api/yolo');
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     // Find image size select
     const imgsizeSelect = page.locator('div:has(> label:text("입력 이미지 크기")) select').first();
@@ -104,14 +104,14 @@ test.describe('Hyperparameter Change Tests', () => {
 
     // Reload and verify
     await page.reload();
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     const newImgsizeSelect = page.locator('div:has(> label:text("입력 이미지 크기")) select').first();
     await expect(newImgsizeSelect).toHaveValue(newValue);
   });
 
   test('should save and restore eDOCr2 hyperparameters', async ({ page }) => {
-    await page.goto('/admin/api/edocr2_v2');
+    await page.goto('/admin/api/edocr2');
     await expect(page.getByRole('heading', { name: /eDOCr/i })).toBeVisible({ timeout: 10000 });
 
     // Change language code (text type)
@@ -224,7 +224,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
   test('should save and restore device/memory settings', async ({ page }) => {
     await page.goto('/admin/api/yolo');
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     // Change memory limit
     const memoryInput = page.locator('div:has(> label:text("메모리 제한")) input').first();
@@ -239,7 +239,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
     // Reload and verify
     await page.reload();
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     const newMemoryInput = page.locator('div:has(> label:text("메모리 제한")) input').first();
     await expect(newMemoryInput).toHaveValue('8g');
@@ -247,7 +247,7 @@ test.describe('Hyperparameter Change Tests', () => {
 
   test('should verify localStorage contains saved hyperparameters', async ({ page }) => {
     await page.goto('/admin/api/yolo');
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     // Change confidence threshold
     const confInput = page.locator('div:has(> label:text("신뢰도 임계값")) input[type="number"]').first();

@@ -11,7 +11,7 @@ test.describe('Hyperparameter Integration Tests', () => {
 
     // Step 2: Go to API Settings and set YOLO hyperparameters
     await page.goto('/admin/api/yolo');
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     // Change confidence threshold to a specific value (0.45)
     const confInput = page.locator('div:has(> label:text("신뢰도 임계값")) input[type="number"]').first();
@@ -64,7 +64,7 @@ test.describe('Hyperparameter Integration Tests', () => {
 
     // Set YOLO hyperparameters
     await page.goto('/admin/api/yolo');
-    await expect(page.getByRole('heading', { name: /YOLOv11/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/YOLO.*통합|YOLO/i').first()).toBeVisible({ timeout: 10000 });
 
     const confInput = page.locator('div:has(> label:text("신뢰도 임계값")) input[type="number"]').first();
     await confInput.fill('0.35');
@@ -73,7 +73,7 @@ test.describe('Hyperparameter Integration Tests', () => {
 
     // Set PaddleOCR hyperparameters
     await page.goto('/admin/api/paddleocr');
-    await expect(page.getByRole('heading', { name: /PaddleOCR/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/PaddleOCR/i').first()).toBeVisible({ timeout: 10000 });
 
     const detThreshInput = page.locator('div:has(> label:text("텍스트 검출 임계값")) input[type="number"]').first();
     await detThreshInput.fill('0.35');

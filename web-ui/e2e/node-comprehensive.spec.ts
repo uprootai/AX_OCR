@@ -3,11 +3,12 @@ import { test, expect, Page } from '@playwright/test';
 /**
  * BlueprintFlow Node Comprehensive Test
  *
- * Tests all 19 nodes across 9 categories:
+ * Tests all 23 nodes across 10 categories:
  * - Input (2): ImageInput, TextInput
+ * - BOM 생성 (1): Blueprint AI BOM
  * - Detection (1): YOLO (handles P&ID via model_type)
  * - Segmentation (2): Line Detector, EDGNet
- * - OCR (5): eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble
+ * - OCR (8): eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble, Surya OCR, DocTR, EasyOCR
  * - Analysis (3): SkinModel, P&ID Analyzer, Design Checker
  * - Knowledge (1): Knowledge
  * - AI (1): VL
@@ -16,18 +17,26 @@ import { test, expect, Page } from '@playwright/test';
  */
 
 // Helper function to scroll palette to find a node
-async function scrollPaletteToNode(page: Page, nodeText: string, maxScrolls: number = 5): Promise<boolean> {
+async function scrollPaletteToNode(page: Page, nodeText: string, maxScrolls: number = 15): Promise<boolean> {
+  // First, scroll to the top of the palette
+  await page.evaluate(() => {
+    const palette = document.querySelector('[class*="overflow-y-auto"]');
+    if (palette) palette.scrollTop = 0;
+  });
+  await page.waitForTimeout(100);
+
   for (let i = 0; i < maxScrolls; i++) {
-    const node = page.locator(`text="${nodeText}"`).first();
+    // Use contains match for more flexibility
+    const node = page.locator(`text=/${nodeText}/i`).first();
     if (await node.isVisible().catch(() => false)) {
       return true;
     }
-    // Scroll the palette
+    // Scroll the palette down
     await page.evaluate(() => {
       const palette = document.querySelector('[class*="overflow-y-auto"]');
-      if (palette) palette.scrollTop += 200;
+      if (palette) palette.scrollTop += 250;
     });
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(150);
   }
   return false;
 }
@@ -87,11 +96,12 @@ test.describe('Phase 1: Node Palette Visibility', () => {
     });
   });
 
-  // Detection Nodes (2)
+  // Detection Nodes (1) - YOLO handles P&ID via model_type
   test.describe('Detection Nodes', () => {
     test('should display YOLO node', async ({ page }) => {
       await scrollPaletteToNode(page, 'YOLO');
-      const node = page.locator('text="YOLO"').first();
+      // YOLO is displayed as "YOLO (통합)" in palette
+      const node = page.locator('text=/YOLO/').first();
       await expect(node).toBeVisible({ timeout: 5000 });
     });
 
@@ -107,14 +117,15 @@ test.describe('Phase 1: Node Palette Visibility', () => {
 
     test('should display EDGNet node', async ({ page }) => {
       await scrollPaletteToNode(page, 'EDGNet');
-      const node = page.locator('text=EDGNet');
+      // Use more specific locator targeting the visible node label (not hidden tooltip)
+      const node = page.locator('div.font-medium:has-text("EDGNet")');
       await expect(node.first()).toBeVisible({ timeout: 5000 });
     });
   });
 
-  // OCR Nodes (5)
+  // OCR Nodes (8)
   test.describe('OCR Nodes', () => {
-    const ocrNodes = ['eDOCr2', 'PaddleOCR', 'Tesseract', 'TrOCR', 'OCR Ensemble'];
+    const ocrNodes = ['eDOCr2', 'PaddleOCR', 'Tesseract', 'TrOCR', 'OCR Ensemble', 'Surya OCR', 'DocTR', 'EasyOCR'];
 
     for (const nodeName of ocrNodes) {
       test(`should display ${nodeName} node`, async ({ page }) => {
@@ -237,7 +248,7 @@ test.describe('Phase 2: Node Drag and Drop', () => {
 
   test('should drag YOLO to canvas', async ({ page }) => {
     await scrollPaletteToNode(page, 'YOLO');
-    const node = page.locator('text="YOLO"').first();
+    const node = page.locator('text=/YOLO/').first();
     const canvas = page.locator('.react-flow__pane').first();
 
     const initialNodes = await page.locator('.react-flow__node').count();
@@ -271,7 +282,7 @@ test.describe('Phase 2: Node Drag and Drop', () => {
 
     // Drag YOLO
     await scrollPaletteToNode(page, 'YOLO');
-    const yolo = page.locator('text="YOLO"').first();
+    const yolo = page.locator('text=/YOLO/').first();
     await yolo.dragTo(canvas, { targetPosition: { x: 400, y: 150 } });
     await page.waitForTimeout(300);
 
@@ -318,7 +329,7 @@ test.describe('Phase 3: Node Selection and Detail Panel', () => {
   test('should show parameters section for YOLO node', async ({ page }) => {
     await scrollPaletteToNode(page, 'YOLO');
     const canvas = page.locator('.react-flow__pane').first();
-    const node = page.locator('text="YOLO"').first();
+    const node = page.locator('text=/YOLO/').first();
 
     // Drag to canvas
     await node.dragTo(canvas, { targetPosition: { x: 300, y: 200 } });
@@ -337,7 +348,7 @@ test.describe('Phase 3: Node Selection and Detail Panel', () => {
   test('should show inputs and outputs section', async ({ page }) => {
     await scrollPaletteToNode(page, 'YOLO');
     const canvas = page.locator('.react-flow__pane').first();
-    const node = page.locator('text="YOLO"').first();
+    const node = page.locator('text=/YOLO/').first();
 
     // Drag to canvas
     await node.dragTo(canvas, { targetPosition: { x: 300, y: 200 } });
@@ -360,7 +371,7 @@ test.describe('Phase 3: Node Selection and Detail Panel', () => {
   test('should allow parameter modification for YOLO', async ({ page }) => {
     await scrollPaletteToNode(page, 'YOLO');
     const canvas = page.locator('.react-flow__pane').first();
-    const node = page.locator('text="YOLO"').first();
+    const node = page.locator('text=/YOLO/').first();
 
     // Drag to canvas
     await node.dragTo(canvas, { targetPosition: { x: 300, y: 200 } });
@@ -439,7 +450,7 @@ test.describe('Phase 4: Node Handles', () => {
 
     // Drag YOLO
     await scrollPaletteToNode(page, 'YOLO');
-    const yolo = page.locator('text="YOLO"').first();
+    const yolo = page.locator('text=/YOLO/').first();
     await yolo.dragTo(canvas, { targetPosition: { x: 300, y: 200 } });
     await page.waitForTimeout(500);
 
@@ -458,19 +469,21 @@ test.describe('Phase 4: Node Handles', () => {
 // ==========================================
 
 test.describe('Node Count Summary', () => {
-  test('should have exactly 19 unique nodes available', async ({ page }) => {
+  test('should have exactly 23 unique nodes available', async ({ page }) => {
     await page.goto('/blueprintflow/builder');
     await expect(page.locator('text=Node Palette')).toBeVisible({ timeout: 10000 });
 
     const expectedNodes = [
       // Input (2)
       'Image Input', 'Text Input',
+      // BOM 생성 (1)
+      'Blueprint AI BOM',
       // Detection (1) - YOLO handles P&ID via model_type
       'YOLO',
       // Segmentation (2)
       'Line Detector', 'EDGNet',
-      // OCR (5)
-      'eDOCr2', 'PaddleOCR', 'Tesseract', 'TrOCR', 'OCR Ensemble',
+      // OCR (8)
+      'eDOCr2', 'PaddleOCR', 'Tesseract', 'TrOCR', 'OCR Ensemble', 'Surya OCR', 'DocTR', 'EasyOCR',
       // Analysis (3)
       'SkinModel', 'P&ID Analyzer', 'Design Checker',
       // Knowledge (1)
@@ -487,8 +500,10 @@ test.describe('Node Count Summary', () => {
     const missingNodes: string[] = [];
 
     for (const nodeName of expectedNodes) {
-      await scrollPaletteToNode(page, nodeName, 10);
-      const node = page.locator(`text="${nodeName}"`).first();
+      await scrollPaletteToNode(page, nodeName, 15);
+      // Use font-medium selector to target visible node labels, not hidden tooltip elements
+      // Node labels are rendered in div.font-medium within the NodePalette
+      const node = page.locator(`div.font-medium:has-text("${nodeName}")`).first();
       const isVisible = await node.isVisible().catch(() => false);
       if (isVisible) {
         foundCount++;

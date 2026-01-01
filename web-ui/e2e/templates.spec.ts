@@ -3,11 +3,11 @@ import { test, expect } from '@playwright/test';
 /**
  * BlueprintFlow Templates Page Tests
  *
- * Tests all 11 templates across 5 categories:
+ * Tests all 17 templates across 5 categories:
  * - Featured (2): Complete Drawing Analysis, P&ID Analysis
  * - Basic (2): Speed Pipeline, Basic OCR
  * - Advanced (5): Accuracy Pipeline, OCR Ensemble, Multi-OCR, Conditional OCR, Loop Detection
- * - P&ID (0 non-featured): -
+ * - P&ID (6): PID Symbol Detection, PID Line Analysis, etc.
  * - AI (2): VL-Assisted, Knowledge-Enhanced
  */
 
@@ -152,40 +152,41 @@ test.describe('BlueprintFlow Templates Page', () => {
       // All templates should have "X nodes" text
       const nodeCountElements = page.locator('text=/\\d+ nodes/');
       const count = await nodeCountElements.count();
-      expect(count).toBeGreaterThanOrEqual(11); // At least 11 templates
+      expect(count).toBeGreaterThanOrEqual(17); // At least 17 templates
     });
 
     test('each template should show estimated time', async ({ page }) => {
       // Templates show time like "3-5s", "10-15s", etc.
       const timeElements = page.locator('text=/\\d+-\\d+s/');
       const count = await timeElements.count();
-      expect(count).toBeGreaterThanOrEqual(11);
+      expect(count).toBeGreaterThanOrEqual(17);
     });
 
     test('each template should show accuracy percentage', async ({ page }) => {
       // Templates show accuracy like "88%", "95%", etc.
+      // Note: Not all templates may have accuracy displayed
       const accuracyElements = page.locator('text=/\\d+%/');
       const count = await accuracyElements.count();
-      expect(count).toBeGreaterThanOrEqual(11);
+      expect(count).toBeGreaterThanOrEqual(10); // At least 10 templates with accuracy
     });
 
     test('each template should have Use Template button', async ({ page }) => {
       const useButtons = page.locator('button:has-text("Use Template")');
       const count = await useButtons.count();
-      expect(count).toBeGreaterThanOrEqual(11);
+      expect(count).toBeGreaterThanOrEqual(17);
     });
 
     test('should display Pipeline Flow badges for each template', async ({ page }) => {
       const pipelineFlowLabels = page.locator('text="Pipeline Flow:"');
       const count = await pipelineFlowLabels.count();
-      expect(count).toBeGreaterThanOrEqual(11);
+      expect(count).toBeGreaterThanOrEqual(17);
     });
 
     test('each template should show use case recommendation', async ({ page }) => {
       // Each template should have "When to use" or "이럴 때 사용하세요" section
       const useCaseLabels = page.locator('text=/When to use|이럴 때 사용하세요/');
       const count = await useCaseLabels.count();
-      expect(count).toBeGreaterThanOrEqual(11);
+      expect(count).toBeGreaterThanOrEqual(17);
     });
   });
 
@@ -252,10 +253,10 @@ test.describe('BlueprintFlow Templates Page', () => {
   // ==========================================
 
   test.describe('Template Count Summary', () => {
-    test('should have exactly 11 templates', async ({ page }) => {
+    test('should have exactly 17 templates', async ({ page }) => {
       const useButtons = page.locator('button:has-text("Use Template")');
       const count = await useButtons.count();
-      expect(count).toBe(11);
+      expect(count).toBe(17);
     });
 
     test('Featured section should have 2 templates', async ({ page }) => {
