@@ -10,9 +10,10 @@ import type { Node } from 'reactflow';
 
 interface UseContainerStatusOptions {
   onExecute: () => Promise<void>;
+  onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
 }
 
-export function useContainerStatus({ onExecute }: UseContainerStatusOptions) {
+export function useContainerStatus({ onExecute, onShowToast }: UseContainerStatusOptions) {
   const [isCheckingContainers, setIsCheckingContainers] = useState(false);
   const [containerWarningModal, setContainerWarningModal] = useState<ContainerWarningModalState>({
     isOpen: false,
@@ -83,10 +84,10 @@ export function useContainerStatus({ onExecute }: UseContainerStatusOptions) {
       await onExecute();
     } catch (error) {
       console.error('Failed to start containers:', error);
-      alert('Failed to start containers. Please start them manually from Dashboard.');
+      onShowToast?.('✗ 컨테이너 시작 실패. Dashboard에서 수동으로 시작해주세요.', 'error');
       setContainerWarningModal({ isOpen: false, stoppedContainers: [], isStarting: false });
     }
-  }, [onExecute]);
+  }, [onExecute, onShowToast]);
 
   // Handle execute with container check
   const executeWithContainerCheck = useCallback(async (
@@ -94,12 +95,12 @@ export function useContainerStatus({ onExecute }: UseContainerStatusOptions) {
     uploadedImage: string | null
   ) => {
     if (nodes.length === 0) {
-      alert('Please add at least one node to the workflow');
+      onShowToast?.('⚠️ 워크플로우에 노드를 추가해주세요', 'warning');
       return;
     }
 
     if (!uploadedImage) {
-      alert('Please upload an image first');
+      onShowToast?.('⚠️ 이미지를 먼저 업로드해주세요', 'warning');
       return;
     }
 
@@ -130,7 +131,7 @@ export function useContainerStatus({ onExecute }: UseContainerStatusOptions) {
       console.error('Container check failed:', error);
       setIsCheckingContainers(false);
     }
-  }, [checkContainerStatus, onExecute]);
+  }, [checkContainerStatus, onExecute, onShowToast]);
 
   const closeWarningModal = useCallback(() => {
     setContainerWarningModal({ isOpen: false, stoppedContainers: [], isStarting: false });

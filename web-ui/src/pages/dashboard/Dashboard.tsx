@@ -6,9 +6,17 @@ import AddAPIDialog from '../../components/dashboard/AddAPIDialog';
 import ExportToBuiltinDialog from '../../components/dashboard/ExportToBuiltinDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import Toast from '../../components/ui/Toast';
 import { Link } from 'react-router-dom';
 import { TestTube, Activity, FileText, TrendingUp, Plus, RefreshCw, Download, Trash2, ToggleLeft, ToggleRight, ClipboardList, ExternalLink } from 'lucide-react';
 import { useAPIConfigStore, type APIConfig } from '../../store/apiConfigStore';
+
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
 
 // BOM 세션 타입
 interface BOMSession {
@@ -36,6 +44,14 @@ export default function Dashboard() {
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  }, []);
+
   // BOM 세션 목록 가져오기
   const fetchBomSessions = useCallback(async () => {
     setBomLoading(true);
@@ -58,8 +74,6 @@ export default function Dashboard() {
 
   // BOM 세션 삭제
   const deleteBomSession = useCallback(async (sessionId: string) => {
-    if (!confirm('이 세션을 삭제하시겠습니까?')) return;
-
     setDeletingSessionId(sessionId);
     try {
       const response = await fetch(`http://localhost:5020/sessions/${sessionId}`, {
@@ -67,25 +81,25 @@ export default function Dashboard() {
       });
       if (response.ok) {
         setBomSessions(prev => prev.filter(s => s.session_id !== sessionId));
+        showToast('✓ 세션이 삭제되었습니다', 'success');
       } else {
-        alert('세션 삭제에 실패했습니다.');
+        showToast('✗ 세션 삭제에 실패했습니다', 'error');
       }
     } catch (error) {
       console.error('세션 삭제 실패:', error);
-      alert('세션 삭제 중 오류가 발생했습니다.');
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ 세션 삭제 실패\n${errorMsg}`, 'error');
     } finally {
       setDeletingSessionId(null);
     }
-  }, []);
+  }, [showToast]);
 
   // BOM 세션 전체 삭제
   const deleteAllBomSessions = useCallback(async () => {
     if (bomSessions.length === 0) {
-      alert('삭제할 세션이 없습니다.');
+      showToast('삭제할 세션이 없습니다', 'info');
       return;
     }
-
-    if (!confirm(`${bomSessions.length}개의 세션을 모두 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
 
     setIsDeletingAll(true);
     try {
@@ -95,17 +109,18 @@ export default function Dashboard() {
       if (response.ok) {
         const result = await response.json();
         setBomSessions([]);
-        alert(`✅ ${result.deleted_count}개의 세션이 삭제되었습니다.`);
+        showToast(`✓ ${result.deleted_count}개의 세션이 삭제되었습니다`, 'success');
       } else {
-        alert('세션 전체 삭제에 실패했습니다.');
+        showToast('✗ 세션 전체 삭제에 실패했습니다', 'error');
       }
     } catch (error) {
       console.error('세션 전체 삭제 실패:', error);
-      alert('세션 전체 삭제 중 오류가 발생했습니다.');
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ 세션 전체 삭제 실패\n${errorMsg}`, 'error');
     } finally {
       setIsDeletingAll(false);
     }
-  }, [bomSessions.length]);
+  }, [bomSessions.length, showToast]);
 
   // BOM 세션 로드
   useEffect(() => {
@@ -197,14 +212,14 @@ export default function Dashboard() {
         });
 
         if (addedCount > 0) {
-          alert(`✅ ${addedCount}개의 새 API가 자동으로 추가되었습니다!`);
+          showToast(`✓ ${addedCount}개의 새 API가 추가되었습니다`, 'success');
         } else {
-          alert(`ℹ️ 모든 API가 이미 등록되어 있습니다.`);
+          showToast('모든 API가 이미 등록되어 있습니다', 'info');
         }
       }
     } catch (error) {
       console.error('Auto-discover failed:', error);
-      alert('⚠️ API 자동 검색에 실패했습니다. Gateway API가 실행 중인지 확인하세요.');
+      showToast('✗ API 자동 검색 실패\nGateway API가 실행 중인지 확인하세요', 'error');
     } finally {
       setIsAutoDiscovering(false);
     }
@@ -457,9 +472,8 @@ export default function Dashboard() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        if (confirm(`"${api.displayName}" API를 삭제하시겠습니까?`)) {
-                          removeAPI(api.id);
-                        }
+                        removeAPI(api.id);
+                        showToast(`✓ ${api.displayName} API가 삭제되었습니다`, 'success');
                       }}
                       title="삭제"
                       className="text-destructive hover:text-destructive"
@@ -638,6 +652,16 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={() => setToast(prev => ({ ...prev, show: false }))}
+        />
+      )}
     </div>
   );
 }

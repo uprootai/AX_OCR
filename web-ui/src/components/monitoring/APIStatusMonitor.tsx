@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
+import Toast from '../ui/Toast';
 import {
   RefreshCw,
   Server,
@@ -20,6 +21,9 @@ import {
   AlertCircle,
   Cpu,
   MemoryStick,
+  Loader2,
+  StopCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -34,6 +38,21 @@ import { DEFAULT_APIS, DELETED_APIS_KEY } from './constants';
 import { useResourceStats } from './hooks';
 import { ResourcePanel, QuickStats } from './components';
 
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
+
+// 로딩 오버레이 타입
+interface LoadingState {
+  isLoading: boolean;
+  action: 'stop' | 'start' | null;
+  target: string; // API 이름 또는 카테고리
+  progress: { current: number; total: number } | null;
+}
+
 export default function APIStatusMonitor() {
   const [apis, setApis] = useState<APIInfo[]>(DEFAULT_APIS);
   const [loading, setLoading] = useState(true);
@@ -45,7 +64,24 @@ export default function APIStatusMonitor() {
     return stored ? new Set(JSON.parse(stored)) : new Set();
   });
   const [categoryActionLoading, setCategoryActionLoading] = useState<string | null>(null);
+  const [singleApiActionLoading, setSingleApiActionLoading] = useState<string | null>(null);
   const { customAPIs } = useAPIConfigStore();
+
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // 전역 로딩 오버레이 상태
+  const [globalLoading, setGlobalLoading] = useState<LoadingState>({
+    isLoading: false,
+    action: null,
+    target: '',
+    progress: null,
+  });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = (message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  };
 
   // Resource stats hook
   const { containerStats, gpuStats, gpuAvailable, apiResources, fetchResourceStats } = useResourceStats();
@@ -66,6 +102,59 @@ export default function APIStatusMonitor() {
   // Get spec ID from API ID
   const getSpecId = (apiId: string): string => API_TO_SPEC_ID[apiId] || apiId;
 
+  // Handle single API action (start/stop one API)
+  const handleSingleAPIAction = async (api: APIInfo, action: 'stop' | 'start') => {
+    const containerName = API_TO_CONTAINER[api.id];
+    if (!containerName) {
+      showToast(`${api.display_name}: 컨테이너 매핑을 찾을 수 없습니다`, 'error');
+      return;
+    }
+
+    const actionText = action === 'stop' ? '중지' : '시작';
+
+    // 전역 로딩 시작
+    setSingleApiActionLoading(api.id);
+    setGlobalLoading({
+      isLoading: true,
+      action,
+      target: api.display_name,
+      progress: null,
+    });
+
+    try {
+      const response = await axios.post(
+        `http://localhost:8000/api/v1/containers/${containerName}/${action}`,
+        {},
+        { timeout: 30000 }
+      );
+
+      if (response.data?.success === true) {
+        showToast(`✓ ${api.display_name} ${actionText} 완료`, 'success');
+      } else {
+        const errorDetail = response.data?.message || response.data?.error || '알 수 없는 오류';
+        showToast(`✗ ${api.display_name} ${actionText} 실패\n${errorDetail}`, 'error');
+      }
+    } catch (error) {
+      let errorMsg = '연결 실패';
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          errorMsg = '시간 초과 (30초)';
+        } else if (error.response) {
+          errorMsg = `HTTP ${error.response.status}: ${error.response.data?.detail || error.response.statusText}`;
+        } else if (error.request) {
+          errorMsg = '서버 응답 없음 - Gateway API가 실행 중인지 확인하세요';
+        }
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
+      showToast(`✗ ${api.display_name} ${actionText} 실패\n${errorMsg}`, 'error');
+    } finally {
+      setSingleApiActionLoading(null);
+      setGlobalLoading({ isLoading: false, action: null, target: '', progress: null });
+      await fetchStatus(true);
+    }
+  };
+
   // Handle category action (start/stop all in category)
   const handleCategoryAction = async (category: string, action: 'stop' | 'start') => {
     const categoryAPIs = apis.filter(api => api.category === category && !deletedApis.has(api.id));
@@ -74,17 +163,21 @@ export default function APIStatusMonitor() {
       : categoryAPIs.filter(api => api.status !== 'healthy');
 
     if (targetAPIs.length === 0) {
-      alert(action === 'stop' ? '중지할 API가 없습니다.' : '시작할 API가 없습니다.');
+      showToast(action === 'stop' ? '중지할 API가 없습니다.' : '시작할 API가 없습니다.', 'warning');
       return;
     }
 
     const actionText = action === 'stop' ? '중지' : '시작';
-    const dependencyNote = category === 'knowledge' ? '\n\n⚠️ Neo4j 데이터베이스도 함께 ' + actionText + '됩니다.' : '';
-    if (!confirm(`${category.toUpperCase()} 카테고리의 ${targetAPIs.length}개 API를 ${actionText}하시겠습니까?\n\n${targetAPIs.map(a => a.display_name).join(', ')}${dependencyNote}`)) {
-      return;
-    }
 
+    // 전역 로딩 시작
     setCategoryActionLoading(category);
+    setGlobalLoading({
+      isLoading: true,
+      action,
+      target: `${CATEGORY_LABELS[category] || category} 카테고리`,
+      progress: { current: 0, total: targetAPIs.length },
+    });
+
     let successCount = 0;
     let failCount = 0;
     const failedAPIs: string[] = [];
@@ -104,7 +197,15 @@ export default function APIStatusMonitor() {
       }
     }
 
-    for (const api of targetAPIs) {
+    for (let i = 0; i < targetAPIs.length; i++) {
+      const api = targetAPIs[i];
+
+      // 진행 상황 업데이트
+      setGlobalLoading(prev => ({
+        ...prev,
+        progress: { current: i + 1, total: targetAPIs.length },
+      }));
+
       const containerName = API_TO_CONTAINER[api.id];
       if (!containerName) {
         failCount++;
@@ -122,7 +223,16 @@ export default function APIStatusMonitor() {
         }
       } catch (error) {
         failCount++;
-        const errorMsg = error instanceof Error ? error.message : '연결 실패';
+        let errorMsg = '연결 실패';
+        if (axios.isAxiosError(error)) {
+          if (error.code === 'ECONNABORTED') {
+            errorMsg = '시간 초과';
+          } else if (error.response) {
+            errorMsg = `HTTP ${error.response.status}`;
+          }
+        } else if (error instanceof Error) {
+          errorMsg = error.message;
+        }
         failedAPIs.push(`${api.display_name} (${errorMsg})`);
       }
     }
@@ -139,12 +249,16 @@ export default function APIStatusMonitor() {
     }
 
     setCategoryActionLoading(null);
+    setGlobalLoading({ isLoading: false, action: null, target: '', progress: null });
     await fetchStatus(true);
 
-    if (successCount > 0 && failCount > 0) {
-      alert(`${actionText} 일부 완료\n\n✓ 성공: ${successCount}개\n✗ 실패: ${failCount}개\n\n실패 목록:\n${failedAPIs.join('\n')}`);
+    // Toast로 결과 표시
+    if (successCount > 0 && failCount === 0) {
+      showToast(`✓ ${successCount}개 API ${actionText} 완료`, 'success');
+    } else if (successCount > 0 && failCount > 0) {
+      showToast(`${actionText} 일부 완료\n✓ 성공: ${successCount}개\n✗ 실패: ${failCount}개\n\n${failedAPIs.join('\n')}`, 'warning');
     } else if (successCount === 0 && failCount > 0) {
-      alert(`${actionText} 실패\n\n실패 목록:\n${failedAPIs.join('\n')}`);
+      showToast(`${actionText} 실패\n\n${failedAPIs.join('\n')}`, 'error');
     }
   };
 
@@ -339,6 +453,9 @@ export default function APIStatusMonitor() {
               apiResources={apiResources}
               getSpecId={getSpecId}
               onDeleteApi={deleteApi}
+              onSingleApiAction={handleSingleAPIAction}
+              singleApiActionLoading={singleApiActionLoading}
+              isGlobalLoading={globalLoading.isLoading}
             />
           ))}
         </div>
@@ -352,6 +469,69 @@ export default function APIStatusMonitor() {
           </div>
         )}
       </CardContent>
+
+      {/* 전역 로딩 오버레이 */}
+      {globalLoading.isLoading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center gap-4">
+              {/* 스피너 */}
+              <div className="relative">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                {globalLoading.action === 'stop' ? (
+                  <StopCircle className="h-5 w-5 text-red-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                ) : (
+                  <PlayCircle className="h-5 w-5 text-green-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                )}
+              </div>
+
+              {/* 제목 */}
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {globalLoading.action === 'stop' ? 'API 중지 중...' : 'API 시작 중...'}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {globalLoading.target}
+                </p>
+              </div>
+
+              {/* 진행 바 */}
+              {globalLoading.progress && (
+                <div className="w-full">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>진행률</span>
+                    <span>{globalLoading.progress.current} / {globalLoading.progress.total}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        globalLoading.action === 'stop' ? 'bg-red-500' : 'bg-green-500'
+                      }`}
+                      style={{
+                        width: `${(globalLoading.progress.current / globalLoading.progress.total) * 100}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                잠시만 기다려주세요...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={() => setToast(prev => ({ ...prev, show: false }))}
+        />
+      )}
     </Card>
   );
 }
@@ -399,6 +579,9 @@ function CategoryCard({
   apiResources,
   getSpecId,
   onDeleteApi,
+  onSingleApiAction,
+  singleApiActionLoading,
+  isGlobalLoading,
 }: {
   category: string;
   apis: APIInfo[];
@@ -410,6 +593,9 @@ function CategoryCard({
   apiResources: Record<string, APIResourceSpec>;
   getSpecId: (apiId: string) => string;
   onDeleteApi: (apiId: string) => void;
+  onSingleApiAction: (api: APIInfo, action: 'stop' | 'start') => void;
+  singleApiActionLoading: string | null;
+  isGlobalLoading: boolean;
 }) {
   const categoryHealthy = apis.filter(api => api.status === 'healthy').length;
 
@@ -470,6 +656,9 @@ function CategoryCard({
               containerStats={containerStats[api.id]}
               resourceSpec={apiResources[getSpecId(api.id)]}
               onDelete={() => onDeleteApi(api.id)}
+              onAction={onSingleApiAction}
+              isActionLoading={singleApiActionLoading === api.id}
+              isGlobalLoading={isGlobalLoading}
             />
           ))}
         </div>
@@ -484,11 +673,17 @@ function APICard({
   containerStats,
   resourceSpec,
   onDelete,
+  onAction,
+  isActionLoading,
+  isGlobalLoading,
 }: {
   api: APIInfo;
   containerStats?: ContainerStats;
   resourceSpec?: APIResourceSpec;
   onDelete: () => void;
+  onAction: (api: APIInfo, action: 'stop' | 'start') => void;
+  isActionLoading: boolean;
+  isGlobalLoading: boolean;
 }) {
   return (
     <div className={`p-3 rounded-lg border-2 transition-all ${
@@ -506,11 +701,49 @@ function APICard({
             <code className="text-[10px] text-muted-foreground">{api.id}</code>
           </div>
         </div>
-        <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${
-          api.status === 'healthy' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-        }`}>
-          {api.status === 'healthy' ? 'OK' : 'ERR'}
-        </span>
+        <div className="flex items-center gap-1">
+          {/* Stop/Start 버튼 */}
+          {api.status === 'healthy' ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onAction(api, 'stop'); }}
+              disabled={isActionLoading || isGlobalLoading}
+              className={`p-1 rounded transition-colors ${
+                isActionLoading
+                  ? 'bg-red-100 text-red-400 cursor-wait'
+                  : 'hover:bg-red-100 text-red-500 hover:text-red-700'
+              }`}
+              title="API 중지"
+            >
+              {isActionLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <StopCircle className="h-3.5 w-3.5" />
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); onAction(api, 'start'); }}
+              disabled={isActionLoading || isGlobalLoading}
+              className={`p-1 rounded transition-colors ${
+                isActionLoading
+                  ? 'bg-green-100 text-green-400 cursor-wait'
+                  : 'hover:bg-green-100 text-green-500 hover:text-green-700'
+              }`}
+              title="API 시작"
+            >
+              {isActionLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <PlayCircle className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
+          <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+            api.status === 'healthy' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+          }`}>
+            {api.status === 'healthy' ? 'OK' : 'ERR'}
+          </span>
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{api.description}</p>

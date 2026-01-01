@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
+import Toast from '../ui/Toast';
 import { Play, Square, RefreshCw, Server, Cpu, HardDrive } from 'lucide-react';
+
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
 
 interface ContainerInfo {
   id: string;
@@ -25,6 +33,14 @@ export default function ContainerManager() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  }, []);
 
   const fetchContainers = useCallback(async () => {
     setLoading(true);
@@ -62,11 +78,15 @@ export default function ContainerManager() {
       if (data.success) {
         // 성공 시 목록 새로고침
         await fetchContainers();
+        const actionLabel = action === 'start' ? '시작' : action === 'stop' ? '중지' : '재시작';
+        showToast(`✓ ${containerName} ${actionLabel} 완료`, 'success');
       } else {
-        alert(`Failed: ${data.error || data.message}`);
+        const errorMsg = data.error || data.message || '알 수 없는 오류';
+        showToast(`✗ ${containerName} 작업 실패\n${errorMsg}`, 'error');
       }
     } catch (err) {
-      alert('Action failed: ' + (err as Error).message);
+      const errorMsg = (err as Error).message || '알 수 없는 오류';
+      showToast(`✗ ${containerName} 작업 실패\n${errorMsg}`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -226,6 +246,16 @@ export default function ContainerManager() {
             </div>
           )}
         </div>
+
+        {/* Toast 알림 */}
+        {toast.show && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            duration={toast.type === 'error' ? 15000 : 10000}
+            onClose={() => setToast(prev => ({ ...prev, show: false }))}
+          />
+        )}
       </CardContent>
     </Card>
   );

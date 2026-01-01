@@ -20,9 +20,17 @@ import NodePalette from '../../components/blueprintflow/NodePalette';
 import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
+import Toast from '../../components/ui/Toast';
 import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle } from 'lucide-react';
 import { workflowApi } from '../../lib/api';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
+
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
 
 // Local imports
 import { baseNodeTypes, getId, BLUEPRINT_SAMPLES, getNodeColor } from './constants';
@@ -42,7 +50,9 @@ function WorkflowBuilderCanvas() {
     handleRemoveImage,
     triggerFileInput,
     loadSampleImage,
-  } = useImageUpload();
+  } = useImageUpload({
+    onShowToast: (message, type) => setToast({ show: true, message, type }),
+  });
 
   // Workflow store
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -75,12 +85,21 @@ function WorkflowBuilderCanvas() {
     closeWarningModal,
   } = useContainerStatus({
     onExecute: () => executeWorkflowStream(uploadedImage!),
+    onShowToast: (message, type) => setToast({ show: true, message, type }),
   });
 
   // ReactFlow instance
   const [reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null);
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
   const [isDebugPanelOpen, setIsDebugPanelOpen] = React.useState(false);
+
+  // Toast 알림 상태
+  const [toast, setToast] = React.useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  }, []);
 
   // Selected node from nodes array
   const selectedNode = useMemo(() => {
@@ -255,10 +274,11 @@ function WorkflowBuilderCanvas() {
         })),
       };
       await workflowApi.saveWorkflow(workflow);
-      alert('Workflow saved successfully!');
+      showToast('✓ 워크플로우가 저장되었습니다', 'success');
     } catch (error) {
       console.error('Failed to save workflow:', error);
-      alert('Failed to save workflow');
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ 워크플로우 저장 실패\n${errorMsg}`, 'error');
     }
   };
 
@@ -519,6 +539,16 @@ function WorkflowBuilderCanvas() {
         onClose={closeWarningModal}
         onStartContainers={startContainers}
       />
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={() => setToast(prev => ({ ...prev, show: false }))}
+        />
+      )}
     </div>
   );
 }

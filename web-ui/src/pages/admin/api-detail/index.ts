@@ -11,6 +11,8 @@ export type {
   GPUInfo,
   ContainerStatus,
   TestResult,
+  ToastState,
+  LoadingState,
 } from './hooks/useAPIDetail';
 
 // Config

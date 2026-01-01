@@ -6,7 +6,12 @@
 import { useRef, useCallback } from 'react';
 import { useWorkflowStore } from '../../../store/workflowStore';
 
-export function useImageUpload() {
+interface UseImageUploadOptions {
+  onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+}
+
+export function useImageUpload(options: UseImageUploadOptions = {}) {
+  const { onShowToast } = options;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
@@ -19,7 +24,7 @@ export function useImageUpload() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
+      onShowToast?.('⚠️ 이미지 파일만 업로드 가능합니다', 'warning');
       return;
     }
 
@@ -29,7 +34,7 @@ export function useImageUpload() {
       setUploadedImage(base64, file.name);
     };
     reader.readAsDataURL(file);
-  }, [setUploadedImage]);
+  }, [setUploadedImage, onShowToast]);
 
   // Handle file selection (from upload or sample selection)
   const handleFileSelect = useCallback((file: File | null) => {
@@ -42,7 +47,7 @@ export function useImageUpload() {
     }
 
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
+      onShowToast?.('⚠️ 이미지 파일만 업로드 가능합니다', 'warning');
       return;
     }
 
@@ -52,7 +57,7 @@ export function useImageUpload() {
       setUploadedImage(base64, file.name);
     };
     reader.readAsDataURL(file);
-  }, [setUploadedImage]);
+  }, [setUploadedImage, onShowToast]);
 
   // Remove uploaded image
   const handleRemoveImage = useCallback(() => {
@@ -77,9 +82,9 @@ export function useImageUpload() {
       handleFileSelect(file);
     } catch (error) {
       console.error('Failed to load sample image:', error);
-      alert('Failed to load sample image');
+      onShowToast?.('✗ 샘플 이미지 로드 실패', 'error');
     }
-  }, [handleFileSelect]);
+  }, [handleFileSelect, onShowToast]);
 
   return {
     fileInputRef,

@@ -46,6 +46,7 @@ venv.bak/
 test_samples/
 !**/uploads/.gitkeep
 !**/results/.gitkeep
+!web-ui/src/components/results/*
 !**/output/.gitkeep
 !**/data/.gitkeep
 

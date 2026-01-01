@@ -3,9 +3,17 @@
  * 워크플로우 실행 상태 및 결과 표시
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Download, RotateCcw } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
+import Toast from '../../../components/ui/Toast';
+
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
 import { nodeDefinitions } from '../../../config/nodeDefinitions';
 import type { NodeStatus } from '../../../store/workflowStore';
 import OCRVisualization from '../../../components/debug/OCRVisualization';
@@ -949,6 +957,24 @@ function UIActionDisplay({
   sessionId?: string;
   message?: string;
 }) {
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((toastMessage: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message: toastMessage, type });
+  }, []);
+
+  // 세션 삭제 핸들러
+  const handleDeleteSession = async () => {
+    try {
+      await fetch(`http://localhost:5020/sessions/${sessionId}`, { method: 'DELETE' });
+      showToast('✓ 세션이 삭제되었습니다', 'success');
+    } catch {
+      showToast('✗ 세션 삭제 실패', 'error');
+    }
+  };
+
   return (
     <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
       <div className="flex items-center justify-between">
@@ -969,16 +995,7 @@ function UIActionDisplay({
         </div>
         {sessionId && (
           <button
-            onClick={async () => {
-              if (confirm('이 세션을 삭제하시겠습니까?')) {
-                try {
-                  await fetch(`http://localhost:5020/sessions/${sessionId}`, { method: 'DELETE' });
-                  alert('세션이 삭제되었습니다.');
-                } catch {
-                  alert('세션 삭제 실패');
-                }
-              }
-            }}
+            onClick={handleDeleteSession}
             className="ml-3 px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
             title="세션 삭제"
           >
@@ -990,6 +1007,16 @@ function UIActionDisplay({
         <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
           Session: {sessionId}
         </div>
+      )}
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={() => setToast(prev => ({ ...prev, show: false }))}
+        />
       )}
     </div>
   );

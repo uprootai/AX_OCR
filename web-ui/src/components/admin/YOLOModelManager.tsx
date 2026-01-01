@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import Toast from '../ui/Toast';
 import {
   RefreshCw,
   Plus,
@@ -21,6 +22,13 @@ import {
   XCircle,
 } from 'lucide-react';
 import axios from 'axios';
+
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
 
 interface YOLOModel {
   id: string;
@@ -52,6 +60,14 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
   const [editingModel, setEditingModel] = useState<YOLOModel | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  }, []);
+
   // 모델 목록 가져오기
   const fetchModels = useCallback(async () => {
     setLoading(true);
@@ -74,14 +90,14 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
 
   // 모델 삭제
   const handleDelete = async (modelId: string) => {
-    if (!confirm(`'${modelId}' 모델을 삭제하시겠습니까?`)) return;
-
     try {
       await axios.delete(`${apiBaseUrl}/api/v1/models/${modelId}`);
       fetchModels();
+      showToast(`✓ '${modelId}' 모델이 삭제되었습니다`, 'success');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } };
-      alert(error.response?.data?.detail || '모델 삭제 실패');
+      const errorMsg = error.response?.data?.detail || '알 수 없는 오류';
+      showToast(`✗ 모델 삭제 실패\n${errorMsg}`, 'error');
     }
   };
 
@@ -96,9 +112,11 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
       });
       setEditingModel(null);
       fetchModels();
+      showToast(`✓ '${modelId}' 모델이 업데이트되었습니다`, 'success');
     } catch (err) {
-      alert('모델 업데이트 실패');
       console.error(err);
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
+      showToast(`✗ 모델 업데이트 실패\n${errorMsg}`, 'error');
     }
   };
 
@@ -112,10 +130,11 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       fetchModels();
-      alert('모델 파일 업로드 완료');
+      showToast(`✓ '${modelId}' 모델 파일 업로드 완료`, 'success');
     } catch (err) {
-      alert('파일 업로드 실패');
       console.error(err);
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
+      showToast(`✗ 파일 업로드 실패\n${errorMsg}`, 'error');
     }
   };
 
@@ -257,6 +276,17 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
             fetchModels();
           }}
           onCancel={() => setShowAddForm(false)}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={() => setToast(prev => ({ ...prev, show: false }))}
         />
       )}
     </Card>
@@ -325,10 +355,12 @@ function AddModelForm({
   apiBaseUrl,
   onSuccess,
   onCancel,
+  showToast,
 }: {
   apiBaseUrl: string;
   onSuccess: () => void;
   onCancel: () => void;
+  showToast: (message: string, type: ToastState['type']) => void;
 }) {
   const [modelId, setModelId] = useState('');
   const [name, setName] = useState('');
@@ -340,7 +372,7 @@ function AddModelForm({
 
   const handleSubmit = async () => {
     if (!modelId || !name || !file) {
-      alert('모델 ID, 이름, 파일은 필수입니다.');
+      showToast('⚠️ 모델 ID, 이름, 파일은 필수입니다', 'warning');
       return;
     }
 
@@ -362,10 +394,12 @@ function AddModelForm({
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
+      showToast(`✓ '${modelId}' 모델이 추가되었습니다`, 'success');
       onSuccess();
     } catch (err) {
-      alert('모델 추가 실패');
       console.error(err);
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
+      showToast(`✗ 모델 추가 실패\n${errorMsg}`, 'error');
     } finally {
       setLoading(false);
     }

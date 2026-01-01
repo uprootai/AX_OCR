@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import Toast from '../../components/ui/Toast';
 import {
   FolderOpen,
   Plus,
@@ -18,6 +19,13 @@ import {
 import { workflowApi, type WorkflowDefinition } from '../../lib/api';
 import { useWorkflowStore } from '../../store/workflowStore';
 
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
+
 interface SavedWorkflow extends WorkflowDefinition {
   id: string;
   created_at: string;
@@ -30,6 +38,14 @@ export default function BlueprintFlowList() {
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const { clearWorkflow, loadWorkflow } = useWorkflowStore();
+
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  }, []);
 
   useEffect(() => {
     loadWorkflows();
@@ -58,19 +74,20 @@ export default function BlueprintFlowList() {
       navigate('/blueprintflow/builder');
     } catch (error) {
       console.error('Failed to load workflow:', error);
-      alert('Failed to load workflow');
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ 워크플로우 로드 실패\n${errorMsg}`, 'error');
     }
   };
 
   const handleDeleteWorkflow = async (id: string, name: string) => {
-    if (!confirm(`Delete workflow "${name}"?`)) return;
-
     try {
       await workflowApi.deleteWorkflow(id);
       await loadWorkflows();
+      showToast(`✓ "${name}" 워크플로우가 삭제되었습니다`, 'success');
     } catch (error) {
       console.error('Failed to delete workflow:', error);
-      alert('Failed to delete workflow');
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ 워크플로우 삭제 실패\n${errorMsg}`, 'error');
     }
   };
 
@@ -85,9 +102,11 @@ export default function BlueprintFlowList() {
 
       await workflowApi.saveWorkflow(workflowToSave);
       await loadWorkflows();
+      showToast(`✓ "${workflow.name}" 복제 완료`, 'success');
     } catch (error) {
       console.error('Failed to duplicate workflow:', error);
-      alert('Failed to duplicate workflow');
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ 워크플로우 복제 실패\n${errorMsg}`, 'error');
     }
   };
 
@@ -246,6 +265,16 @@ export default function BlueprintFlowList() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={() => setToast(prev => ({ ...prev, show: false }))}
+        />
       )}
     </div>
   );

@@ -2,6 +2,14 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import Toast from './ui/Toast';
+
+// Toast 상태 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
 
 interface Props {
   children: ReactNode;
@@ -12,6 +20,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  toast: ToastState;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -21,10 +30,21 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      toast: { show: false, message: '', type: 'info' },
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  // Toast 표시 헬퍼
+  showToast = (message: string, type: ToastState['type'] = 'info') => {
+    this.setState({ toast: { show: true, message, type } });
+  };
+
+  // Toast 닫기
+  hideToast = () => {
+    this.setState(prev => ({ ...prev, toast: { ...prev.toast, show: false } }));
+  };
+
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return {
       hasError: true,
       error,
@@ -90,8 +110,8 @@ ${errorInfo?.componentStack}
 
     navigator.clipboard
       .writeText(errorText)
-      .then(() => alert('오류 정보가 클립보드에 복사되었습니다.'))
-      .catch(() => alert('클립보드 복사에 실패했습니다.'));
+      .then(() => this.showToast('✓ 오류 정보가 클립보드에 복사되었습니다', 'success'))
+      .catch(() => this.showToast('✗ 클립보드 복사에 실패했습니다', 'error'));
   };
 
   render() {
@@ -183,6 +203,16 @@ ${errorInfo?.componentStack}
               </div>
             </div>
           </Card>
+
+          {/* Toast 알림 */}
+          {this.state.toast.show && (
+            <Toast
+              message={this.state.toast.message}
+              type={this.state.toast.type}
+              duration={this.state.toast.type === 'error' ? 15000 : 10000}
+              onClose={this.hideToast}
+            />
+          )}
         </div>
       );
     }

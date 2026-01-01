@@ -17,6 +17,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import Toast from '../../components/ui/Toast';
 import {
   ArrowLeft,
   Save,
@@ -25,6 +26,11 @@ import {
   FileText,
   ExternalLink,
   AlertCircle,
+  Loader2,
+  StopCircle,
+  PlayCircle,
+  RotateCw,
+  Trash2,
 } from 'lucide-react';
 import { YOLOModelManager } from '../../components/admin/YOLOModelManager';
 
@@ -65,6 +71,11 @@ export default function APIDetail() {
     savingApiKey,
     hyperparamDefs,
     requiresApiKey,
+
+    // Toast & Loading 상태
+    toast,
+    globalLoading,
+    hideToast,
 
     // Handlers
     handleSaveApiKey,
@@ -242,6 +253,63 @@ export default function APIDetail() {
         <div className="mt-6">
           <YOLOModelManager apiBaseUrl={apiInfo.base_url} />
         </div>
+      )}
+
+      {/* 전역 로딩 오버레이 */}
+      {globalLoading.isLoading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center gap-4">
+              {/* 스피너 */}
+              <div className="relative">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                {globalLoading.action === 'stop' && (
+                  <StopCircle className="h-5 w-5 text-red-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                )}
+                {globalLoading.action === 'start' && (
+                  <PlayCircle className="h-5 w-5 text-green-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                )}
+                {globalLoading.action === 'restart' && (
+                  <RotateCw className="h-5 w-5 text-blue-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                )}
+                {globalLoading.action === 'save' && (
+                  <Save className="h-5 w-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                )}
+                {globalLoading.action === 'delete' && (
+                  <Trash2 className="h-5 w-5 text-red-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                )}
+              </div>
+
+              {/* 제목 */}
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {globalLoading.action === 'stop' && '서비스 중지 중...'}
+                  {globalLoading.action === 'start' && '서비스 시작 중...'}
+                  {globalLoading.action === 'restart' && '서비스 재시작 중...'}
+                  {globalLoading.action === 'save' && '설정 저장 중...'}
+                  {globalLoading.action === 'delete' && '삭제 중...'}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {globalLoading.target}
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                잠시만 기다려주세요...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={hideToast}
+        />
       )}
     </div>
   );

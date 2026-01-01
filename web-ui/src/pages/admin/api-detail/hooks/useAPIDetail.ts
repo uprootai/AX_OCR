@@ -13,6 +13,20 @@ import { apiKeyApi, type AllAPIKeySettings } from '../../../../lib/api';
 import { DEFAULT_HYPERPARAMS } from '../config/defaultHyperparams';
 import { HYPERPARAM_DEFINITIONS, type HyperparamDefinitionItem } from '../config/hyperparamDefinitions';
 
+// Toast 알림 타입
+export interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
+
+// 로딩 오버레이 타입
+export interface LoadingState {
+  isLoading: boolean;
+  action: 'stop' | 'start' | 'restart' | 'save' | 'delete' | null;
+  target: string;
+}
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -89,6 +103,26 @@ export function useAPIDetail(apiId: string | undefined) {
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [savingApiKey, setSavingApiKey] = useState<string | null>(null);
+
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // 전역 로딩 오버레이 상태
+  const [globalLoading, setGlobalLoading] = useState<LoadingState>({
+    isLoading: false,
+    action: null,
+    target: '',
+  });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  }, []);
+
+  // Toast 닫기 헬퍼 함수
+  const hideToast = useCallback(() => {
+    setToast(prev => ({ ...prev, show: false }));
+  }, []);
 
   // ============================================================================
   // Data Fetching Functions
@@ -273,7 +307,7 @@ export function useAPIDetail(apiId: string | undefined) {
 
   // Delete API key
   const handleDeleteApiKey = async (provider: string) => {
-    if (!confirm(`${provider} API Key를 삭제하시겠습니까?`)) return;
+    setGlobalLoading({ isLoading: true, action: 'delete', target: `${provider} API Key` });
 
     try {
       await apiKeyApi.deleteAPIKey(provider);
@@ -283,8 +317,13 @@ export function useAPIDetail(apiId: string | undefined) {
         delete newResults[provider];
         return newResults;
       });
+      showToast(`✓ ${provider} API Key가 삭제되었습니다`, 'success');
     } catch (error) {
       console.error('Failed to delete API key:', error);
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ API Key 삭제 실패\n${errorMsg}`, 'error');
+    } finally {
+      setGlobalLoading({ isLoading: false, action: null, target: '' });
     }
   };
 
@@ -324,32 +363,53 @@ export function useAPIDetail(apiId: string | undefined) {
   const handleDockerAction = async (action: 'start' | 'stop' | 'restart') => {
     if (!apiId) return;
 
-    const confirmMsg = {
+    const actionText = {
       start: '시작',
       stop: '중지',
       restart: '재시작',
     };
 
-    if (!window.confirm(`${apiInfo?.display_name || apiId} 서비스를 ${confirmMsg[action]}하시겠습니까?`)) {
-      return;
-    }
-
+    // 전역 로딩 시작 (confirm 대화상자 제거)
     setDockerAction(action);
+    setGlobalLoading({
+      isLoading: true,
+      action,
+      target: apiInfo?.display_name || apiId,
+    });
+
     try {
-      await axios.post(ADMIN_ENDPOINTS.docker(action, apiId));
-      alert(`Docker ${action} 성공!`);
+      await axios.post(ADMIN_ENDPOINTS.docker(action, apiId), {}, { timeout: 30000 });
+      showToast(`✓ ${apiInfo?.display_name || apiId} ${actionText[action]} 완료`, 'success');
       setTimeout(fetchAPIInfo, 2000);
+      setTimeout(fetchContainerStatus, 2000);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Docker ${action} 실패: ${errorMessage}`);
+      let errorMsg = '알 수 없는 오류';
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          errorMsg = '시간 초과 (30초)';
+        } else if (error.response) {
+          errorMsg = `HTTP ${error.response.status}: ${error.response.data?.detail || error.response.statusText}`;
+        } else if (error.request) {
+          errorMsg = '서버 응답 없음 - Gateway API 확인 필요';
+        }
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
+      showToast(`✗ ${apiInfo?.display_name || apiId} ${actionText[action]} 실패\n${errorMsg}`, 'error');
     } finally {
       setDockerAction(null);
+      setGlobalLoading({ isLoading: false, action: null, target: '' });
     }
   };
 
   // Save configuration
   const handleSave = async () => {
     setSaving(true);
+    setGlobalLoading({
+      isLoading: true,
+      action: 'save',
+      target: apiInfo?.display_name || apiId || '설정',
+    });
 
     try {
       // Save serviceConfigs
@@ -387,43 +447,57 @@ export function useAPIDetail(apiId: string | undefined) {
 
       localStorage.setItem('hyperParameters', JSON.stringify(hyperParams));
 
-      // Apply container config
-      const applyContainerConfig = window.confirm(
-        `설정을 저장하고 컨테이너에 적용하시겠습니까?\n\n` +
-        `- 연산 장치: ${config.device.toUpperCase()}\n` +
-        `- GPU 메모리: ${config.gpu_memory || '제한 없음'}\n\n` +
-        `컨테이너가 재생성되며 5-10초 정도 소요됩니다.`
-      );
+      // 컨테이너 설정 적용 (confirm 없이 바로 적용)
+      try {
+        const response = await axios.post(
+          `${ADMIN_ENDPOINTS.status.replace('/status', '')}/container/configure/${apiId}`,
+          {
+            device: config.device,
+            memory_limit: config.memory_limit,
+            gpu_memory: config.gpu_memory,
+          },
+          { timeout: 60000 } // 컨테이너 재생성에 시간이 걸릴 수 있음
+        );
 
-      if (applyContainerConfig) {
-        try {
-          const response = await axios.post(
-            `${ADMIN_ENDPOINTS.status.replace('/status', '')}/container/configure/${apiId}`,
-            {
-              device: config.device,
-              memory_limit: config.memory_limit,
-              gpu_memory: config.gpu_memory,
-            }
+        if (response.data.success) {
+          showToast(
+            `✓ 설정 저장 및 컨테이너 적용 완료\n\n` +
+            `연산 장치: ${config.device.toUpperCase()}\n` +
+            `GPU 메모리: ${config.gpu_memory || '제한 없음'}`,
+            'success'
           );
-
-          if (response.data.success) {
-            alert(`설정이 저장되고 컨테이너가 재생성되었습니다.\n\n${response.data.message}`);
-            setTimeout(fetchContainerStatus, 2000);
-          } else {
-            alert(`설정은 저장되었지만 컨테이너 재생성에 실패했습니다.\n\n${response.data.message}`);
-          }
-        } catch (configError) {
-          const errorMessage = configError instanceof Error ? configError.message : 'Unknown error';
-          alert(`설정은 저장되었지만 컨테이너 재생성에 실패했습니다.\n\n${errorMessage}`);
+          setTimeout(fetchContainerStatus, 2000);
+        } else {
+          showToast(
+            `⚠️ 설정 저장됨, 컨테이너 적용 실패\n${response.data.message}`,
+            'warning'
+          );
         }
-      } else {
-        alert('설정이 저장되었습니다. (컨테이너 미적용)');
+      } catch (configError) {
+        let errorMsg = '알 수 없는 오류';
+        if (axios.isAxiosError(configError)) {
+          if (configError.code === 'ECONNABORTED') {
+            errorMsg = '시간 초과 (60초)';
+          } else if (configError.response) {
+            errorMsg = configError.response.data?.detail || configError.response.statusText;
+          } else if (configError.request) {
+            errorMsg = '서버 응답 없음';
+          }
+        } else if (configError instanceof Error) {
+          errorMsg = configError.message;
+        }
+        showToast(
+          `⚠️ 설정 저장됨, 컨테이너 적용 실패\n${errorMsg}`,
+          'warning'
+        );
       }
     } catch (error) {
       console.error('Failed to save config:', error);
-      alert('설정 저장에 실패했습니다.');
+      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+      showToast(`✗ 설정 저장 실패\n${errorMsg}`, 'error');
     } finally {
       setSaving(false);
+      setGlobalLoading({ isLoading: false, action: null, target: '' });
     }
   };
 
@@ -575,6 +649,11 @@ export function useAPIDetail(apiId: string | undefined) {
     savingApiKey,
     hyperparamDefs,
     requiresApiKey,
+
+    // Toast & Loading 상태
+    toast,
+    globalLoading,
+    hideToast,
 
     // Handlers
     handleSaveApiKey,

@@ -2,7 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { Server, Cpu, Database, RefreshCw, FileCode, Download, Upload, Archive } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import Toast from '../../components/ui/Toast';
 import axios from 'axios';
+
+// Toast 알림 타입
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
 import {
   ADMIN_ENDPOINTS,
   SYSTEM_CONFIG,
@@ -58,6 +66,14 @@ export default function Admin() {
   const [logs, setLogs] = useState<string>('');
   const [selectedService, setSelectedService] = useState<string>('gateway');
 
+  // Toast 알림 상태
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'info' });
+
+  // Toast 표시 헬퍼 함수
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ show: true, message, type });
+  }, []);
+
   const fetchStatus = useCallback(async () => {
     try {
       const response = await axios.get(ADMIN_ENDPOINTS.status);
@@ -110,10 +126,11 @@ export default function Admin() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      alert('설정이 성공적으로 백업되었습니다.');
+      showToast('✓ 설정이 성공적으로 백업되었습니다', 'success');
     } catch (err) {
       console.error('백업 실패:', err);
-      alert('백업에 실패했습니다.');
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
+      showToast(`✗ 백업 실패\n${errorMsg}`, 'error');
     }
   };
 
@@ -152,11 +169,12 @@ export default function Admin() {
             localStorage.setItem('api-config-store', importData.customAPIs);
           }
 
-          alert('설정이 복원되었습니다. 페이지를 새로고침합니다.');
-          setTimeout(() => window.location.reload(), 500);
+          showToast('✓ 설정이 복원되었습니다. 페이지를 새로고침합니다...', 'success');
+          setTimeout(() => window.location.reload(), 1000);
         } catch (err) {
           console.error('복원 실패:', err);
-          alert('복원에 실패했습니다: ' + (err instanceof Error ? err.message : '알 수 없는 오류'));
+          const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
+          showToast(`✗ 복원 실패\n${errorMsg}`, 'error');
         }
       };
 
@@ -170,8 +188,8 @@ export default function Admin() {
     if (confirm('모든 설정을 기본값으로 되돌리시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
       localStorage.removeItem('serviceConfigs');
       localStorage.removeItem('hyperParameters');
-      alert('설정이 초기화되었습니다. 페이지를 새로고침합니다.');
-      setTimeout(() => window.location.reload(), 500);
+      showToast('✓ 설정이 초기화되었습니다. 페이지를 새로고침합니다...', 'success');
+      setTimeout(() => window.location.reload(), 1000);
     }
   };
 
@@ -445,6 +463,16 @@ export default function Admin() {
           마지막 업데이트: {new Date(status.timestamp).toLocaleString('ko-KR')} •
           자동 갱신: {SYSTEM_CONFIG.AUTO_REFRESH_INTERVAL / 1000}초마다
         </div>
+      )}
+
+      {/* Toast 알림 */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.type === 'error' ? 15000 : 10000}
+          onClose={() => setToast(prev => ({ ...prev, show: false }))}
+        />
       )}
     </div>
   );
