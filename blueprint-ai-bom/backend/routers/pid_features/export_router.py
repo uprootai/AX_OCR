@@ -1,15 +1,17 @@
 """P&ID Export Router
 
-Excel 내보내기 엔드포인트
+Excel/PDF 내보내기 엔드포인트
 """
 
 import logging
 from io import BytesIO
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
+
+from services.pdf_report_service import get_pdf_report_service
 
 logger = logging.getLogger(__name__)
 
@@ -223,3 +225,73 @@ async def export_to_excel(
             "X-Session-Id": session_id
         }
     )
+
+
+@router.post("/{session_id}/export/pdf")
+async def export_to_pdf(
+    session_id: str,
+    export_type: Literal["valve", "equipment", "checklist", "deviation", "all"] = Query(
+        default="all", description="내보내기 타입"
+    ),
+    project_name: str = Query(default="Unknown Project", description="프로젝트명"),
+    drawing_no: str = Query(default="N/A", description="도면 번호"),
+    include_rejected: bool = Query(default=False, description="거부된 항목 포함")
+):
+    """
+    PDF 리포트 내보내기
+
+    TECHCROSS BWMS P&ID 분석 결과를 PDF 형식으로 내보냅니다.
+
+    **포함 내용:**
+    - 표지 (프로젝트 정보)
+    - 요약 통계 (검증 현황, Pass/Fail)
+    - Equipment List (장비 목록)
+    - Valve Signal List (밸브 신호 목록)
+    - Design Checklist (설계 체크리스트)
+    - Deviation List (편차 목록)
+
+    **Parameters:**
+    - export_type: 내보내기 범위 (valve, equipment, checklist, deviation, all)
+    - project_name: PDF 표지에 표시될 프로젝트명
+    - drawing_no: 도면 번호
+    - include_rejected: 거부된 항목 포함 여부
+    """
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    try:
+        pdf_service = get_pdf_report_service()
+
+        # 세션 데이터에 session_id 추가
+        session_data = dict(session)
+        session_data["session_id"] = session_id
+
+        buffer = pdf_service.generate_report(
+            session_data=session_data,
+            project_name=project_name,
+            drawing_no=drawing_no,
+            export_type=export_type,
+            include_rejected=include_rejected
+        )
+
+        filename = f"PID_Report_{export_type}_{drawing_no}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        logger.info(f"PDF report generated: {filename}")
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "X-Export-Type": export_type,
+                "X-Session-Id": session_id,
+                "X-Report-Format": "pdf"
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"PDF generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"PDF 생성 실패: {str(e)}")

@@ -613,6 +613,7 @@ export function WorkflowPage() {
               onAnalyzeDeviations={() => pidFeatures.handleAnalyzeDeviations(currentSession?.session_id || '')}
               onVerifyDeviation={(id, status) => pidFeatures.handleVerifyDeviation(currentSession?.session_id || '', id, status)}
               onExport={(type) => pidFeatures.handleExport(currentSession?.session_id || '', type)}
+              onExportPDF={(type) => pidFeatures.handleExportPDF(currentSession?.session_id || '', type)}
             />
           )}
 

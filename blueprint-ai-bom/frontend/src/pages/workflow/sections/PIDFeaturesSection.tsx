@@ -94,6 +94,7 @@ interface PIDFeaturesSectionProps {
 
   // Export
   onExport: (type: 'valve' | 'equipment' | 'checklist' | 'deviation' | 'all') => void;
+  onExportPDF?: (type: 'valve' | 'equipment' | 'checklist' | 'deviation' | 'all') => void;
 }
 
 export function PIDFeaturesSection({
@@ -116,6 +117,7 @@ export function PIDFeaturesSection({
   onAnalyzeDeviations,
   onVerifyDeviation,
   onExport,
+  onExportPDF,
 }: PIDFeaturesSectionProps) {
   const [activeTab, setActiveTab] = useState<'valve' | 'equipment' | 'checklist' | 'deviation'>('valve');
 
@@ -176,13 +178,24 @@ export function PIDFeaturesSection({
           <span>P&ID 분석</span>
           <InfoTooltip content="P&ID 도면 분석 기능입니다. 밸브, 장비 검출 및 설계 체크리스트 검증을 수행합니다." />
         </h2>
-        <button
-          onClick={() => onExport('all')}
-          className="flex items-center gap-1 px-3 py-1 text-sm bg-orange-600 text-white rounded hover:bg-orange-700"
-        >
-          <Download className="w-4 h-4" />
-          전체 Excel 내보내기
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onExport('all')}
+            className="flex items-center gap-1 px-3 py-1 text-sm bg-orange-600 text-white rounded hover:bg-orange-700"
+          >
+            <Download className="w-4 h-4" />
+            Excel
+          </button>
+          {onExportPDF && (
+            <button
+              onClick={() => onExportPDF('all')}
+              className="flex items-center gap-1 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              <Download className="w-4 h-4" />
+              PDF
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 탭 네비게이션 */}

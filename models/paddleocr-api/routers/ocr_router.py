@@ -31,10 +31,10 @@ async def get_api_info():
     """
     return APIInfoResponse(
         id="paddleocr",
-        name="PaddleOCR API",
-        display_name="PaddleOCR Text Recognition",
-        version="1.0.0",
-        description="PaddlePaddle based drawing text recognition API",
+        name="PaddleOCR 3.0 API",
+        display_name="PaddleOCR PP-OCRv5",
+        version="3.0.0",
+        description="PP-OCRv5: 13% improved accuracy, 106 language support",
         openapi_url="/openapi.json",
         base_url=f"http://localhost:{PORT}",
         endpoint="/api/v1/ocr",
@@ -67,6 +67,22 @@ async def get_api_info():
         ],
         parameters=[
             ParameterSchema(
+                name="ocr_version",
+                type="select",
+                default="PP-OCRv5",
+                options=["PP-OCRv5", "PP-OCRv4", "PP-OCRv3"],
+                description="OCR model version (PP-OCRv5 recommended)",
+                required=False
+            ),
+            ParameterSchema(
+                name="lang",
+                type="select",
+                default="en",
+                options=["en", "korean", "ch", "japan", "fr", "de", "es", "ru", "ar"],
+                description="Recognition language (106 languages available)",
+                required=False
+            ),
+            ParameterSchema(
                 name="det_db_thresh",
                 type="number",
                 default=0.3,
@@ -79,7 +95,7 @@ async def get_api_info():
             ParameterSchema(
                 name="det_db_box_thresh",
                 type="number",
-                default=0.5,
+                default=0.6,
                 description="Box threshold (higher = more accurate boxes)",
                 required=False,
                 min=0.0,
@@ -87,10 +103,10 @@ async def get_api_info():
                 step=0.05
             ),
             ParameterSchema(
-                name="use_angle_cls",
+                name="use_textline_orientation",
                 type="boolean",
                 default=True,
-                description="Enable rotated text detection",
+                description="Enable text line orientation classification",
                 required=False
             ),
             ParameterSchema(
@@ -128,19 +144,19 @@ async def get_api_info():
 async def perform_ocr(
     file: UploadFile = File(..., description="Image file (PNG, JPG, etc.)"),
     det_db_thresh: float = Form(default=0.3, description="Text detection threshold (0-1)"),
-    det_db_box_thresh: float = Form(default=0.5, description="Box threshold (0-1)"),
-    use_angle_cls: bool = Form(default=True, description="Enable rotated text detection"),
+    det_db_box_thresh: float = Form(default=0.6, description="Box threshold (0-1)"),
+    use_textline_orientation: bool = Form(default=True, description="Enable text line orientation classification"),
     min_confidence: float = Form(default=0.5, description="Minimum confidence filter (0-1)"),
     visualize: bool = Form(default=False, description="Generate OCR result visualization image")
 ):
     """
-    PaddleOCR Text Recognition
+    PaddleOCR 3.0 Text Recognition (PP-OCRv5)
 
     Args:
         file: Image file to analyze
         det_db_thresh: Text detection threshold (lower = more detections)
         det_db_box_thresh: Box threshold (higher = more accurate boxes)
-        use_angle_cls: Enable rotated text detection
+        use_textline_orientation: Enable text line orientation classification
         min_confidence: Minimum confidence filter
 
     Returns:
@@ -157,7 +173,7 @@ async def perform_ocr(
         min_confidence = float(min_confidence) if isinstance(min_confidence, str) else min_confidence
         det_db_thresh = float(det_db_thresh) if isinstance(det_db_thresh, str) else det_db_thresh
         det_db_box_thresh = float(det_db_box_thresh) if isinstance(det_db_box_thresh, str) else det_db_box_thresh
-        use_angle_cls = use_angle_cls if isinstance(use_angle_cls, bool) else (use_angle_cls.lower() == 'true' if isinstance(use_angle_cls, str) else bool(use_angle_cls))
+        use_textline_orientation = use_textline_orientation if isinstance(use_textline_orientation, bool) else (use_textline_orientation.lower() == 'true' if isinstance(use_textline_orientation, str) else bool(use_textline_orientation))
         visualize = visualize if isinstance(visualize, bool) else (visualize.lower() == 'true' if isinstance(visualize, str) else bool(visualize))
     except (ValueError, AttributeError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid parameter type: {e}")
@@ -191,10 +207,12 @@ async def perform_ocr(
             "parameters": {
                 "det_db_thresh": det_db_thresh,
                 "det_db_box_thresh": det_db_box_thresh,
-                "use_angle_cls": use_angle_cls,
+                "use_textline_orientation": use_textline_orientation,
                 "min_confidence": min_confidence,
                 "lang": LANG
-            }
+            },
+            "ocr_version": "PP-OCRv5",
+            "api_version": "3.0.0"
         }
 
         return OCRResponse(

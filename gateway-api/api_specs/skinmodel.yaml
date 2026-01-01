@@ -136,3 +136,57 @@ resources:
     - parameter: task
       impact: "manufacturability 분석 시 시간 증가"
       examples: "tolerance:빠름, manufacturability:보통"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "공차 예측"
+      description: "치수에서 적정 공차 예측"
+      json:
+        dimensions:
+          - type: "diameter"
+            value: 25.0
+            tolerance: "H7"
+            unit: "mm"
+          - type: "linear"
+            value: 100.0
+            tolerance: "±0.1"
+            unit: "mm"
+        material:
+          type: "steel"
+          grade: "S45C"
+        material_type: "steel"
+        manufacturing_process: "machining"
+        task: "tolerance"
+
+    - name: "제조 가능성 분석"
+      description: "제조/조립 가능성 평가"
+      json:
+        dimensions:
+          - type: "diameter"
+            value: 5.0
+            tolerance: "h5"
+            unit: "mm"
+        material: "aluminum"
+        material_type: "aluminum"
+        manufacturing_process: "machining"
+        task: "manufacturability"
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          tolerance_prediction:
+            recommended_tolerance: "H7"
+            confidence: 0.92
+            iso_standard: "ISO 286-1"
+          manufacturability:
+            score: 0.85
+            feasibility: "good"
+            warnings: []
+          assemblability:
+            score: 0.90
+            fit_type: "clearance"
+        processing_time: 0.45

@@ -1,4 +1,5 @@
-# PaddleOCR API Dockerfile
+# PaddleOCR 3.0 API Dockerfile
+# PP-OCRv5: 13% accuracy improvement, 106 languages
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -23,13 +24,14 @@ COPY services/ ./services/
 COPY utils/ ./utils/
 
 # PaddleOCR 모델 다운로드를 위한 디렉토리 생성
+# PP-OCRv5 모델은 HuggingFace에서 자동 다운로드됨
 RUN mkdir -p /root/.paddleocr
 
 # 포트 노출
 EXPOSE 5006
 
-# 헬스체크
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# 헬스체크 (모델 로드 시간 고려하여 start-period 90초)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f http://localhost:5006/api/v1/health || exit 1
 
 # 서버 실행

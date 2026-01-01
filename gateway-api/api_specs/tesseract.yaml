@@ -111,3 +111,38 @@ resources:
     minRam: 512
     cores: 2
     note: "CPU 전용 - 빠르고 가벼움"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 OCR"
+      description: "영어 문서 텍스트 추출"
+      formData:
+        file: "document.png"
+        lang: "eng"
+        psm: "3"
+        output_type: "data"
+
+    - name: "한글+영어 혼합"
+      description: "이중 언어 문서 인식"
+      formData:
+        file: "korean_doc.png"
+        lang: "eng+kor"
+        psm: "6"
+        output_type: "data"
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          texts:
+            - text: "DRAWING TITLE"
+              confidence: 0.92
+              bbox: [50, 100, 200, 130]
+            - text: "REV. A"
+              confidence: 0.88
+              bbox: [500, 100, 560, 130]
+          full_text: "DRAWING TITLE\nREV. A\n..."
+        processing_time: 0.45

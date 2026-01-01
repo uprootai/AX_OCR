@@ -1,0 +1,102 @@
+# DocLayout-YOLO Fine-tuning Training Configuration
+# RTX 3080 8GB 최적화
+
+# === 모델 설정 ===
+model:
+  # 베이스 모델 (Hugging Face)
+  base: "juliozhao/DocLayout-YOLO-DocStructBench"
+  weights: "doclayout_yolo_docstructbench_imgsz1024.pt"
+
+  # 또는 로컬 가중치
+  # local_weights: "/path/to/weights.pt"
+
+# === 학습 설정 ===
+training:
+  # 기본 하이퍼파라미터
+  epochs: 100
+  batch_size: 4          # RTX 3080 8GB: 4 권장 (1024px 기준)
+  imgsz: 1024            # 도면은 고해상도 필요
+  patience: 20           # Early stopping
+
+  # 최적화
+  optimizer: "AdamW"
+  lr0: 0.001             # 초기 학습률
+  lrf: 0.01              # 최종 학습률 (lr0 * lrf)
+  weight_decay: 0.0005
+  warmup_epochs: 3
+  warmup_momentum: 0.8
+
+  # 전이 학습
+  freeze: 10             # 처음 10개 레이어 고정 (Stage 1)
+  # freeze: 0            # 전체 Fine-tuning (Stage 2)
+
+  # 기타
+  workers: 4
+  device: 0              # GPU 0
+  project: "runs/doclayout"
+  name: "drawing_finetuning_v1"
+  exist_ok: true
+  pretrained: true
+  resume: false
+
+# === 데이터 증강 ===
+augmentation:
+  # 기본 증강
+  augment: true
+  hsv_h: 0.015           # 색상 변화 (도면은 낮게)
+  hsv_s: 0.3             # 채도 변화
+  hsv_v: 0.3             # 명도 변화
+
+  # 기하학적 증강
+  degrees: 3             # 회전 (도면은 매우 낮게)
+  translate: 0.1         # 이동
+  scale: 0.3             # 스케일
+  shear: 0.0             # 전단 (도면은 0)
+  perspective: 0.0       # 원근 (도면은 0)
+  flipud: 0.0            # 상하 반전 (도면은 0)
+  fliplr: 0.0            # 좌우 반전 (도면은 0)
+
+  # 모자이크/믹스업
+  mosaic: 0.3            # 모자이크 (낮게)
+  mixup: 0.0             # 믹스업 (도면은 0)
+  copy_paste: 0.0        # 복사-붙여넣기 (도면은 0)
+
+# === 검증 설정 ===
+validation:
+  val: true
+  val_period: 1          # 매 에폭마다 검증
+  save_period: 10        # 10 에폭마다 체크포인트 저장
+
+  # 저장
+  save: true
+  save_json: true
+  plots: true
+
+# === GPU 메모리 최적화 ===
+memory:
+  # batch_size가 부족할 경우
+  # accumulate: 4        # Gradient accumulation (effective batch = 4 * 4 = 16)
+
+  # AMP (Automatic Mixed Precision)
+  amp: true              # FP16 학습으로 메모리 절약
+
+  # 캐시
+  cache: false           # 메모리 부족 시 false
+
+# === Stage별 설정 ===
+stages:
+  # Stage 1: 빠른 클래스 매핑 학습
+  stage1:
+    epochs: 30
+    batch_size: 4
+    freeze: 10           # Head만 학습
+    lr0: 0.001
+    description: "Head만 학습 - 클래스 매핑"
+
+  # Stage 2: 전체 Fine-tuning
+  stage2:
+    epochs: 70
+    batch_size: 4
+    freeze: 0            # 전체 학습
+    lr0: 0.0001          # 낮은 학습률
+    description: "전체 Fine-tuning - 도면 특화"

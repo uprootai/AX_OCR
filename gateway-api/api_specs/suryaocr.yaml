@@ -93,3 +93,38 @@ resources:
     - parameter: detect_layout
       impact: "레이아웃 분석 시 시간/메모리 증가"
       examples: "OCR만:3GB, 레이아웃:5GB"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 OCR"
+      description: "90+ 언어 지원 OCR"
+      formData:
+        file: "document.png"
+        languages: "ko,en"
+        visualize: true
+
+    - name: "레이아웃 분석 포함"
+      description: "문서 구조 분석"
+      formData:
+        file: "complex_document.png"
+        languages: "en"
+        detect_layout: true
+        visualize: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          texts:
+            - text: "Technical Drawing"
+              confidence: 0.95
+              bbox: [50, 30, 250, 60]
+          full_text: "Technical Drawing\nScale: 1:10\n..."
+          layout:
+            text_regions: 12
+            figure_regions: 3
+            table_regions: 1
+        processing_time: 2.45

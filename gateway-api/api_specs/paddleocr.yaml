@@ -1,18 +1,19 @@
-# PaddleOCR API Specification
+# PaddleOCR 3.0 API Specification (PP-OCRv5)
 apiVersion: v1
 kind: APISpec
 
 metadata:
   id: paddleocr
-  name: PaddleOCR
-  version: 1.0.0
+  name: PaddleOCR 3.0
+  version: 3.0.0
   port: 5006
-  description: PaddlePaddle 기반 도면 텍스트 인식
+  description: PP-OCRv5 - 13% 정확도 향상, 106개 언어 지원
   author: AX Team
   tags:
     - ocr
     - text-recognition
     - paddle
+    - pp-ocrv5
 
 server:
   endpoint: /api/v1/ocr
@@ -45,6 +46,15 @@ outputs:
     description: OCR 결과 시각화 이미지
 
 parameters:
+  - name: ocr_version
+    type: select
+    default: PP-OCRv5
+    options:
+      - PP-OCRv5
+      - PP-OCRv4
+      - PP-OCRv3
+    description: OCR 모델 버전 (PP-OCRv5 권장)
+
   - name: lang
     type: select
     default: en
@@ -53,7 +63,12 @@ parameters:
       - korean
       - ch
       - japan
-    description: 인식 언어
+      - fr
+      - de
+      - es
+      - ru
+      - ar
+    description: 인식 언어 (106개 언어 지원)
 
   - name: det_db_thresh
     type: number
@@ -65,16 +80,16 @@ parameters:
 
   - name: det_db_box_thresh
     type: number
-    default: 0.5
+    default: 0.6
     min: 0.0
     max: 1.0
     step: 0.05
     description: 박스 임계값
 
-  - name: use_angle_cls
+  - name: use_textline_orientation
     type: boolean
     default: true
-    description: 회전된 텍스트 감지 사용
+    description: 텍스트 라인 방향 분류 사용
 
   - name: min_confidence
     type: number
@@ -98,18 +113,21 @@ mappings:
 
 i18n:
   ko:
-    label: PaddleOCR
-    description: PaddlePaddle 기반 범용 텍스트 인식
+    label: PaddleOCR 3.0
+    description: PP-OCRv5 기반 텍스트 인식 (13% 정확도 향상)
   en:
-    label: PaddleOCR
-    description: PaddlePaddle-based general text recognition
+    label: PaddleOCR 3.0
+    description: PP-OCRv5 text recognition (13% accuracy improvement)
 
 examples:
   - 도면에서 텍스트 추출
-  - 라벨 및 주석 인식
+  - 106개 언어 텍스트 인식
+  - 세로 텍스트 및 필기체 인식
 
 usageTips:
-  - 한글 인식에 최적화되어 있습니다
+  - PP-OCRv5는 PP-OCRv4 대비 13% 정확도 향상
+  - 106개 언어 지원 (한글, 일본어, 중국어, 아랍어 등)
+  - 세로 텍스트 및 필기체 인식 개선
   - det_db_thresh를 낮추면 더 많은 텍스트를 검출합니다
 
 resources:
@@ -124,6 +142,46 @@ resources:
     cores: 4
     note: "GPU 대비 5배 느림"
   parameterImpact:
-    - parameter: use_angle_cls
-      impact: "회전 감지 사용 시 처리 시간 증가"
+    - parameter: use_textline_orientation
+      impact: "텍스트 방향 분류 사용 시 처리 시간 증가"
       examples: "미사용:1초, 사용:1.5초"
+    - parameter: ocr_version
+      impact: "PP-OCRv5가 가장 정확하나 약간 느림"
+      examples: "v3:0.8초, v4:1초, v5:1.2초"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 텍스트 인식"
+      description: "한국어+영어 혼합 텍스트 인식"
+      formData:
+        file: "document.png"
+        ocr_version: "PP-OCRv5"
+        lang: "korean"
+        visualize: true
+
+    - name: "다국어 인식"
+      description: "중국어 텍스트 인식"
+      formData:
+        file: "chinese_doc.png"
+        ocr_version: "PP-OCRv5"
+        lang: "ch"
+        det_db_thresh: 0.3
+        use_textline_orientation: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          detections:
+            - text: "PART NUMBER"
+              confidence: 0.98
+              bbox: [[100, 50], [250, 50], [250, 80], [100, 80]]
+            - text: "DWG-001-A"
+              confidence: 0.95
+              bbox: [[300, 50], [450, 50], [450, 80], [300, 80]]
+          total_texts: 25
+          visualized_image: "data:image/png;base64,..."
+        processing_time: 1.23

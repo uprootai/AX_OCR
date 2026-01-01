@@ -103,3 +103,59 @@ resources:
     minRam: 512
     cores: 2
     note: "규칙 기반 검증 - 매우 가벼움"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "전체 규칙 검사"
+      description: "모든 카테고리 규칙 검사"
+      json:
+        symbols:
+          - class_name: "valve"
+            tag: "V-001"
+            bbox: {x1: 100, y1: 200, x2: 150, y2: 250}
+          - class_name: "pump"
+            tag: "P-001"
+            bbox: {x1: 300, y1: 400, x2: 380, y2: 480}
+        connections:
+          - from: "V-001"
+            to: "P-001"
+            type: "process"
+        categories: "all"
+        severity_threshold: "warning"
+        include_bwms: true
+
+    - name: "BWMS 전용"
+      description: "TECHCROSS BWMS 규칙만 검사"
+      json:
+        symbols: []
+        connections: []
+        texts:
+          - text: "ECS-100"
+            bbox: [100, 50, 200, 80]
+        categories: "bwms"
+        include_bwms: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          violations:
+            - rule_id: "CONN-001"
+              category: "connectivity"
+              severity: "error"
+              message: "밸브 V-003이 어떤 배관에도 연결되지 않음"
+              location: {x: 500, y: 300}
+            - rule_id: "BWMS-002"
+              category: "bwms"
+              severity: "warning"
+              message: "ECS 시스템에 필수 압력 센서 누락"
+          summary:
+            total_rules: 27
+            checked: 27
+            passed: 25
+            failed: 2
+          compliance_score: 92.6
+        processing_time: 0.35

@@ -1,10 +1,14 @@
-"""Region Segmenter Service (Phase 5)
+"""Region Segmenter Service (Phase 5 + DocLayout-YOLO 통합)
 
 도면 영역 분할 서비스
+- DocLayout-YOLO 기반 ML 검출 (신규, 40ms/이미지)
 - 휴리스틱 기반 영역 검출 (표제란, BOM 테이블, 메인 뷰 등)
 - VLM 연동 옵션 (Phase 4 VLMClassifier 활용)
 - 수동 영역 추가/수정 지원
 - 영역별 처리 전략 적용
+
+통합 일자: 2025-12-31
+DocLayout-YOLO 테스트: rnd/experiments/doclayout_yolo/REPORT.md
 """
 
 import os
@@ -34,6 +38,10 @@ BRIGHTNESS_THRESHOLD = int(os.environ.get("REGION_BRIGHTNESS_THRESHOLD", "10"))
 LINE_DIFF_THRESHOLD = int(os.environ.get("REGION_LINE_DIFF_THRESHOLD", "30"))
 MIN_TABLE_LINES = int(os.environ.get("REGION_MIN_TABLE_LINES", "3"))
 VARIANCE_THRESHOLD = int(os.environ.get("REGION_VARIANCE_THRESHOLD", "2000"))
+
+# DocLayout-YOLO 설정
+USE_DOCLAYOUT = os.environ.get("USE_DOCLAYOUT", "true").lower() == "true"
+DOCLAYOUT_FALLBACK_TO_HEURISTIC = os.environ.get("DOCLAYOUT_FALLBACK_TO_HEURISTIC", "true").lower() == "true"
 
 from schemas.detection import BoundingBox, VerificationStatus
 from schemas.region import (
@@ -112,19 +120,43 @@ class RegionSegmenter:
 
         # 영역 검출
         detected_regions: List[RegionDetectionResult] = []
+        detection_source = "heuristic"  # 검출 소스 추적
 
-        # 1. 휴리스틱 기반 영역 검출
-        heuristic_regions = self._detect_regions_heuristic(
-            image, image_width, image_height, config
-        )
-        detected_regions.extend(heuristic_regions)
+        # 1. DocLayout-YOLO 기반 영역 검출 (우선 시도)
+        if USE_DOCLAYOUT:
+            try:
+                doclayout_regions = self._detect_regions_doclayout(image_path, image_width, image_height)
+                if doclayout_regions:
+                    detected_regions.extend(doclayout_regions)
+                    detection_source = "doclayout"
+                    logger.info(f"[RegionSegmenter] DocLayout-YOLO: {len(doclayout_regions)}개 영역 검출")
+            except Exception as e:
+                logger.warning(f"[RegionSegmenter] DocLayout-YOLO 검출 실패: {e}")
 
-        # 2. VLM 기반 영역 검출 (옵션)
+        # 2. 휴리스틱 폴백 (DocLayout 결과 없거나 비활성화된 경우)
+        if not detected_regions or (not USE_DOCLAYOUT and DOCLAYOUT_FALLBACK_TO_HEURISTIC):
+            heuristic_regions = self._detect_regions_heuristic(
+                image, image_width, image_height, config
+            )
+            if not detected_regions:
+                detected_regions.extend(heuristic_regions)
+                detection_source = "heuristic"
+            else:
+                # DocLayout + 휴리스틱 병합
+                detected_regions = self._merge_regions(detected_regions, heuristic_regions)
+                detection_source = "hybrid"
+
+        # 3. VLM 기반 영역 검출 (옵션 - 저신뢰도 영역 검증)
         if use_vlm:
             try:
-                vlm_regions = await self._detect_regions_vlm(image_path)
-                # VLM 결과 병합 (높은 신뢰도 우선)
-                detected_regions = self._merge_regions(detected_regions, vlm_regions)
+                # VLM 폴백 필요 여부 확인
+                needs_vlm = self._needs_vlm_fallback(detected_regions)
+                if needs_vlm:
+                    vlm_regions = await self._detect_regions_vlm(image_path)
+                    # VLM 결과 병합 (높은 신뢰도 우선)
+                    detected_regions = self._merge_regions(detected_regions, vlm_regions)
+                    detection_source = f"{detection_source}+vlm"
+                    logger.info(f"[RegionSegmenter] VLM 폴백 적용: {len(vlm_regions)}개 영역")
             except Exception as e:
                 logger.warning(f"[RegionSegmenter] VLM 영역 검출 실패: {e}")
 
@@ -236,6 +268,76 @@ class RegionSegmenter:
                     regions.append(note)
 
         return regions
+
+    def _detect_regions_doclayout(
+        self,
+        image_path: str,
+        width: int,
+        height: int
+    ) -> List[RegionDetectionResult]:
+        """DocLayout-YOLO 기반 영역 검출 (ML 기반, 빠른 추론)"""
+        try:
+            from services.layout_analyzer import get_layout_analyzer
+
+            analyzer = get_layout_analyzer()
+            if not analyzer.is_available:
+                logger.warning("[RegionSegmenter] DocLayout-YOLO 사용 불가")
+                return []
+
+            # DocLayout-YOLO 추론
+            detections = analyzer.detect(image_path)
+
+            regions = []
+            for det in detections:
+                # DocLayout 클래스 → RegionType 매핑
+                region_type = self._map_doclayout_to_region_type(det.region_type)
+
+                regions.append(RegionDetectionResult(
+                    region_type=region_type,
+                    bbox=det.bbox,
+                    confidence=det.confidence,
+                    source="doclayout"
+                ))
+
+            return regions
+
+        except ImportError as e:
+            logger.warning(f"[RegionSegmenter] layout_analyzer 모듈 없음: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"[RegionSegmenter] DocLayout-YOLO 검출 실패: {e}")
+            return []
+
+    def _map_doclayout_to_region_type(self, doclayout_type: str) -> RegionType:
+        """DocLayout 클래스명을 RegionType으로 매핑"""
+        mapping = {
+            "TITLE_BLOCK": RegionType.TITLE_BLOCK,
+            "BOM_TABLE": RegionType.BOM_TABLE,
+            "MAIN_VIEW": RegionType.MAIN_VIEW,
+            "NOTES": RegionType.NOTES,
+            "OTHER": RegionType.UNKNOWN,
+            "LEGEND": RegionType.LEGEND,
+            "DETAIL_VIEW": RegionType.DETAIL_VIEW,
+            "SECTION_VIEW": RegionType.SECTION_VIEW,
+        }
+        return mapping.get(doclayout_type, RegionType.UNKNOWN)
+
+    def _needs_vlm_fallback(self, regions: List[RegionDetectionResult]) -> bool:
+        """VLM 폴백이 필요한지 확인"""
+        if not regions:
+            return True
+
+        # 평균 신뢰도가 0.5 미만이면 VLM 폴백
+        avg_confidence = sum(r.confidence for r in regions) / len(regions)
+        if avg_confidence < 0.5:
+            return True
+
+        # 메인 뷰가 없으면 VLM 폴백
+        has_main_view = any(r.region_type == RegionType.MAIN_VIEW for r in regions)
+        if not has_main_view:
+            return True
+
+        return False
 
     def _detect_title_block(
         self,

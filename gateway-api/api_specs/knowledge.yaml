@@ -144,3 +144,48 @@ resources:
     - parameter: search_mode
       impact: "hybrid 모드 시 처리 시간 증가"
       examples: "graphrag:빠름, hybrid:보통"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "유사 부품 검색"
+      description: "치수 기반 유사 부품 검색"
+      json:
+        query: "Ø25 H7 부품"
+        dimensions: ["25", "H7"]
+        search_mode: "hybrid"
+        top_k: 5
+        include_cost: true
+
+    - name: "재질 필터 검색"
+      description: "특정 재질 부품만 검색"
+      json:
+        query: "열교환기 부품"
+        material: "SUS304"
+        material_filter: "SUS304"
+        search_mode: "graphrag"
+        validate_standards: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          results:
+            - id: "PART-001"
+              name: "Shaft Ø25 H7"
+              similarity: 0.95
+              material: "SUS304"
+              cost: 15000
+            - id: "PART-002"
+              name: "Bushing Ø25 h6"
+              similarity: 0.88
+              material: "SUS316"
+              cost: 18000
+          similar_parts:
+            - part_number: "PART-001"
+              dimensions: ["Ø25", "H7"]
+              projects: ["PRJ-2024-001", "PRJ-2024-005"]
+          total_found: 12
+        processing_time: 0.35

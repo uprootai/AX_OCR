@@ -1,0 +1,72 @@
+# DocLayout-YOLO Fine-tuning Dataset Configuration
+# 도면 전용 레이아웃 분석 모델
+
+# 경로 설정
+path: /home/uproot/ax/poc/rnd/experiments/doclayout_yolo/finetuning/data
+train: train/images
+val: val/images
+
+# 클래스 정의 (8개 도면 전용 클래스)
+nc: 8
+names:
+  0: title_block      # 표제란 (우하단)
+  1: main_view        # 주 도면 뷰
+  2: detail_view      # 상세도 (Detail A, B...)
+  3: section_view     # 단면도 (Section A-A...)
+  4: bom_table        # BOM 테이블 / 부품 목록
+  5: notes            # 주기 / 노트 영역
+  6: legend           # 범례
+  7: revision_block   # 리비전 블록 (상단)
+
+# 클래스별 색상 (시각화용)
+colors:
+  title_block: [0, 255, 0]       # 초록
+  main_view: [255, 0, 0]         # 파랑 (BGR)
+  detail_view: [255, 0, 255]     # 마젠타
+  section_view: [0, 255, 255]    # 노랑
+  bom_table: [0, 0, 255]         # 빨강
+  notes: [255, 255, 0]           # 시안
+  legend: [128, 0, 255]          # 보라
+  revision_block: [255, 128, 0]  # 주황
+
+# 클래스별 설명 (라벨링 가이드)
+descriptions:
+  title_block: |
+    위치: 우하단 (일반적)
+    포함: 도면번호, 제목, 척도, 날짜, 회사명, 승인란
+    특징: 표 형태, 경계선 명확
+
+  main_view: |
+    정의: 가장 큰/주요 도면 뷰
+    특징: 치수선, 주석 포함
+    주의: 여러 개일 수 있음 (정면도, 측면도, 평면도)
+
+  detail_view: |
+    식별: "DETAIL A", "상세도 1", 원형 경계
+    특징: 확대된 부분 뷰, 스케일 표시
+    주의: main_view와 연결선 있음
+
+  section_view: |
+    식별: "SECTION A-A", "단면 A-A", 해칭 패턴
+    특징: 절단면 표시, 내부 구조
+    주의: 절단선 표시와 함께 나타남
+
+  bom_table: |
+    위치: 우측 또는 상단
+    특징: 품번, 품명, 재질, 수량 컬럼
+    주의: Parts List, 부품표로도 표시
+
+  notes: |
+    위치: 좌하단 (일반적)
+    포함: 주기, 일반 공차, 재료, 표면처리
+    특징: 번호 목록 형태
+
+  legend: |
+    위치: 다양
+    포함: 심볼 설명, 약어 정의, 색상 코드
+    주의: P&ID에서 주로 사용
+
+  revision_block: |
+    위치: 우상단 또는 title_block 상단
+    포함: REV, 날짜, 변경 내용, 승인자
+    특징: 표 형태, 리비전 이력

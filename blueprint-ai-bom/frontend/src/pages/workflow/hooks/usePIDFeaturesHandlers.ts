@@ -98,6 +98,7 @@ interface UsePIDFeaturesHandlersResult {
 
   // Export
   handleExport: (sessionId: string, exportType: 'valve' | 'equipment' | 'checklist' | 'deviation' | 'all') => Promise<void>;
+  handleExportPDF: (sessionId: string, exportType: 'valve' | 'equipment' | 'checklist' | 'deviation' | 'all') => Promise<void>;
 }
 
 export function usePIDFeaturesHandlers(): UsePIDFeaturesHandlersResult {
@@ -300,7 +301,7 @@ export function usePIDFeaturesHandlers(): UsePIDFeaturesHandlersResult {
     }
   }, []);
 
-  // Export handler
+  // Export handler (Excel)
   const handleExport = useCallback(async (
     sessionId: string,
     exportType: 'valve' | 'equipment' | 'checklist' | 'deviation' | 'all'
@@ -319,6 +320,28 @@ export function usePIDFeaturesHandlers(): UsePIDFeaturesHandlersResult {
       logger.log(`📥 P&ID ${exportType} Excel 다운로드 완료`);
     } catch (err) {
       logger.error('Export failed:', err);
+    }
+  }, []);
+
+  // Export handler (PDF)
+  const handleExportPDF = useCallback(async (
+    sessionId: string,
+    exportType: 'valve' | 'equipment' | 'checklist' | 'deviation' | 'all'
+  ) => {
+    if (!sessionId) return;
+    try {
+      const blob = await pidFeaturesApi.exportPDF(sessionId, exportType);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PID_Report_${exportType}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      logger.log(`📥 P&ID ${exportType} PDF 다운로드 완료`);
+    } catch (err) {
+      logger.error('PDF Export failed:', err);
     }
   }, []);
 
@@ -349,6 +372,7 @@ export function usePIDFeaturesHandlers(): UsePIDFeaturesHandlersResult {
 
     // Export
     handleExport,
+    handleExportPDF,
   };
 }
 

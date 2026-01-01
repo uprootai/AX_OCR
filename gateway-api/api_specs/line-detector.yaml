@@ -196,3 +196,62 @@ regionTypes:
   detail_area:
     korean: 상세도 영역
     description: 상세도 참조 영역
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 라인 검출"
+      description: "P&ID 라인 검출 및 스타일 분류"
+      formData:
+        file: "pid_drawing.png"
+        method: "lsd"
+        merge_lines: true
+        classify_styles: true
+        classify_colors: true
+        visualize: true
+
+    - name: "영역 검출 포함"
+      description: "점선 박스 영역 검출"
+      formData:
+        file: "bwms_pid.png"
+        method: "combined"
+        detect_regions: true
+        region_line_styles: "dashed,dash_dot"
+        min_region_area: 5000
+        visualize_regions: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          lines:
+            - id: 1
+              start: [100, 200]
+              end: [400, 200]
+              style: "solid"
+              color: "black"
+              usage: "process"
+            - id: 2
+              start: [200, 100]
+              end: [200, 300]
+              style: "dashed"
+              color: "blue"
+              usage: "instrument"
+          intersections:
+            - point: [200, 200]
+              lines: [1, 2]
+          regions:
+            - id: 1
+              type: "signal_group"
+              label: "SIGNAL FOR BWMS"
+              bbox: [500, 100, 800, 400]
+              lines_count: 12
+          statistics:
+            total_lines: 156
+            by_style: {solid: 120, dashed: 28, dash_dot: 8}
+            by_color: {black: 140, blue: 12, red: 4}
+            regions_found: 3
+          visualization: "data:image/png;base64,..."
+        processing_time: 1.85

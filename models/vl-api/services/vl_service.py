@@ -319,3 +319,173 @@ def parse_json_from_text(text: str) -> Union[Dict, List]:
         # 실패 시 원본 텍스트 반환
         logger.error(f"Could not parse JSON from text: {text[:200]}")
         raise ValueError(f"Failed to parse JSON: {text[:200]}")
+
+
+# ============================================================================
+# LLaVA-CoT 스타일 다단계 추론 (Chain-of-Thought)
+# arXiv 2411.10440: LLaVA-CoT - Let Vision Language Models Reason Step-by-Step
+# ============================================================================
+
+COT_SYSTEM_PROMPT = """You are an expert visual reasoning system that analyzes images through systematic multi-step reasoning.
+
+For each question about an image, you MUST follow this 4-stage reasoning process:
+
+1. **SUMMARY**: Briefly summarize the question and identify what needs to be determined.
+
+2. **VISUAL INTERPRETATION**: Describe what you observe in the image that is relevant to the question. Focus on specific visual elements, components, labels, symbols, and any text visible.
+
+3. **LOGICAL REASONING**: Based on your visual observations, reason through the problem step by step. Consider relationships between elements, apply domain knowledge, and build your logical argument.
+
+4. **CONCLUSION**: State your final answer clearly and concisely, directly addressing the original question.
+
+You MUST structure your response EXACTLY in this JSON format:
+```json
+{
+    "summary": "Brief restatement of the question and what needs to be determined",
+    "visual_interpretation": "Detailed description of relevant visual elements observed",
+    "logical_reasoning": "Step-by-step reasoning based on observations",
+    "conclusion": "Clear and concise final answer"
+}
+```
+
+IMPORTANT: Always respond with valid JSON in the exact format above. Do not include any text outside the JSON block."""
+
+
+async def call_cot_reasoning(
+    image_bytes: bytes,
+    question: str,
+    model: str = "gpt-4o-mini",
+    temperature: float = 0.0
+) -> Dict[str, str]:
+    """
+    LLaVA-CoT 스타일 다단계 추론 수행
+
+    4단계 추론 프로세스:
+    1. Summary (요약)
+    2. Visual Interpretation (시각 해석)
+    3. Logical Reasoning (논리 추론)
+    4. Conclusion (결론)
+
+    Args:
+        image_bytes: 이미지 바이트 데이터
+        question: 사용자 질문
+        model: 모델명
+        temperature: 생성 다양성
+
+    Returns:
+        추론 단계별 결과 딕셔너리
+    """
+    # 전체 프롬프트 구성
+    full_prompt = f"""{COT_SYSTEM_PROMPT}
+
+User Question: {question}
+
+Analyze the image and provide your response in the required JSON format."""
+
+    # 모델 호출
+    if model.startswith("claude"):
+        response_text = await call_claude_api(
+            image_bytes, full_prompt, model, temperature=temperature
+        )
+    elif model.startswith("gpt"):
+        response_text = await call_openai_gpt4v_api(
+            image_bytes, full_prompt, model, temperature=temperature
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported model for CoT: {model}")
+
+    # JSON 파싱
+    try:
+        result = parse_json_from_text(response_text)
+
+        # 필수 키 확인
+        required_keys = ["summary", "visual_interpretation", "logical_reasoning", "conclusion"]
+        for key in required_keys:
+            if key not in result:
+                result[key] = ""
+                logger.warning(f"Missing CoT key: {key}")
+
+        logger.info(f"CoT reasoning completed with {len(result)} steps")
+        return result
+
+    except Exception as e:
+        logger.error(f"CoT parsing failed: {e}")
+        # 폴백: 원본 텍스트를 conclusion으로 사용
+        return {
+            "summary": "Failed to parse structured response",
+            "visual_interpretation": "",
+            "logical_reasoning": "",
+            "conclusion": response_text
+        }
+
+
+# ============================================================================
+# 도면 분류용 CoT 프롬프트 (Blueprint AI BOM 연동)
+# ============================================================================
+
+COT_CLASSIFICATION_PROMPT = """You are an expert engineering drawing classifier that analyzes drawings through systematic multi-step reasoning.
+
+Your task is to classify this engineering drawing into one of these categories:
+- **MECHANICAL**: General mechanical/engineering drawings (part drawings, assembly drawings)
+- **PID**: Piping and Instrumentation Diagrams (P&ID, process flow diagrams)
+- **ELECTRICAL**: Electrical diagrams (wiring diagrams, circuit diagrams)
+- **ASSEMBLY**: Assembly drawings showing how parts fit together
+- **DETAIL**: Detail views with specific dimensions and tolerances
+- **LAYOUT**: Layout or arrangement drawings
+- **OTHER**: None of the above categories
+
+Follow this 4-stage reasoning process:
+
+```json
+{
+    "summary": "State what type of drawing needs to be classified",
+    "visual_interpretation": "Describe key visual elements: symbols used, layout style, text/labels, line types, etc.",
+    "logical_reasoning": "Based on observations, explain which category best fits and why. Consider: Symbol types (valves, pumps = P&ID; nuts, bolts = mechanical), Label formats (tag numbers = P&ID; part numbers = mechanical), Drawing style (process flow = P&ID; orthographic views = mechanical)",
+    "conclusion": "State the classification category (MECHANICAL, PID, ELECTRICAL, ASSEMBLY, DETAIL, LAYOUT, or OTHER) and confidence level (high/medium/low)"
+}
+```"""
+
+
+async def classify_drawing_with_cot(
+    image_bytes: bytes,
+    model: str = "gpt-4o-mini",
+    temperature: float = 0.0
+) -> Dict[str, str]:
+    """
+    도면 분류를 위한 CoT 추론
+
+    Args:
+        image_bytes: 이미지 바이트 데이터
+        model: 모델명
+        temperature: 생성 다양성
+
+    Returns:
+        분류 결과 및 추론 과정
+    """
+    full_prompt = f"""{COT_CLASSIFICATION_PROMPT}
+
+Analyze this engineering drawing and classify it. Respond with valid JSON only."""
+
+    if model.startswith("claude"):
+        response_text = await call_claude_api(
+            image_bytes, full_prompt, model, temperature=temperature
+        )
+    elif model.startswith("gpt"):
+        response_text = await call_openai_gpt4v_api(
+            image_bytes, full_prompt, model, temperature=temperature
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported model: {model}")
+
+    try:
+        result = parse_json_from_text(response_text)
+        logger.info(f"Drawing classification with CoT: {result.get('conclusion', 'unknown')}")
+        return result
+    except Exception as e:
+        logger.error(f"Classification CoT parsing failed: {e}")
+        return {
+            "summary": "Classification analysis",
+            "visual_interpretation": "",
+            "logical_reasoning": "",
+            "conclusion": response_text
+        }

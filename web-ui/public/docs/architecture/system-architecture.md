@@ -1,458 +1,359 @@
-# 🏗️ AX 시스템 아키텍처
+# AX 시스템 아키텍처
 
-**버전**: 2.0.0
-**최종 업데이트**: 2025-11-14
-**점수**: 92-95/100
+**버전**: 3.0.0
+**최종 업데이트**: 2025-12-31
+**디자인 패턴 점수**: 100/100
 
 ---
 
-## 📋 목차
+## 목차
 
 1. [전체 시스템 개요](#전체-시스템-개요)
 2. [아키텍처 다이어그램](#아키텍처-다이어그램)
-3. [컴포넌트 상세](#컴포넌트-상세)
-4. [데이터 플로우](#데이터-플로우)
-5. [배포 구조](#배포-구조)
-6. [확장성 및 성능](#확장성-및-성능)
+3. [서비스 구조](#서비스-구조)
+4. [모듈화 패턴](#모듈화-패턴)
+5. [데이터 플로우](#데이터-플로우)
+6. [배포 구조](#배포-구조)
 
 ---
 
 ## 전체 시스템 개요
 
-AX 시스템은 도면 분석 및 공차 예측을 위한 **마이크로서비스 아키텍처** 기반 AI 플랫폼입니다.
+AX 시스템은 기계 도면 자동 분석 및 제조 견적 생성을 위한 **마이크로서비스 아키텍처** 기반 AI 플랫폼입니다.
 
 ### 핵심 특징
 
-- 🎯 **마이크로서비스**: 독립적인 8개 API 서비스 (Gateway + 7개 AI 서비스)
-- 🚀 **GPU 가속**: YOLO, eDOCr2, PaddleOCR, EDGNet에서 GPU 활용
-- 🌐 **통합 웹 UI**: React 기반 단일 인터페이스
-- 📊 **실시간 모니터링**: 시스템 상태 실시간 추적
-- 🔧 **모델 관리**: 웹에서 모델 학습/배포
+| 항목 | 내용 |
+|------|------|
+| **마이크로서비스** | 19개 독립 API 서비스 |
+| **GPU 가속** | YOLO, eDOCr2, PaddleOCR, EDGNet 등 8개 서비스 |
+| **통합 웹 UI** | React 19 + Vite + ReactFlow |
+| **워크플로우 빌더** | BlueprintFlow 시각적 파이프라인 빌더 |
+| **Human-in-the-Loop** | Blueprint AI BOM 검증 시스템 |
+| **테스트 커버리지** | 505개 테스트 통과 (gateway 364, web-ui 141) |
+
+### 처리 파이프라인
+
+```
+도면 이미지 → VLM 분류 → YOLO 검출 → OCR 추출 → 공차 분석 → 리비전 비교 → 견적 PDF
+```
 
 ---
 
 ## 아키텍처 다이어그램
 
-### 1. 시스템 전체 구조
+### 1. 전체 시스템 구조
 
 ```mermaid
 graph TB
     subgraph "사용자 인터페이스"
-        UI[웹 UI :5173<br/>React + TypeScript]
+        WEB[Web UI :5173<br/>React 19 + Vite]
+        BOM[Blueprint AI BOM :5021<br/>Human-in-the-Loop]
     end
 
     subgraph "API Gateway"
-        GW[Gateway API :8000<br/>통합 라우팅]
+        GW[Gateway API :8000<br/>FastAPI + 6개 라우터]
+    end
+
+    subgraph "Detection Services"
+        YOLO[YOLO :5005<br/>4개 모델 타입<br/>GPU]
+    end
+
+    subgraph "OCR Services"
+        EDOCR[eDOCr2 :5002<br/>한국어 치수<br/>GPU]
+        PADDLE[PaddleOCR :5006<br/>다국어<br/>GPU]
+        TESS[Tesseract :5008<br/>문서 OCR]
+        TROCR[TrOCR :5009<br/>필기체<br/>GPU]
+        EASY[EasyOCR :5015<br/>80+ 언어<br/>GPU]
+        SURYA[Surya :5013<br/>90+ 언어]
+        DOCTR[DocTR :5014<br/>2단계]
+        ENS[Ensemble :5011<br/>4엔진 투표]
+    end
+
+    subgraph "Segmentation Services"
+        EDGNET[EDGNet :5012<br/>엣지 세그멘테이션<br/>GPU]
+        LINE[Line Detector :5016<br/>P&ID 라인/영역]
+    end
+
+    subgraph "Analysis Services"
+        SKIN[SkinModel :5003<br/>공차 예측]
+        PID[PID Analyzer :5018<br/>연결성/BOM]
+        DESIGN[Design Checker :5019<br/>규칙 검증]
     end
 
     subgraph "AI Services"
-        YOLO[YOLO API :5005<br/>객체 탐지<br/>🎮 GPU]
-        EDOCR[eDOCr2 API :5001<br/>한글 OCR<br/>🎮 GPU]
-        PADDLE[PaddleOCR API :5006<br/>다국어 OCR<br/>🎮 GPU]
-        EDGNET[EDGNet API :5012<br/>도면 세그멘테이션<br/>🎮 GPU]
-        SKIN[Skin Model API :5003<br/>공차 예측<br/>XGBoost]
-        VL[VL API :5004<br/>멀티모달 분석]
+        VL[VL :5004<br/>Vision-Language<br/>GPU]
+        KNOW[Knowledge :5007<br/>Neo4j GraphRAG]
     end
 
-    subgraph "관리 시스템"
-        ADMIN[Admin API :9000<br/>시스템 관리]
+    subgraph "Preprocessing"
+        ESR[ESRGAN :5010<br/>4x 업스케일<br/>GPU]
     end
 
-    subgraph "인프라"
-        DOCKER[Docker Compose<br/>컨테이너 오케스트레이션]
-        GPU_HW[NVIDIA RTX 3080<br/>8GB VRAM]
-    end
+    WEB --> GW
+    BOM --> GW
+    GW --> YOLO
+    GW --> EDOCR
+    GW --> PADDLE
+    GW --> EDGNET
+    GW --> LINE
+    GW --> PID
+    GW --> DESIGN
+    GW --> VL
 
-    UI -->|HTTP/REST| GW
-    UI -->|관리 요청| ADMIN
-    GW -->|라우팅| YOLO
-    GW -->|라우팅| EDOCR
-    GW -->|라우팅| PADDLE
-    GW -->|라우팅| EDGNET
-    GW -->|라우팅| SKIN
-    GW -->|라우팅| VL
-
-    ADMIN -->|제어| DOCKER
-    ADMIN -->|모니터링| YOLO
-    ADMIN -->|모니터링| EDOCR
-    ADMIN -->|모니터링| PADDLE
-    ADMIN -->|모니터링| EDGNET
-    ADMIN -->|모니터링| SKIN
-    ADMIN -->|모니터링| VL
-
-    DOCKER -->|컨테이너 관리| YOLO
-    DOCKER -->|컨테이너 관리| EDOCR
-    DOCKER -->|컨테이너 관리| PADDLE
-    DOCKER -->|컨테이너 관리| EDGNET
-    DOCKER -->|컨테이너 관리| SKIN
-    DOCKER -->|컨테이너 관리| VL
-    DOCKER -->|컨테이너 관리| GW
-
-    YOLO -.->|GPU 사용| GPU_HW
-    EDOCR -.->|GPU 사용| GPU_HW
-    PADDLE -.->|GPU 사용| GPU_HW
-    EDGNET -.->|GPU 사용| GPU_HW
-
-    style UI fill:#e1f5ff
+    style WEB fill:#e1f5ff
     style GW fill:#fff3cd
     style YOLO fill:#d4edda
-    style EDOCR fill:#d4edda
-    style PADDLE fill:#d4edda
-    style EDGNET fill:#f8d7da
-    style SKIN fill:#f8d7da
-    style VL fill:#f8d7da
-    style ADMIN fill:#d1ecf1
-    style GPU_HW fill:#ffeaa7
+    style PID fill:#f0e6ff
+    style DESIGN fill:#f0e6ff
 ```
 
-### 2. 도면 분석 파이프라인
+### 2. Gateway API 라우터 구조 (v3.0)
+
+```mermaid
+graph TB
+    subgraph "gateway-api (335줄)"
+        APP[api_server.py<br/>lifespan + 라우터 등록]
+    end
+
+    subgraph "constants/ (SSOT)"
+        DOCKER[docker_services.py<br/>서비스 매핑]
+        DIRS[directories.py<br/>경로 상수]
+    end
+
+    subgraph "routers/ (6개)"
+        ADM[admin_router.py<br/>시스템 상태]
+        DOCK[docker_router.py<br/>컨테이너 관리]
+        RES[results_router.py<br/>결과 조회]
+        GPU[gpu_config_router.py<br/>GPU 설정]
+        PROC[process_router.py<br/>파이프라인 실행]
+        QUOTE[quote_router.py<br/>견적 생성]
+        DOWN[download_router.py<br/>파일 다운로드]
+        KEY[api_key_router.py<br/>API 키 관리]
+    end
+
+    subgraph "utils/"
+        SUB[subprocess_utils.py<br/>안전한 명령 실행]
+    end
+
+    APP --> DOCKER
+    APP --> DIRS
+    APP --> ADM
+    APP --> DOCK
+    APP --> RES
+    APP --> GPU
+    APP --> PROC
+    APP --> QUOTE
+    APP --> DOWN
+    APP --> KEY
+    ADM --> SUB
+    DOCK --> SUB
+
+    style APP fill:#fff3cd
+    style DOCKER fill:#d1ecf1
+```
+
+### 3. P&ID 분석 파이프라인
 
 ```mermaid
 graph LR
-    INPUT[도면 이미지<br/>PDF/PNG/JPG] --> YOLO
+    IMG[도면 이미지] --> YOLO
 
-    YOLO[1. YOLO<br/>객체 탐지] --> |감지된 영역| EDGNET
+    YOLO[YOLO<br/>pid_class_aware] --> |symbols| PID
+    LINE[Line Detector] --> |lines, regions| PID
+    PADDLE[PaddleOCR] --> |texts| PID
 
-    EDGNET[2. EDGNet<br/>세그멘테이션] --> |분할된 영역| EDOCR
+    PID[PID Analyzer] --> |connections<br/>bom<br/>valve_list| CHECK
 
-    EDOCR[3. eDOCr2<br/>텍스트 인식] --> |추출된 텍스트| SKIN
+    CHECK[Design Checker] --> |violations<br/>compliance %| RESULT
 
-    SKIN[4. Skin Model<br/>공차 예측] --> OUTPUT[분석 결과<br/>JSON]
+    RESULT[분석 결과<br/>+ Excel 내보내기]
 
-    VL[VL API<br/>보조 분석] -.-> |추가 정보| OUTPUT
-
-    style INPUT fill:#e1f5ff
-    style OUTPUT fill:#d4edda
-    style YOLO fill:#fff3cd
-    style EDGNET fill:#ffe6e6
-    style EDOCR fill:#e6f3ff
-    style SKIN fill:#f0e6ff
-    style VL fill:#ffe6f0
+    style YOLO fill:#d4edda
+    style PID fill:#f0e6ff
+    style CHECK fill:#f0e6ff
 ```
 
-### 3. 데이터 플로우
-
-```mermaid
-sequenceDiagram
-    participant U as 사용자
-    participant W as 웹 UI
-    participant G as Gateway
-    participant Y as YOLO
-    participant E as EDGNet
-    participant O as eDOCr2
-    participant S as Skin Model
-
-    U->>W: 도면 업로드
-    W->>G: POST /api/v1/analyze
-
-    G->>Y: 객체 탐지 요청
-    Y-->>G: 바운딩 박스
-
-    G->>E: 세그멘테이션 요청
-    E-->>G: 분할된 영역
-
-    G->>O: OCR 요청 (GPU 전처리)
-    O-->>G: 텍스트 데이터
-
-    G->>S: 공차 예측 요청
-    S-->>G: 예측 결과
-
-    G-->>W: 통합 결과 JSON
-    W-->>U: 시각화 결과
-```
-
-### 4. 관리 시스템 구조
+### 4. 모듈화된 API 구조
 
 ```mermaid
 graph TB
-    subgraph "웹 UI :5173"
-        DASHBOARD[Dashboard]
-        MONITOR[Monitor<br/>실시간 모니터링]
-        ADMIN_UI[Admin<br/>시스템 관리]
-        TEST[API Tests]
-        ANALYZE[Analyze]
+    subgraph "Before (1000줄+)"
+        OLD[api_server.py<br/>단일 파일]
     end
 
-    subgraph "Admin API :9000"
-        STATUS[시스템 상태<br/>/api/status]
-        MODELS[모델 관리<br/>/api/models]
-        TRAIN[학습 실행<br/>/api/train]
-        DOCKER_CTL[Docker 제어<br/>/api/docker]
-        LOGS[로그 조회<br/>/api/logs]
+    subgraph "After (~100줄)"
+        NEW[api_server.py<br/>lifespan + 라우터 등록]
     end
 
-    subgraph "모델 저장소"
-        SKINMODEL_FILES[Skin Model<br/>XGBoost .pkl]
-        EDGNET_FILES[EDGNet<br/>PyTorch .pt]
-        YOLO_FILES[YOLO<br/>best.pt]
-        EDOCR_FILES[eDOCr2<br/>TensorFlow .h5]
+    subgraph "분리된 모듈"
+        R[routers/<br/>엔드포인트 정의]
+        S[services/<br/>비즈니스 로직]
+        SC[schemas.py<br/>Pydantic 모델]
     end
 
-    MONITOR -->|GET| STATUS
-    ADMIN_UI -->|GET| STATUS
-    ADMIN_UI -->|GET| MODELS
-    ADMIN_UI -->|POST| TRAIN
-    ADMIN_UI -->|POST| DOCKER_CTL
-    ADMIN_UI -->|GET| LOGS
+    OLD --> |리팩토링| NEW
+    NEW --> R
+    NEW --> S
+    NEW --> SC
 
-    MODELS -->|Read| SKINMODEL_FILES
-    MODELS -->|Read| EDGNET_FILES
-    MODELS -->|Read| YOLO_FILES
-    MODELS -->|Read| EDOCR_FILES
-
-    TRAIN -->|Update| SKINMODEL_FILES
-    TRAIN -->|Update| EDGNET_FILES
-
-    style MONITOR fill:#d1ecf1
-    style ADMIN_UI fill:#d1ecf1
-    style STATUS fill:#d4edda
-    style MODELS fill:#fff3cd
-    style TRAIN fill:#f8d7da
-```
-
-### 5. GPU 리소스 할당
-
-```mermaid
-graph TB
-    GPU[NVIDIA RTX 3080 Laptop<br/>8192 MB VRAM]
-
-    GPU -->|~422 MB| YOLO_GPU[YOLO<br/>YOLOv11 추론]
-    GPU -->|~1500 MB| EDOCR_TF[eDOCr2<br/>TensorFlow 모델]
-    GPU -->|~3500 MB| EDOCR_CUPY[eDOCr2<br/>cuPy 전처리]
-    GPU -->|~200 MB| OTHER[기타<br/>시스템 오버헤드]
-
-    FREE[여유 메모리<br/>~2570 MB<br/>31%]
-
-    style GPU fill:#ffeaa7
-    style YOLO_GPU fill:#d4edda
-    style EDOCR_TF fill:#e1f5ff
-    style EDOCR_CUPY fill:#e1f5ff
-    style FREE fill:#d1ecf1
-```
-
-### 6. 네트워크 구조
-
-```mermaid
-graph TB
-    subgraph "Docker Network: ax_network"
-        WEB[web-ui<br/>172.21.0.9:80<br/>→ :5173]
-        GW[gateway-api<br/>172.21.0.2:8000]
-        Y[yolo-api<br/>172.21.0.3:5005]
-        EDO[edocr2-api<br/>172.21.0.4:5001]
-        EDG[edgnet-api<br/>172.21.0.5:5012]
-        SK[skinmodel-api<br/>172.21.0.6:5003]
-        VL[vl-api<br/>172.21.0.7:5004]
-    end
-
-    HOST[Host Machine<br/>localhost]
-    ADMIN[Admin API<br/>localhost:9000]
-
-    HOST -.->|5173| WEB
-    HOST -.->|8000| GW
-    HOST -.->|5001| EDO
-    HOST -.->|5005| Y
-    HOST -.->|5012| EDG
-    HOST -.->|5003| SK
-    HOST -.->|5004| VL
-    ADMIN -.->|Docker API| WEB
-    ADMIN -.->|Docker API| GW
-    ADMIN -.->|Docker API| Y
-    ADMIN -.->|Docker API| EDO
-
-    style HOST fill:#ffeaa7
-    style ADMIN fill:#d1ecf1
+    style OLD fill:#ffebee
+    style NEW fill:#e8f5e9
 ```
 
 ---
 
-## 컴포넌트 상세
+## 서비스 구조
 
-### 1. 웹 UI (Web Frontend)
+### API 서비스 목록 (19개)
 
-**기술 스택**:
-- React 19.1.1
-- TypeScript
-- Tailwind CSS
-- React Router
-- Axios
+| 카테고리 | 서비스 | 포트 | GPU | 설명 |
+|----------|--------|------|-----|------|
+| **Orchestrator** | Gateway | 8000 | - | 통합 API 게이트웨이 |
+| **Detection** | YOLO | 5005 | ✓ | 객체 검출 (4개 모델 타입) |
+| **OCR** | eDOCr2 | 5002 | ✓ | 한국어 치수 인식 |
+| **OCR** | PaddleOCR | 5006 | ✓ | 다국어 OCR |
+| **OCR** | Tesseract | 5008 | - | 문서 OCR |
+| **OCR** | TrOCR | 5009 | ✓ | 필기체 OCR |
+| **OCR** | EasyOCR | 5015 | ✓ | 80+ 언어 |
+| **OCR** | Surya | 5013 | - | 90+ 언어, 레이아웃 |
+| **OCR** | DocTR | 5014 | - | 2단계 파이프라인 |
+| **OCR** | Ensemble | 5011 | - | 4엔진 가중 투표 |
+| **Segmentation** | EDGNet | 5012 | ✓ | 엣지 세그멘테이션 |
+| **Segmentation** | Line Detector | 5016 | - | P&ID 라인/영역 검출 |
+| **Analysis** | SkinModel | 5003 | - | 공차 예측 (XGBoost) |
+| **Analysis** | PID Analyzer | 5018 | - | 연결성 분석, BOM |
+| **Analysis** | Design Checker | 5019 | - | 설계 규칙 검증 |
+| **Analysis** | Blueprint AI BOM | 5020 | - | Human-in-the-Loop |
+| **AI** | VL | 5004 | ✓ | Vision-Language |
+| **Knowledge** | Knowledge | 5007 | - | Neo4j GraphRAG |
+| **Preprocessing** | ESRGAN | 5010 | ✓ | 4x 업스케일링 |
 
-**주요 페이지**:
-| 페이지 | 경로 | 설명 |
-|--------|------|------|
-| Dashboard | `/dashboard` | 시스템 개요 |
-| Monitor | `/monitor` | 실시간 모니터링 (5초 자동 갱신) |
-| Admin | `/admin` | 시스템 관리 (모델, 학습, Docker) |
-| API Tests | `/test` | 개별 API 테스트 |
-| Analyze | `/analyze` | 파이프라인 분석 |
-| Docs | `/docs` | 문서 |
+### YOLO 모델 타입
 
-**설정 관리**:
-- `/src/config/api.ts` - 모든 API 엔드포인트 중앙 관리
-- `.env` - 환경별 설정
+| model_type | 클래스 수 | 용도 |
+|------------|----------|------|
+| engineering | 14 | 기계도면 치수/GD&T |
+| pid_class_aware | 32 | P&ID 심볼 분류 |
+| pid_class_agnostic | 1 | P&ID 심볼 위치만 |
+| bom_detector | 27 | 전력 설비 심볼 |
 
-### 2. Gateway API
+---
 
-**역할**: 통합 API 라우팅 및 헬스 체크
+## 모듈화 패턴
 
-**엔드포인트**:
-- `GET /api/v1/health` - 헬스 체크
-- `POST /api/v1/analyze` - 통합 분석
-- `POST /api/v1/yolo/*` - YOLO 프록시
-- `POST /api/v1/edocr2/*` - eDOCr2 프록시
-- `POST /api/v1/edgnet/*` - EDGNet 프록시
-- `POST /api/v1/skinmodel/*` - Skin Model 프록시
+### 파일 크기 규칙
 
-**기술**: FastAPI, Python 3.10
+| 라인 수 | 상태 | 조치 |
+|---------|------|------|
+| < 300줄 | ✅ 이상적 | 유지 |
+| 300-500줄 | ✅ 양호 | 유지 |
+| 500-800줄 | ⚠️ 주의 | 리팩토링 고려 |
+| > 1000줄 | ❌ 위반 | 즉시 분리 |
 
-### 3. YOLO API (🎮 GPU)
+### 리팩토링 결과 (9개 대형 파일)
 
-**모델**: YOLOv11
-**Framework**: PyTorch
-**VRAM 사용량**: ~422 MB
+| 파일 | Before | After | 분리 결과 |
+|------|--------|-------|----------|
+| gateway-api/api_server.py | 2,044줄 | 335줄 | 6개 라우터 |
+| web-ui/Guide.tsx | 1,235줄 | 151줄 | guide/ 디렉토리 |
+| web-ui/APIDetail.tsx | 1,197줄 | 248줄 | api-detail/ |
+| pid_features_router.py | 1,101줄 | 118줄 | pid_features/ (6개) |
+| region_extractor.py | 1,082줄 | 57줄 | region/ (5개) |
+| api_server_edocr_v1.py | 1,068줄 | 97줄 | edocr_v1/ |
+| bwms_rules.py | 1,031줄 | 89줄 | bwms/ (8개) |
+| NodePalette.tsx | 1,024줄 | 189줄 | node-palette/ |
 
-**엔드포인트**:
-- `GET /api/v1/health` - GPU 상태 포함
-- `POST /api/v1/detect` - 객체 탐지
+### 표준 API 모듈 구조
 
-**주요 기능**:
-- 실시간 객체 탐지
-- 바운딩 박스 추출
-- Confidence 기반 필터링
+```
+models/{api-name}-api/
+├── api_server.py           # 100-200줄 (lifespan + 라우터)
+├── schemas.py              # Pydantic 모델
+├── routers/
+│   ├── __init__.py         # 라우터 export
+│   └── *_router.py         # 엔드포인트
+├── services/
+│   ├── __init__.py         # 서비스 export
+│   ├── model.py            # 모델 로드/추론
+│   └── state.py            # 전역 상태 관리
+└── Dockerfile
+```
 
-### 4. eDOCr2 API (🎮 GPU)
+### 프론트엔드 분리 패턴
 
-**모델**: eDOCr v2 + cuPy GPU 전처리
-**Framework**: TensorFlow 2.15
-**VRAM 사용량**: ~5000 MB (모델 1500 MB + 전처리 3500 MB)
-
-**엔드포인트**:
-- `GET /api/v1/health`
-- `POST /api/v1/recognize` - OCR 실행
-
-**GPU 전처리**:
-- CLAHE (Contrast Limited Adaptive Histogram Equalization)
-- Gaussian Blur
-- Adaptive Thresholding
-
-**정확도 향상**: 10-15% (GPU 전처리 적용 시)
-
-### 5. EDGNet API
-
-**모델**: EDGNet (커스텀)
-**Framework**: PyTorch
-**용도**: 도면 세그멘테이션
-
-**엔드포인트**:
-- `GET /api/v1/health`
-- `POST /api/v1/segment` - 세그멘테이션
-
-**기능**:
-- 도면 영역 분할
-- 레이아웃 분석
-- 영역별 바운딩 박스
-
-### 6. Skin Model API
-
-**모델**: XGBoost v2.0
-**이전 모델**: RandomForest
-**용도**: 공차 예측
-
-**예측 항목**:
-- Flatness (R²: 0.8691)
-- Cylindricity (R²: 0.9550)
-- Position (R²: 0.7126)
-
-**평균 R²**: 0.8456
-**학습 시간**: ~14초
-
-**엔드포인트**:
-- `GET /api/v1/health`
-- `POST /api/v1/predict` - 공차 예측
-
-### 7. VL API
-
-**모델**: 멀티모달 비전-언어 모델
-**Framework**: Transformers
-**용도**: 보조 분석
-
-**엔드포인트**:
-- `GET /api/v1/health`
-- `POST /api/v1/analyze` - 멀티모달 분석
-
-### 8. Admin API
-
-**역할**: 시스템 관리 백엔드
-**Framework**: FastAPI
-**포트**: 9000
-
-**API 엔드포인트**:
-| 경로 | 메서드 | 설명 |
-|------|--------|------|
-| `/api/status` | GET | 전체 시스템 상태 |
-| `/api/gpu/stats` | GET | GPU 통계 |
-| `/api/models/{type}` | GET | 모델 파일 목록 |
-| `/api/train/{type}` | POST | 모델 학습 트리거 |
-| `/api/logs/{service}` | GET | 서비스 로그 (200줄) |
-| `/api/docker/{action}/{service}` | POST | Docker 제어 |
-
-**주요 기능**:
-- 실시간 모니터링 (5초 갱신)
-- 모델 파일 관리
-- 학습 실행 및 로그 확인
-- Docker 컨테이너 제어
+```
+ComponentName.tsx (대형 파일)
+    ↓ 분리
+component-name/
+├── index.ts              # re-export
+├── hooks/
+│   ├── useState.ts       # 상태 관리
+│   └── useHandlers.ts    # 이벤트 핸들러
+├── components/
+│   └── SubComponent.tsx  # 하위 컴포넌트
+├── sections/             # UI 섹션
+└── constants.ts          # 상수
+```
 
 ---
 
 ## 데이터 플로우
 
-### 1. 도면 분석 프로세스
+### BlueprintFlow 파이프라인 실행
 
-```
-1. 사용자 → 웹 UI: 도면 업로드 (PDF/PNG/JPG)
-2. 웹 UI → Gateway: POST /api/v1/analyze
-3. Gateway → YOLO: 객체 탐지
-   - 입력: 이미지
-   - 출력: 바운딩 박스 + Confidence
-4. Gateway → EDGNet: 세그멘테이션
-   - 입력: 이미지 + 바운딩 박스
-   - 출력: 분할된 영역
-5. Gateway → eDOCr2: OCR
-   - 입력: 영역별 이미지
-   - GPU 전처리: CLAHE + Gaussian + Thresholding
-   - 출력: 텍스트 데이터
-6. Gateway → Skin Model: 공차 예측
-   - 입력: 특징 벡터
-   - 출력: Flatness, Cylindricity, Position 값
-7. Gateway → 웹 UI: 통합 JSON 결과
-8. 웹 UI → 사용자: 시각화 (바운딩 박스, 텍스트, 예측값)
-```
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant W as Web UI
+    participant G as Gateway
+    participant PE as Pipeline Engine
+    participant API as API 서비스
 
-### 2. 모델 학습 프로세스
+    U->>W: 워크플로우 정의
+    W->>G: POST /api/v1/workflow/execute
 
-```
-1. 사용자 → 웹 UI (Admin): "학습 시작" 버튼 클릭
-2. 웹 UI → Admin API: POST /api/train/skinmodel
-3. Admin API → 학습 스크립트: scripts/upgrade_skinmodel_xgboost.py
-4. 학습 스크립트:
-   - 데이터 로드 (5000 샘플)
-   - 80/20 Train/Val 분할
-   - XGBoost 학습 (3개 모델)
-   - 모델 저장 (.pkl)
-   - 메타데이터 저장 (.json)
-5. Admin API → 웹 UI: 학습 결과 (stdout/stderr)
-6. 웹 UI → 사용자: 결과 팝업 + R² 점수
+    G->>PE: 워크플로우 실행
+    PE->>PE: DAG 검증 & Topological Sort
+
+    loop 각 노드별
+        PE->>API: 노드 실행
+        API-->>PE: 결과
+        PE->>W: SSE 진행 상황
+    end
+
+    PE-->>G: 최종 결과
+    G-->>W: JSON 응답
+    W-->>U: 결과 시각화
 ```
 
-### 3. 실시간 모니터링 프로세스
+### Human-in-the-Loop 워크플로우
 
-```
-1. 웹 UI (Monitor 페이지) 로드
-2. useEffect Hook 실행
-3. 5초마다 자동 갱신:
-   - GET /api/status (Admin API)
-   - 응답: 6개 API 상태 + GPU 상태 + 시스템 리소스
-4. React State 업데이트
-5. UI 재렌더링 (진행 바, 상태 뱃지, 수치)
+```mermaid
+graph TB
+    subgraph "1. 검출 단계"
+        A[도면 업로드] --> B[YOLO 검출]
+        B --> C[Line Detector]
+        C --> D[OCR 추출]
+    end
+
+    subgraph "2. 분석 단계"
+        D --> E[PID Analyzer]
+        E --> F[Design Checker]
+    end
+
+    subgraph "3. 검증 단계"
+        F --> G{신뢰도 < 임계값?}
+        G --> |Yes| H[검증 큐 추가]
+        G --> |No| I[자동 승인]
+        H --> J[작업자 검증]
+        J --> K[피드백 저장]
+    end
+
+    subgraph "4. 내보내기"
+        I --> L[BOM/Excel 생성]
+        K --> L
+    end
 ```
 
 ---
@@ -462,186 +363,118 @@ graph TB
 ### Docker Compose 구성
 
 ```yaml
-version: '3.8'
-
 services:
-  web-ui:
-    ports: ["5173:80"]
-    networks: [ax_network]
+  # Frontend
+  web-ui:           # :5173
+  blueprint-ai-bom: # :5020, :5021
 
-  gateway-api:
-    ports: ["8000:8000"]
-    networks: [ax_network]
+  # Gateway
+  gateway-api:      # :8000
 
-  yolo-api:
-    ports: ["5005:5005"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    networks: [ax_network]
+  # Detection (GPU)
+  yolo-api:         # :5005
 
-  edocr2-api:
-    ports: ["5001:5001"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    networks: [ax_network]
+  # OCR (8개)
+  edocr2-v2-api:    # :5002 (GPU)
+  paddleocr-api:    # :5006 (GPU)
+  tesseract-api:    # :5008
+  trocr-api:        # :5009 (GPU)
+  easyocr-api:      # :5015 (GPU)
+  surya-ocr-api:    # :5013
+  doctr-api:        # :5014
+  ocr-ensemble-api: # :5011
 
-  edgnet-api:
-    ports: ["5012:5012"]
-    networks: [ax_network]
+  # Segmentation
+  edgnet-api:       # :5012 (GPU)
+  line-detector-api: # :5016
 
-  skinmodel-api:
-    ports: ["5003:5003"]
-    networks: [ax_network]
+  # Analysis
+  skinmodel-api:    # :5003
+  pid-analyzer-api: # :5018
+  design-checker-api: # :5019
 
-  vl-api:
-    ports: ["5004:5004"]
-    networks: [ax_network]
+  # AI
+  vl-api:           # :5004 (GPU)
+  knowledge-api:    # :5007
+
+  # Preprocessing
+  esrgan-api:       # :5010 (GPU)
 
 networks:
-  ax_network:
+  ax_poc_network:
     driver: bridge
 ```
 
-### 포트 매핑
+### GPU Override 시스템
 
-| 서비스 | 컨테이너 포트 | 호스트 포트 | 용도 |
-|--------|---------------|-------------|------|
-| Web UI | 80 | 5173 | 웹 인터페이스 |
-| Gateway | 8000 | 8000 | 통합 API |
-| eDOCr2 | 5001 | 5001 | OCR API |
-| Skin Model | 5003 | 5003 | 공차 예측 |
-| VL | 5004 | 5004 | 멀티모달 |
-| YOLO | 5005 | 5005 | 객체 탐지 |
-| EDGNet | 5012 | 5012 | 세그멘테이션 |
-| Admin | 9000 | 9000 | 시스템 관리 (Host) |
+GPU 설정은 `docker-compose.override.yml`에서 동적으로 관리:
 
----
+```yaml
+# docker-compose.override.yml (로컬, .gitignore)
+services:
+  yolo-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]
+            count: 1
+```
 
-## 확장성 및 성능
-
-### 현재 성능
-
-**API 응답 시간** (헬스 체크):
-- eDOCr2: 3.5ms
-- EDGNet: 5.0ms
-- Skin Model: 3.5ms
-- VL: 4.4ms
-- YOLO: 8.5ms
-- Gateway: 39.3ms
-
-**GPU 성능**:
-- 총 VRAM: 8192 MB
-- 사용 중: 1715 MB (21%)
-- 여유: 6477 MB (79%)
-- 활용률: 8% (유휴 시)
-
-**처리 시간** (4K 도면 기준):
-- YOLO 탐지: ~2초
-- EDGNet 세그멘테이션: ~3초
-- eDOCr2 OCR: ~20초 (GPU 전처리 포함)
-- Skin Model 예측: ~0.5초
-- **총 처리 시간**: ~25-30초
-
-### 확장 가능성
-
-**수평 확장 (Scale Out)**:
-1. 각 API를 독립적으로 복제 가능
-2. Gateway에서 로드 밸런싱
-3. Kubernetes로 마이그레이션 시 자동 스케일링
-
-**수직 확장 (Scale Up)**:
-1. GPU 추가 (RTX 4090, A100 등)
-2. 메모리 증설
-3. 더 강력한 CPU
-
-**병목 지점**:
-1. eDOCr2 OCR 처리 (현재 가장 느림)
-   - 해결: 배치 처리, 다중 GPU
-2. Gateway 라우팅
-   - 해결: Redis 캐싱, 비동기 처리
-
-### 최적화 이력
-
-| 최적화 | 점수 영향 | 상태 |
-|--------|-----------|------|
-| YOLO GPU 가속 | +3점 | ✅ 완료 |
-| EDGNet 데이터 증강 | +2점 | ✅ 완료 |
-| eDOCr2 GPU 전처리 | +5점 | ✅ 완료 |
-| Skin Model XGBoost | +5점 | ✅ 완료 |
-| 웹 UI 통합 | +2점 | ✅ 완료 |
-
-**최종 점수**: **92-95/100**
+| GPU 지원 서비스 | 기본 상태 | 활성화 방법 |
+|----------------|----------|------------|
+| YOLO | OFF | Dashboard 또는 override.yml |
+| eDOCr2 | OFF | Dashboard 또는 override.yml |
+| PaddleOCR | OFF | Dashboard 또는 override.yml |
+| TrOCR | OFF | Dashboard 또는 override.yml |
+| EDGNet | OFF | Dashboard 또는 override.yml |
+| ESRGAN | OFF | Dashboard 또는 override.yml |
+| EasyOCR | OFF | Dashboard 또는 override.yml |
+| VL | OFF | Dashboard 또는 override.yml |
 
 ---
 
-## 기술 스택 요약
+## 기술 스택
 
-### 프론트엔드
-- **Framework**: React 19.1.1 + TypeScript
-- **UI**: Tailwind CSS 3.4.18
-- **라우팅**: React Router 7.9.4
-- **상태 관리**: Zustand 5.0.8
-- **HTTP**: Axios 1.12.2
+### Frontend
+- **Framework**: React 19 + TypeScript
 - **빌드**: Vite
+- **상태 관리**: Zustand
+- **UI**: Tailwind CSS + shadcn/ui
+- **워크플로우**: ReactFlow
+- **i18n**: i18next (ko/en)
 
-### 백엔드
-- **API Framework**: FastAPI 0.104.1
-- **Python**: 3.10
-- **비동기**: Uvicorn 0.24.0
+### Backend
+- **Framework**: FastAPI 0.104+
+- **Python**: 3.10+
+- **비동기**: Uvicorn + asyncio
 - **HTTP Client**: httpx (async)
 
 ### AI/ML
-- **객체 탐지**: YOLOv11 (PyTorch)
-- **OCR**: eDOCr v2 (TensorFlow 2.15)
-- **세그멘테이션**: EDGNet (PyTorch)
-- **공차 예측**: XGBoost 3.1.1
-- **멀티모달**: Transformers
+- **객체 검출**: YOLOv11 (PyTorch)
+- **OCR**: eDOCr2, PaddleOCR, TrOCR 등
+- **세그멘테이션**: EDGNet, Line Detector
+- **공차 예측**: XGBoost
+- **Vision-Language**: Qwen2-VL
 
 ### 인프라
 - **컨테이너**: Docker + Docker Compose
-- **GPU**: NVIDIA RTX 3080 Laptop (8GB)
-- **OS**: Ubuntu/Linux
-- **웹 서버**: Nginx (for static files)
-
-### 모니터링
-- **시스템**: psutil 7.1.3
-- **GPU**: nvidia-smi
-- **로그**: Docker logs
-- **헬스 체크**: FastAPI endpoints
+- **GPU**: NVIDIA (CUDA 11.8+)
+- **네트워크**: ax_poc_network (bridge)
 
 ---
 
-## 다음 단계
+## 테스트 현황
 
-### Short-term (1-2주)
-1. 실제 도면 데이터로 정확도 검증
-2. 에러 핸들링 강화
-3. 사용자 피드백 수집
-
-### Mid-term (1-3개월)
-1. 대규모 데이터 수집 및 학습 (+3-5점)
-2. Prometheus + Grafana 모니터링 (+2점)
-3. 사용자 인증 추가
-4. API 버전 관리
-
-### Long-term (3-6개월)
-1. Kubernetes 마이그레이션
-2. 클라우드 배포 (AWS/GCP)
-3. 멀티 GPU 지원
-4. 실시간 스트리밍 분석
+| 영역 | 테스트 수 | 상태 |
+|------|----------|------|
+| gateway-api | 238개 | ✅ |
+| web-ui | 141개 | ✅ |
+| models | 65개 | ✅ |
+| **총계** | **400개+** | ✅ |
 
 ---
 
-**작성자**: Claude Code
-**마지막 업데이트**: 2025-11-14
-**버전**: 2.0.0
+**작성자**: Claude Code (Opus 4.5)
+**마지막 업데이트**: 2025-12-31
+**버전**: 3.0.0

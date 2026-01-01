@@ -1,0 +1,206 @@
+# PDF Export API Spec
+# P&ID 분석 결과 PDF 리포트 내보내기
+
+api_id: pdfexport
+display_name: PDF Export
+version: "1.0"
+category: analysis
+port: 5020  # Blueprint AI BOM 백엔드 사용
+base_url: http://blueprint-ai-bom-backend:5020
+
+description: |
+  P&ID 분석 결과를 전문적인 PDF 리포트로 내보냅니다.
+  TECHCROSS BWMS 스타일의 표지, 요약 통계, 상세 목록을 포함합니다.
+  Equipment, Valve, Checklist, Deviation 섹션을 선택적으로 포함할 수 있습니다.
+
+tags:
+  - export
+  - pdf
+  - report
+  - analysis
+  - techcross
+
+endpoints:
+  # PDF 리포트 생성
+  generate:
+    path: /api/v1/pid-features/{session_id}/export/pdf
+    method: POST
+    description: P&ID 분석 결과를 PDF로 내보내기
+    parameters:
+      session_id:
+        type: string
+        required: true
+        in: path
+        description: 세션 ID
+      export_type:
+        type: string
+        required: false
+        in: query
+        default: all
+        enum:
+          - all
+          - valve
+          - equipment
+          - checklist
+          - deviation
+        description: 내보내기 범위 선택
+      project_name:
+        type: string
+        required: false
+        in: query
+        default: "Unknown Project"
+        description: PDF 표지에 표시될 프로젝트명
+      drawing_no:
+        type: string
+        required: false
+        in: query
+        default: "N/A"
+        description: 도면 번호
+      include_rejected:
+        type: boolean
+        required: false
+        in: query
+        default: false
+        description: 거부된 항목 포함 여부
+    response:
+      content_type: application/pdf
+      headers:
+        Content-Disposition:
+          type: string
+          description: 파일명이 포함된 attachment 헤더
+        X-Export-Type:
+          type: string
+          description: 내보내기 타입
+        X-Session-Id:
+          type: string
+          description: 세션 ID
+        X-Report-Format:
+          type: string
+          description: 리포트 포맷 (pdf)
+
+  # Excel 내보내기 (대안)
+  excel:
+    path: /api/v1/pid-features/{session_id}/export
+    method: POST
+    description: P&ID 분석 결과를 Excel로 내보내기
+    parameters:
+      session_id:
+        type: string
+        required: true
+        in: path
+        description: 세션 ID
+      export_type:
+        type: string
+        required: true
+        in: query
+        description: 내보내기 범위
+      project_name:
+        type: string
+        required: false
+        in: query
+        description: 프로젝트명
+      drawing_no:
+        type: string
+        required: false
+        in: query
+        description: 도면 번호
+      include_rejected:
+        type: boolean
+        required: false
+        in: query
+        default: false
+        description: 거부된 항목 포함 여부
+    response:
+      content_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+# BlueprintFlow 노드 메타데이터
+blueprintflow:
+  node_type: pdfexport
+  label: PDF Export
+  category: analysis
+  color: "#dc2626"
+  icon: FileText
+
+  inputs:
+    - name: session_data
+      type: SessionData
+      description: 워크플로우 분석 결과 (Equipment, Valve, Checklist 등)
+    - name: image
+      type: Image
+      description: 원본 이미지 (도면 번호 참조용)
+      optional: true
+
+  outputs:
+    - name: pdf_url
+      type: string
+      description: 생성된 PDF 다운로드 URL
+    - name: filename
+      type: string
+      description: PDF 파일명
+    - name: summary
+      type: ExportSummary
+      description: 내보내기 요약
+
+  parameters:
+    - name: export_type
+      type: select
+      default: all
+      options:
+        - all
+        - valve
+        - equipment
+        - checklist
+        - deviation
+      description: 내보내기 범위 선택
+    - name: project_name
+      type: string
+      default: ""
+      description: PDF 표지 프로젝트명
+    - name: drawing_no
+      type: string
+      default: ""
+      description: 도면 번호
+    - name: include_rejected
+      type: boolean
+      default: false
+      description: 거부된 항목 포함
+
+# 리소스 요구사항
+resources:
+  cpu:
+    ram: "~200MB"
+    minRam: 128
+    cores: 1
+    note: ReportLab PDF 생성 (CPU 전용)
+  parameterImpact:
+    - parameter: export_type
+      impact: "all 선택 시 더 많은 페이지 생성"
+      examples: "valve: 2-3p, all: 8-15p"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "전체 리포트"
+      description: "모든 섹션 포함 PDF 생성"
+      params:
+        session_id: "sess_20251231_123456"
+        export_type: "all"
+        project_name: "BWMS ECS Project"
+        drawing_no: "DWG-001-A"
+        include_rejected: false
+
+    - name: "밸브 목록만"
+      description: "Valve Signal List PDF"
+      params:
+        session_id: "sess_20251231_123456"
+        export_type: "valve"
+        project_name: "TECHCROSS BWMS"
+        drawing_no: "PID-001"
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      headers:
+        Content-Type: "application/pdf"
+        Content-Disposition: "attachment; filename=PID_Report_all_DWG-001-A_20251231.pdf"
+      description: "PDF 바이너리 데이터가 반환됩니다"

@@ -1,7 +1,7 @@
 # AX BlueprintFlow Documentation
 
 > 기계 도면 자동 분석 및 제조 견적 생성 시스템 문서
-> **최종 업데이트**: 2025-12-28 | **버전**: v10.0
+> **최종 업데이트**: 2025-12-31 | **버전**: v23.0
 
 ---
 
@@ -14,6 +14,20 @@
 | API 사용법 | [user/API_USAGE_MANUAL.md](user/API_USAGE_MANUAL.md) |
 | 사용자 가이드 | [user/USER_GUIDE.md](user/USER_GUIDE.md) |
 | **Blueprint AI BOM** | [blueprint-ai-bom/docs/](../blueprint-ai-bom/docs/README.md) |
+| **시스템 아키텍처** | [architecture/system-architecture.md](../web-ui/public/docs/architecture/system-architecture.md) |
+
+---
+
+## System Status
+
+```
+AX POC v23.0
+디자인 패턴: 100/100점
+테스트: 505개 통과 (gateway 364, web-ui 141)
+BlueprintFlow: 28개 노드
+ESLint: 0 에러, 3 경고
+API: 19/19 healthy
+```
 
 ---
 
@@ -39,7 +53,7 @@ docs/
 │   └── VL_API_SETUP_GUIDE.md     # VL API 설정
 │
 ├── API 레퍼런스 (api/)
-│   └── {api}/parameters.md       # 각 API 파라미터 (11개)
+│   └── {api}/parameters.md       # 각 API 파라미터 (19개)
 │
 ├── BlueprintFlow (blueprintflow/)
 │   ├── README.md                 # BlueprintFlow 개요
@@ -58,40 +72,40 @@ docs/
 │   └── MODEL_DOWNLOAD_INFO.md    # 모델 다운로드 정보
 │
 ├── 연구 논문 (papers/)
-│   ├── 01_OCR_Engineering_Drawings.md      # eDOCr v1
-│   ├── 02_eDOCr2_Vision_Language_Integration.md  # eDOCr v2
-│   ├── 03_Geometric_Tolerance_Additive_Manufacturing.md  # Skin Model
-│   └── 04_Graph_Neural_Network_Engineering_Drawings.md   # EDGNet
+│   ├── 01_OCR_Engineering_Drawings.md
+│   ├── 02_eDOCr2_Vision_Language_Integration.md
+│   └── ... (15개 논문)
 │
-└── 참조 자료 (references/)
-    └── *.pdf                     # 프로젝트 관련 PDF
+└── 인사이트 (insights/)
+    ├── benchmarks/               # 성능 벤치마크
+    └── lessons-learned/          # 베스트 프랙티스
 ```
 
 ---
 
-## API Services (18개) ✅ 전체 정상
+## API Services (19개)
 
-| Category | Service | Port | Parameters |
-|----------|---------|------|------------|
-| Detection | YOLO | 5005 | [yolo/parameters.md](api/yolo/parameters.md) (model_type으로 P&ID 지원) |
-| OCR | eDOCr2 | 5002 | [edocr2/parameters.md](api/edocr2/parameters.md) |
-| OCR | PaddleOCR | 5006 | [paddleocr/parameters.md](api/paddleocr/parameters.md) |
-| OCR | Tesseract | 5008 | [tesseract/parameters.md](api/tesseract/parameters.md) |
-| OCR | TrOCR | 5009 | [trocr/parameters.md](api/trocr/parameters.md) |
-| OCR | OCR Ensemble | 5011 | [ocr-ensemble/parameters.md](api/ocr-ensemble/parameters.md) |
-| OCR | Surya OCR | 5013 | [surya-ocr/parameters.md](api/surya-ocr/parameters.md) |
-| OCR | DocTR | 5014 | [doctr/parameters.md](api/doctr/parameters.md) |
-| OCR | EasyOCR | 5015 | [easyocr/parameters.md](api/easyocr/parameters.md) |
-| Segmentation | EDGNet | 5012 | [edgnet/parameters.md](api/edgnet/parameters.md) |
-| Segmentation | Line Detector | 5016 | [line-detector/parameters.md](api/line-detector/parameters.md) |
-| Preprocessing | ESRGAN | 5010 | [esrgan/parameters.md](api/esrgan/parameters.md) |
-| Analysis | SkinModel | 5003 | [skinmodel/parameters.md](api/skinmodel/parameters.md) |
-| Analysis | PID Analyzer | 5018 | [pid-analyzer/parameters.md](api/pid-analyzer/parameters.md) |
-| Analysis | Design Checker | 5019 | [design-checker/parameters.md](api/design-checker/parameters.md) |
-| Analysis | **Blueprint AI BOM** | 5020 | [blueprint-ai-bom/](../blueprint-ai-bom/docs/README.md) |
-| Knowledge | Knowledge | 5007 | [knowledge/parameters.md](api/knowledge/parameters.md) |
-| AI | VL | 5004 | [vl/parameters.md](api/vl/parameters.md) |
-| Orchestrator | Gateway | 8000 | - |
+| Category | Service | Port | Parameters | Status |
+|----------|---------|------|------------|--------|
+| **Orchestrator** | Gateway | 8000 | - | ✅ |
+| Detection | YOLO | 5005 | [yolo/parameters.md](api/yolo/parameters.md) | ✅ |
+| OCR | eDOCr2 | 5002 | [edocr2/parameters.md](api/edocr2/parameters.md) | ✅ |
+| OCR | PaddleOCR | 5006 | [paddleocr/parameters.md](api/paddleocr/parameters.md) | ✅ |
+| OCR | Tesseract | 5008 | [tesseract/parameters.md](api/tesseract/parameters.md) | ✅ |
+| OCR | TrOCR | 5009 | [trocr/parameters.md](api/trocr/parameters.md) | ✅ |
+| OCR | OCR Ensemble | 5011 | [ocr-ensemble/parameters.md](api/ocr-ensemble/parameters.md) | ✅ |
+| OCR | Surya OCR | 5013 | [surya-ocr/parameters.md](api/surya-ocr/parameters.md) | ✅ |
+| OCR | DocTR | 5014 | [doctr/parameters.md](api/doctr/parameters.md) | ✅ |
+| OCR | EasyOCR | 5015 | [easyocr/parameters.md](api/easyocr/parameters.md) | ✅ |
+| Segmentation | EDGNet | 5012 | [edgnet/parameters.md](api/edgnet/parameters.md) | ✅ |
+| Segmentation | Line Detector | 5016 | [line-detector/parameters.md](api/line-detector/parameters.md) | ✅ |
+| Preprocessing | ESRGAN | 5010 | [esrgan/parameters.md](api/esrgan/parameters.md) | ✅ |
+| Analysis | SkinModel | 5003 | [skinmodel/parameters.md](api/skinmodel/parameters.md) | ✅ |
+| Analysis | PID Analyzer | 5018 | [pid-analyzer/parameters.md](api/pid-analyzer/parameters.md) | ✅ |
+| Analysis | Design Checker | 5019 | [design-checker/parameters.md](api/design-checker/parameters.md) | ✅ |
+| Analysis | **Blueprint AI BOM** | 5020 | [blueprint-ai-bom/](../blueprint-ai-bom/docs/README.md) | ✅ |
+| Knowledge | Knowledge | 5007 | [knowledge/parameters.md](api/knowledge/parameters.md) | ✅ |
+| AI | VL | 5004 | [vl/parameters.md](api/vl/parameters.md) | ✅ |
 
 ---
 
@@ -122,17 +136,15 @@ Visual workflow builder for API composition.
 
 ---
 
-## Archived Documents
+## What's New in v23.0
 
-내부 보고서, deprecated 문서는 `archive/` 폴더에 있습니다.
-
-```
-archive/
-├── internal-reports/   # 내부 분석/평가 보고서
-└── deprecated/         # 더 이상 사용하지 않는 문서
-```
+- **ESLint 에러 0개 달성**: fast-refresh 규칙 준수, outputExtractors.ts 분리
+- **테스트 505개 통과**: gateway 364, web-ui 141 (Executor 단위 테스트 126개 추가)
+- **BlueprintFlow 28개 노드**: 5개 신규 노드 (GT Comparison, PDF/Excel Export, PID Features, Verification Queue)
+- **Feature Definition 동기화**: sync_feature_definitions.py 스크립트
+- **Executor 개발 가이드**: EXECUTOR_DEVELOPMENT_GUIDE.md
 
 ---
 
-**Last Updated**: 2025-12-24
+**Last Updated**: 2025-12-31
 **Managed By**: Claude Code (Opus 4.5)

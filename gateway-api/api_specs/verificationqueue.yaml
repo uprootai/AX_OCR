@@ -1,0 +1,200 @@
+# Verification Queue API Spec
+# Human-in-the-Loop 검증 큐 관리
+
+api_id: verificationqueue
+display_name: Verification Queue
+version: "1.0"
+category: analysis
+port: 5020
+base_url: http://blueprint-ai-bom-backend:5020
+
+description: |
+  Human-in-the-Loop 검증 큐를 관리합니다.
+  신뢰도가 낮은 항목을 검토하고 승인/거부/수정할 수 있습니다.
+  검증 완료 후 최종 리포트 생성에 사용됩니다.
+
+tags:
+  - verification
+  - human-in-the-loop
+  - queue
+  - review
+
+endpoints:
+  # 검증 큐 조회
+  get_queue:
+    path: /api/v1/pid-features/{session_id}/verify/queue
+    method: GET
+    description: 검증 대기 큐 조회
+    parameters:
+      session_id:
+        type: string
+        required: true
+        in: path
+      item_type:
+        type: string
+        in: query
+        enum: [all, valve, equipment, checklist]
+        default: all
+
+  # 단일 항목 검증
+  verify_item:
+    path: /api/v1/pid-features/{session_id}/verify
+    method: POST
+    description: 단일 항목 검증 (승인/거부)
+    parameters:
+      session_id:
+        type: string
+        required: true
+        in: path
+    request_body:
+      item_id:
+        type: string
+        required: true
+      item_type:
+        type: string
+        required: true
+        enum: [valve, equipment, checklist]
+      action:
+        type: string
+        required: true
+        enum: [verify, reject]
+      notes:
+        type: string
+
+  # 대량 검증
+  bulk_verify:
+    path: /api/v1/pid-features/{session_id}/verify/bulk
+    method: POST
+    description: 여러 항목 일괄 검증
+    parameters:
+      session_id:
+        type: string
+        required: true
+        in: path
+    request_body:
+      items:
+        type: array
+        items:
+          type: object
+          properties:
+            item_id:
+              type: string
+            item_type:
+              type: string
+            action:
+              type: string
+
+  # 검증 요약
+  get_summary:
+    path: /api/v1/pid-features/{session_id}/summary
+    method: GET
+    description: 검증 현황 요약
+
+blueprintflow:
+  node_type: verificationqueue
+  label: Verification Queue
+  category: analysis
+  color: "#f59e0b"
+  icon: ClipboardCheck
+
+  inputs:
+    - name: session_id
+      type: string
+      description: 세션 ID
+    - name: verification_queue
+      type: VerificationItem[]
+      description: 검증 대기 항목
+      optional: true
+
+  outputs:
+    - name: verified_items
+      type: VerifiedItem[]
+      description: 검증 완료 항목
+    - name: rejected_items
+      type: RejectedItem[]
+      description: 거부된 항목
+    - name: pending_items
+      type: PendingItem[]
+      description: 대기 중 항목
+    - name: summary
+      type: VerificationSummary
+      description: 검증 현황 요약
+
+  parameters:
+    - name: queue_filter
+      type: select
+      default: all
+      options: [all, valve, equipment, checklist]
+    - name: sort_by
+      type: select
+      default: confidence_asc
+      options: [confidence_asc, confidence_desc, type, created]
+    - name: batch_size
+      type: number
+      default: 20
+      min: 5
+      max: 100
+    - name: auto_approve_threshold
+      type: number
+      default: 0.95
+      min: 0.8
+      max: 1.0
+
+resources:
+  cpu:
+    ram: "~100MB"
+    minRam: 64
+    cores: 1
+    note: 세션 데이터 조회만
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "검증 큐 조회"
+      description: "전체 검증 대기 목록"
+      params:
+        session_id: "flow_20251231_abc123"
+        queue_filter: "all"
+        sort_by: "confidence_asc"
+        batch_size: 20
+
+    - name: "밸브만 필터"
+      description: "밸브 검증 항목만 조회"
+      params:
+        session_id: "flow_20251231_abc123"
+        queue_filter: "valve"
+        auto_approve_threshold: 0.95
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          verified_items:
+            - item_id: "V-001"
+              item_type: "valve"
+              confidence: 0.98
+              verification_status: "auto_verified"
+          rejected_items:
+            - item_id: "E-005"
+              item_type: "equipment"
+              reason: "오검출"
+          pending_items:
+            - item_id: "V-003"
+              item_type: "valve"
+              confidence: 0.65
+              data:
+                tag: "XV-103"
+                type: "Globe Valve"
+          summary:
+            total: 25
+            verified: 15
+            rejected: 2
+            pending: 8
+            auto_approved: 10
+            progress_rate: 68.0
+            valve_count: 12
+            equipment_count: 8
+            checklist_count: 5
+        processing_time: 0.12

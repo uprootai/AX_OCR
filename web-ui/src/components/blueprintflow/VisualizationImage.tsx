@@ -163,33 +163,3 @@ export default function VisualizationImage({
   );
 }
 
-// 시각화 필드 자동 감지
-export function extractVisualizationImages(output: Record<string, unknown>): {
-  field: string;
-  base64: string;
-  title: string;
-}[] {
-  const visualizationFields: Record<string, string> = {
-    'visualization': '결과 시각화',
-    'visualized_image': '시각화 이미지',
-    'annotated_image': '어노테이션 이미지',
-    'result_image': '결과 이미지',
-    'output_image': '출력 이미지',
-    'image': '이미지',
-    'segmentation_mask': '세그멘테이션 마스크',
-    'upscaled_image': '업스케일 이미지',
-    'enhanced_image': '향상된 이미지',
-  };
-
-  const results: { field: string; base64: string; title: string }[] = [];
-
-  for (const [field, title] of Object.entries(visualizationFields)) {
-    const value = output[field];
-    if (typeof value === 'string' && value.length > 100) {
-      // base64 이미지로 추정
-      results.push({ field, base64: value, title });
-    }
-  }
-
-  return results;
-}

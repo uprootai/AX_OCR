@@ -97,3 +97,35 @@ resources:
     - parameter: model
       impact: "모델에 따라 VRAM 차이"
       examples: "qwen-vl:8GB, llava:6GB, cogvlm:10GB"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "도면 분류"
+      description: "도면 유형 자동 분류"
+      json:
+        image: "base64_encoded_image..."
+        prompt: "이 도면의 유형을 분류해주세요. (기계도면, P&ID, 전기도면, 건축도면 중)"
+        model: "qwen-vl"
+        temperature: 0.3
+
+    - name: "부품 설명"
+      description: "도면 내 부품 설명 요청"
+      json:
+        image: "base64_encoded_image..."
+        prompt: "이 도면에서 주요 부품들을 설명해주세요."
+        model: "qwen-vl"
+        temperature: 0.7
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          response: "이 도면은 P&ID(Piping and Instrumentation Diagram)입니다. 주요 구성요소로는 밸브, 펌프, 열교환기가 포함되어 있습니다."
+          analysis:
+            drawing_type: "P&ID"
+            confidence: 0.92
+            components_found: ["valve", "pump", "heat_exchanger"]
+        processing_time: 2.15

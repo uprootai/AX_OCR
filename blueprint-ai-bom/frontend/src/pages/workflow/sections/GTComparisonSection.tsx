@@ -45,7 +45,7 @@ interface GTComparisonSectionProps {
 }
 
 export function GTComparisonSection({
-  sessionId,
+  sessionId: _sessionId,
   gtCompareResult,
   detectionCount,
   onUploadGT,

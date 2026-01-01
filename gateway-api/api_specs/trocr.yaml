@@ -110,3 +110,34 @@ resources:
     - parameter: model_type
       impact: "large 모델 시 VRAM 2배"
       examples: "printed:3GB, large-printed:6GB"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "인쇄 텍스트 인식"
+      description: "도면 인쇄 텍스트 OCR"
+      formData:
+        file: "text_line.png"
+        model_type: "printed"
+        max_length: 64
+        num_beams: 4
+
+    - name: "손글씨 인식"
+      description: "필기체 텍스트 OCR"
+      formData:
+        file: "handwritten.png"
+        model_type: "handwritten"
+        max_length: 128
+        num_beams: 5
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          texts:
+            - text: "Tolerance ±0.05"
+              confidence: 0.94
+          full_text: "Tolerance ±0.05"
+        processing_time: 0.85

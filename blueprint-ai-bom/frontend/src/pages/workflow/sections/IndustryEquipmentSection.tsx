@@ -58,7 +58,7 @@ const DEFAULT_PROFILES: IndustryProfile[] = [
 ];
 
 export function IndustryEquipmentSection({
-  sessionId,
+  sessionId: _sessionId,
   equipmentTags,
   selectedProfile,
   availableProfiles = DEFAULT_PROFILES,
@@ -71,15 +71,6 @@ export function IndustryEquipmentSection({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
 
-  // 장비 타입별 그룹화
-  const groupedByType = equipmentTags.reduce((acc, tag) => {
-    if (!acc[tag.type]) {
-      acc[tag.type] = [];
-    }
-    acc[tag.type].push(tag);
-    return acc;
-  }, {} as Record<string, EquipmentTag[]>);
-
   // 검색 필터링
   const filteredTags = searchQuery
     ? equipmentTags.filter(
@@ -88,6 +79,15 @@ export function IndustryEquipmentSection({
           tag.type.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : equipmentTags;
+
+  // 장비 타입별 그룹화 (필터링된 결과 기준)
+  const groupedByType = filteredTags.reduce((acc, tag) => {
+    if (!acc[tag.type]) {
+      acc[tag.type] = [];
+    }
+    acc[tag.type].push(tag);
+    return acc;
+  }, {} as Record<string, EquipmentTag[]>);
 
   const toggleType = (type: string) => {
     const newSet = new Set(expandedTypes);

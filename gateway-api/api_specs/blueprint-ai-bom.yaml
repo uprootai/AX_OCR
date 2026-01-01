@@ -172,3 +172,52 @@ resources:
     minRam: 256
     cores: 2
     note: "세션 관리 및 BOM 생성만 수행 (검출은 YOLO 노드에서)"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 BOM 생성"
+      description: "YOLO 검출 결과로 BOM 세션 생성"
+      json:
+        image: "drawing_001.png"
+        detections:
+          - class_name: "valve"
+            confidence: 0.95
+            bbox: {x1: 100, y1: 200, x2: 150, y2: 250}
+          - class_name: "pump"
+            confidence: 0.92
+            bbox: {x1: 300, y1: 400, x2: 380, y2: 480}
+        features: ["verification", "gt_comparison"]
+
+    - name: "GT 비교 포함"
+      description: "Ground Truth 비교 활성화"
+      json:
+        image: "test_drawing.png"
+        detections: []
+        features: ["verification", "gt_comparison"]
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          session_id: "sess_20251231_123456"
+          bom_data:
+            items:
+              - class_name: "valve"
+                quantity: 5
+                unit_price: 25000
+                total: 125000
+              - class_name: "pump"
+                quantity: 2
+                unit_price: 150000
+                total: 300000
+            summary:
+              total_quantity: 7
+              subtotal: 425000
+              tax: 42500
+              grand_total: 467500
+          approved_count: 0
+          export_url: "/api/bom/export/sess_20251231_123456"
+        processing_time: 1.2

@@ -200,9 +200,9 @@ industry_equipment_detection: { requiresAtLeastOne: ['symbol_detection', 'pid_co
 equipment_list_export: { requires: ['industry_equipment_detection'] },
 ```
 
-#### 검증 필요:
-- [ ] gt_comparison이 symbol_detection 없이 활성화되지 않는지 확인
-- [ ] industry_equipment_detection의 의존성이 올바른지 확인
+#### 검증 완료:
+- [x] gt_comparison이 symbol_detection 없이 활성화되지 않는지 확인 ✅
+- [x] industry_equipment_detection의 의존성이 올바른지 확인 ✅
 
 ---
 
@@ -289,7 +289,8 @@ web-ui/src/pages/dashboard/guide/
 
 ### 8.1 디자인 패턴 점수
 - 현재: **100/100점** (목표 달성)
-- 테스트: **~400개** (gateway 238, web-ui 141, models 65+)
+- 테스트: **505개** (gateway 364, web-ui 141)
+- ESLint: **0 에러**, 3 경고
 
 ### 8.2 파일 크기 규칙
 - 목표: 모든 소스 파일 **1,000줄 이하**

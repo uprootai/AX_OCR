@@ -196,7 +196,7 @@ function WorkflowBuilderCanvas() {
 
       // 기존 노드들과 겹치지 않도록 위치 조정
       const existingNodePositions = nodes.map(n => n.position);
-      let offsetX = 250;
+      const offsetX = 250;
       let offsetY = 0;
 
       // 이미 해당 위치에 노드가 있으면 아래로 이동

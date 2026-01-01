@@ -101,3 +101,43 @@ resources:
     - parameter: num_classes
       impact: "클래스 수↑ → 메모리↑"
       examples: "8클래스:3GB, 20클래스:5GB"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 세그멘테이션"
+      description: "도면 구조 분석"
+      formData:
+        file: "drawing.png"
+        model: "unet"
+        num_classes: 8
+        visualize: true
+
+    - name: "그래프 기반 분석"
+      description: "GraphSAGE 모델 사용"
+      formData:
+        file: "complex_drawing.png"
+        model: "graphsage"
+        num_classes: 12
+        save_graph: true
+        vectorize: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          components:
+            - class: "dimension"
+              count: 25
+              confidence: 0.92
+            - class: "symbol"
+              count: 15
+              confidence: 0.88
+            - class: "text"
+              count: 42
+              confidence: 0.95
+          total_components: 82
+          visualized_image: "data:image/png;base64,..."
+        processing_time: 3.15

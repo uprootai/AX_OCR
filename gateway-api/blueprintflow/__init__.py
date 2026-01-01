@@ -42,6 +42,16 @@ from .executors import (
     designchecker_executor,
     # BOM Executor
     bom_executor,
+    # GT Comparison Executor
+    gtcomparison_executor,
+    # PDF Export Executor
+    pdfexport_executor,
+    # Excel Export Executor
+    excelexport_executor,
+    # PID Features Executor
+    pidfeatures_executor,
+    # Verification Queue Executor
+    verificationqueue_executor,
 )
 
 __all__ = [

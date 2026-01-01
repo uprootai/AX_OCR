@@ -1,16 +1,26 @@
-# 🔤 PaddleOCR API
+# PaddleOCR 3.0 API (PP-OCRv5)
 
-Fast and accurate OCR service powered by PaddlePaddle's PaddleOCR.
+Fast and accurate OCR service powered by PaddlePaddle's PP-OCRv5.
 
-## 📋 Overview
+## Overview
 
 - **Purpose**: General-purpose optical character recognition
-- **Model**: PaddleOCR (multi-language support)
+- **Model**: PP-OCRv5 (13% accuracy improvement over v4)
 - **Port**: 5006
 - **GPU**: Recommended (CPU fallback available)
-- **Languages**: English, Chinese, Korean, Japanese, and 80+ more
+- **Languages**: 106 languages (English, Chinese, Korean, Japanese, Arabic, and more)
 
-## 🚀 Quick Start (Standalone)
+## What's New in 3.0.0
+
+| Feature | PP-OCRv4 | PP-OCRv5 |
+|---------|----------|----------|
+| **Accuracy** | Baseline | +13% improvement |
+| **Languages** | ~80 | 106 |
+| **Vertical Text** | Limited | Excellent |
+| **Handwriting** | Limited | Improved |
+| **Model Size** | ~100MB | ~100MB |
+
+## Quick Start (Standalone)
 
 ### Prerequisites
 - Docker & Docker Compose
@@ -38,8 +48,9 @@ Expected response:
 ```json
 {
   "status": "healthy",
-  "service": "PaddleOCR API",
-  "version": "1.0.0"
+  "service": "paddleocr-api",
+  "version": "3.0.0",
+  "ocr_version": "PP-OCRv5"
 }
 ```
 
@@ -47,7 +58,7 @@ Expected response:
 
 Open in browser: **http://localhost:5006/docs**
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Health Check
 ```bash
@@ -61,31 +72,34 @@ Content-Type: multipart/form-data
 
 Parameters:
 - file: image file (PNG, JPG, JPEG, TIFF, BMP)
-- use_gpu: true/false (default: true)
-- use_angle_cls: true/false (default: true)
 - lang: language code (default: 'en')
+- det_db_thresh: detection threshold (default: 0.3)
+- det_db_box_thresh: box threshold (default: 0.6)
+- use_textline_orientation: enable text line orientation (default: true)
+- min_confidence: minimum confidence filter (default: 0.5)
+- visualize: generate visualization image (default: false)
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Test with a sample image
 curl -X POST http://localhost:5006/api/v1/ocr \
   -F "file=@/path/to/image.jpg" \
-  -F "use_gpu=true" \
-  -F "lang=en"
+  -F "lang=korean" \
+  -F "min_confidence=0.5"
 ```
 
-## 🐳 Docker Image Distribution
+## Docker Image Distribution
 
 ### Build Image
 ```bash
-docker build -t ax-paddleocr-api:latest .
+docker build -t ax-paddleocr-api:3.0.0 .
 ```
 
 ### Save Image for Distribution
 ```bash
-docker save ax-paddleocr-api:latest -o paddleocr-api.tar
+docker save ax-paddleocr-api:3.0.0 -o paddleocr-api.tar
 ```
 
 ### Load Image (on target machine)
@@ -100,62 +114,72 @@ docker run -d \
   -p 5006:5006 \
   --gpus all \
   -e USE_GPU=true \
-  -e USE_ANGLE_CLS=true \
+  -e OCR_VERSION=PP-OCRv5 \
   -e OCR_LANG=en \
-  ax-paddleocr-api:latest
+  ax-paddleocr-api:3.0.0
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PADDLEOCR_PORT` | 5006 | API server port |
-| `USE_GPU` | true | Enable GPU acceleration |
-| `USE_ANGLE_CLS` | true | Enable text angle classification |
-| `OCR_LANG` | en | OCR language (en, ch, korean, japan, etc.) |
-| `PYTHONUNBUFFERED` | 1 | Python output buffering |
+| `USE_GPU` | false | Enable GPU acceleration |
+| `OCR_VERSION` | PP-OCRv5 | OCR model version |
+| `OCR_LANG` | en | OCR language |
+| `DEVICE` | cpu | Inference device (cpu, gpu:0) |
+| `USE_TEXTLINE_ORIENTATION` | true | Enable text line orientation |
+| `USE_DOC_ORIENTATION` | false | Enable document orientation |
+| `USE_DOC_UNWARPING` | false | Enable document unwarping |
+| `TEXT_DET_THRESH` | 0.3 | Text detection threshold |
+| `TEXT_DET_BOX_THRESH` | 0.6 | Box detection threshold |
 
-### Supported Languages
+### Supported Languages (106)
 
 - `en` - English
 - `ch` - Chinese (Simplified)
 - `korean` - Korean
 - `japan` - Japanese
-- `french` - French
-- `german` - German
-- And 80+ more...
+- `fr` - French
+- `de` - German
+- `es` - Spanish
+- `ru` - Russian
+- `ar` - Arabic
+- And 97 more...
 
-Full list: https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.6/doc/doc_en/multi_languages_en.md
+Full list: https://paddlepaddle.github.io/PaddleOCR/v3.0.0/en/ppocr/blog/multi_languages.html
 
-## 📊 Performance
+## Performance
 
 | Metric | GPU (RTX 3080) | CPU (8 cores) |
 |--------|----------------|---------------|
 | Single image | ~0.5s | ~3-5s |
 | Throughput | 120 img/min | 15 img/min |
 
-## 🔗 Integration with AX PoC
+## Integration with AX PoC
 
 This API is part of the **AX Drawing Analysis System**.
 
 - **Main Project**: [ax-poc](https://github.com/your-org/ax-poc)
-- **Usage in Pipeline**: Auxiliary OCR for YOLO crop regions
+- **Usage in Pipeline**: Multilingual OCR for engineering drawings
 - **Gateway Integration**: Automatically called by Gateway API
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 paddleocr-api/
 ├── Dockerfile                  # Docker build file
 ├── docker-compose.single.yml   # Standalone deployment
 ├── README.md                   # This file
-├── api_server.py               # FastAPI application (203 lines)
+├── api_server.py               # FastAPI application
 ├── models/
 │   └── schemas.py              # Pydantic models
+├── routers/
+│   └── ocr_router.py           # OCR endpoints
 ├── services/
-│   └── ocr.py                  # PaddleOCR service wrapper
+│   └── ocr.py                  # PaddleOCR 3.0 service
 ├── utils/
 │   └── helpers.py              # Utility functions
 ├── requirements.txt            # Python dependencies
@@ -163,7 +187,7 @@ paddleocr-api/
 └── results/                    # Processing results
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### GPU not detected
 ```bash
@@ -186,11 +210,11 @@ ports:
   - "5007:5006"  # Host:Container
 ```
 
-## 📄 License
+## License
 
 Part of the AX Project (2025)
 
-## 👥 Support
+## Support
 
 For issues or questions:
 1. Check API documentation: http://localhost:5006/docs
@@ -199,6 +223,6 @@ For issues or questions:
 
 ---
 
-**Version**: 1.0.0
-**Last Updated**: 2025-11-20
+**Version**: 3.0.0
+**Last Updated**: 2025-12-31
 **Maintained By**: AX Project Team

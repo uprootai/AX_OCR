@@ -88,3 +88,32 @@ resources:
     - parameter: scale
       impact: "4x 스케일 시 VRAM/RAM 급증"
       examples: "2x:2GB, 4x:4GB"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "4x 업스케일"
+      description: "저해상도 도면 4배 확대"
+      formData:
+        file: "low_res_drawing.png"
+        scale: "4"
+        denoise_strength: 0.5
+
+    - name: "2x 업스케일 (노이즈 제거)"
+      description: "스캔 노이즈 제거 + 2배 확대"
+      formData:
+        file: "scanned_drawing.png"
+        scale: "2"
+        denoise_strength: 0.8
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          image: "data:image/png;base64,..."
+          original_size: [640, 480]
+          upscaled_size: [2560, 1920]
+          scale_factor: 4
+        processing_time: 3.25

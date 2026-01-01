@@ -16,6 +16,11 @@ from .vl_service import (
     set_model_state,
     ANTHROPIC_API_KEY,
     OPENAI_API_KEY,
+    # LLaVA-CoT 스타일 다단계 추론
+    call_cot_reasoning,
+    classify_drawing_with_cot,
+    COT_SYSTEM_PROMPT,
+    COT_CLASSIFICATION_PROMPT,
 )
 
 __all__ = [
@@ -31,4 +36,9 @@ __all__ = [
     'set_model_state',
     'ANTHROPIC_API_KEY',
     'OPENAI_API_KEY',
+    # LLaVA-CoT 스타일 다단계 추론
+    'call_cot_reasoning',
+    'classify_drawing_with_cot',
+    'COT_SYSTEM_PROMPT',
+    'COT_CLASSIFICATION_PROMPT',
 ]

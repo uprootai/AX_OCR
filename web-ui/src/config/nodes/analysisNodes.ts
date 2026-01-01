@@ -322,4 +322,559 @@ export const analysisNodes: Record<string, NodeDefinition> = {
       },
     ],
   },
+  gtcomparison: {
+    type: 'gtcomparison',
+    label: 'GT Comparison',
+    category: 'analysis',
+    color: '#f97316',
+    icon: 'BarChart3',
+    description:
+      'Ground Truth(정답 라벨)와 검출 결과를 비교하여 정밀도, 재현율, F1 스코어를 계산합니다. 모델 성능 평가에 사용됩니다.',
+    inputs: [
+      {
+        name: 'detections',
+        type: 'Detection[]',
+        description: '🎯 YOLO 검출 결과 (bbox, class_name, confidence)',
+      },
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 원본 이미지 (GT 파일 매칭용 파일명 필요)',
+      },
+    ],
+    outputs: [
+      {
+        name: 'metrics',
+        type: 'GTMetrics',
+        description: '📊 평가 지표 (Precision, Recall, F1, TP, FP, FN)',
+      },
+      {
+        name: 'tp_matches',
+        type: 'TPMatch[]',
+        description: '✅ True Positive 매칭 목록 (검출-GT 쌍)',
+      },
+      {
+        name: 'fp_detections',
+        type: 'Detection[]',
+        description: '❌ False Positive (오검출) 목록',
+      },
+      {
+        name: 'fn_labels',
+        type: 'GTLabel[]',
+        description: '⚠️ False Negative (미검출) GT 목록',
+      },
+    ],
+    parameters: [
+      {
+        name: 'gt_file',
+        type: 'string',
+        default: '',
+        description: 'GT 파일 경로 (선택). 비워두면 이미지 파일명으로 자동 매칭 (예: sample.png → sample.txt)',
+      },
+      {
+        name: 'iou_threshold',
+        type: 'number',
+        default: 0.5,
+        min: 0.1,
+        max: 0.9,
+        step: 0.05,
+        description: 'IoU 임계값 (기본 0.5). 높을수록 엄격한 매칭',
+      },
+      {
+        name: 'class_agnostic',
+        type: 'boolean',
+        default: false,
+        description: '클래스 무시 모드. true면 위치(IoU)만으로 매칭, 클래스 불일치 허용',
+      },
+      {
+        name: 'model_type',
+        type: 'select',
+        default: 'bom_detector',
+        options: ['bom_detector', 'engineering', 'pid_class_aware', 'pid_symbol', 'custom'],
+        description: '모델 타입 (클래스 목록 결정). GT 라벨과 일치해야 정확한 비교 가능',
+      },
+    ],
+    examples: [
+      'YOLO → GT Comparison → 성능 평가 리포트',
+      '검출 정확도 측정 및 모델 개선 포인트 파악',
+    ],
+    usageTips: [
+      '⭐ YOLO 검출 후 GT Comparison으로 성능을 정량화하세요',
+      '💡 IoU threshold 0.5가 일반적. 작은 객체는 0.3~0.4 권장',
+      '📊 F1 스코어가 낮으면 FN(미검출)과 FP(오검출) 상세 확인',
+      '🎯 class_agnostic=true로 먼저 위치 정확도만 평가 가능',
+      '⚠️ GT 파일과 이미지 파일명이 동일해야 자동 매칭됩니다 (예: sample.png → sample.txt)',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolo',
+        field: 'detections',
+        reason: '⭐ YOLO 검출 결과를 GT와 비교하여 정확도를 측정합니다',
+      },
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: 'GT 파일 매칭을 위한 이미지 파일명 정보가 필요합니다',
+      },
+    ],
+  },
+
+  /**
+   * PDF Export Node
+   * P&ID 분석 결과를 PDF 리포트로 내보내기
+   */
+  pdfexport: {
+    type: 'pdfexport',
+    label: 'PDF Export',
+    category: 'analysis',
+    color: '#dc2626',
+    icon: 'FileText',
+    description:
+      'P&ID 분석 결과를 전문적인 PDF 리포트로 내보냅니다. Equipment, Valve, Checklist, Deviation 목록과 요약 통계를 포함합니다.',
+    inputs: [
+      {
+        name: 'session_data',
+        type: 'SessionData',
+        description: '📊 워크플로우 분석 결과 (Equipment, Valve, Checklist 등)',
+      },
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 원본 이미지 (도면 번호 참조용)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'pdf_url',
+        type: 'string',
+        description: '📁 생성된 PDF 파일 다운로드 URL',
+      },
+      {
+        name: 'filename',
+        type: 'string',
+        description: '📝 PDF 파일명',
+      },
+      {
+        name: 'summary',
+        type: 'ExportSummary',
+        description: '📊 내보내기 요약 (포함된 항목 수, 검증 상태 등)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'export_type',
+        type: 'select',
+        default: 'all',
+        options: [
+          { value: 'all', label: '전체', description: 'Equipment + Valve + Checklist + Deviation 모두 포함' },
+          { value: 'valve', label: 'Valve List', description: '밸브 신호 목록만' },
+          { value: 'equipment', label: 'Equipment List', description: '장비 목록만' },
+          { value: 'checklist', label: 'Checklist', description: '설계 체크리스트만' },
+          { value: 'deviation', label: 'Deviation', description: '편차 목록만' },
+        ],
+        description: '내보내기 범위 선택',
+      },
+      {
+        name: 'project_name',
+        type: 'string',
+        default: '',
+        description: 'PDF 표지에 표시될 프로젝트명',
+        placeholder: '예: BWMS Project Alpha',
+      },
+      {
+        name: 'drawing_no',
+        type: 'string',
+        default: '',
+        description: '도면 번호',
+        placeholder: '예: PID-001-A',
+      },
+      {
+        name: 'include_rejected',
+        type: 'boolean',
+        default: false,
+        description: '거부된 항목도 포함할지 여부',
+      },
+    ],
+    examples: [
+      'PID Analyzer → PDF Export → 전체 분석 리포트',
+      'Design Checker → PDF Export → 체크리스트 리포트',
+      'Equipment/Valve 검출 → PDF Export → 목록 리포트',
+    ],
+    usageTips: [
+      '⭐ PID Analyzer 또는 Blueprint AI BOM 노드 출력을 연결하세요',
+      '📋 export_type="all"로 전체 리포트를 한 번에 생성 가능',
+      '🏢 project_name과 drawing_no를 입력하면 표지에 표시됩니다',
+      '❌ include_rejected=false로 거부된 항목을 제외하면 최종 리포트에 적합',
+      '📊 Executive Summary 섹션에서 검증 진행률과 Pass/Fail 현황 확인',
+    ],
+    recommendedInputs: [
+      {
+        from: 'pidanalyzer',
+        field: 'session_data',
+        reason: '⭐ P&ID 분석 결과 (Equipment, Valve, Connection 등) 포함',
+      },
+      {
+        from: 'designchecker',
+        field: 'checklist',
+        reason: '설계 검증 체크리스트 결과 포함',
+      },
+      {
+        from: 'blueprint-ai-bom',
+        field: 'session',
+        reason: 'Human-in-the-Loop 검증 결과 포함',
+      },
+    ],
+  },
+
+  /**
+   * Excel Export Node
+   * P&ID 분석 결과를 Excel 파일로 내보내기
+   */
+  excelexport: {
+    type: 'excelexport',
+    label: 'Excel Export',
+    category: 'analysis',
+    color: '#16a34a',
+    icon: 'FileSpreadsheet',
+    description:
+      'P&ID 분석 결과를 Excel 파일로 내보냅니다. Equipment, Valve, Checklist, Deviation을 각 시트에 정리합니다.',
+    inputs: [
+      {
+        name: 'session_data',
+        type: 'SessionData',
+        description: '📊 워크플로우 분석 결과 (Equipment, Valve, Checklist 등)',
+      },
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 원본 이미지 (도면 번호 참조용)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'excel_url',
+        type: 'string',
+        description: '📁 생성된 Excel 파일 다운로드 URL',
+      },
+      {
+        name: 'filename',
+        type: 'string',
+        description: '📝 Excel 파일명',
+      },
+      {
+        name: 'summary',
+        type: 'ExportSummary',
+        description: '📊 내보내기 요약 (시트별 항목 수)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'export_type',
+        type: 'select',
+        default: 'all',
+        options: [
+          { value: 'all', label: '전체', description: '모든 데이터를 각 시트에 포함' },
+          { value: 'valve', label: 'Valve List', description: '밸브 신호 목록만' },
+          { value: 'equipment', label: 'Equipment List', description: '장비 목록만' },
+          { value: 'checklist', label: 'Checklist', description: '설계 체크리스트만' },
+          { value: 'deviation', label: 'Deviation', description: '편차 목록만' },
+        ],
+        description: '내보내기 범위 선택',
+      },
+      {
+        name: 'project_name',
+        type: 'string',
+        default: '',
+        description: '프로젝트명 (파일명에 포함)',
+        placeholder: '예: BWMS Project Alpha',
+      },
+      {
+        name: 'drawing_no',
+        type: 'string',
+        default: '',
+        description: '도면 번호',
+        placeholder: '예: PID-001-A',
+      },
+      {
+        name: 'include_rejected',
+        type: 'boolean',
+        default: false,
+        description: '거부된 항목도 포함할지 여부',
+      },
+    ],
+    examples: [
+      'PID Analyzer → Excel Export → 분석 결과 스프레드시트',
+      'YOLO + OCR → Excel Export → 검출 결과 정리',
+    ],
+    usageTips: [
+      '⭐ PDF보다 데이터 가공이 필요한 경우 Excel 사용 권장',
+      '📊 export_type="all"로 모든 데이터를 각 시트에 분리',
+      '🔄 Excel 파일은 후처리/분석에 용이합니다',
+      '📁 열 너비가 자동 조정되어 가독성이 좋습니다',
+    ],
+    recommendedInputs: [
+      {
+        from: 'pidanalyzer',
+        field: 'session_data',
+        reason: '⭐ P&ID 분석 결과를 Excel로 정리',
+      },
+      {
+        from: 'blueprint-ai-bom',
+        field: 'session',
+        reason: 'Human-in-the-Loop 검증 결과 포함',
+      },
+    ],
+  },
+
+  /**
+   * PID Features Node
+   * TECHCROSS 통합 워크플로우 - Valve/Equipment/Checklist 한 번에 검출
+   */
+  pidfeatures: {
+    type: 'pidfeatures',
+    label: 'PID Features',
+    category: 'analysis',
+    color: '#8b5cf6',
+    icon: 'Workflow',
+    description:
+      'TECHCROSS P&ID 통합 분석 노드. Valve Signal, Equipment, Design Checklist를 한 번에 검출하고 검증 큐를 생성합니다.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 P&ID 도면 이미지',
+      },
+      {
+        name: 'detections',
+        type: 'Detection[]',
+        description: '🎯 YOLO 검출 결과 (심볼, 텍스트 등)',
+        optional: true,
+      },
+      {
+        name: 'ocr_results',
+        type: 'OCRResult[]',
+        description: '📝 OCR 결과 (태그, 라벨 텍스트)',
+        optional: true,
+      },
+      {
+        name: 'lines',
+        type: 'Line[]',
+        description: '📐 라인 검출 결과',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'valves',
+        type: 'Valve[]',
+        description: '🔧 검출된 밸브 목록 (ID, Type, Category, Signal)',
+      },
+      {
+        name: 'equipment',
+        type: 'Equipment[]',
+        description: '⚙️ 검출된 장비 목록 (Tag, Type, Description)',
+      },
+      {
+        name: 'checklist',
+        type: 'ChecklistItem[]',
+        description: '✅ 설계 체크리스트 검증 결과',
+      },
+      {
+        name: 'verification_queue',
+        type: 'VerificationItem[]',
+        description: '📋 검증 대기 큐 (신뢰도 기반)',
+      },
+      {
+        name: 'session_id',
+        type: 'string',
+        description: '🔑 세션 ID (후속 노드 연결용)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'features',
+        type: 'checkboxGroup',
+        default: ['valve_signal', 'equipment', 'checklist'],
+        options: [
+          { value: 'valve_signal', label: 'Valve Signal', icon: '🔧', description: '밸브 신호 목록 검출' },
+          { value: 'equipment', label: 'Equipment', icon: '⚙️', description: '장비 목록 검출' },
+          { value: 'checklist', label: 'Checklist', icon: '✅', description: '설계 규칙 검증' },
+        ],
+        description: '분석할 기능 선택',
+      },
+      {
+        name: 'product_type',
+        type: 'select',
+        default: 'ALL',
+        options: [
+          { value: 'ALL', label: '전체', description: '모든 규칙 적용' },
+          { value: 'ECS', label: 'ECS', description: '직접 전기분해 방식' },
+          { value: 'HYCHLOR', label: 'HYCHLOR', description: '간접 전기분해 방식' },
+        ],
+        description: 'BWMS 제품 타입 (체크리스트 규칙 필터)',
+      },
+      {
+        name: 'confidence_threshold',
+        type: 'number',
+        default: 0.7,
+        min: 0.1,
+        max: 0.99,
+        step: 0.05,
+        description: '자동 검증 신뢰도 임계값. 이하는 검증 큐로 이동',
+      },
+      {
+        name: 'auto_verify_high_confidence',
+        type: 'boolean',
+        default: true,
+        description: '높은 신뢰도 항목 자동 검증 (threshold 이상)',
+      },
+    ],
+    examples: [
+      'Image → YOLO → PID Features → Excel/PDF Export',
+      'P&ID 도면 → PID Features → Verification Queue → 최종 리포트',
+    ],
+    usageTips: [
+      '⭐ TECHCROSS BWMS 워크플로우의 핵심 노드입니다',
+      '🔧 Valve Signal: 밸브 ID, 타입, 카테고리, Signal 자동 추출',
+      '⚙️ Equipment: 장비 태그, 설명, Vendor Supply 여부 추출',
+      '✅ Checklist: 60개 설계 규칙 자동 검증',
+      '📋 confidence_threshold 이하 항목은 검증 큐로 이동',
+      '💡 product_type으로 ECS/HYCHLOR별 규칙 필터링 가능',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolo',
+        field: 'detections',
+        reason: '⭐ P&ID 심볼 검출 결과 (model_type: pid_class_aware)',
+      },
+      {
+        from: 'edocr2',
+        field: 'ocr_results',
+        reason: '장비 태그, 라벨 텍스트 인식',
+      },
+      {
+        from: 'linedetector',
+        field: 'lines',
+        reason: '라인 연결 분석용',
+      },
+    ],
+  },
+
+  /**
+   * Verification Queue Node
+   * Human-in-the-Loop 검증 큐 관리
+   */
+  verificationqueue: {
+    type: 'verificationqueue',
+    label: 'Verification Queue',
+    category: 'analysis',
+    color: '#f59e0b',
+    icon: 'ClipboardCheck',
+    description:
+      'Human-in-the-Loop 검증 큐를 관리합니다. 신뢰도가 낮은 항목을 검토하고 승인/거부/수정합니다.',
+    inputs: [
+      {
+        name: 'session_id',
+        type: 'string',
+        description: '🔑 세션 ID (PID Features 노드 출력)',
+      },
+      {
+        name: 'verification_queue',
+        type: 'VerificationItem[]',
+        description: '📋 검증 대기 항목 목록',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'verified_items',
+        type: 'VerifiedItem[]',
+        description: '✅ 검증 완료 항목 (승인됨)',
+      },
+      {
+        name: 'rejected_items',
+        type: 'RejectedItem[]',
+        description: '❌ 거부된 항목',
+      },
+      {
+        name: 'pending_items',
+        type: 'PendingItem[]',
+        description: '⏳ 아직 검증되지 않은 항목',
+      },
+      {
+        name: 'summary',
+        type: 'VerificationSummary',
+        description: '📊 검증 현황 요약 (진행률, 통계)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'queue_filter',
+        type: 'select',
+        default: 'all',
+        options: [
+          { value: 'all', label: '전체', description: '모든 타입의 검증 항목' },
+          { value: 'valve', label: 'Valve', description: '밸브 항목만' },
+          { value: 'equipment', label: 'Equipment', description: '장비 항목만' },
+          { value: 'checklist', label: 'Checklist', description: '체크리스트만' },
+        ],
+        description: '검증 큐 필터',
+      },
+      {
+        name: 'sort_by',
+        type: 'select',
+        default: 'confidence_asc',
+        options: [
+          { value: 'confidence_asc', label: '신뢰도 낮은 순', description: '검토 필요 항목 우선' },
+          { value: 'confidence_desc', label: '신뢰도 높은 순', description: '확실한 항목 우선' },
+          { value: 'type', label: '타입별', description: '항목 유형별 그룹화' },
+          { value: 'created', label: '생성 순서', description: '검출 순서대로' },
+        ],
+        description: '정렬 기준',
+      },
+      {
+        name: 'batch_size',
+        type: 'number',
+        default: 20,
+        min: 5,
+        max: 100,
+        step: 5,
+        description: '한 번에 표시할 검증 항목 수',
+      },
+      {
+        name: 'auto_approve_threshold',
+        type: 'number',
+        default: 0.95,
+        min: 0.8,
+        max: 1.0,
+        step: 0.01,
+        description: '자동 승인 임계값 (이상이면 자동 검증)',
+      },
+    ],
+    examples: [
+      'PID Features → Verification Queue → PDF Export',
+      '검출 결과 → 검증 큐 → 승인 후 최종 리포트',
+    ],
+    usageTips: [
+      '⭐ Human-in-the-Loop의 핵심: 신뢰도 낮은 항목만 사람이 검토',
+      '📊 confidence 낮은 순으로 정렬하면 효율적 검토 가능',
+      '✅ 대량 승인/거부로 빠른 처리 가능',
+      '🔄 검증 완료 후 PDF/Excel Export로 최종 리포트 생성',
+      '💡 auto_approve_threshold=0.95로 확실한 항목은 자동 처리',
+    ],
+    recommendedInputs: [
+      {
+        from: 'pidfeatures',
+        field: 'verification_queue',
+        reason: '⭐ PID Features에서 생성된 검증 큐',
+      },
+      {
+        from: 'pidfeatures',
+        field: 'session_id',
+        reason: '세션 연결 필수',
+      },
+    ],
+  },
 };

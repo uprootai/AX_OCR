@@ -102,3 +102,38 @@ resources:
     - parameter: batch_size
       impact: "배치 크기↑ → 메모리↑, 속도↑"
       examples: "batch1:2GB, batch8:4GB"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "한국어+영어 인식"
+      description: "한글 문서 OCR"
+      formData:
+        file: "korean_doc.png"
+        languages: "ko,en"
+        detail: true
+        visualize: true
+
+    - name: "일본어 인식"
+      description: "일본어 문서 OCR"
+      formData:
+        file: "japanese_doc.png"
+        languages: "ja,en"
+        paragraph: true
+        batch_size: 4
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          texts:
+            - text: "부품명"
+              confidence: 0.94
+              bbox: [[100, 50], [180, 50], [180, 80], [100, 80]]
+            - text: "Part Name"
+              confidence: 0.97
+              bbox: [[200, 50], [320, 50], [320, 80], [200, 80]]
+          full_text: "부품명 Part Name\n..."
+        processing_time: 2.15

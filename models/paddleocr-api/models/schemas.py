@@ -27,10 +27,11 @@ class HealthResponse(BaseModel):
     """헬스체크 응답"""
     status: str = Field(default="healthy")
     service: str = Field(default="paddleocr-api")
-    version: str = Field(default="1.0.0")
+    version: str = Field(default="3.0.0")
     gpu_available: bool = Field(..., description="GPU 사용 가능 여부")
     model_loaded: bool = Field(..., description="모델 로드 여부")
     lang: str = Field(..., description="OCR 언어 설정")
+    ocr_version: str = Field(default="PP-OCRv5", description="OCR 모델 버전")
 
 
 class ParameterSchema(BaseModel):

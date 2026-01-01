@@ -79,3 +79,26 @@ class AnalyzeResponse(BaseModel):
     confidence: float = Field(default=1.0, description="답변 신뢰도")
     processing_time: float
     model_used: str
+
+
+class ChainOfThoughtStep(BaseModel):
+    """다단계 추론 단계 (LLaVA-CoT 스타일)"""
+    step: str = Field(description="추론 단계명")
+    content: str = Field(description="해당 단계의 추론 내용")
+
+
+class CoTAnalyzeResponse(BaseModel):
+    """Chain-of-Thought 다단계 추론 응답 (LLaVA-CoT 스타일)"""
+    status: str
+    mode: str = Field(default="cot", description="분석 모드")
+    question: Optional[str] = Field(None, description="사용자 질문")
+
+    # 다단계 추론 결과
+    reasoning_steps: List[ChainOfThoughtStep] = Field(
+        description="추론 단계들: summary, visual_interpretation, logical_reasoning, conclusion"
+    )
+    final_answer: str = Field(description="최종 답변")
+
+    confidence: float = Field(default=1.0, description="답변 신뢰도")
+    processing_time: float
+    model_used: str

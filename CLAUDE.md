@@ -124,8 +124,8 @@ docker logs gateway-api -f    # 로그 확인
 | 항목 | 상태 | 기준 |
 |------|------|------|
 | 빌드 | ✅ | 에러 0개 |
-| ESLint | ⚠️ | 에러 0개 (경고 허용) |
-| 테스트 | ✅ | 31개 통과 |
+| ESLint | ✅ | 에러 0개, 경고 3개 |
+| 테스트 | ✅ | 141개 통과 |
 
 ### 카테고리 타입
 
@@ -151,7 +151,7 @@ type NodeCategory =
 | **파일 크기 (LLM 친화성)** | **25/25** | **모든 1000줄+ 파일 분리 완료 ✅** |
 | 설정 관리 | **15/15** | constants/ SSOT, YAML 스펙 기반 ✅ |
 | 공통 패턴 | **15/15** | subprocess_utils.py 추출, lifespan ✅ |
-| 테스트 & 문서 | **10/10** | **329+ 테스트 통과** (gateway 188, web-ui 141) ✅ |
+| 테스트 & 문서 | **10/10** | **505개 테스트 통과** (gateway 364, web-ui 141) ✅ |
 | 코드 중복 제거 | **10/10** | SSOT + Response Model 네이밍 충돌 해결 ✅ |
 | **총점** | **100/100** | **🎯 목표 달성!** |
 
@@ -462,23 +462,35 @@ class TestName:
 
 ## BlueprintFlow
 
-### 노드 타입 (20개)
+### 노드 타입 (28개)
 
 | 카테고리 | 노드 |
 |----------|------|
 | Input | ImageInput, TextInput |
 | Detection | YOLO (model_type으로 P&ID 검출 지원) |
-| OCR | eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble |
+| OCR | eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble, SuryaOCR, DocTR, EasyOCR |
 | Segmentation | EDGNet, Line Detector |
 | Preprocessing | ESRGAN |
-| Analysis | SkinModel, PID Analyzer, Design Checker, Blueprint AI BOM |
+| Analysis | SkinModel, PID Analyzer, Design Checker |
+| Analysis (신규) | **GT Comparison**, **PDF Export**, **Excel Export**, **PID Features**, **Verification Queue** |
+| BOM | Blueprint AI BOM |
 | Knowledge | Knowledge |
 | AI | VL |
 | Control | IF, Loop, Merge |
 
+### 신규 노드 (2025-12-31)
+
+| 노드 | 타입 | 설명 |
+|------|------|------|
+| GT Comparison | `gtcomparison` | 검출 성능 평가 (Precision/Recall/F1) |
+| PDF Export | `pdfexport` | P&ID 분석 PDF 리포트 생성 |
+| Excel Export | `excelexport` | P&ID 분석 Excel 스프레드시트 |
+| PID Features | `pidfeatures` | TECHCROSS 통합 분석 (Valve/Equipment/Checklist) |
+| Verification Queue | `verificationqueue` | Human-in-the-Loop 검증 큐 관리 |
+
 ### 파라미터 커버리지 (100%)
 
-총 50개 파라미터가 nodeDefinitions.ts에 정의됨.
+총 70개+ 파라미터가 nodeDefinitions.ts에 정의됨.
 
 ---
 
@@ -536,6 +548,45 @@ docs/
 │   └── lessons-learned/  # 베스트 프랙티스
 └── papers/               # 참조 논문 정리
 ```
+
+---
+
+## R&D (Research & Development)
+
+SOTA 논문 수집, 실험 및 벤치마크 관리를 위한 R&D 디렉토리:
+
+```
+rnd/
+├── README.md             # R&D 전체 개요
+├── papers/               # SOTA 논문 인덱스 (35개)
+│   └── README.md        # 논문 목록 및 적용 계획
+├── experiments/          # 실험 기록 (향후)
+├── benchmarks/           # 성능 벤치마크 (향후)
+└── models/               # 커스텀 모델 실험 (향후)
+```
+
+### 수집된 SOTA 논문 (35개)
+
+| 카테고리 | 수량 | 핵심 기술 |
+|----------|------|-----------|
+| Object Detection | 6 | YOLOv11, YOLO26, VajraV1 |
+| OCR & Document | 7 | PaddleOCR 3.0, TrOCR, DocTR |
+| P&ID Analysis | 6 | Relationformer, PID2Graph |
+| Vision-Language | 6 | LLaVA-o1, GPT-4V, ALLaVA |
+| Layout Analysis | 6 | SCAN, DocLayNet, UnSupDLA |
+| GD&T Recognition | 4 | YOLOv8/v11 기반 |
+
+### R&D 우선순위
+
+| 우선순위 | 연구 주제 | 적용 대상 | 참조 논문 |
+|----------|-----------|----------|----------|
+| **P0** | YOLOv11 아키텍처 | YOLO API | arXiv 2410.17725 |
+| **P0** | PaddleOCR 3.0 | PaddleOCR API | arXiv 2507.05595 |
+| **P1** | Relationformer P&ID | PID Analyzer | arXiv 2411.13929 |
+| **P1** | LLaVA-o1 추론 | VL API | arXiv 2411.10440 |
+| **P2** | P&ID + RAG + LLM | Knowledge API | arXiv 2502.18928 |
+
+**상세 문서**: [rnd/papers/README.md](rnd/papers/README.md)
 
 ---
 
@@ -601,7 +652,10 @@ resources:
 
 | 버전 | 날짜 | 주요 변경 |
 |------|------|----------|
-| **20.0** | **2025-12-31** | **🎯 디자인 패턴 100점 달성**: Response Model 네이밍 충돌 해결, constants/ SSOT, subprocess_utils.py 추출, docker/results/gpu_config/admin 라우터 테스트 추가 (34개), 총 329개 테스트 통과 |
+| **23.0** | **2025-12-31** | **코드 품질 개선**: ESLint 에러 0개 달성, Executor 단위 테스트 126개 추가, Feature Definition 동기화 자동화 스크립트, Executor 개발 가이드 문서. 총 505개 테스트 통과 (gateway 364, web-ui 141) |
+| 22.0 | 2025-12-31 | BlueprintFlow 5개 신규 노드: GT Comparison, PDF Export, Excel Export, PID Features, Verification Queue. 총 28개 노드, 379개 테스트 통과 |
+| 21.0 | 2025-12-31 | R&D 디렉토리 신설: SOTA 논문 35개 수집 (YOLO, OCR, P&ID, VLM, Layout, GD&T), 연구 로드맵 수립, TECHCROSS 문서 최신화 |
+| 20.0 | 2025-12-31 | 🎯 디자인 패턴 100점 달성: Response Model 네이밍 충돌 해결, constants/ SSOT, subprocess_utils.py 추출, docker/results/gpu_config/admin 라우터 테스트 추가 (34개), 총 329개 테스트 통과 |
 | 19.0 | 2025-12-31 | P0~P2 리팩토링 완료: 9개 대형 파일 모두 분리 (Guide.tsx 151줄, APIDetail.tsx 248줄, NodePalette.tsx 189줄 등), 디자인 패턴 점수 90/100점 |
 | 18.0 | 2025-12-30 | TECHCROSS Human-in-the-Loop 워크플로우: Blueprint AI BOM v10.5에 TECHCROSS 1-1~1-4 통합, Valve Signal/Equipment/Checklist 검증, Active Learning 기반 검증 큐, Excel 내보내기 |
 | 17.0 | 2025-12-29 | Design Checker v1.0 리팩토링: api_server.py 1,482줄→167줄 분리, BWMS 규칙 관리 시스템 (Excel 업로드, YAML 저장, 프로필 관리), lifespan 패턴 적용, 20개 엔드포인트 |

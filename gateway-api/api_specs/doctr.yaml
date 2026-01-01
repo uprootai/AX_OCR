@@ -111,3 +111,39 @@ resources:
     - parameter: det_arch
       impact: "모델 선택에 따라 메모리 차이"
       examples: "mobilenet:1.5GB, resnet50:2.5GB"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 OCR"
+      description: "2단계 파이프라인 OCR"
+      formData:
+        file: "document.png"
+        det_arch: "db_resnet50"
+        reco_arch: "crnn_vgg16_bn"
+        visualize: true
+
+    - name: "경량 모델"
+      description: "모바일/빠른 처리용"
+      formData:
+        file: "document.png"
+        det_arch: "db_mobilenet_v3_large"
+        reco_arch: "crnn_mobilenet_v3_small"
+        straighten_pages: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          texts:
+            - text: "SPECIFICATION"
+              confidence: 0.96
+              bbox: [[50, 100], [200, 100], [200, 130], [50, 130]]
+          full_text: "SPECIFICATION\nDRAWING NO: DWG-001\n..."
+          pages:
+            - page_idx: 0
+              dimensions: [1200, 800]
+              blocks: 15
+        processing_time: 1.85

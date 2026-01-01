@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-PaddleOCR API Server
+PaddleOCR 3.0 API Server
+PP-OCRv5: 13% accuracy improvement, 106 languages support
 Engineering Drawing Text Recognition using PaddleOCR
 """
 import os
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 PORT = int(os.getenv("PADDLEOCR_PORT", "5006"))
 USE_GPU = os.getenv("USE_GPU", "false").lower() == "true"
 LANG = os.getenv("OCR_LANG", "en")
+OCR_VERSION = os.getenv("OCR_VERSION", "PP-OCRv5")
 
 
 # =====================
@@ -48,9 +50,9 @@ async def lifespan(app: FastAPI):
 # =====================
 
 app = FastAPI(
-    title="PaddleOCR API",
-    description="Drawing Text Recognition using PaddleOCR",
-    version="1.0.0",
+    title="PaddleOCR 3.0 API",
+    description="PP-OCRv5 Drawing Text Recognition (13% improved, 106 languages)",
+    version="3.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan
@@ -85,10 +87,11 @@ async def health_check():
     return HealthResponse(
         status="healthy" if is_service_ready() else "unhealthy",
         service="paddleocr-api",
-        version="1.0.0",
+        version="3.0.0",
         gpu_available=USE_GPU,
         model_loaded=is_service_ready(),
-        lang=LANG
+        lang=LANG,
+        ocr_version=OCR_VERSION
     )
 
 
@@ -96,12 +99,20 @@ async def health_check():
 async def root():
     """Root endpoint"""
     return {
-        "service": "PaddleOCR API",
-        "version": "1.0.0",
+        "service": "PaddleOCR 3.0 API",
+        "version": "3.0.0",
+        "ocr_version": OCR_VERSION,
         "status": "running",
+        "features": [
+            "PP-OCRv5 (13% accuracy improvement)",
+            "106 language support",
+            "Document orientation classification",
+            "Text image unwarping"
+        ],
         "endpoints": {
             "health": "/api/v1/health",
             "ocr": "/api/v1/ocr",
+            "info": "/api/v1/info",
             "docs": "/docs"
         }
     }

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Dashboard Stop All 기능 테스트', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe('Dashboard Stop All 기능 테스트', () => {
       // 버튼이 보이는지 확인
       if (await button.isVisible()) {
         // 버튼의 부모 요소에서 카테고리 이름 추출 시도
-        const buttonText = await button.textContent();
+        const _buttonText = await button.textContent();
         console.log(`\n=== 버튼 ${i + 1}/${count} 클릭 ===`);
 
         // 확인 다이얼로그 처리

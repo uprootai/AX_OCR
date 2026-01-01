@@ -13,8 +13,9 @@ import ToleranceVisualization from '../../../components/debug/ToleranceVisualiza
 import SegmentationVisualization from '../../../components/debug/SegmentationVisualization';
 import ResultSummaryCard from '../../../components/blueprintflow/ResultSummaryCard';
 import PipelineConclusionCard from '../../../components/blueprintflow/PipelineConclusionCard';
-import DataTableView, { extractArrayData } from '../../../components/blueprintflow/DataTableView';
-import VisualizationImage, { extractVisualizationImages } from '../../../components/blueprintflow/VisualizationImage';
+import DataTableView from '../../../components/blueprintflow/DataTableView';
+import VisualizationImage from '../../../components/blueprintflow/VisualizationImage';
+import { extractArrayData, extractVisualizationImages } from '../../../components/blueprintflow/outputExtractors';
 import type {
   APINodeStatus,
   PipelineOutput,
