@@ -75,7 +75,7 @@ export const test = base.extend<object, ApiFixtures>({
    * Created once per worker, reused across all tests
    */
   apiContext: [
-    async (_deps, use) => {
+    async ({}, use) => {
       const ctx = await request.newContext({
         baseURL: API_BASE_URL,
         timeout: 180000,

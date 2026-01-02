@@ -286,8 +286,8 @@ test.describe('Verification API', () => {
     test('should update verification thresholds', async ({ apiContext }) => {
       const response = await apiContext.put('/verification/thresholds', {
         data: {
-          auto_approve: 0.95,
-          critical: 0.7,
+          auto_approve_threshold: 0.95,
+          critical_threshold: 0.7,
         },
       });
 
