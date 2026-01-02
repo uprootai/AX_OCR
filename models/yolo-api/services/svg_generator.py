@@ -118,13 +118,14 @@ def generate_detection_svg(
         # 클래스별 색상 또는 모델 기본 색상
         color = CLASS_COLORS.get(class_name, default_color)
 
-        # 검출 박스
+        # 검출 박스 (class_name 이스케이프)
+        escaped_class_name = _escape_html(class_name)
         svg_parts.append(
             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
             f'class="detection-box" '
             f'stroke="{color}" stroke-width="{stroke_width}" '
             f'data-id="{i}" data-class-id="{class_id}" '
-            f'data-class-name="{class_name}" data-confidence="{confidence:.3f}"/>'
+            f'data-class-name="{escaped_class_name}" data-confidence="{confidence:.3f}"/>'
         )
 
         # 라벨 표시
