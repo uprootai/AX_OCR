@@ -36,6 +36,7 @@ from services import (
     visualize_regions,
     numpy_to_base64,
 )
+from services.svg_generator import generate_line_svg, generate_region_svg, lines_to_svg_data
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,7 @@ async def process(
     min_region_area: int = Form(default=5000, description="최소 영역 크기 (픽셀²)"),
     visualize: bool = Form(default=True, description="결과 시각화"),
     visualize_regions_flag: bool = Form(default=True, alias="visualize_regions", description="영역 시각화 포함"),
+    include_svg: bool = Form(default=False, description="SVG 오버레이 포함"),
     min_length: float = Form(default=0, description="최소 라인 길이 (픽셀)"),
     max_lines: int = Form(default=0, description="최대 라인 수 제한")
 ):
@@ -274,12 +276,25 @@ async def process(
                 "region_detection_styles": region_line_styles.split(","),
             }
 
+        # SVG 오버레이 생성
+        svg_overlay = None
+        if include_svg and lines:
+            image_size = (image.shape[1], image.shape[0])
+            svg_overlay = lines_to_svg_data(lines, image_size)
+            # regions SVG 추가
+            if regions:
+                region_svg = generate_region_svg(regions, image_size)
+                svg_overlay['region_svg'] = region_svg
+                svg_overlay['region_count'] = len(regions)
+            logger.info(f"Generated SVG overlay: {len(svg_overlay.get('svg', ''))} chars")
+
         processing_time = time.time() - start_time
 
         result = {
             "lines": lines,
             "intersections": intersections,
             "regions": regions,
+            "svg_overlay": svg_overlay,
             "statistics": {
                 "total_lines": len(lines),
                 "pipe_lines": pipe_count,

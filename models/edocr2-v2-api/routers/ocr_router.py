@@ -17,6 +17,7 @@ from models.schemas import (
 )
 from services.ocr_processor import get_processor
 from utils.helpers import allowed_file, cleanup_old_files
+from config.defaults import list_profiles, get_profile_features, get_defaults
 
 logger = logging.getLogger(__name__)
 
@@ -241,3 +242,29 @@ async def cleanup_files(max_age_hours: int = 24):
         return {"status": "success", "message": f"Cleaned up files older than {max_age_hours} hours"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== Profiles Endpoints =====
+
+@router.get("/v1/profiles")
+async def get_profiles():
+    """사용 가능한 프로파일 목록 조회"""
+    return list_profiles()
+
+
+@router.get("/v1/profiles/{profile_name}")
+async def get_profile(profile_name: str):
+    """특정 프로파일의 상세 정보 조회"""
+    features = get_profile_features(profile_name)
+    config = get_defaults(profile_name)
+    return {
+        "profile": profile_name,
+        **features,
+        "config": config
+    }
+
+
+@router.get("/v1/profiles/{profile_name}/config")
+async def get_profile_config(profile_name: str):
+    """특정 프로파일의 설정 값만 조회"""
+    return get_defaults(profile_name)

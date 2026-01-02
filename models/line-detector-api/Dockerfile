@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
 COPY api_server.py .
+COPY config/ ./config/
 COPY routers/ ./routers/
 COPY services/ ./services/
 
