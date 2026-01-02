@@ -14,6 +14,16 @@ class Detection(BaseModel):
     value: Optional[str] = Field(None, description="검출된 텍스트 값 (OCR 필요)")
 
 
+class SVGOverlay(BaseModel):
+    """SVG 오버레이 데이터"""
+    svg: str = Field(..., description="인터랙티브 SVG 문자열 (라벨 포함)")
+    svg_minimal: str = Field(..., description="최소 SVG 문자열 (박스만)")
+    width: int = Field(..., description="이미지 너비")
+    height: int = Field(..., description="이미지 높이")
+    detection_count: int = Field(..., description="검출 개수")
+    model_type: str = Field(..., description="모델 타입")
+
+
 class DetectionResponse(BaseModel):
     """검출 API 응답"""
     status: str = Field(default="success")
@@ -24,6 +34,7 @@ class DetectionResponse(BaseModel):
     model_used: str = Field(..., description="사용된 모델")
     image_size: Dict[str, int] = Field(..., description="이미지 크기")
     visualized_image: Optional[str] = Field(None, description="Base64 encoded visualization image")
+    svg_overlay: Optional[SVGOverlay] = Field(None, description="SVG 오버레이 데이터 (include_svg=True 시)")
 
 
 class DimensionExtraction(BaseModel):

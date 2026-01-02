@@ -84,7 +84,7 @@ async function uploadImage(page: Page, imagePath: string): Promise<boolean> {
 async function getSessionId(page: Page): Promise<string | null> {
   // Try to extract session ID from URL or page content
   const url = page.url();
-  const sessionMatch = url.match(/session[_-]?id[=\/]([a-zA-Z0-9-_]+)/i);
+  const sessionMatch = url.match(/session[_-]?id[=/]([a-zA-Z0-9-_]+)/i);
   if (sessionMatch) return sessionMatch[1];
 
   // Try to get from localStorage

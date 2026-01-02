@@ -56,14 +56,6 @@ outputs:
     description: OCR 결과 시각화 이미지
 
 parameters:
-  - name: version
-    type: select
-    default: v2
-    options:
-      - v1
-      - v2
-    description: eDOCr 버전 선택
-
   - name: language
     type: select
     default: ko+en

@@ -56,9 +56,7 @@ const getSavedHyperparameters = (nodeType: string): ParameterRecord => {
     // Map node types to their localStorage prefixes
     const prefixMap: Record<string, string> = {
       yolo: 'yolo',
-      edocr2: 'edocr2_v2',
-      edocr2_v1: 'edocr2_v1',
-      edocr2_v2: 'edocr2_v2',
+      edocr2: 'edocr2',
       edgnet: 'edgnet',
       paddleocr: 'paddleocr',
       surya_ocr: 'surya_ocr',

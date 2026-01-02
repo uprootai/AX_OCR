@@ -111,7 +111,7 @@ async def upload_checklist(
 
         try:
             # Excel 파싱
-            rules, errors = excel_parser.parse_checklist(tmp_path)
+            rules, errors = excel_parser.parse_excel(tmp_path)
 
             if errors:
                 logger.warning(f"Parse warnings: {errors}")

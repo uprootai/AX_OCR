@@ -90,13 +90,52 @@ class DetectionService:
         26: "피뢰기",
     }
 
-    # 전력 설비 단선도 모델 설정
+    # 모델별 기본 설정
+    MODEL_CONFIGS = {
+        "bom_detector": {
+            "name": "전력 설비 단선도 YOLOv11N",
+            "confidence": 0.40,
+            "iou": 0.50,
+            "imgsz": 1024,
+            "use_sahi": False,
+        },
+        "pid_symbol": {
+            "name": "P&ID 심볼 (60종)",
+            "confidence": 0.10,  # P&ID는 낮은 신뢰도 권장
+            "iou": 0.45,
+            "imgsz": 1024,
+            "use_sahi": True,  # SAHI 자동 활성화
+        },
+        "pid_class_aware": {
+            "name": "P&ID 분류 (32종)",
+            "confidence": 0.10,
+            "iou": 0.45,
+            "imgsz": 1024,
+            "use_sahi": True,
+        },
+        "pid_class_agnostic": {
+            "name": "P&ID 범용",
+            "confidence": 0.10,
+            "iou": 0.45,
+            "imgsz": 1024,
+            "use_sahi": True,
+        },
+        "engineering": {
+            "name": "기계도면 심볼",
+            "confidence": 0.50,
+            "iou": 0.45,
+            "imgsz": 640,
+            "use_sahi": False,
+        },
+    }
+
+    # 기본 모델 설정 (하위 호환성)
     MODEL_NAME = "전력 설비 단선도 YOLOv11N (bom_detector)"
     MODEL_SETTINGS = {
         "confidence": 0.40,
         "iou": 0.50,
         "imgsz": 1024,
-        "model_type": "bom_detector"  # yolo-api 모델 타입
+        "model_type": "bom_detector"
     }
 
     def __init__(self, model_path: Optional[Path] = None, pricing_db_path: Optional[str] = None):
@@ -113,10 +152,14 @@ class DetectionService:
         image_path: str,
         config: Optional[DetectionConfig] = None
     ) -> Dict[str, Any]:
-        """이미지에서 전기 패널 부품 검출 (yolo-api 호출)
+        """이미지에서 객체 검출 (yolo-api 호출)
 
-        BlueprintFlow Builder와 동일한 yolo-api를 사용하여
-        일관된 검출 결과를 보장합니다.
+        지원 모델:
+        - bom_detector: 전력 설비 단선도 (27종)
+        - pid_symbol: P&ID 심볼 (60종) - BWMS P&ID 권장
+        - pid_class_aware: P&ID 분류 (32종)
+        - pid_class_agnostic: P&ID 범용 (1종)
+        - engineering: 기계도면 심볼 (14종)
         """
         import cv2
         import time
@@ -124,11 +167,19 @@ class DetectionService:
         if config is None:
             config = DetectionConfig()
 
-        # 파라미터 설정 (BlueprintFlow nodeDefinitions.ts와 동일)
-        confidence = config.confidence if config.confidence else self.MODEL_SETTINGS["confidence"]
-        iou_threshold = config.iou_threshold if config.iou_threshold else self.MODEL_SETTINGS["iou"]
-        imgsz = getattr(config, 'imgsz', None) or self.MODEL_SETTINGS["imgsz"]
-        model_type = self.MODEL_SETTINGS["model_type"]
+        # 모델 타입 결정 (config에서 지정하거나 기본값 사용)
+        model_type = getattr(config, 'model_type', None) or self.MODEL_SETTINGS["model_type"]
+        model_config = self.MODEL_CONFIGS.get(model_type, self.MODEL_CONFIGS["bom_detector"])
+
+        # 파라미터 설정 (config 값 우선, 없으면 모델별 기본값)
+        confidence = config.confidence if config.confidence else model_config["confidence"]
+        iou_threshold = config.iou_threshold if config.iou_threshold else model_config["iou"]
+        imgsz = getattr(config, 'imgsz', None) or model_config["imgsz"]
+        use_sahi = getattr(config, 'use_sahi', None)
+        if use_sahi is None:
+            use_sahi = model_config.get("use_sahi", False)
+
+        logger.info(f"검출 시작: model={model_type}, conf={confidence}, sahi={use_sahi}")
 
         start_time = time.time()
 
@@ -139,7 +190,7 @@ class DetectionService:
 
         image_height, image_width = image.shape[:2]
 
-        logger.debug(f"yolo-api 호출: model={model_type}, conf={confidence}, iou={iou_threshold}, imgsz={imgsz}")
+        logger.debug(f"yolo-api 호출: model={model_type}, conf={confidence}, iou={iou_threshold}, imgsz={imgsz}, sahi={use_sahi}")
 
         detections = []
 
@@ -160,7 +211,7 @@ class DetectionService:
                     "visualize": "false",
                     "model_type": model_type,
                     "task": "detect",
-                    "use_sahi": "false",
+                    "use_sahi": "true" if use_sahi else "false",
                     "slice_height": 512,
                     "slice_width": 512,
                     "overlap_ratio": 0.25
@@ -183,8 +234,13 @@ class DetectionService:
                     class_id = det.get("class_id", 0)
 
                     # 클래스 이름 및 가격 정보
-                    class_name = self.CLASS_MAPPING.get(class_id, det.get("class_name", f"class_{class_id}"))
-                    display_name = self.CLASS_DISPLAY_NAMES.get(class_id, class_name)
+                    # bom_detector 모델은 우리 매핑 사용, 다른 모델은 YOLO 응답 사용
+                    if model_type == "bom_detector":
+                        class_name = self.CLASS_MAPPING.get(class_id, det.get("class_name", f"class_{class_id}"))
+                        display_name = self.CLASS_DISPLAY_NAMES.get(class_id, class_name)
+                    else:
+                        class_name = det.get("class_name", f"class_{class_id}")
+                        display_name = class_name
                     pricing_info = self.get_pricing_info(class_name)
 
                     # bbox 변환 (yolo-api는 x1,y1,x2,y2 형식)
@@ -209,7 +265,7 @@ class DetectionService:
                             "y2": int(y2),
                         },
                         "model_id": model_type,
-                        "model_name": self.MODEL_NAME,
+                        "model_name": model_config.get("name", model_type),
                         "verification_status": VerificationStatus.PENDING.value,
                         "pricing": pricing_info,
                     }

@@ -21,6 +21,7 @@ COPY schemas.py .
 COPY constants.py .
 COPY checker.py .
 COPY bwms_rules.py .
+COPY bwms/ ./bwms/
 COPY rule_loader.py .
 COPY excel_parser.py .
 COPY routers/ ./routers/

@@ -27,37 +27,42 @@ models:
 
   pid_symbol:
     file: pid_symbol_detector.pt
-    name: P&ID 심볼 (60종)
-    description: 밸브, 펌프, 계기, 탱크 등 60종 P&ID 심볼 검출. SAHI 슬라이싱 지원.
-    classes: 60
+    name: P&ID 심볼 (32종)
+    description: 밸브, 계기, 플랜지 등 32종 P&ID 심볼 검출. SAHI 슬라이싱 지원.
+    classes: 32
     class_names:
-      - gate_valve
-      - globe_valve
-      - ball_valve
-      - check_valve
-      - butterfly_valve
-      - control_valve
-      - relief_valve
-      - pump_centrifugal
-      - pump_positive
-      - compressor
-      - blower
-      - heat_exchanger
-      - tank
-      - vessel
-      - reactor
-      - column
-      - filter
-      - strainer
-      - flow_indicator
-      - flow_transmitter
-      - pressure_indicator
-      - pressure_transmitter
-      - temperature_indicator
-      - temperature_transmitter
-      - level_indicator
-      - level_transmitter
-      # ... (60종 전체 목록은 API /api/v1/classes에서 확인)
+      - Arrowhead
+      - Arrowhead + Triangle
+      - Barred Tee
+      - Box
+      - Continuity Label
+      - Control
+      - Control Valve
+      - Control Valve Angle Choke
+      - Control Valve Globe
+      - DB&BBV
+      - DB&BBV + Valve Check
+      - DB&BPV
+      - Deluge
+      - ESDV Valve Ball
+      - ESDV Valve Butterfly
+      - ESDV Valve Slab Gate
+      - Exit to Atmosphere
+      - Flange + Triangle
+      - Flange Joint
+      - Flange Single T-Shape
+      - Injector Point
+      - Line Blindspacer
+      - Reducer
+      - Rupture Disc
+      - Sensor
+      - Spectacle Blind
+      - Temporary Strainer
+      - Triangle
+      - Ultrasonic Flow Meter
+      - Valve
+      - Valve Angle
+      - Valve Ball
     best_for: 배관계장도 (P&ID), 공정 플로우 다이어그램
     trained_on: P&ID 도면 500장
     supports_sahi: true
@@ -81,6 +86,39 @@ models:
     name: P&ID 분류 (32종)
     description: 32종 주요 P&ID 심볼 분류. pid_symbol보다 적은 클래스지만 높은 정확도.
     classes: 32
+    class_names:
+      - Arrowhead
+      - Arrowhead + Triangle
+      - Barred Tee
+      - Box
+      - Continuity Label
+      - Control
+      - Control Valve
+      - Control Valve Angle Choke
+      - Control Valve Globe
+      - DB&BBV
+      - DB&BBV + Valve Check
+      - DB&BPV
+      - Deluge
+      - ESDV Valve Ball
+      - ESDV Valve Butterfly
+      - ESDV Valve Slab Gate
+      - Exit to Atmosphere
+      - Flange + Triangle
+      - Flange Joint
+      - Flange Single T-Shape
+      - Injector Point
+      - Line Blindspacer
+      - Reducer
+      - Rupture Disc
+      - Sensor
+      - Spectacle Blind
+      - Temporary Strainer
+      - Triangle
+      - Ultrasonic Flow Meter
+      - Valve
+      - Valve Angle
+      - Valve Ball
     best_for: 주요 심볼만 검출이 필요한 경우
     trained_on: P&ID 도면 500장
 

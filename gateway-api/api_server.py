@@ -36,6 +36,7 @@ from routers import (
     container_router, spec_router, registry_router, workflow_router, config_router,
     process_router, quote_router, download_router
 )
+# PID Overlay moved to pid-composer-api (port 5021)
 from routers.admin_router import set_api_registry
 from constants import init_directories
 

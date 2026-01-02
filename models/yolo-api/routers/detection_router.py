@@ -15,13 +15,15 @@ from fastapi import APIRouter, File, UploadFile, Form, HTTPException
 from fastapi.responses import FileResponse
 
 from models.schemas import (
-    Detection, DetectionResponse,
+    Detection, DetectionResponse, SVGOverlay,
     APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
 )
 from services.inference import YOLOInferenceService
 from services.registry import ModelRegistry, get_model_registry, get_inference_service
 from services.sahi_inference import run_sahi_inference
 from utils.helpers import draw_detections_on_image
+from config.model_defaults import MODEL_DEFAULTS, get_model_config, get_sahi_config
+from services.svg_generator import generate_detection_svg, detections_to_svg_data
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +170,9 @@ async def detect_objects(
     use_sahi: bool = Form(default=False, description="Enable SAHI slicing for large images"),
     slice_height: int = Form(default=512, description="SAHI slice height"),
     slice_width: int = Form(default=512, description="SAHI slice width"),
-    overlap_ratio: float = Form(default=0.25, description="SAHI slice overlap ratio (0-0.5)")
+    overlap_ratio: float = Form(default=0.25, description="SAHI slice overlap ratio (0-0.5)"),
+    # SVG 오버레이 파라미터
+    include_svg: bool = Form(default=False, description="Include SVG overlay in response"),
 ):
     """
     Object detection endpoint (all classes)
@@ -204,7 +208,7 @@ async def detect_objects(
             "yolo11n-general": "engineering",
             # 새 모델 ID는 그대로 사용
             "engineering": "engineering",
-            "pid_symbol": "pid_class_aware",  # 하위 호환성: pid_symbol → pid_class_aware
+            "pid_symbol": "pid_symbol",  # P&ID 60종 심볼 (클래스 이름 포함)
             "pid_class_agnostic": "pid_class_agnostic",
             "pid_class_aware": "pid_class_aware",
             "bom_detector": "bom_detector",
@@ -237,11 +241,26 @@ async def detect_objects(
 
         img_height, img_width = image.shape[:2]
 
-        # P&ID 모델이면서 use_sahi=False인 경우 자동으로 SAHI 활성화
+        # 모델별 기본값 적용 (MODEL_DEFAULTS 패턴)
+        model_config = get_model_config(model_id)
+        sahi_config = get_sahi_config(model_id)
+
+        # 사용자 입력이 기본값과 같으면 모델별 기본값 사용
         is_pid_model = model_id.startswith('pid_')
-        if is_pid_model and not use_sahi:
+        if confidence == 0.5:  # 기본값이면 모델별 기본값 사용
+            confidence = model_config.get("confidence", 0.5)
+        if iou_threshold == 0.45:  # 기본값이면 모델별 기본값 사용
+            iou_threshold = model_config.get("iou", 0.45)
+        if imgsz == 640:  # 기본값이면 모델별 기본값 사용
+            imgsz = model_config.get("imgsz", 640)
+
+        # 모델별 SAHI 자동 활성화 (model_defaults 기반)
+        if not use_sahi and sahi_config.get("use_sahi", False):
             use_sahi = True
-            logger.info(f"P&ID 모델 자동 SAHI 활성화: {model_id}")
+            slice_height = sahi_config.get("slice_size", 512)
+            slice_width = sahi_config.get("slice_size", 512)
+            overlap_ratio = sahi_config.get("overlap_ratio", 0.25)
+            logger.info(f"모델 기본값으로 SAHI 활성화: {model_id}, slice={slice_height}x{slice_width}")
 
         # SAHI 또는 일반 추론 선택
         if use_sahi:
@@ -279,6 +298,18 @@ async def detect_objects(
                 imgsz=imgsz,
                 task=task
             )
+
+        # Post-processing: map class IDs to proper names from registry
+        if model_registry:
+            model_info = model_registry.get_model(model_id)
+            if model_info and 'class_names' in model_info:
+                class_names_list = model_info['class_names']
+                for det in detections:
+                    # If class_name is numeric, map to proper name
+                    if det.class_name.isdigit() or det.class_name.startswith('class_'):
+                        class_idx = det.class_id
+                        if 0 <= class_idx < len(class_names_list):
+                            det.class_name = class_names_list[class_idx]
 
         # Post-processing: filter text blocks and remove duplicates
         original_count = len(detections)
@@ -324,6 +355,33 @@ async def detect_objects(
 
         processing_time = time.time() - start_time
 
+        # SVG 오버레이 생성 (include_svg=True인 경우)
+        svg_overlay_data = None
+        if include_svg and len(detections) > 0:
+            # Detection 객체를 dict로 변환
+            detections_dict = [
+                {
+                    "class_id": det.class_id,
+                    "class_name": det.class_name,
+                    "confidence": det.confidence,
+                    "bbox": det.bbox,
+                }
+                for det in detections
+            ]
+            svg_data = detections_to_svg_data(
+                detections=detections_dict,
+                image_size=(img_width, img_height),
+                model_type=model_id,
+            )
+            svg_overlay_data = SVGOverlay(
+                svg=svg_data["svg"],
+                svg_minimal=svg_data["svg_minimal"],
+                width=svg_data["width"],
+                height=svg_data["height"],
+                detection_count=svg_data["detection_count"],
+                model_type=svg_data["model_type"],
+            )
+
         return DetectionResponse(
             status="success",
             file_id=file_id,
@@ -332,7 +390,8 @@ async def detect_objects(
             processing_time=processing_time,
             model_used=model_id,
             image_size={'width': img_width, 'height': img_height},
-            visualized_image=visualized_image_base64
+            visualized_image=visualized_image_base64,
+            svg_overlay=svg_overlay_data,
         )
 
     except Exception as e:

@@ -305,6 +305,20 @@ export const API_REGISTRY: APIDefinition[] = [
     color: '#8b5cf6',
     gpuEnabled: true,
   },
+  // PID Composer (Visualization)
+  {
+    id: 'pid_composer',
+    nodeType: 'pidcomposer',
+    displayName: 'PID Composer',
+    containerName: 'pid-composer-api',
+    specId: 'pid-composer',
+    port: 5021,
+    category: 'analysis',
+    description: 'P&ID 레이어 합성, SVG 오버레이 생성',
+    icon: '🎨',
+    color: '#8b5cf6',
+    gpuEnabled: false,
+  },
 ];
 
 // ============ 유틸리티 함수들 ============

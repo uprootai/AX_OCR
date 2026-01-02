@@ -70,7 +70,7 @@
 
 ---
 
-## API 서비스 (19개)
+## API 서비스 (20개)
 
 | 카테고리 | 서비스 | 포트 | 용도 |
 |----------|--------|------|------|
@@ -90,6 +90,7 @@
 | **Analysis** | PID Analyzer | 5018 | P&ID 연결 분석, BOM 생성 |
 | **Analysis** | Design Checker | 5019 | P&ID 설계 규칙 검증 |
 | **Analysis** | Blueprint AI BOM | 5020 | 도면 BOM 생성, Human-in-the-Loop |
+| **Visualization** | PID Composer | 5021 | P&ID 레이어 합성, SVG 오버레이 생성 |
 | **Knowledge** | Knowledge | 5007 | Neo4j + GraphRAG |
 | **AI** | VL | 5004 | Vision-Language 모델 |
 | **Orchestrator** | Gateway | 8000 | 파이프라인 조정 |
@@ -615,7 +616,8 @@ gateway-api/api_specs/
 ├── suryaocr.yaml           # Surya OCR (90+ 언어)
 ├── doctr.yaml              # DocTR (2단계 파이프라인)
 ├── easyocr.yaml            # EasyOCR (80+ 언어)
-└── blueprint-ai-bom.yaml   # Blueprint AI BOM (Human-in-the-Loop)
+├── blueprint-ai-bom.yaml   # Blueprint AI BOM (Human-in-the-Loop)
+└── pid-composer.yaml       # PID Composer (레이어 합성, SVG 오버레이)
 ```
 
 **API 엔드포인트**:

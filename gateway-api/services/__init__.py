@@ -10,6 +10,7 @@ from .tolerance_service import call_skinmodel_tolerance
 from .vl_service import call_vl_api
 from .ensemble_service import process_yolo_crop_ocr, ensemble_ocr_results
 from .quote_service import calculate_quote
+# PID Overlay moved to pid-composer-api (port 5021)
 
 __all__ = [
     # YOLO
@@ -27,5 +28,5 @@ __all__ = [
     "process_yolo_crop_ocr",
     "ensemble_ocr_results",
     # Quote
-    "calculate_quote"
+    "calculate_quote",
 ]

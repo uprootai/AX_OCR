@@ -877,4 +877,163 @@ export const analysisNodes: Record<string, NodeDefinition> = {
       },
     ],
   },
+
+  /**
+   * PID Composer Node
+   * P&ID 레이어 합성 및 시각화
+   */
+  pidcomposer: {
+    type: 'pidcomposer',
+    label: 'PID Composer',
+    category: 'analysis',
+    color: '#8b5cf6',
+    icon: 'Layers',
+    description:
+      'P&ID 도면에 심볼, 라인, 텍스트, 영역 레이어를 합성하여 시각화합니다. 서버 사이드 이미지 렌더링 및 클라이언트용 SVG 오버레이 생성을 지원합니다.',
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 원본 P&ID 이미지',
+      },
+      {
+        name: 'symbols',
+        type: 'Symbol[]',
+        description: '🔧 심볼 레이어 데이터 (YOLO 검출 결과)',
+        optional: true,
+      },
+      {
+        name: 'lines',
+        type: 'Line[]',
+        description: '📏 라인 레이어 데이터 (Line Detector 결과)',
+        optional: true,
+      },
+      {
+        name: 'texts',
+        type: 'Text[]',
+        description: '📝 텍스트 레이어 데이터 (OCR 결과)',
+        optional: true,
+      },
+      {
+        name: 'regions',
+        type: 'Region[]',
+        description: '📐 영역 레이어 데이터',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'composed_image',
+        type: 'Image',
+        description: '🎨 합성된 이미지 (Base64)',
+      },
+      {
+        name: 'svg_overlay',
+        type: 'string',
+        description: '📊 SVG 오버레이 (프론트엔드용)',
+      },
+      {
+        name: 'statistics',
+        type: 'ComposerStats',
+        description: '📈 합성 통계 (레이어별 개수 등)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'enabled_layers',
+        type: 'checkboxGroup',
+        default: ['symbols', 'lines', 'texts', 'regions'],
+        options: [
+          { value: 'symbols', label: '심볼', icon: '🔧', description: '심볼 박스 및 라벨' },
+          { value: 'lines', label: '라인', icon: '📏', description: '파이프/신호 라인' },
+          { value: 'texts', label: '텍스트', icon: '📝', description: 'OCR 텍스트 영역' },
+          { value: 'regions', label: '영역', icon: '📐', description: '점선 영역 박스' },
+        ],
+        description: '활성화할 레이어',
+      },
+      {
+        name: 'output_format',
+        type: 'select',
+        default: 'png',
+        options: ['png', 'jpg', 'webp'],
+        description: '출력 이미지 형식',
+      },
+      {
+        name: 'include_svg',
+        type: 'boolean',
+        default: true,
+        description: 'SVG 오버레이 생성 (프론트엔드 인터랙티브 뷰어용)',
+      },
+      {
+        name: 'include_legend',
+        type: 'boolean',
+        default: false,
+        description: '범례 포함 (레이어별 개수 표시)',
+      },
+      {
+        name: 'symbol_color',
+        type: 'string',
+        default: '#FF7800',
+        description: '심볼 색상 (Hex)',
+      },
+      {
+        name: 'symbol_thickness',
+        type: 'number',
+        default: 2,
+        min: 1,
+        max: 10,
+        step: 1,
+        description: '심볼 테두리 두께',
+      },
+      {
+        name: 'show_symbol_labels',
+        type: 'boolean',
+        default: true,
+        description: '심볼 라벨 표시 (클래스명, 신뢰도)',
+      },
+      {
+        name: 'line_thickness',
+        type: 'number',
+        default: 2,
+        min: 1,
+        max: 10,
+        step: 1,
+        description: '라인 두께',
+      },
+      {
+        name: 'show_flow_arrows',
+        type: 'boolean',
+        default: false,
+        description: '플로우 화살표 표시 (라인 중간점)',
+      },
+    ],
+    examples: [
+      'YOLO + Line Detector + OCR → PID Composer → 합성 이미지',
+      'P&ID 분석 결과 → PID Composer → 시각화 리포트',
+    ],
+    usageTips: [
+      '⭐ YOLO, Line Detector, OCR 결과를 입력하면 종합 시각화 생성',
+      '📊 include_svg=true로 프론트엔드에서 인터랙티브 뷰 가능',
+      '🎨 symbol_color로 심볼 하이라이트 색상 커스터마이징',
+      '📏 레이어별로 활성화/비활성화 가능',
+      '💡 include_legend=true로 레이어별 개수 범례 추가',
+    ],
+    recommendedInputs: [
+      {
+        from: 'yolo',
+        field: 'detections',
+        reason: '⭐ 심볼 레이어: YOLO 검출 결과를 시각화',
+      },
+      {
+        from: 'linedetector',
+        field: 'lines',
+        reason: '라인 레이어: 파이프/신호 라인 시각화',
+      },
+      {
+        from: 'edocr2',
+        field: 'text_results',
+        reason: '텍스트 레이어: OCR 결과 영역 시각화',
+      },
+    ],
+  },
 };

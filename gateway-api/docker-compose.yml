@@ -14,7 +14,7 @@ services:
     environment:
       - GATEWAY_PORT=8000
       - GATEWAY_WORKERS=4
-      - EDOCR2_URL=http://edocr2-api:5001
+      - EDOCR2_URL=http://edocr2-v2-api:5002
       - EDGNET_URL=http://edgnet-api:5002
       - SKINMODEL_URL=http://skinmodel-api:5003
       - GATEWAY_LOG_LEVEL=INFO

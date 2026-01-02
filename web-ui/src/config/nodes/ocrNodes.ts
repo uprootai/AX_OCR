@@ -29,13 +29,6 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     ],
     parameters: [
       {
-        name: 'version',
-        type: 'select',
-        default: 'v2',
-        options: ['v1', 'v2', 'ensemble'],
-        description: 'eDOCr 버전 (v1: 5001, v2: 5002, ensemble: 가중 평균 0.6/0.4)',
-      },
-      {
         name: 'language',
         type: 'select',
         default: 'eng',

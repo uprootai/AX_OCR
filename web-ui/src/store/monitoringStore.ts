@@ -26,8 +26,7 @@ interface MonitoringState {
 export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   services: {
     gateway: null,
-    edocr2_v1: null,
-    edocr2_v2: null,
+    edocr2: null,
     edgnet: null,
     skinmodel: null,
     yolo: null,
