@@ -230,6 +230,143 @@ class RuleLoader:
             "last_updated": config.get("last_updated")
         }
 
+    def get_rules_by_product_type(self, product_type: str) -> List[Dict[str, Any]]:
+        """
+        제품 유형별 규칙 조회
+
+        Args:
+            product_type: 제품 유형 (ECS, HYCHLOR, ALL)
+
+        Returns:
+            해당 제품 유형의 규칙 리스트
+        """
+        all_rules = self.load_all_rules()
+        product_type_upper = product_type.upper()
+
+        filtered_rules = []
+        for rule_id, rule in all_rules.items():
+            rule_product_type = rule.get("product_type", "ALL").upper()
+
+            # ALL은 모든 제품에 적용
+            # 특정 제품 유형은 해당 제품 + ALL 규칙 적용
+            if rule_product_type == "ALL" or rule_product_type == product_type_upper:
+                filtered_rules.append(rule)
+
+        logger.debug(f"Filtered {len(filtered_rules)} rules for product_type={product_type}")
+        return filtered_rules
+
+    def get_rules_by_check_type(self, check_type: str) -> List[Dict[str, Any]]:
+        """
+        검사 유형별 규칙 조회
+
+        Args:
+            check_type: 검사 유형 (existence, sequence, connection, document 등)
+
+        Returns:
+            해당 검사 유형의 규칙 리스트
+        """
+        all_rules = self.load_all_rules()
+
+        filtered_rules = []
+        for rule_id, rule in all_rules.items():
+            if rule.get("check_type", "").lower() == check_type.lower():
+                filtered_rules.append(rule)
+
+        logger.debug(f"Filtered {len(filtered_rules)} rules for check_type={check_type}")
+        return filtered_rules
+
+    def get_rules_filtered(
+        self,
+        product_type: str = "ALL",
+        ship_type: Optional[str] = None,
+        class_society: Optional[str] = None,
+        project_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        조건부 규칙 필터링
+
+        Args:
+            product_type: 제품 유형 (ECS, HYCHLOR, ALL)
+            ship_type: 선종 (BULKER, TANKER, CONTAINER, LNG, LPG, BARGE, GENERAL)
+            class_society: 선급 (ABS, LR, DNV, BV, KR, NK, CCS, RINA 등)
+            project_type: 프로젝트 유형 (NEWBUILD, RETROFIT)
+
+        Returns:
+            필터링된 규칙 리스트
+        """
+        all_rules = self.load_all_rules()
+        product_type_upper = product_type.upper() if product_type else "ALL"
+        ship_type_upper = ship_type.upper() if ship_type else None
+        class_society_upper = class_society.upper() if class_society else None
+        project_type_upper = project_type.upper() if project_type else None
+
+        filtered_rules = []
+
+        for rule_id, rule in all_rules.items():
+            # 1. 제품 유형 필터
+            rule_product_type = rule.get("product_type", "ALL").upper()
+            if rule_product_type != "ALL" and rule_product_type != product_type_upper:
+                continue
+
+            # 2. 선종 필터 (ship_type 또는 category로 판단)
+            rule_ship_type = rule.get("ship_type", "ALL").upper()
+            rule_category = rule.get("category", "").lower()
+
+            # 선종 특정 카테고리 매핑
+            ship_category_map = {
+                "bulker": ["bulker", "bulk"],
+                "tanker": ["tanker", "oil_tanker"],
+                "container": ["container"],
+                "lng": ["lng", "lng_lpg", "gas"],
+                "lpg": ["lpg", "lng_lpg", "gas"],
+                "barge": ["barge"],
+            }
+
+            if ship_type_upper:
+                # 규칙에 ship_type이 명시된 경우
+                if rule_ship_type != "ALL":
+                    if rule_ship_type != ship_type_upper:
+                        continue
+                # 카테고리로 선종 판단
+                elif rule_category:
+                    matched_categories = ship_category_map.get(ship_type_upper.lower(), [])
+                    if rule_category in ship_category_map.get(ship_type_upper.lower(), []):
+                        pass  # 매칭됨
+                    elif any(cat in rule_category for cat in matched_categories):
+                        pass  # 부분 매칭
+                    elif rule_category in ["bulker", "barge", "lng_lpg"]:
+                        # 다른 선종 전용 규칙은 제외
+                        if rule_category not in ship_category_map.get(ship_type_upper.lower(), []):
+                            continue
+
+            # 3. 선급 필터
+            rule_class = rule.get("class_society", "ALL").upper()
+            if class_society_upper:
+                if rule_class != "ALL" and rule_class != class_society_upper:
+                    continue
+                # 카테고리로 선급 판단 (class_abs, class_lr 등)
+                if rule_category.startswith("class_"):
+                    rule_class_from_cat = rule_category.replace("class_", "").upper()
+                    if rule_class_from_cat != class_society_upper:
+                        continue
+
+            # 4. 프로젝트 유형 필터 (NEWBUILD/RETROFIT)
+            rule_project = rule.get("project_type", "ALL").upper()
+            if project_type_upper:
+                if rule_project != "ALL" and rule_project != project_type_upper:
+                    continue
+                # retrofit 카테고리 체크
+                if rule_category == "retrofit" and project_type_upper != "RETROFIT":
+                    continue
+
+            filtered_rules.append(rule)
+
+        logger.info(
+            f"Filtered {len(filtered_rules)}/{len(all_rules)} rules "
+            f"(product={product_type}, ship={ship_type}, class={class_society}, project={project_type})"
+        )
+        return filtered_rules
+
     def list_files(self, category: Optional[str] = None) -> List[Dict[str, Any]]:
         """규칙 파일 목록 조회"""
         files = []

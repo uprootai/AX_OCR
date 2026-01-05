@@ -31,7 +31,7 @@ from bwms_rules import bwms_checker
 from rule_loader import rule_loader
 
 # Routers
-from routers import check_router, rules_router, checklist_router
+from routers import check_router, rules_router, checklist_router, ocr_check_router, pipeline_router
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -100,6 +100,8 @@ app.add_middleware(
 app.include_router(check_router)
 app.include_router(rules_router)
 app.include_router(checklist_router)
+app.include_router(ocr_check_router)
+app.include_router(pipeline_router)
 
 
 # =====================
@@ -146,12 +148,20 @@ async def get_info():
                 "health": "/health",
                 "check": "/api/v1/check",
                 "check_bwms": "/api/v1/check/bwms",
+                "check_ocr": "/api/v1/check/ocr",
+                "check_ocr_tags": "/api/v1/check/ocr/tags",
+                "check_ocr_patterns": "/api/v1/check/ocr/patterns",
                 "rules": "/api/v1/rules",
                 "rules_bwms": "/api/v1/rules/bwms",
                 "rules_status": "/api/v1/rules/status",
                 "checklist_upload": "/api/v1/checklist/upload",
-                "checklist_template": "/api/v1/checklist/template"
+                "checklist_template": "/api/v1/checklist/template",
+                "pipeline_detect": "/api/v1/pipeline/detect",
+                "pipeline_ocr": "/api/v1/pipeline/ocr",
+                "pipeline_validate": "/api/v1/pipeline/validate",
+                "pipeline_export": "/api/v1/pipeline/validate/export",
             },
+            "ocr_sources": ["paddleocr", "edocr2", "both"],
             "standards": [
                 "ISO 10628 (P&ID)",
                 "ISA 5.1 (계기 심볼)",

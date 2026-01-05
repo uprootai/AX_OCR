@@ -1,10 +1,28 @@
+# BWMS 체크리스트 규칙 활성화 설정
+# 생성일: 2026-01-05
+# 체크리스트 분석 기반 규칙 반영
+
 version: '1.0'
-description: BWMS 체크리스트 규칙 활성화 설정
-last_updated: '2026-01-02T02:07:19.665230'
+description: BWMS 체크리스트 규칙 활성화 설정 (ECS/HYCHLOR 분리)
+last_updated: '2026-01-05T00:00:00.000000'
+
+# 활성화된 규칙 프로필
 active_profiles:
-- common/base_rules.yaml
-- ecs/ecs_rules.yaml
-- hychlor/hychlor_rules.yaml
-- ecs/bwms_rules_ecs_20251229_053602.yaml
-- common/common_rules_bwms_checklist_template.yaml
+  # 공통 규칙 (모든 제품군)
+  - common/base_rules.yaml
+
+  # ECS 전용 규칙 (직접식 전기분해)
+  - ecs/ecs_rules.yaml
+
+  # HYCHLOR 전용 규칙 (간접식 전기분해)
+  - hychlor/hychlor_rules.yaml
+
+# 비활성화된 규칙 (필요시 rule_id 추가)
 disabled_rules: []
+
+# 규칙 통계
+stats:
+  common_rules: 21
+  ecs_rules: 37
+  hychlor_rules: 31
+  total_rules: 89

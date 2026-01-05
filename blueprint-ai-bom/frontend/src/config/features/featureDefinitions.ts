@@ -11,10 +11,8 @@
  * @see ActiveFeaturesSection.tsx - 워크플로우 페이지 배지 (blueprint-ai-bom)
  *
  * 동기화 대상:
- * - web-ui/src/config/features/featureDefinitions.ts (SSOT)
+ * - blueprint-ai-bom/frontend/src/config/features/featureDefinitions.ts
  *   (별도 프로젝트이므로 수동 동기화 필요, 동일 내용 유지)
- *
- * 마지막 동기화: 2025-12-31 (web-ui에서 복사)
  *
  * 구현 상태 (implementationStatus):
  * - 'implemented': 백엔드 API 완전 구현됨
@@ -78,6 +76,23 @@ export interface FeatureDefinition {
   implementationStatus: ImplementationStatus;
   /** 구현 위치 (라우터 파일 경로) */
   implementationLocation?: string;
+
+  // === Feature 관계 정의 (자동 활성화) ===
+  /**
+   * 이 feature가 활성화되면 자동으로 함께 활성화되는 features
+   * 예: symbol_detection → ['symbol_verification', 'gt_comparison']
+   */
+  implies?: string[];
+  /**
+   * 이 features 중 하나라도 있으면 현재 feature가 자동 활성화됨
+   * 예: gt_comparison.impliedBy = ['symbol_detection']
+   */
+  impliedBy?: string[];
+  /**
+   * Primary feature 여부 (그룹의 핵심 기능, UI에서 선택 가능)
+   * true인 feature만 사용자가 직접 선택, 나머지는 자동 활성화
+   */
+  isPrimary?: boolean;
 }
 
 // ============================================================
@@ -99,6 +114,9 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-purple-700 dark:text-purple-300',
     implementationStatus: 'implemented',
     implementationLocation: 'detection_router.py',
+    // 🔗 관계: 심볼 검출 → 검증, GT비교 자동 활성화
+    isPrimary: true,
+    implies: ['symbol_verification', 'gt_comparison'],
   },
   symbol_verification: {
     key: 'symbol_verification',
@@ -113,6 +131,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-green-700 dark:text-green-300',
     implementationStatus: 'implemented',
     implementationLocation: 'verification_router.py',
+    // 🔗 관계: symbol_detection에 의해 자동 활성화
+    impliedBy: ['symbol_detection'],
   },
   dimension_ocr: {
     key: 'dimension_ocr',
@@ -127,6 +147,9 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-blue-700 dark:text-blue-300',
     implementationStatus: 'implemented',
     implementationLocation: 'dimension_router.py',
+    // 🔗 관계: 치수 OCR → 치수 검증 자동 활성화
+    isPrimary: true,
+    implies: ['dimension_verification'],
   },
   dimension_verification: {
     key: 'dimension_verification',
@@ -141,6 +164,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-teal-700 dark:text-teal-300',
     implementationStatus: 'implemented',
     implementationLocation: 'dimension_router.py',
+    // 🔗 관계: dimension_ocr에 의해 자동 활성화
+    impliedBy: ['dimension_ocr'],
   },
   gt_comparison: {
     key: 'gt_comparison',
@@ -153,8 +178,10 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     recommendedNodes: [],
     badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
-    implementationStatus: 'partial',
-    implementationLocation: 'session (gt_results 저장만)',
+    implementationStatus: 'implemented',
+    implementationLocation: 'groundTruth API (api_server.py)',
+    // 🔗 관계: symbol_detection에 의해 자동 활성화
+    impliedBy: ['symbol_detection'],
   },
 
   // === GD&T / 기계 ===
@@ -171,6 +198,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-indigo-700 dark:text-indigo-300',
     implementationStatus: 'implemented',
     implementationLocation: 'gdt_router.py',
+    isPrimary: true,
   },
   line_detection: {
     key: 'line_detection',
@@ -185,6 +213,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-cyan-700 dark:text-cyan-300',
     implementationStatus: 'implemented',
     implementationLocation: 'line_router.py',
+    isPrimary: true,
   },
   relation_extraction: {
     key: 'relation_extraction',
@@ -243,12 +272,16 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-rose-700 dark:text-rose-300',
     implementationStatus: 'implemented',
     implementationLocation: 'line_router.py (connectivity analysis)',
+    isPrimary: true,
+    // 🔗 관계: P&ID 연결성 → TECHCROSS 기능들 자동 활성화
+    implies: ['techcross_valve_signal', 'techcross_equipment', 'techcross_checklist', 'techcross_deviation'],
   },
   industry_equipment_detection: {
     key: 'industry_equipment_detection',
     icon: '🏭',
     label: '장비 태그 인식',
     group: FEATURE_GROUPS.PID,
+    isPrimary: true,
     hint: 'OCR + 패턴 매칭',
     description:
       'P&ID 도면에서 산업별 장비 태그(예: ECU-001, FMU-002, PUMP-101 등)를 OCR과 정규식 패턴 매칭으로 자동 인식합니다. 장비 프로파일을 선택하여 다양한 산업 분야에 적용 가능합니다.',
@@ -257,6 +290,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-rose-700 dark:text-rose-300',
     implementationStatus: 'implemented',
     implementationLocation: 'pid-analyzer-api/equipment_analyzer.py',
+    // 🔗 관계: 장비 태그 인식 → 장비 목록 내보내기 자동 활성화
+    implies: ['equipment_list_export'],
   },
   equipment_list_export: {
     key: 'equipment_list_export',
@@ -271,6 +306,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-rose-700 dark:text-rose-300',
     implementationStatus: 'implemented',
     implementationLocation: 'pid-analyzer-api/equipment_analyzer.py',
+    // 🔗 관계: industry_equipment_detection에 의해 자동 활성화
+    impliedBy: ['industry_equipment_detection'],
   },
 
   // === TECHCROSS BWMS (1-1 ~ 1-4) ===
@@ -287,6 +324,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
     implementationStatus: 'implemented',
     implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py',
+    // 🔗 관계: pid_connectivity에 의해 자동 활성화
+    impliedBy: ['pid_connectivity'],
   },
   techcross_equipment: {
     key: 'techcross_equipment',
@@ -301,6 +340,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
     implementationStatus: 'implemented',
     implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py',
+    // 🔗 관계: pid_connectivity에 의해 자동 활성화
+    impliedBy: ['pid_connectivity'],
   },
   techcross_checklist: {
     key: 'techcross_checklist',
@@ -315,6 +356,8 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-orange-700 dark:text-orange-300',
     implementationStatus: 'implemented',
     implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py',
+    // 🔗 관계: pid_connectivity에 의해 자동 활성화
+    impliedBy: ['pid_connectivity'],
   },
   techcross_deviation: {
     key: 'techcross_deviation',
@@ -325,10 +368,12 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     description:
       'POR(Purchase Order Requirement) 대비 편차 항목을 관리합니다. 구매자 결정사항 입력 및 추적.',
     recommendedNodes: ['blueprint-ai-bom'],
-    badgeBgClass: 'bg-gray-100 dark:bg-gray-900/30',
-    badgeTextClass: 'text-gray-700 dark:text-gray-300',
-    implementationStatus: 'planned',
-    implementationLocation: 'blueprint-ai-bom/routers/pid_features_router.py (향후 구현)',
+    badgeBgClass: 'bg-orange-100 dark:bg-orange-900/30',
+    badgeTextClass: 'text-orange-700 dark:text-orange-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'blueprint-ai-bom/routers/pid_features/deviation_router.py',
+    // 🔗 관계: pid_connectivity에 의해 자동 활성화
+    impliedBy: ['pid_connectivity'],
   },
 
   // === BOM 생성 ===
@@ -345,6 +390,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-amber-700 dark:text-amber-300',
     implementationStatus: 'implemented',
     implementationLocation: 'bom_router.py',
+    isPrimary: true,
   },
   title_block_ocr: {
     key: 'title_block_ocr',
@@ -359,6 +405,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-slate-700 dark:text-slate-300',
     implementationStatus: 'implemented',
     implementationLocation: 'gdt_router.py (title-block OCR)',
+    isPrimary: true,
   },
   quantity_extraction: {
     key: 'quantity_extraction',
@@ -569,4 +616,110 @@ export function getImplementationStatusLabel(status: ImplementationStatus): stri
     default:
       return '알 수 없음';
   }
+}
+
+// ============================================================
+// Helper: Feature Implication (자동 활성화)
+// ============================================================
+
+/**
+ * 주어진 features에서 implied features를 재귀적으로 추가하여 반환
+ * @param features 입력 features 배열
+ * @returns 모든 implied features가 포함된 배열
+ */
+export function getImpliedFeatures(features: string[]): string[] {
+  const result = new Set<string>(features);
+  const processed = new Set<string>();
+
+  function processFeature(featureKey: string): void {
+    if (processed.has(featureKey)) return;
+    processed.add(featureKey);
+
+    const feature = FEATURE_DEFINITIONS[featureKey];
+    if (feature?.implies) {
+      for (const implied of feature.implies) {
+        result.add(implied);
+        processFeature(implied); // 재귀적으로 처리
+      }
+    }
+  }
+
+  for (const featureKey of features) {
+    processFeature(featureKey);
+  }
+
+  return Array.from(result);
+}
+
+/**
+ * 특정 feature가 활성화되어야 하는지 확인 (impliedBy 체크)
+ * @param featureKey 확인할 feature 키
+ * @param activeFeatures 현재 활성화된 features
+ * @returns feature가 직접 또는 impliedBy로 활성화되어야 하면 true
+ */
+export function shouldFeatureBeActive(featureKey: string, activeFeatures: string[]): boolean {
+  // 직접 활성화된 경우
+  if (activeFeatures.includes(featureKey)) {
+    return true;
+  }
+
+  // impliedBy로 활성화되는 경우
+  const feature = FEATURE_DEFINITIONS[featureKey];
+  if (feature?.impliedBy) {
+    return feature.impliedBy.some((implier) => activeFeatures.includes(implier));
+  }
+
+  return false;
+}
+
+/**
+ * 활성화된 features와 implied features를 모두 포함한 전체 활성 features 반환
+ * @param features 직접 선택된 features
+ * @returns 모든 활성 features (직접 선택 + implied)
+ */
+export function getAllActiveFeatures(features: string[]): string[] {
+  return getImpliedFeatures(features);
+}
+
+// ============================================================
+// Helper: Primary Features (사용자 선택 가능한 핵심 기능)
+// ============================================================
+
+/**
+ * Primary features만 반환 (사용자가 직접 선택 가능한 핵심 기능)
+ */
+export function getPrimaryFeatures(): FeatureDefinition[] {
+  return Object.values(FEATURE_DEFINITIONS).filter((f) => f.isPrimary === true);
+}
+
+/**
+ * 그룹별 Primary features 반환
+ */
+export function getPrimaryFeaturesByGroup(): Record<FeatureGroup, FeatureDefinition[]> {
+  const result: Record<string, FeatureDefinition[]> = {};
+  for (const group of Object.values(FEATURE_GROUPS)) {
+    result[group] = Object.values(FEATURE_DEFINITIONS).filter(
+      (f) => f.group === group && f.isPrimary === true
+    );
+  }
+  return result as Record<FeatureGroup, FeatureDefinition[]>;
+}
+
+/**
+ * Feature 의존 관계 다이어그램 생성 (디버깅/문서화용)
+ */
+export function getFeatureRelationshipDiagram(): string {
+  const lines: string[] = ['Feature Relationships:', ''];
+
+  for (const [key, feature] of Object.entries(FEATURE_DEFINITIONS)) {
+    if (feature.implies && feature.implies.length > 0) {
+      lines.push(`${feature.isPrimary ? '🎯 ' : ''}${key}`);
+      for (const implied of feature.implies) {
+        lines.push(`  └─→ ${implied}`);
+      }
+      lines.push('');
+    }
+  }
+
+  return lines.join('\n');
 }

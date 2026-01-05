@@ -70,7 +70,10 @@ export const inputNodes: Record<string, NodeDefinition> = {
       {
         name: 'features',
         type: 'checkboxGroup',
-        default: ['dimension_ocr', 'dimension_verification', 'gt_comparison'],
+        // Primary features만 선택하면 impliedBy로 하위 기능 자동 활성화
+        // symbol_detection → symbol_verification, gt_comparison
+        // dimension_ocr → dimension_verification
+        default: ['symbol_detection', 'dimension_ocr'],
         // SSOT에서 자동 생성된 옵션 사용
         options: toCheckboxGroupOptions(),
         description: '🔧 활성화 기능',

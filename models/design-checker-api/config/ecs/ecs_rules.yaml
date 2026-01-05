@@ -1,0 +1,622 @@
+# ECS (직접식 전기분해) 전용 규칙
+# 체크리스트 기반 자동 검증 규칙 (Ver.25.01)
+# 생성일: 2026-01-05
+
+version: '1.0'
+product_type: ECS
+category: ecs
+category_description: ECS 직접식 전기분해 시스템 전용 규칙
+created_at: '2026-01-05'
+rules_count: 35
+
+rules:
+  # ============================================================
+  # BALLAST PUMP 관련 규칙 (4개)
+  # ============================================================
+  - rule_id: ECS-BP-001
+    name: Ballast Pump 후단 Check Valve 존재
+    name_en: Check Valve after Ballast Pump
+    severity: error
+    check_type: existence
+    category: ballast_pump
+    equipment: Check Valve
+    condition: downstream_of
+    condition_value: Ballast Pump
+    description: Ballast Pump 후단에 Check Valve가 있어야 합니다
+    suggestion: Ballast Pump 후단에 Check Valve를 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-BP-002
+    name: Ballast Pump 후단 Manual Valve 존재
+    name_en: Manual Valve after Ballast Pump
+    severity: error
+    check_type: existence
+    category: ballast_pump
+    equipment: Manual Valve
+    condition: downstream_of
+    condition_value: Ballast Pump
+    description: Ballast Pump 후단에 Manual Valve가 있어야 합니다
+    suggestion: Ballast Pump 후단에 Manual Valve를 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # ECU (전기분해 챔버) 관련 규칙 (2개)
+  # ============================================================
+  - rule_id: ECS-ECU-001
+    name: ECU Outlet Signal Valve 존재 (단일 챔버)
+    name_en: ECU Outlet Signal Valve for Single Chamber
+    severity: warning
+    check_type: existence
+    category: ecu
+    equipment: Signal Valve
+    condition: at_outlet_of
+    condition_value: ECU
+    description: ECU 단일 챔버의 경우 ECU Outlet에 Signal Valve가 필요합니다
+    suggestion: ECU Outlet에 Signal Valve를 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-ECU-002
+    name: ECU 전단 T-STRAINER 위치
+    name_en: T-STRAINER before ECU
+    severity: error
+    check_type: sequence
+    category: ecu
+    equipment: T-STRAINER
+    condition: before
+    condition_value: ECU
+    description: T-STRAINER는 ECU 전단에 위치해야 합니다
+    suggestion: T-STRAINER를 ECU 전단에 배치하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # PRU (정류기) 관련 규칙 (3개)
+  # ============================================================
+  - rule_id: ECS-PRU-001
+    name: PRU Inlet Valve 존재 (Cooling F.W. 사용 시)
+    name_en: PRU Inlet Valve for Cooling F.W.
+    severity: warning
+    check_type: existence
+    category: pru
+    equipment: Valve
+    condition: at_inlet_of
+    condition_value: PRU
+    description: 본선 Cooling F.W. System 사용 시 PRU Inlet에 밸브가 필요합니다
+    suggestion: PRU Inlet에 밸브를 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-PRU-002
+    name: PRU 냉각수 유량 표기 (0.45m3/h per PRU)
+    name_en: PRU Cooling Water Flow Rate
+    severity: info
+    check_type: document
+    category: pru
+    equipment: PRU
+    condition: annotation
+    condition_value: 0.45m3/h
+    description: PRU 당 0.45m3/h 냉각수 유량이 기입되어야 합니다
+    suggestion: PRU 냉각수 유량을 도면에 기입하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-PRU-003
+    name: HEU/FT 배치 (Cooling F.W. 불가 시)
+    name_en: HEU/FT for Non-Cooling F.W.
+    severity: warning
+    check_type: existence
+    category: pru
+    equipment: HEU,FT
+    condition: exists_when
+    condition_value: no_cooling_fw
+    check_logic: or_exists  # HEU 또는 FT 중 하나만 있으면 OK
+    context_check: COOLING  # OCR에서 "COOLING F.W." 없으면 스킵
+    description: 본선 Cooling F.W. System 사용 불가 시 HEU, FT가 필요합니다
+    suggestion: HEU와 FT를 도면에 추가하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # FMU (유량계) 관련 규칙 (4개)
+  # ============================================================
+  - rule_id: ECS-FMU-001
+    name: FMU ECU 후단 배치
+    name_en: FMU after ECU
+    severity: error
+    check_type: sequence
+    category: fmu
+    equipment: FMU
+    condition: after
+    condition_value: ECU
+    description: FMU는 ECU 후단에 배치해야 합니다 (2024년 기준)
+    suggestion: FMU를 ECU 후단에 배치하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-FMU-002
+    name: FMU 메이커 FC KOREA
+    name_en: FMU Maker FC KOREA
+    severity: info
+    check_type: document
+    category: fmu
+    equipment: FMU
+    condition: annotation
+    condition_value: FC KOREA
+    description: FMU 메이커는 FC KOREA를 적용해야 합니다
+    suggestion: FMU 메이커를 FC KOREA로 기입하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-FMU-003
+    name: FMU 유속 3m/s 기준 다운사이징
+    name_en: FMU Downsizing at 3m/s
+    severity: warning
+    check_type: document
+    category: fmu
+    equipment: FMU
+    condition: sizing
+    condition_value: 3m/s
+    description: FMU 다운사이징 전 유속 3m/s 기준 적용 필요
+    suggestion: FMU 유속 3m/s 기준으로 사이즈를 확인하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-FMU-004
+    name: SKID 내 FMU ECU 전단 배치
+    name_en: FMU before ECU in SKID
+    severity: warning
+    check_type: sequence
+    category: fmu
+    equipment: FMU
+    condition: before_in_skid
+    condition_value: ECU
+    na_condition: FMU not in SKID
+    description: SKID 내 FMU 포함 시 FMU를 ECU 전단에 위치
+    suggestion: SKID 내에서는 FMU를 ECU 전단에 배치하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # T-STRAINER 관련 규칙 (1개)
+  # ============================================================
+  - rule_id: ECS-TS-001
+    name: T-STRAINER 적용 여부 확인
+    name_en: T-STRAINER Application Check
+    severity: warning
+    check_type: existence
+    category: t_strainer
+    equipment: T-STRAINER
+    condition: exists
+    condition_value: required
+    na_condition: T-STRAINER 미적용 조선소 (TSUNEISHI, OSHIMA 등)
+    description: T-STRAINER 적용 여부를 확인해야 합니다
+    suggestion: 조선소별 T-STRAINER 적용 여부를 확인하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # CSU (염소 센서) 관련 규칙 (2개)
+  # ============================================================
+  - rule_id: ECS-CSU-001
+    name: CSU 단관 5K-50A 적용
+    name_en: CSU Pipe 5K-50A
+    severity: info
+    check_type: document
+    category: csu
+    equipment: CSU
+    condition: annotation
+    condition_value: 5K-50A
+    description: CSU 단관은 5K-50A를 적용해야 합니다
+    suggestion: CSU 단관 사이즈를 5K-50A로 확인하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-CSU-002
+    name: CSU T-STRAINER 후단 배치
+    name_en: CSU after T-STRAINER
+    severity: error
+    check_type: sequence
+    category: csu
+    equipment: CSU
+    condition: after
+    condition_value: T-STRAINER
+    description: CSU는 T-STRAINER 후단에 배치해야 합니다
+    suggestion: CSU를 T-STRAINER 후단에 배치하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # ANU (중화제 주입기) 관련 규칙 (3개)
+  # ============================================================
+  - rule_id: ECS-ANU-001
+    name: ANU 선정 기준 (용량별)
+    name_en: ANU Selection by Capacity
+    severity: info
+    check_type: document
+    category: anu
+    equipment: ANU
+    condition: selection
+    condition_value: capacity_based
+    description: "ANU 선정: 600m3/h 이하 ANU-S, 1000m3/h 이하 ANU-M"
+    suggestion: 용량에 맞는 ANU 모델을 선정하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-ANU-002
+    name: ANU-TSU 동일 Pipe Line 거리
+    name_en: ANU-TSU Same Pipe Line Distance
+    severity: warning
+    check_type: distance
+    category: anu
+    equipment: ANU,TSU
+    condition: min_distance
+    condition_value: 3m
+    description: ANU와 TSU가 같은 Pipe Line에 설치 시 최소 3m 이격 필요
+    suggestion: ANU와 TSU 거리를 3m 이상으로 유지하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-ANU-003
+    name: ANU Flushing Line 적용
+    name_en: ANU Flushing Line
+    severity: warning
+    check_type: existence
+    category: anu
+    equipment: Flushing Line
+    condition: connected_to
+    condition_value: ANU
+    na_condition: 일본 조선소 제외
+    description: ANU에 Flushing Line을 적용해야 합니다
+    suggestion: ANU에 Flushing Line을 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # DTS (TRO 센서) 관련 규칙 (2개)
+  # ============================================================
+  - rule_id: ECS-DTS-001
+    name: DTS 적용 확인
+    name_en: DTS Application Check
+    severity: error
+    check_type: existence
+    category: dts
+    equipment: DTS
+    condition: exists
+    condition_value: required
+    check_logic: optional  # DTS는 옵션 장비 (없어도 위반 아님)
+    description: DTS를 적용해야 합니다 (비방폭/방폭/신조/RETROFIT)
+    suggestion: DTS를 도면에 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-DTS-002
+    name: DTS Flushing Line 적용
+    name_en: DTS Flushing Line
+    severity: warning
+    check_type: existence
+    category: dts
+    equipment: Flushing Line
+    condition: connected_to
+    condition_value: DTS
+    na_condition: 일본 조선소 제외
+    description: DTS에 Flushing Line을 적용해야 합니다
+    suggestion: DTS에 Flushing Line을 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # Ex-DTS 관련 규칙 (2개)
+  # ============================================================
+  - rule_id: ECS-EXDTS-001
+    name: Ex-DTS Sampling Valve 존재
+    name_en: Ex-DTS Sampling Valve
+    severity: warning
+    check_type: existence
+    category: ex_dts
+    equipment: Sampling Valve
+    condition: connected_to
+    condition_value: Ex-DTS
+    description: Ex-DTS에서 Portable TRO 측정을 위한 Sampling Valve 필요
+    suggestion: Ex-DTS에 Sampling Valve를 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-EXDTS-002
+    name: Ex-DTS IS-Barrier 반영
+    name_en: Ex-DTS IS-Barrier
+    severity: error
+    check_type: existence
+    category: ex_dts
+    equipment: IS-Barrier
+    condition: connected_to
+    condition_value: Ex-DTS
+    check_logic: conditional  # Ex-DTS가 있을 때만 검사
+    depends_on: Ex-DTS  # Ex-DTS 존재 시에만 이 규칙 적용
+    description: Ex-DTS용 IS-Barrier를 반영해야 합니다
+    suggestion: Ex-DTS용 IS-Barrier를 안전구역에 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # VLS (밸브 신호) 관련 규칙 (2개)
+  # ============================================================
+  - rule_id: ECS-VLS-001
+    name: Ex-ECS Common Line VLS 배치
+    name_en: VLS at Ex-ECS Common Line
+    severity: error
+    check_type: existence
+    category: vls
+    equipment: VLS
+    condition: at_both_ends
+    condition_value: Ex-ECS Common Line
+    description: Ex-ECS Common Line 전/후단에 VLS 1개씩 적용 필요
+    suggestion: Ex-ECS Common Line 양 끝에 VLS를 배치하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-VLS-002
+    name: Ex-ECS VLS 명칭 확인
+    name_en: Ex-VLS Naming for Ex-ECS
+    severity: info
+    check_type: document
+    category: vls
+    equipment: VLS
+    condition: naming
+    condition_value: Ex-VLS
+    description: Ex-ECS인 경우 Ex-VLS로 기입해야 합니다
+    suggestion: VLS 명칭을 Ex-VLS로 변경하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # MIXING 관련 규칙 (8개)
+  # ============================================================
+  - rule_id: ECS-MIX-001
+    name: S.W.H.TK 용량 NOTE 반영
+    name_en: S.W.H.TK Capacity in NOTE
+    severity: warning
+    check_type: document
+    category: mixing
+    equipment: S.W.H.TK
+    condition: in_note
+    condition_value: capacity
+    description: S.W.H.TK 필요 용량을 P&ID NOTE에 반영해야 합니다
+    suggestion: P&ID NOTE에 S.W.H.TK 용량을 기입하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-MIX-002
+    name: Mixing Pump 사양 Ballast Pump 기준
+    name_en: Mixing Pump Based on Ballast Pump
+    severity: warning
+    check_type: capacity
+    category: mixing
+    equipment: Mixing Pump
+    condition: ratio
+    condition_value: 4.3%
+    description: Mixing Pump 사양은 Ballast Pump 용량의 4.3% 기준
+    suggestion: Mixing Pump 용량을 Ballast Pump의 4.3%로 확인하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-MIX-003
+    name: Mixing Point 후단 CSU 위치
+    name_en: CSU after Mixing Point
+    severity: error
+    check_type: sequence
+    category: mixing
+    equipment: CSU
+    condition: after
+    condition_value: Mixing Point
+    description: Mixing Point 후단에 CSU가 위치해야 합니다
+    suggestion: CSU를 Mixing Point 후단에 배치하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-MIX-004
+    name: PCU 도면 표현
+    name_en: PCU in Drawing
+    severity: warning
+    check_type: existence
+    category: mixing
+    equipment: PCU
+    condition: exists
+    condition_value: required
+    description: PCU를 도면상에 표현해야 합니다
+    suggestion: PCU를 도면에 추가하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-MIX-005
+    name: VCU 미적용 확인
+    name_en: VCU Not Applied
+    severity: info
+    check_type: existence
+    category: mixing
+    equipment: VCU
+    condition: not_exists
+    condition_value: standard
+    check_logic: not_exists  # VCU가 없어야 통과 (역논리)
+    na_condition: A/S Mixing 추가 시 옵션
+    description: VCU 미적용임을 확인해야 합니다
+    suggestion: VCU가 필요한지 확인하세요
+    auto_checkable: true
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-MIX-006
+    name: FCV 메이커 HKC
+    name_en: FCV Maker HKC
+    severity: info
+    check_type: document
+    category: mixing
+    equipment: FCV
+    condition: annotation
+    condition_value: HKC
+    description: FCV 메이커는 HKC를 적용해야 합니다
+    suggestion: FCV 메이커를 HKC로 기입하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-MIX-007
+    name: Mixing Point-CSU 최소 거리
+    name_en: Mixing Point-CSU Min Distance
+    severity: warning
+    check_type: distance
+    category: mixing
+    equipment: Mixing Point,CSU
+    condition: min_distance
+    condition_value: 3m
+    description: Mixing Point와 CSU가 가까울 때 최소 3m 이격 필요
+    suggestion: Mixing Point와 CSU 거리를 3m 이상으로 유지하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  - rule_id: ECS-MIX-008
+    name: Submersible Mixing Pump PI 삭제
+    name_en: Remove PI for Submersible Mixing Pump
+    severity: warning
+    check_type: existence
+    category: mixing
+    equipment: PI
+    condition: not_exists_when
+    condition_value: Submersible Mixing Pump
+    description: Submersible Mixing Pump 사용 시 PI를 삭제해야 합니다
+    suggestion: Submersible Mixing Pump 사용 시 PI를 제거하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # GDS (가스 검출기) 관련 규칙 (1개)
+  # ============================================================
+  - rule_id: ECS-GDS-001
+    name: GDS GASDNA 제품 적용
+    name_en: GDS GASDNA Product
+    severity: info
+    check_type: document
+    category: gds
+    equipment: GDS
+    condition: annotation
+    condition_value: GASDNA
+    description: GDS는 GASDNA 제품을 적용해야 합니다
+    suggestion: GDS 메이커를 GASDNA로 기입하세요
+    auto_checkable: false
+    standard: TECHCROSS ECS Standard
+    product_type: ECS
+
+  # ============================================================
+  # 선급별 규칙 (ABS, DNV, LR, KR, CRS)
+  # ============================================================
+  - rule_id: ECS-CLASS-ABS-001
+    name: ABS FAN Running Signal
+    name_en: ABS FAN Running Signal in Valve Signal List
+    severity: error
+    check_type: document
+    category: class_abs
+    class_society: ABS
+    equipment: Valve Signal List
+    condition: contains
+    condition_value: FAN Running signal
+    description: ABS 선급 시 Valve Signal List에 FAN Running signal 반영 필요
+    suggestion: Valve Signal List에 FAN Running signal을 추가하세요
+    auto_checkable: false
+    standard: ABS Class Rules
+    product_type: ECS
+
+  - rule_id: ECS-CLASS-ABS-002
+    name: ABS Oil Carrier H2 Sensor
+    name_en: ABS H2 Sensor for Oil Carrier
+    severity: error
+    check_type: existence
+    category: class_abs
+    class_society: ABS
+    ship_type: TANKER
+    equipment: H2 Sensor
+    condition: exists_when
+    condition_value: Oil Carrier
+    description: ABS Oil Carrier 선종 시 Valve Signal List에 H2 Sensor 반영 필요
+    suggestion: H2 Sensor를 Valve Signal List에 추가하세요
+    auto_checkable: false
+    standard: ABS Class Rules
+    product_type: ECS
+
+  - rule_id: ECS-CLASS-DNV-001
+    name: DNV DTU 반영
+    name_en: DNV DTU for Non-Ex DTS
+    severity: error
+    check_type: existence
+    category: class_dnv
+    class_society: DNV
+    equipment: DTU
+    condition: connected_to
+    condition_value: DTS
+    description: DNV 선급 비방폭 DTS 장비에 DTU 반영 필요
+    suggestion: 비방폭 DTS에 DTU를 추가하세요
+    auto_checkable: true
+    standard: DNV Class Rules
+    product_type: ECS
+
+  - rule_id: ECS-CLASS-KR-001
+    name: KR CLASS NOTE 반영
+    name_en: KR CLASS NOTE
+    severity: warning
+    check_type: document
+    category: class_kr
+    class_society: KR
+    equipment: Note
+    condition: contains
+    condition_value: CLASS KR
+    description: KR 선급 시 [CLASS KR] NOTE 반영 필요 (포터블 H2 센서)
+    suggestion: P&ID에 [CLASS KR] NOTE를 추가하세요
+    auto_checkable: false
+    standard: KR Class Rules
+    product_type: ECS
+
+  - rule_id: ECS-CLASS-KR-002
+    name: KR T-STRAINER 10K Flange
+    name_en: KR T-STRAINER 10K Flange
+    severity: warning
+    check_type: document
+    category: class_kr
+    class_society: KR
+    equipment: T-STRAINER
+    condition: annotation
+    condition_value: 10K Flange
+    description: KR 선급 시 T-STRAINER 10K Flange 적용 필요
+    suggestion: T-STRAINER를 10K Flange로 변경하세요
+    auto_checkable: false
+    standard: KR Class Rules
+    product_type: ECS

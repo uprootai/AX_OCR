@@ -12,7 +12,7 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useSessionStore } from '../store/sessionStore';
-import { detectionApi, systemApi } from '../lib/api';
+import { detectionApi, systemApi, groundTruthApi } from '../lib/api';
 import logger from '../lib/logger';
 import { API_BASE_URL } from '../lib/constants';
 import type { VerificationStatus } from '../types';
@@ -58,11 +58,12 @@ import {
   ActiveFeaturesSection,
   VLMClassificationSection,
   PIDFeaturesSection,
+  GTComparisonSection,
 } from './workflow';
 
 export function WorkflowPage() {
   // URL Parameters
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const urlSessionId = searchParams.get('session');
 
   // Store
@@ -250,7 +251,52 @@ export function WorkflowPage() {
   const handleLoadSessionWithGTReset = useCallback((sessionId: string) => {
     loadSession(sessionId);
     state.setGtCompareResult(null);
-  }, [loadSession, state]);
+    // URL 업데이트 (세션 이동 시)
+    setSearchParams({ session: sessionId });
+  }, [loadSession, state, setSearchParams]);
+
+  // GT 업로드 핸들러
+  const handleUploadGT = useCallback(async (file: File) => {
+    if (!currentSession || !imageSize) return;
+    try {
+      // 현재 세션의 이미지 파일명으로 GT 저장
+      const result = await groundTruthApi.upload(
+        file,
+        currentSession.filename,  // 세션 이미지와 동일한 이름으로 저장
+        imageSize.width,
+        imageSize.height
+      );
+      logger.info('GT uploaded:', result);
+    } catch (err) {
+      logger.error('GT upload failed:', err);
+    }
+  }, [currentSession, imageSize]);
+
+  // GT 비교 핸들러
+  const handleCompareGT = useCallback(async () => {
+    if (!currentSession || !imageSize || detections.length === 0) return;
+    try {
+      const detectionsForCompare = detections.map(d => ({
+        class_name: d.class_name,
+        bbox: d.bbox,
+      }));
+      const result = await groundTruthApi.compare(
+        currentSession.filename,
+        detectionsForCompare,
+        imageSize.width,
+        imageSize.height,
+        0.3,
+        { classAgnostic: true }
+      );
+      if (result.has_ground_truth) {
+        state.setGtCompareResult(result);
+      } else {
+        logger.warn('GT not found for:', currentSession.filename);
+      }
+    } catch (err) {
+      logger.error('GT compare failed:', err);
+    }
+  }, [currentSession, imageSize, detections, state]);
 
   // Section visibility
   const visibility = getSectionVisibility(effectiveDrawingType, effectiveFeatures);
@@ -387,6 +433,19 @@ export function WorkflowPage() {
               imageSize={imageSize}
               gtCompareResult={state.gtCompareResult}
               stats={stats}
+            />
+          )}
+
+          {/* GT 비교 (수동 업로드 지원) */}
+          {currentSession && visibility.gtComparison && (
+            <GTComparisonSection
+              sessionId={currentSession.session_id}
+              gtCompareResult={state.gtCompareResult}
+              detectionCount={detections.length}
+              onUploadGT={handleUploadGT}
+              onCompare={handleCompareGT}
+              isLoading={isLoading}
+              apiBaseUrl={API_BASE_URL}
             />
           )}
 

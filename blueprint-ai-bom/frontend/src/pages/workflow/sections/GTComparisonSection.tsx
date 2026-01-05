@@ -69,7 +69,7 @@ export function GTComparisonSection({
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.json') || file.name.endsWith('.xml'))) {
+    if (file && (file.name.endsWith('.json') || file.name.endsWith('.xml') || file.name.endsWith('.txt'))) {
       setUploadedFileName(file.name);
       await onUploadGT(file);
     }
@@ -110,7 +110,7 @@ export function GTComparisonSection({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json,.xml"
+          accept=".json,.xml,.txt"
           className="hidden"
           onChange={handleFileSelect}
         />
@@ -132,7 +132,7 @@ export function GTComparisonSection({
                   클릭하여 선택
                 </button>
               </p>
-              <p className="text-xs text-gray-500 mt-1">JSON 또는 XML 형식</p>
+              <p className="text-xs text-gray-500 mt-1">JSON, XML, TXT (YOLO) 형식</p>
             </>
           )}
         </div>

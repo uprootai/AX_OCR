@@ -25,6 +25,7 @@ COPY bwms/ ./bwms/
 COPY rule_loader.py .
 COPY excel_parser.py .
 COPY routers/ ./routers/
+COPY services/ ./services/
 COPY config/ ./config/
 COPY templates/ ./templates/
 

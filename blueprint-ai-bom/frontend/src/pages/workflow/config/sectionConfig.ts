@@ -4,12 +4,40 @@
  *
  * 2025-12-26: drawing_type 기반 로직 제거, features만 사용
  * 2025-12-30: Feature 의존성 검증 및 이름 호환성 추가
+ * 2026-01-04: Feature Implication 시스템 추가 (implies/impliedBy)
  */
 
 import type { SectionVisibility } from '../types/workflow';
 
 // 기본 기능 (features가 비어있을 때 사용)
 const DEFAULT_FEATURES = ['symbol_detection', 'title_block_ocr', 'vlm_auto_classification'];
+
+// ============================================================
+// Feature Implication (자동 활성화)
+// key: 트리거 feature, value: 자동 활성화되는 features
+// ============================================================
+export const FEATURE_IMPLICATIONS: Record<string, string[]> = {
+  // 심볼 검출 → 검증, GT비교 자동 활성화
+  symbol_detection: ['symbol_verification', 'gt_comparison'],
+  // 치수 OCR → 치수 검증 자동 활성화
+  dimension_ocr: ['dimension_verification'],
+  // P&ID 연결성 → TECHCROSS 기능들 자동 활성화
+  pid_connectivity: ['techcross_valve_signal', 'techcross_equipment', 'techcross_checklist', 'techcross_deviation'],
+  // 장비 태그 인식 → 장비 목록 내보내기 자동 활성화
+  industry_equipment_detection: ['equipment_list_export'],
+};
+
+// 역방향 매핑: impliedBy (어떤 feature에 의해 활성화되는지)
+export const FEATURE_IMPLIED_BY: Record<string, string[]> = {
+  symbol_verification: ['symbol_detection'],
+  gt_comparison: ['symbol_detection'],
+  dimension_verification: ['dimension_ocr'],
+  techcross_valve_signal: ['pid_connectivity'],
+  techcross_equipment: ['pid_connectivity'],
+  techcross_checklist: ['pid_connectivity'],
+  techcross_deviation: ['pid_connectivity'],
+  equipment_list_export: ['industry_equipment_detection'],
+};
 
 // 모든 기능 비활성화 기본값 (외부에서 사용 가능)
 export const ALL_FEATURES_DISABLED: SectionVisibility = {
@@ -171,10 +199,31 @@ const normalizeFeatures = (features: string[]): string[] => {
 /**
  * features 배열을 SectionVisibility 객체로 변환
  * web-ui와 blueprint-ai-bom 양쪽 이름 모두 지원
+ *
+ * 2026-01-04: impliedBy 체크 추가 - 트리거 feature가 있으면 자동 활성화
  */
 const featuresToVisibility = (features: string[]): SectionVisibility => {
   const normalized = normalizeFeatures(features);
-  const hasFeature = (key: string) => normalized.includes(key) || features.includes(key);
+
+  /**
+   * Feature 활성 여부 확인 (직접 선택 OR impliedBy로 자동 활성화)
+   */
+  const hasFeature = (key: string): boolean => {
+    // 1. 직접 활성화된 경우
+    if (normalized.includes(key) || features.includes(key)) {
+      return true;
+    }
+
+    // 2. impliedBy로 자동 활성화되는 경우
+    const impliers = FEATURE_IMPLIED_BY[key];
+    if (impliers) {
+      return impliers.some(implier =>
+        normalized.includes(implier) || features.includes(implier)
+      );
+    }
+
+    return false;
+  };
 
   return {
     symbolDetection: hasFeature('symbol_detection'),

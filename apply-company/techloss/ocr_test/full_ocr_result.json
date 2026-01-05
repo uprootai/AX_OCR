@@ -1,0 +1,179 @@
+{
+  "summary": {
+    "total_pages": 16,
+    "total_texts": 2719,
+    "total_tags": 230,
+    "unique_tags": 36,
+    "equipment_types": 17
+  },
+  "equipment": {
+    "CPC": [
+      "CPC"
+    ],
+    "PDE": [
+      "PDE",
+      "PDE-12A"
+    ],
+    "ECU": [
+      "ECUS",
+      "ECU 1000B",
+      "ECU ",
+      "ECU"
+    ],
+    "PRU": [
+      "PRU",
+      "PRU "
+    ],
+    "ANU": [
+      "ANU",
+      "ANU-5T"
+    ],
+    "TSU": [
+      "TSU-S",
+      "TSU"
+    ],
+    "APU": [
+      "NO.1 APU",
+      "APU",
+      "APU ",
+      "NO.2 APU"
+    ],
+    "FMU": [
+      "FMU"
+    ],
+    "FTS": [
+      "FTS"
+    ],
+    "CSU": [
+      "CSU"
+    ],
+    "GDS": [
+      "GDS"
+    ],
+    "EWU": [
+      "EWU"
+    ],
+    "PCU": [
+      "PCU"
+    ],
+    "MIXING": [
+      "MIXING S.W.PUMP",
+      "MIXING S.W. PUMP",
+      "MIXING S.W PUMP"
+    ],
+    "BWV": [
+      "BWV8",
+      "BWV14",
+      "BWV3",
+      "BWV4",
+      "BWV1",
+      "BWV2",
+      "BWV6",
+      "BWV5"
+    ],
+    "PT": [
+      "PT1"
+    ],
+    "FCV": [
+      "FCV01"
+    ]
+  },
+  "page_results": [
+    {
+      "page": 1,
+      "texts": 206,
+      "tags": 19,
+      "types": 14
+    },
+    {
+      "page": 2,
+      "texts": 13,
+      "tags": 0,
+      "types": 0
+    },
+    {
+      "page": 3,
+      "texts": 119,
+      "tags": 42,
+      "types": 8
+    },
+    {
+      "page": 4,
+      "texts": 136,
+      "tags": 2,
+      "types": 2
+    },
+    {
+      "page": 5,
+      "texts": 236,
+      "tags": 25,
+      "types": 16
+    },
+    {
+      "page": 6,
+      "texts": 140,
+      "tags": 10,
+      "types": 3
+    },
+    {
+      "page": 7,
+      "texts": 147,
+      "tags": 4,
+      "types": 4
+    },
+    {
+      "page": 8,
+      "texts": 228,
+      "tags": 22,
+      "types": 15
+    },
+    {
+      "page": 9,
+      "texts": 145,
+      "tags": 4,
+      "types": 4
+    },
+    {
+      "page": 10,
+      "texts": 226,
+      "tags": 24,
+      "types": 15
+    },
+    {
+      "page": 11,
+      "texts": 144,
+      "tags": 5,
+      "types": 4
+    },
+    {
+      "page": 12,
+      "texts": 230,
+      "tags": 20,
+      "types": 14
+    },
+    {
+      "page": 13,
+      "texts": 146,
+      "tags": 5,
+      "types": 4
+    },
+    {
+      "page": 14,
+      "texts": 231,
+      "tags": 21,
+      "types": 15
+    },
+    {
+      "page": 15,
+      "texts": 152,
+      "tags": 4,
+      "types": 4
+    },
+    {
+      "page": 16,
+      "texts": 220,
+      "tags": 23,
+      "types": 15
+    }
+  ]
+}

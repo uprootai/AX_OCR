@@ -125,6 +125,14 @@ export const baseNodeConfigs: NodeConfig[] = [
     color: '#ef4444',
     category: 'analysis',
   },
+  {
+    type: 'gtcomparison',
+    label: 'GT Comparison',
+    description: 'Ground Truth comparison',
+    icon: '📊',
+    color: '#f97316',
+    category: 'analysis',
+  },
   // AI Nodes
   {
     type: 'vl',

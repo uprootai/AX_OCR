@@ -1,0 +1,760 @@
+{
+  "success": true,
+  "data": {
+    "product_type": "ECS",
+    "summary": {
+      "total_rules": 58,
+      "existence_checked": 27,
+      "passed": 13,
+      "violations": 14,
+      "skipped": 35,
+      "pass_rate": 48.1
+    },
+    "passed": [
+      {
+        "rule_id": "COM-RETRO-002",
+        "rule_name": "Retrofit BWMS Inlet/Outlet 지관",
+        "equipment": "BWMS Inlet",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "5) INLET VALVE SHOULD BE PLACED NEAR THE ECU.",
+          "INLET",
+          "INLET/OUTLET",
+          "1) COOLING S.W TEMPERATURE (INLET) : +32°C",
+          "2) COOLING F.W TEMPERATURE (INLET) : +36°",
+          "F.W INLET",
+          "TO BWMS"
+        ]
+      },
+      {
+        "rule_id": "COM-RETRO-002",
+        "rule_name": "Retrofit BWMS Inlet/Outlet 지관",
+        "equipment": "BWMS Outlet",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "WATER PIPE COMMON OUTLET. (\"A\" POSITION)",
+          "INLET/OUTLET",
+          "OUTLET",
+          "1) ECU OUTLET PIPE SHOULD BE ARRANGED HIGHER THAN ECU IN",
+          "2-1) THE ECUS OUTLET PIPING IS INSTALLED OF VERTICAL",
+          "\"A\" : MANIFOLD PIPE OUTLET",
+          "[NOTE] THE ECUS OUTLET PIPING IS INSTALLED OF VERTICAL DOWNSTREAM WITH LONG DISTANCE, THERE IS A HIGH"
+        ]
+      },
+      {
+        "rule_id": "COM-BARGE-002",
+        "rule_name": "Barge W.B.TK Overflow Line",
+        "equipment": "Overflow Line",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "HISTORY OF P&ID FOR BWTS",
+          "8) MINIMUM TEMPERATURE OF F.W. TO BE SECURED ABOVE 20C.",
+          "UP-STREAM OF VERTICAL MAIN BALLAST WATER PIPE. IT SHALL",
+          "OF NPSH.",
+          "LOWER THAN THE LEVEL OF BOTTOM PLATE OF A.P.TK.",
+          "1) TSU SAMPLING PORT SHOULD BE INSTALLED AT THE BOTTOM OF BALLAST PIPE LINE.",
+          "· THIS AMOUNT IS APPROX. XXX% OF TOTAL BALLAST VOLUME.",
+          "NOTE OF P&ID FOR",
+          "[NOTE] THE ECUS OUTLET PIPING IS INSTALLED OF VERTICAL DOWNSTREAM WITH LONG DISTANCE, THERE IS A HIGH",
+          "THE HOLES OF TSU SAMPLING",
+          "MAINTENANCE OF ECU",
+          "5) THE VALVE OF TSU SAMPLING LINE SHOULD BE ARRANGED",
+          "7) THE MATERIAL FOR PIPE AND VALVE OF ANU DOSING LINE",
+          "PLACE, HENCE COUNTERMEASURES SUCH AS INSTALLATION OF",
+          "· IF THE SEAWATER LEVEL OF D.B.W.TANK IS LOW, SEA WATER",
+          "INSTALLATION OF VACUUM VALVES SHOULD BE CONSIDERED.",
+          "2-1) THE ECUS OUTLET PIPING IS INSTALLED OF VERTICAL",
+          "OF VACUUM. TRO SAMPLING PORT SHOULD BE INSTALLED AFTER",
+          "PIPE LINE SHOULD BE OPEN BEFORE OPERATION OF EQUIPMENT.",
+          "3) IF ONE OF W.B.TK IS USED FOR MIXING SEA WATER HOLDING TANK,",
+          "4) WHEN THE MIXING OPERATION, THE SUCTION LINE OF MIXING PUMP",
+          "IF THE TEMPERATURE OF F.W IS ALWAYS MORE THAN 20C,",
+          "OF COOLING WATER LINE FROM PRU.",
+          "THE SUCTION CENTER OF MIXING PUMP SHOULD BE POSITIONED",
+          "BEFORE OPERATION OF EQUIPMENT.",
+          "1) ANU DOSING PORT SHOULD BE INSTALLED AT THE BOTTOM OF BALLAST PIPE LINE.",
+          "1) THE VOLUME OF SEA WATER HOLDING TANK SHALL BE",
+          "THE \"PREPARATION\" BUTTON IN ANU ICON OF HMI SHALL BE",
+          "2) THE INDICATION PLATE IS FOR INDICATION OF INSERT PIPE DIRECTION. THIS SHOULD BE INSTALLED IN THE SAME",
+          "POSSIBILITY OF VACUUM. TRO SAMPLING PORT SHOULD BE INSTALLED AFTER VERTICAL DOWNSTREAM.",
+          "1) WHEN THE SIZE OF G-2 SAMPLING PORT PIPE IS 5OA, THE SIZE OF BRANCH PIPE FROM BALLAST PIPE LINE SHOULD BE",
+          "SUCTION WILL BE DIFFICULT AND THE MECHANICAL SEAL OF MIXING",
+          "NOT BE INSTALLED AT THE DOWN-STREAM OF VERTICAL MAIN",
+          "MINIMUM 4.3% OF TOTAL BALLASTING CAPACITY.",
+          "5) IN CASE OF EACH OF THE ANU INJECTION PIPE IS CONNECTED TO",
+          "TPD024-GA-A001E-NOTE OF P&ID FOR BWTS",
+          "1) THE INDICATION PLATE IS FOR INDICATION OF MIXING INSERT PIPE DIRECTION.",
+          "OF ECU (MAKER STANDARD), NOT FOR HORIZONTAL TYPE OF ECU.",
+          "· IN VIEW OF SUCTION CAPABILITY AT RATED FLOW RATE,",
+          "OPERATION OF EQUIPMENT.",
+          "4) THE VALVE OF ANU INJECTION PIPE SHOULD BE ARRANGED",
+          "6) THE MATERIAL FOR PIPE AND VALVE OF TSU SAMPLING LINE",
+          "2) G2 SAMPLING PORT SHOULD BE INSTALLED AT THE BOTTOM OR SIDE OF BALLAST PIPE LINE.",
+          "3) THE INDICATION PLATE IS FOR INDICATION OF INSERT PIPE DIRECTION. THIS SHOULD BE INSTALLED IN THE SAME"
+        ]
+      },
+      {
+        "rule_id": "COM-LNG-001",
+        "rule_name": "LNG/LPG BWMS 지관 구성",
+        "equipment": "BWMS Inlet",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "5) INLET VALVE SHOULD BE PLACED NEAR THE ECU.",
+          "INLET",
+          "INLET/OUTLET",
+          "1) COOLING S.W TEMPERATURE (INLET) : +32°C",
+          "2) COOLING F.W TEMPERATURE (INLET) : +36°",
+          "F.W INLET",
+          "TO BWMS"
+        ]
+      },
+      {
+        "rule_id": "COM-LNG-001",
+        "rule_name": "LNG/LPG BWMS 지관 구성",
+        "equipment": "BWMS Outlet",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "WATER PIPE COMMON OUTLET. (\"A\" POSITION)",
+          "INLET/OUTLET",
+          "OUTLET",
+          "1) ECU OUTLET PIPE SHOULD BE ARRANGED HIGHER THAN ECU IN",
+          "2-1) THE ECUS OUTLET PIPING IS INSTALLED OF VERTICAL",
+          "\"A\" : MANIFOLD PIPE OUTLET",
+          "[NOTE] THE ECUS OUTLET PIPING IS INSTALLED OF VERTICAL DOWNSTREAM WITH LONG DISTANCE, THERE IS A HIGH"
+        ]
+      },
+      {
+        "rule_id": "ECS-BP-001",
+        "rule_name": "Ballast Pump 후단 Check Valve 존재",
+        "equipment": "Check Valve",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "BAV30",
+          "BAV32 BAV26",
+          "FCV01",
+          "BAV31",
+          "SSV02",
+          " BWV8",
+          "BWV4",
+          "BAV2",
+          "BAV10",
+          "BAV8",
+          "BAV29 BAV34",
+          "BAV35",
+          "BAV5",
+          "BAV3",
+          "BWVv14",
+          "BBAV6",
+          "BAV7",
+          "BAV24",
+          "BAV6",
+          "BAV28",
+          "BAV9",
+          "BWV2",
+          "BWV3",
+          "BWV8",
+          "BWV6",
+          "BÁV33 BAV27",
+          "BAV36",
+          "BÁV32 BAV26",
+          "BWV5",
+          "BWV14",
+          "CV01",
+          "BAV33 BAV27",
+          "BV29 BAV34",
+          "BÁV29 BAV34",
+          "BAV11",
+          "BAV12",
+          "BAV1",
+          "BWV1"
+        ]
+      },
+      {
+        "rule_id": "ECS-BP-002",
+        "rule_name": "Ballast Pump 후단 Manual Valve 존재",
+        "equipment": "Manual Valve",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "PORT AND ANU PORT.",
+          "BAV30",
+          "1) BETWEEN ANU INJECTION PORT AND ANU TO BE ARRANGED AS",
+          "BAV32 BAV26",
+          "2) ANU INJECTION PORT(S) MUST BE PLACED AT HORIZONTAL OR",
+          "FCV01",
+          "FROM ANU",
+          "BAV31",
+          "SSV02",
+          "6) EXCESSIVE VACUUM MAY BE FOUND IN THE ANU PIPES WHEN",
+          " BWV8",
+          "BWV4",
+          "BAV2",
+          "BAV10",
+          "7) THE MATERIAL FOR PIPE AND VALVE OF ANU DOSING LINE",
+          "ANU DOSING LINE",
+          "BAV8",
+          "ANU DOSING PORT (YARD/OWNER SUPPLY)",
+          "NEAR ANU.",
+          "BAV35",
+          "BAV5",
+          "BAV3",
+          "BWVv14",
+          "BBAV6",
+          "ANU-5T",
+          "BAV7",
+          "BAV24",
+          "BAV6",
+          "BAV28",
+          "BWV1",
+          "BAV9",
+          "ANU INSERT PIPE",
+          "BWV2",
+          "BWV3",
+          "5. ANU",
+          "BWV8",
+          "THE \"PREPARATION\" BUTTON IN ANU ICON OF HMI SHALL BE",
+          "1) ANU DOSING PORT SHOULD BE INSTALLED AT THE BOTTOM OF BALLAST PIPE LINE.",
+          "BWV6",
+          "BÁV33 BAV27",
+          "BAV36",
+          "BÁV32 BAV26",
+          "BWV5",
+          "1-1) IF ANU DOSING LINE IS FAR(ABT.1OM) FROM THE ANU,",
+          "BWV14",
+          "5) IN CASE OF EACH OF THE ANU INJECTION PIPE IS CONNECTED TO",
+          "BAV33 BAV27",
+          "BV29 BAV34",
+          "BÁV29 BAV34",
+          "4) THE VALVE OF ANU INJECTION PIPE SHOULD BE ARRANGED",
+          "BAV11",
+          "BAV12",
+          "ANU",
+          "BAV1",
+          "BAV29 BAV34"
+        ]
+      },
+      {
+        "rule_id": "ECS-ECU-001",
+        "rule_name": "ECU Outlet Signal Valve 존재 (단일 챔버)",
+        "equipment": "Signal Valve",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "BAV30",
+          "BAV32 BAV26",
+          "FCV01",
+          "BAV31",
+          "SSV02",
+          " BWV8",
+          "BWV4",
+          "BAV2",
+          "BAV10",
+          "BAV8",
+          "BAV35",
+          "BAV5",
+          "BAV3",
+          "BWVv14",
+          "BBAV6",
+          "BAV7",
+          "BAV24",
+          "BAV6",
+          "BAV28",
+          "BWV1",
+          "BAV9",
+          "BWV2",
+          "BWV3",
+          "BWV8",
+          "BWV6",
+          "BÁV33 BAV27",
+          "BAV36",
+          "BÁV32 BAV26",
+          "BWV5",
+          "BWV14",
+          "BAV33 BAV27",
+          "BV29 BAV34",
+          "BÁV29 BAV34",
+          "BAV11",
+          "BAV12",
+          "BAV1",
+          "BAV29 BAV34"
+        ]
+      },
+      {
+        "rule_id": "ECS-PRU-001",
+        "rule_name": "PRU Inlet Valve 존재 (Cooling F.W. 사용 시)",
+        "equipment": "Valve",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "BAV30",
+          "BAV32 BAV26",
+          "FCV01",
+          "SV01",
+          "BAV31",
+          "SSV02",
+          " BWV8",
+          "BWV4",
+          "BAV2",
+          "BAV10",
+          "BAV8",
+          "SV02",
+          "BAV29 BAV34",
+          "BAV35",
+          "BAV5",
+          "BAV3",
+          "BWVv14",
+          "BBAV6",
+          "BAV7",
+          "BAV24",
+          "BAV6",
+          "BAV28",
+          "BWV1",
+          "BAV9",
+          "BWV2",
+          "BWV3",
+          "BWV8",
+          "BWV6",
+          "BÁV33 BAV27",
+          "BAV36",
+          "BÁV32 BAV26",
+          "BWV5",
+          "BWV14",
+          "CV01",
+          "BAV33 BAV27",
+          "BV29 BAV34",
+          "BÁV29 BAV34",
+          "BAV11",
+          "BAV12",
+          "BAV1",
+          " SV01"
+        ]
+      },
+      {
+        "rule_id": "ECS-PRU-003",
+        "rule_name": "HEU/FT 배치 (Cooling F.W. 불가 시)",
+        "equipment": "FT",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "LOWER THAN THE LEVEL OF BOTTOM PLATE OF A.P.TK.",
+          "FTS",
+          "2) IF A.P.TK IS USED FOR MIXING SEA WATER HOLDING TANK,",
+          "FM A.P.TK"
+        ]
+      },
+      {
+        "rule_id": "ECS-EXDTS-001",
+        "rule_name": "Ex-DTS Sampling Valve 존재",
+        "equipment": "Sampling Valve",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "BAV30",
+          "BAV32 BAV26",
+          "FCV01",
+          "BAV31",
+          "SSV02",
+          " BWV8",
+          "BWV4",
+          "BAV2",
+          "BAV10",
+          "BAV8",
+          "BAV35",
+          "BAV5",
+          "BAV3",
+          "BWVv14",
+          "BBAV6",
+          "BAV7",
+          "BAV24",
+          "BAV6",
+          "BAV28",
+          "BWV1",
+          "BAV9",
+          "BWV2",
+          "BWV3",
+          "BWV8",
+          "BWV6",
+          "BÁV33 BAV27",
+          "BAV36",
+          "BÁV32 BAV26",
+          "BWV5",
+          "BWV14",
+          "BAV33 BAV27",
+          "BV29 BAV34",
+          "BÁV29 BAV34",
+          "BAV11",
+          "BAV12",
+          "BAV1",
+          "BAV29 BAV34"
+        ]
+      },
+      {
+        "rule_id": "ECS-MIX-004",
+        "rule_name": "PCU 도면 표현",
+        "equipment": "PCU",
+        "match_type": "direct",
+        "confidence": 1.0,
+        "detected": true,
+        "matched_tags": [
+          "PCU"
+        ]
+      },
+      {
+        "rule_id": "ECS-MIX-008",
+        "rule_name": "Submersible Mixing Pump PI 삭제",
+        "equipment": "PI",
+        "match_type": "alias",
+        "confidence": 0.6,
+        "detected": true,
+        "matched_tags": [
+          "EDUCTOR",
+          "BRANCH SIZE",
+          "FOR EDUCTOR DRIVING",
+          "DRIVING WATER LINE(FOR EDUCTOR)",
+          "BRANCH PIPES",
+          "NO.1 STRIP.EDUCTOR",
+          "1) WHEN THE SIZE OF G-2 SAMPLING PORT PIPE IS 5OA, THE SIZE OF BRANCH PIPE FROM BALLAST PIPE LINE SHOULD BE",
+          "NO.2 STRIP.EDUCTOR"
+        ]
+      }
+    ],
+    "violations": [
+      {
+        "rule_id": "COM-BULK-001",
+        "rule_name": "Bulker T.S.TK 유무 확인",
+        "equipment": "T.S.TK",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "T.S.TK 유무를 확인하세요"
+      },
+      {
+        "rule_id": "COM-BULK-002",
+        "rule_name": "Bulker 탱크 유무 확인",
+        "equipment": "Slop TK",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "탱크 유무를 확인하세요"
+      },
+      {
+        "rule_id": "COM-BULK-002",
+        "rule_name": "Bulker 탱크 유무 확인",
+        "equipment": "Grey water TK",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "탱크 유무를 확인하세요"
+      },
+      {
+        "rule_id": "COM-BARGE-001",
+        "rule_name": "Barge Stripping Pump 확인",
+        "equipment": "Stripping Pump",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "Stripping Pump 사용 여부를 확인하세요"
+      },
+      {
+        "rule_id": "ECS-PRU-003",
+        "rule_name": "HEU/FT 배치 (Cooling F.W. 불가 시)",
+        "equipment": "HEU",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "HEU와 FT를 도면에 추가하세요"
+      },
+      {
+        "rule_id": "ECS-TS-001",
+        "rule_name": "T-STRAINER 적용 여부 확인",
+        "equipment": "T-STRAINER",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "조선소별 T-STRAINER 적용 여부를 확인하세요"
+      },
+      {
+        "rule_id": "ECS-ANU-003",
+        "rule_name": "ANU Flushing Line 적용",
+        "equipment": "Flushing Line",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "ANU에 Flushing Line을 추가하세요"
+      },
+      {
+        "rule_id": "ECS-DTS-001",
+        "rule_name": "DTS 적용 확인",
+        "equipment": "DTS",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "error",
+        "suggestion": "DTS를 도면에 추가하세요"
+      },
+      {
+        "rule_id": "ECS-DTS-002",
+        "rule_name": "DTS Flushing Line 적용",
+        "equipment": "Flushing Line",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "warning",
+        "suggestion": "DTS에 Flushing Line을 추가하세요"
+      },
+      {
+        "rule_id": "ECS-EXDTS-002",
+        "rule_name": "Ex-DTS IS-Barrier 반영",
+        "equipment": "IS-Barrier",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "error",
+        "suggestion": "Ex-DTS용 IS-Barrier를 안전구역에 추가하세요"
+      },
+      {
+        "rule_id": "ECS-VLS-001",
+        "rule_name": "Ex-ECS Common Line VLS 배치",
+        "equipment": "VLS",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "error",
+        "suggestion": "Ex-ECS Common Line 양 끝에 VLS를 배치하세요"
+      },
+      {
+        "rule_id": "ECS-MIX-005",
+        "rule_name": "VCU 미적용 확인",
+        "equipment": "VCU",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "info",
+        "suggestion": "VCU가 필요한지 확인하세요"
+      },
+      {
+        "rule_id": "ECS-CLASS-ABS-002",
+        "rule_name": "ABS Oil Carrier H2 Sensor",
+        "equipment": "H2 Sensor",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "error",
+        "suggestion": "H2 Sensor를 Valve Signal List에 추가하세요"
+      },
+      {
+        "rule_id": "ECS-CLASS-DNV-001",
+        "rule_name": "DNV DTU 반영",
+        "equipment": "DTU",
+        "match_type": "none",
+        "confidence": 0.0,
+        "detected": false,
+        "severity": "error",
+        "suggestion": "비방폭 DTS에 DTU를 추가하세요"
+      }
+    ],
+    "skipped": [
+      {
+        "rule_id": "COM-BASE-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-BASE-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-BASE-003",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-BASE-004",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-BP-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-BP-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-RETRO-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-GRAV-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-FCV-001",
+        "check_type": "sequence",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-FCV-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-ABS-001",
+        "check_type": "connection",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-LR-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-KR-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-SAMP-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "COM-SAMP-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-ECU-002",
+        "check_type": "sequence",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-PRU-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-FMU-001",
+        "check_type": "sequence",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-FMU-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-FMU-003",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-FMU-004",
+        "check_type": "sequence",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-CSU-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-CSU-002",
+        "check_type": "sequence",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-ANU-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-ANU-002",
+        "check_type": "distance",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-VLS-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-MIX-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-MIX-002",
+        "check_type": "capacity",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-MIX-003",
+        "check_type": "sequence",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-MIX-006",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-MIX-007",
+        "check_type": "distance",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-GDS-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-CLASS-ABS-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-CLASS-KR-001",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      },
+      {
+        "rule_id": "ECS-CLASS-KR-002",
+        "check_type": "document",
+        "reason": "자동 검증 불가 (existence 규칙만 지원)"
+      }
+    ]
+  },
+  "processing_time": 0.2,
+  "error": null
+}
