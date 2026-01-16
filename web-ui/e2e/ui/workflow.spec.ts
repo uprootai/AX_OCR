@@ -86,7 +86,7 @@ test.describe.skip('Blueprint AI BOM UI Workflow', () => {
         await fileInput.setInputFiles(imagePath);
 
         // 프로그레스 바 또는 로딩 표시 확인
-        const progress = page.locator(
+        const _progress = page.locator(
           '[role="progressbar"], ' +
           '.progress, ' +
           '[class*="loading"], ' +
@@ -108,7 +108,7 @@ test.describe.skip('Blueprint AI BOM UI Workflow', () => {
         await page.waitForTimeout(5000);
 
         // 이미지 썸네일 또는 미리보기 확인
-        const thumbnail = page.locator(
+        const _thumbnail = page.locator(
           'img[src*="blob"], ' +
           'img[src*="data:"], ' +
           'img[src*="upload"], ' +
@@ -223,7 +223,7 @@ test.describe.skip('Blueprint AI BOM UI Workflow', () => {
         await page.waitForTimeout(10000);
 
         // 검출 수 표시 확인
-        const countDisplay = page.locator(
+        const _countDisplay = page.locator(
           ':text("검출"), ' +
           ':text("detected"), ' +
           ':text("개"), ' +
@@ -419,7 +419,7 @@ test.describe.skip('Blueprint AI BOM UI Workflow', () => {
       const slider = page.locator('input[type="range"]').first();
 
       if (await slider.isVisible()) {
-        const initialValue = await slider.inputValue();
+        const _initialValue = await slider.inputValue();
 
         // 슬라이더 값 변경
         await slider.fill('0.5');
@@ -437,7 +437,7 @@ test.describe.skip('Blueprint AI BOM UI Workflow', () => {
       await page.goto(`${FRONTEND_URL}/session/non-existent-session-id`);
       await page.waitForTimeout(2000);
 
-      const errorMessage = page.locator(
+      const _errorMessage = page.locator(
         '[class*="error"], ' +
         '[class*="alert"], ' +
         ':text("not found"), ' +
@@ -451,7 +451,7 @@ test.describe.skip('Blueprint AI BOM UI Workflow', () => {
 
     test('should handle network errors gracefully', async ({ page }) => {
       // 네트워크 오류 시뮬레이션은 복잡하므로 UI 존재만 확인
-      const networkIndicator = page.locator(
+      const _networkIndicator = page.locator(
         '[class*="offline"], ' +
         '[class*="network"], ' +
         '[class*="connection"]'

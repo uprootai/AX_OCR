@@ -161,7 +161,7 @@ export const getHyperparamDefinitionsWithFallback = async (
     if (specDefs.length > 0) {
       return specDefs;
     }
-  } catch (_error) {
+  } catch {
     console.warn(`Using fallback definitions for ${apiId}`);
   }
 
@@ -181,7 +181,7 @@ export const getDefaultHyperparamsWithFallback = async (
     if (Object.keys(specDefaults).length > 0) {
       return specDefaults;
     }
-  } catch (_error) {
+  } catch {
     console.warn(`Using fallback defaults for ${apiId}`);
   }
 

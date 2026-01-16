@@ -53,7 +53,7 @@ export default function ContainerManager() {
       } else {
         setError(data.error || 'Failed to fetch containers');
       }
-    } catch (_err) {
+    } catch {
       setError('Failed to connect to Gateway API');
     } finally {
       setLoading(false);

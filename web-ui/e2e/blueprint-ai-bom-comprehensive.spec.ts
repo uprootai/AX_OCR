@@ -1,4 +1,4 @@
-import { test, expect, Page, APIRequestContext } from '@playwright/test';
+import { test, expect, Page, APIRequestContext as _APIRequestContext } from '@playwright/test';
 import * as fs from 'fs';
 
 /**
@@ -22,7 +22,7 @@ const BOM_API_URL = 'http://localhost:5020';
 const SAMPLE_PID_IMAGE = '/home/uproot/ax/poc/apply-company/techloss/test_output/page_1.png';
 
 // Detection hyperparameters
-const DETECTION_DEFAULTS = {
+const _DETECTION_DEFAULTS = {
   confidence: 0.40,
   iou_threshold: 0.50,
   imgsz: 1024,
@@ -55,7 +55,7 @@ async function isBOMServiceAvailable(): Promise<boolean> {
   }
 }
 
-async function isAPIAvailable(): Promise<boolean> {
+async function _isAPIAvailable(): Promise<boolean> {
   try {
     const response = await fetch(`${BOM_API_URL}/health`);
     return response.ok;
@@ -81,7 +81,7 @@ async function uploadImage(page: Page, imagePath: string): Promise<boolean> {
   return true;
 }
 
-async function getSessionId(page: Page): Promise<string | null> {
+async function _getSessionId(page: Page): Promise<string | null> {
   // Try to extract session ID from URL or page content
   const url = page.url();
   const sessionMatch = url.match(/session[_-]?id[=/]([a-zA-Z0-9-_]+)/i);
@@ -95,7 +95,7 @@ async function getSessionId(page: Page): Promise<string | null> {
   return sessionId;
 }
 
-async function waitForAPIResponse(page: Page, urlPattern: RegExp, timeout: number = 30000): Promise<Response | null> {
+async function _waitForAPIResponse(page: Page, urlPattern: RegExp, timeout: number = 30000): Promise<Response | null> {
   try {
     const response = await page.waitForResponse(
       response => urlPattern.test(response.url()) && response.status() === 200,
@@ -286,7 +286,7 @@ test.describe('TECHCROSS 1-2: Valve Detection Parameters', () => {
       await page.waitForTimeout(10000);
 
       // Check for valve ID patterns
-      const valvePatterns = {
+      const _valvePatterns = {
         'CV|FCV|PCV|TCV|LCV': 'Control',
         'XV|BV|GV|IV': 'Isolation',
         'SV|PSV|TSV': 'Safety',
@@ -1157,7 +1157,7 @@ test.describe('Confidence-Based UI Validation', () => {
 
       for (let i = 0; i < Math.min(10, rowCount); i++) {
         const row = rows.nth(i);
-        const rowClasses = await row.getAttribute('class') || '';
+        const _rowClasses = await row.getAttribute('class') || '';
         const cellColors = await row.locator('td').evaluateAll(cells => {
           return cells.map(cell => {
             const style = window.getComputedStyle(cell);
@@ -1274,7 +1274,7 @@ test.describe('API Response Schema Validation', () => {
             const firstItem = body.equipment[0];
             console.log(`  First equipment item keys: ${Object.keys(firstItem).join(', ')}`);
           }
-        } catch (e) {
+        } catch {
           console.log('  Response not JSON');
         }
       }
@@ -1319,7 +1319,7 @@ test.describe('API Response Schema Validation', () => {
           if (hasCategories) {
             console.log(`  Categories: ${JSON.stringify(body.categories)}`);
           }
-        } catch (e) {
+        } catch {
           console.log('  Response not JSON');
         }
       }
@@ -1372,7 +1372,7 @@ test.describe('API Response Schema Validation', () => {
           if (hasSummary) {
             console.log(`  Summary: ${JSON.stringify(body.summary)}`);
           }
-        } catch (e) {
+        } catch {
           console.log('  Response not JSON');
         }
       }

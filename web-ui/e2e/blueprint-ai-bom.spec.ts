@@ -60,7 +60,7 @@ async function waitForAPIResponse(page: Page, urlPattern: RegExp, timeout: numbe
 // ==================== BASIC TESTS ====================
 
 test.describe('Blueprint AI BOM - Basic Tests', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page: _page }) => {
     // Skip if BOM service is not available
     const available = await isBOMServiceAvailable();
     if (!available) {
@@ -625,7 +625,7 @@ test.describe('Blueprint AI BOM - Human-in-the-Loop', () => {
 test.describe('Blueprint AI BOM - Full Workflow Integration', () => {
   test.setTimeout(300000); // 5 minutes
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page: _page }) => {
     const available = await isBOMServiceAvailable();
     if (!available) {
       test.skip();
