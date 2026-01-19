@@ -13,6 +13,29 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
     color: '#8b5cf6',
     icon: 'Network',
     description: '도면의 엣지를 세그멘테이션하여 선명하게 만듭니다. U-Net 기반 전처리.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '기본 세그멘테이션',
+          params: { model: 'unet', num_classes: 3, visualize: true },
+        },
+        {
+          name: 'detailed',
+          label: '상세',
+          description: '상세 세그멘테이션 (3클래스)',
+          params: { model: 'unet', num_classes: 3, visualize: true },
+        },
+        {
+          name: 'engineering',
+          label: '도면용',
+          description: '도면 전처리 최적화',
+          params: { model: 'unet', num_classes: 3, visualize: false },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -87,6 +110,35 @@ export const segmentationNodes: Record<string, NodeDefinition> = {
     color: '#0d9488',
     icon: 'Minus',
     description: 'P&ID 도면에서 배관 라인과 신호선을 검출합니다. LSD(Line Segment Detector) + Hough Transform 기반.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '기본 라인 검출',
+          params: { method: 'combined', classify_types: true, classify_colors: true, visualize: true },
+        },
+        {
+          name: 'fast',
+          label: '빠른 검출',
+          description: 'Hough Transform 기반 빠른 검출',
+          params: { method: 'hough', classify_types: false, classify_colors: false, visualize: true },
+        },
+        {
+          name: 'precise',
+          label: '정밀',
+          description: 'LSD 기반 정밀 검출',
+          params: { method: 'lsd', classify_types: true, classify_colors: true, visualize: true },
+        },
+        {
+          name: 'pid',
+          label: 'P&ID 전용',
+          description: 'P&ID 도면 최적화 (영역 검출 포함)',
+          params: { method: 'combined', classify_types: true, classify_colors: true, classify_styles: true, detect_regions: true, visualize: true },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',

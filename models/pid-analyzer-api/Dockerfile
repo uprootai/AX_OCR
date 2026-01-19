@@ -23,6 +23,7 @@ COPY region_extractor.py .
 COPY region_rules.yaml .
 COPY routers/ ./routers/
 COPY services/ ./services/
+COPY region/ ./region/
 
 # 포트 노출
 EXPOSE 5018

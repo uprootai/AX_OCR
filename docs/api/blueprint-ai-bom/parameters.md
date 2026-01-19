@@ -1,7 +1,7 @@
 # Blueprint AI BOM API
 
 > **포트**: 5020 | **카테고리**: Analysis
-> **버전**: v9.0 | **최종 업데이트**: 2025-12-24
+> **버전**: v10.5 | **최종 업데이트**: 2026-01-17
 
 ---
 
@@ -61,7 +61,7 @@ Human-in-the-Loop AI 시스템입니다.
 | POST | `/bom/generate/{session_id}` | BOM 생성 |
 | GET | `/bom/export/{session_id}/{format}` | 내보내기 (excel/csv/json/pdf) |
 
-### 장기 로드맵 (v9.0)
+### 장기 로드맵 (v10.5 완료)
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
@@ -219,7 +219,7 @@ GET /bom/export/{session_id}/{format}
 | 문서 | 설명 |
 |------|------|
 | [메인 문서](../../../blueprint-ai-bom/docs/README.md) | Blueprint AI BOM 전체 문서 |
-| [장기 로드맵](../../../blueprint-ai-bom/docs/features/longterm_features.md) | v9.0 기능 상세 |
+| [장기 로드맵](../../../blueprint-ai-bom/docs/features/longterm_features.md) | v10.5 기능 상세 (4/4 완료) |
 | [Active Learning](../../../blueprint-ai-bom/docs/features/active_learning.md) | 검증 큐 시스템 |
 | [Feedback Pipeline](../../../blueprint-ai-bom/docs/features/feedback_pipeline.md) | YOLO 재학습 |
 

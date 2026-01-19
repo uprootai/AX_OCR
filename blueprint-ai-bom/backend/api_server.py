@@ -62,6 +62,7 @@ MODELS_DIR = BASE_DIR / "models"
 UPLOAD_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
 CONFIG_DIR.mkdir(exist_ok=True)
+(UPLOAD_DIR / "gt_labels").mkdir(exist_ok=True)  # GT 라벨 업로드용
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -640,6 +641,44 @@ async def upload_ground_truth(
         raise HTTPException(status_code=400, detail=f"XML 파싱 오류: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"GT 업로드 실패: {str(e)}")
+
+
+@app.delete("/api/ground-truth/{filename}")
+async def delete_ground_truth(filename: str):
+    """업로드된 GT 라벨 삭제 (레퍼런스 파일은 삭제 불가)
+
+    Args:
+        filename: 삭제할 GT 파일명 (확장자 제외)
+
+    Returns:
+        삭제 결과
+    """
+    base_name = Path(filename).stem
+
+    # 업로드된 GT 파일만 삭제 가능
+    uploaded_file = GT_UPLOAD_DIR / f"{base_name}.txt"
+
+    if not uploaded_file.exists():
+        # 레퍼런스 파일인지 확인
+        reference_file = GT_LABELS_DIR / f"{base_name}.txt"
+        if reference_file.exists():
+            raise HTTPException(
+                status_code=403,
+                detail="레퍼런스 GT 파일은 삭제할 수 없습니다. 업로드된 파일만 삭제 가능합니다."
+            )
+        raise HTTPException(status_code=404, detail=f"GT 파일을 찾을 수 없습니다: {base_name}.txt")
+
+    try:
+        uploaded_file.unlink()
+        logger.info(f"GT 파일 삭제: {uploaded_file}")
+
+        return {
+            "success": True,
+            "filename": base_name,
+            "message": f"GT 파일 '{base_name}.txt'가 삭제되었습니다."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"GT 삭제 실패: {str(e)}")
 
 
 @app.post("/api/ground-truth/compare")

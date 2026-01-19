@@ -23,6 +23,14 @@ from services.analysis_service import (
     generate_equipment_list,
     visualize_graph,
     numpy_to_base64,
+    # Path Finding (BFS/DFS)
+    find_path_bfs,
+    find_path_dfs,
+    find_all_paths,
+    is_reachable,
+    get_connected_components,
+    check_path_contains,
+    find_symbols_between,
 )
 
 logger = logging.getLogger(__name__)
@@ -291,3 +299,298 @@ async def process(
         processing_time=0,
         error="Direct image processing not implemented. Use /api/v1/analyze with pre-processed data."
     )
+
+
+# =====================
+# Path Finding Endpoints
+# =====================
+
+class PathRequest(BaseModel):
+    """경로 탐색 요청"""
+    adjacency: Dict  # 인접 리스트 {node_id: [{'target': ..., 'line_type': ...}]}
+    start_id: int
+    end_id: int
+    max_depth: Optional[int] = 50
+    max_paths: Optional[int] = 100
+
+
+class PathContainsRequest(BaseModel):
+    """경로 내 클래스 확인 요청"""
+    path: List[int]
+    symbols: List[Dict]
+    required_classes: List[str]
+
+
+class SymbolsBetweenRequest(BaseModel):
+    """심볼 간 경로 찾기 요청"""
+    adjacency: Dict
+    symbols: List[Dict]
+    start_class: str
+    end_class: str
+
+
+class ComponentsRequest(BaseModel):
+    """연결 컴포넌트 찾기 요청"""
+    adjacency: Dict
+    all_node_ids: List[int]
+
+
+def normalize_adjacency(adjacency: Dict) -> Dict:
+    """
+    JSON에서 전달된 adjacency의 키를 정수로 변환
+
+    JSON은 키를 문자열로만 저장하므로 {"1": [...]} 형태로 전달됨
+    이를 {1: [...]} 형태로 변환
+    """
+    normalized = {}
+    for key, neighbors in adjacency.items():
+        # 키를 정수로 변환 (가능한 경우)
+        try:
+            int_key = int(key)
+        except (ValueError, TypeError):
+            int_key = key
+
+        normalized[int_key] = neighbors
+    return normalized
+
+
+@router.post("/path/bfs")
+async def api_find_path_bfs(request: PathRequest):
+    """
+    BFS로 두 노드 간 최단 경로 찾기
+
+    - **adjacency**: 인접 리스트 {node_id: [{'target': ..., 'line_type': ...}]}
+    - **start_id**: 시작 노드 ID
+    - **end_id**: 도착 노드 ID
+
+    Returns: 경로 정보 (found, path, path_length, edges)
+    """
+    start_time = time.time()
+
+    try:
+        adj = normalize_adjacency(request.adjacency)
+        result = find_path_bfs(adj, request.start_id, request.end_id)
+        return {
+            "success": True,
+            "data": result,
+            "processing_time": round(time.time() - start_time, 4)
+        }
+    except Exception as e:
+        logger.error(f"BFS path finding error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processing_time": round(time.time() - start_time, 4)
+        }
+
+
+@router.post("/path/dfs")
+async def api_find_path_dfs(request: PathRequest):
+    """
+    DFS로 두 노드 간 경로 찾기
+
+    - **adjacency**: 인접 리스트
+    - **start_id**: 시작 노드 ID
+    - **end_id**: 도착 노드 ID
+    - **max_depth**: 최대 탐색 깊이 (기본값 50)
+
+    Returns: 경로 정보 (found, path, path_length, edges)
+    """
+    start_time = time.time()
+
+    try:
+        adj = normalize_adjacency(request.adjacency)
+        result = find_path_dfs(
+            adj,
+            request.start_id,
+            request.end_id,
+            max_depth=request.max_depth or 50
+        )
+        return {
+            "success": True,
+            "data": result,
+            "processing_time": round(time.time() - start_time, 4)
+        }
+    except Exception as e:
+        logger.error(f"DFS path finding error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processing_time": round(time.time() - start_time, 4)
+        }
+
+
+@router.post("/path/all")
+async def api_find_all_paths(request: PathRequest):
+    """
+    두 노드 간 모든 경로 찾기 (DFS 기반)
+
+    - **adjacency**: 인접 리스트
+    - **start_id**: 시작 노드 ID
+    - **end_id**: 도착 노드 ID
+    - **max_depth**: 최대 탐색 깊이 (기본값 20)
+    - **max_paths**: 최대 경로 수 (기본값 100)
+
+    Returns: 경로 목록 [{path, path_length, edges}, ...]
+    """
+    start_time = time.time()
+
+    try:
+        adj = normalize_adjacency(request.adjacency)
+        paths = find_all_paths(
+            adj,
+            request.start_id,
+            request.end_id,
+            max_depth=min(request.max_depth or 20, 30),  # 성능 제한
+            max_paths=min(request.max_paths or 100, 500)  # 결과 제한
+        )
+        return {
+            "success": True,
+            "data": {
+                "paths": paths,
+                "count": len(paths)
+            },
+            "processing_time": round(time.time() - start_time, 4)
+        }
+    except Exception as e:
+        logger.error(f"All paths finding error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processing_time": round(time.time() - start_time, 4)
+        }
+
+
+@router.post("/path/reachable")
+async def api_is_reachable(request: PathRequest):
+    """
+    두 노드 간 연결 가능 여부 확인
+
+    - **adjacency**: 인접 리스트
+    - **start_id**: 시작 노드 ID
+    - **end_id**: 도착 노드 ID
+
+    Returns: {reachable: bool}
+    """
+    start_time = time.time()
+
+    try:
+        adj = normalize_adjacency(request.adjacency)
+        reachable = is_reachable(adj, request.start_id, request.end_id)
+        return {
+            "success": True,
+            "data": {"reachable": reachable},
+            "processing_time": round(time.time() - start_time, 4)
+        }
+    except Exception as e:
+        logger.error(f"Reachability check error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processing_time": round(time.time() - start_time, 4)
+        }
+
+
+@router.post("/path/components")
+async def api_get_connected_components(request: ComponentsRequest):
+    """
+    연결된 컴포넌트 찾기
+
+    - **adjacency**: 인접 리스트
+    - **all_node_ids**: 모든 노드 ID 목록
+
+    Returns: {components: [[node_ids], ...], count: int}
+    """
+    start_time = time.time()
+
+    try:
+        adj = normalize_adjacency(request.adjacency)
+        components = get_connected_components(adj, request.all_node_ids)
+        return {
+            "success": True,
+            "data": {
+                "components": components,
+                "count": len(components),
+                "sizes": [len(c) for c in components]
+            },
+            "processing_time": round(time.time() - start_time, 4)
+        }
+    except Exception as e:
+        logger.error(f"Connected components error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processing_time": round(time.time() - start_time, 4)
+        }
+
+
+@router.post("/path/contains")
+async def api_check_path_contains(request: PathContainsRequest):
+    """
+    경로에 특정 심볼 클래스가 포함되어 있는지 확인
+
+    - **path**: 노드 ID 경로 [id1, id2, ...]
+    - **symbols**: 심볼 목록
+    - **required_classes**: 필수 클래스명 목록 ['check_valve', 'pump', ...]
+
+    Returns: {all_present, found_classes, missing_classes, class_positions}
+    """
+    start_time = time.time()
+
+    try:
+        result = check_path_contains(request.path, request.symbols, request.required_classes)
+        return {
+            "success": True,
+            "data": result,
+            "processing_time": round(time.time() - start_time, 4)
+        }
+    except Exception as e:
+        logger.error(f"Path contains check error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processing_time": round(time.time() - start_time, 4)
+        }
+
+
+@router.post("/path/between")
+async def api_find_symbols_between(request: SymbolsBetweenRequest):
+    """
+    두 심볼 클래스 사이의 경로와 중간 심볼 찾기
+
+    - **adjacency**: 인접 리스트
+    - **symbols**: 심볼 목록
+    - **start_class**: 시작 심볼 클래스 (예: 'ECU')
+    - **end_class**: 끝 심볼 클래스 (예: 'ANU')
+
+    Returns: [{start_symbol, end_symbol, path, intermediate_symbols, path_length}, ...]
+
+    **TECHCROSS 규칙 검증 예시:**
+    - ECU → ANU 사이에 Check Valve 존재 여부
+    - Pump → Tank 사이에 Filter 존재 여부
+    """
+    start_time = time.time()
+
+    try:
+        adj = normalize_adjacency(request.adjacency)
+        results = find_symbols_between(
+            adj,
+            request.symbols,
+            request.start_class,
+            request.end_class
+        )
+        return {
+            "success": True,
+            "data": {
+                "results": results,
+                "count": len(results)
+            },
+            "processing_time": round(time.time() - start_time, 4)
+        }
+    except Exception as e:
+        logger.error(f"Symbols between finding error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processing_time": round(time.time() - start_time, 4)
+        }

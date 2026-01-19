@@ -55,13 +55,23 @@ async def create_component(request: ComponentCreateRequest):
         raise HTTPException(status_code=503, detail="Neo4j service unavailable")
 
     try:
+        # dimensions, tolerances, processes를 dict 리스트로 변환
+        dimensions = [d.model_dump() for d in request.dimensions] if request.dimensions else []
+        tolerances = [t.model_dump() for t in request.tolerances] if request.tolerances else []
+        processes = [p.model_dump() for p in request.processes] if request.processes else []
+
         component_id = await neo4j_service.create_component(
             name=request.name,
+            part_id=request.part_id,
             part_number=request.part_number,
+            category=request.category,
             material=request.material,
-            dimensions=request.dimensions,
-            tolerances=request.tolerances,
-            processes=request.processes,
+            manufacturer=request.manufacturer,
+            unit_price=request.unit_price,
+            specifications=request.specifications,
+            dimensions=dimensions,
+            tolerances=tolerances,
+            processes=processes,
             metadata=request.metadata
         )
         return ComponentResponse(

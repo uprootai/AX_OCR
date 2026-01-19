@@ -1,0 +1,328 @@
+# Line Detector API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: linedetector
+  name: Line Detector
+  version: 1.1.0
+  port: 5016
+  host: line-detector-api
+  description: P&ID 라인 검출, 스타일 분류, 영역 검출 API
+  author: AX Team
+  tags:
+    - segmentation
+    - pid
+    - region-detection
+
+server:
+  endpoint: /api/v1/process
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /api/v1/health
+
+blueprintflow:
+  category: segmentation
+  color: "#0d9488"
+  icon: Minus
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: P&ID 도면 이미지
+
+outputs:
+  - name: lines
+    type: array
+    description: 검출된 라인 목록 (스타일, 색상, 용도 분류 포함)
+  - name: intersections
+    type: array
+    description: 교차점 목록
+  - name: regions
+    type: array
+    description: 점선 박스 영역 목록 (SIGNAL FOR BWMS 등)
+  - name: statistics
+    type: object
+    description: 라인/영역 통계
+  - name: visualization
+    type: string
+    description: 시각화 이미지 (base64)
+
+parameters:
+  - name: method
+    type: select
+    options:
+      - lsd
+      - hough
+      - combined
+    default: lsd
+    description: 검출 방식
+  - name: merge_lines
+    type: boolean
+    default: true
+    description: 공선 라인 병합
+  - name: classify_types
+    type: boolean
+    default: true
+    description: 라인 유형 분류 (배관/신호선)
+  - name: classify_colors
+    type: boolean
+    default: true
+    description: 색상 기반 라인 분류 (공정/냉각/증기/신호선 등)
+  - name: classify_styles
+    type: boolean
+    default: true
+    description: 스타일 분류 (실선/점선/점점선/이중선/물결선)
+  - name: find_intersections
+    type: boolean
+    default: true
+    description: 교차점 검출
+  - name: detect_regions
+    type: boolean
+    default: false
+    description: 점선 박스 영역 검출 (SIGNAL FOR BWMS 등)
+  - name: region_line_styles
+    type: text
+    default: "dashed,dash_dot"
+    description: 영역 검출에 사용할 라인 스타일 (쉼표 구분)
+  - name: min_region_area
+    type: number
+    min: 1000
+    max: 100000
+    default: 5000
+    step: 1000
+    description: 최소 영역 크기 (픽셀²)
+  - name: visualize
+    type: boolean
+    default: true
+    description: 결과 시각화
+  - name: visualize_regions
+    type: boolean
+    default: true
+    description: 영역 시각화 포함
+  - name: min_length
+    type: number
+    min: 0
+    max: 500
+    default: 0
+    step: 10
+    description: 최소 라인 길이 (픽셀). 짧은 라인 필터링. 0=필터링 안함
+  - name: max_lines
+    type: number
+    min: 0
+    max: 5000
+    default: 0
+    step: 100
+    description: 최대 라인 수 제한. 긴 라인 우선. 0=제한 없음
+
+i18n:
+  ko:
+    label: Line Detector
+    description: P&ID 라인 검출, 스타일 분류, 점선 박스 영역 검출
+  en:
+    label: Line Detector
+    description: P&ID line detection, style classification, dashed region detection
+
+# 프로파일 기반 기본값 (MODEL_DEFAULTS 패턴)
+# 백엔드 models/line-detector-api/config/defaults.py와 동기화
+profiles:
+  default: pid
+  available:
+    - name: pid
+      label: "P&ID 라인 검출"
+      description: "P&ID 도면 배관/신호선 검출 최적화"
+      params:
+        method: lsd
+        merge_lines: true
+        classify_types: true
+        classify_colors: true
+        classify_styles: true
+        find_intersections: true
+        detect_regions: true
+        region_line_styles: "dashed,dash_dot"
+        min_region_area: 5000
+        visualize: true
+        visualize_regions: true
+        min_length: 20
+        max_lines: 0
+
+    - name: simple
+      label: "단순 라인 검출"
+      description: "라인 검출만 수행 (분류 없음)"
+      params:
+        method: lsd
+        merge_lines: true
+        classify_types: false
+        classify_colors: false
+        classify_styles: false
+        find_intersections: false
+        detect_regions: false
+        visualize: true
+        min_length: 10
+        max_lines: 0
+
+    - name: region_focus
+      label: "영역 검출 중심"
+      description: "점선 박스 영역 검출에 최적화"
+      params:
+        method: lsd
+        merge_lines: true
+        classify_types: false
+        classify_colors: false
+        classify_styles: true
+        find_intersections: false
+        detect_regions: true
+        region_line_styles: "dashed,dash_dot,dotted"
+        min_region_area: 3000
+        visualize: true
+        visualize_regions: true
+        min_length: 15
+        max_lines: 0
+
+    - name: connectivity
+      label: "연결성 분석"
+      description: "라인 교차점 및 연결성 분석"
+      params:
+        method: lsd
+        merge_lines: true
+        classify_types: true
+        classify_colors: false
+        classify_styles: false
+        find_intersections: true
+        detect_regions: false
+        visualize: true
+        min_length: 25
+        max_lines: 0
+
+resources:
+  gpu:
+    vram: "N/A"
+    minVram: 0
+    recommended: "CPU 전용"
+    cudaVersion: "N/A"
+  cpu:
+    ram: "~2GB"
+    minRam: 1024
+    cores: 2
+    note: "OpenCV 기반 - CPU로 빠름"
+  parameterImpact:
+    - parameter: method
+      impact: "combined 방식 시 시간 2배"
+      examples: "lsd:빠름, combined:보통"
+    - parameter: detect_regions
+      impact: "영역 검출 활성화 시 추가 처리 시간"
+      examples: "false:라인만, true:라인+영역"
+    - parameter: min_length
+      impact: "값↑ → 라인 수↓, 처리시간↓"
+      examples: "0:전체, 30:중간, 50:긴 라인만"
+    - parameter: max_lines
+      impact: "값↓ → 라인 수↓, 처리시간↓"
+      examples: "0:제한없음, 500:적당, 200:빠름"
+
+lineStyleTypes:
+  solid:
+    korean: 실선
+    description: 주요 공정 배관
+    signalType: process
+  dashed:
+    korean: 점선
+    description: 계장 신호선
+    signalType: instrument
+  dotted:
+    korean: 점점선
+    description: 보조/옵션 라인
+    signalType: auxiliary
+  dash_dot:
+    korean: 일점쇄선
+    description: 경계선/중심선
+    signalType: centerline
+  double:
+    korean: 이중선
+    description: 주요 배관/케이싱
+    signalType: main_pipe
+  wavy:
+    korean: 물결선
+    description: 플렉시블 호스
+    signalType: flexible
+
+regionTypes:
+  signal_group:
+    korean: 신호 그룹
+    description: SIGNAL FOR BWMS 등 신호 관련 심볼 그룹
+  equipment_boundary:
+    korean: 장비 경계
+    description: 패키지/스키드 경계
+  note_box:
+    korean: 노트 박스
+    description: 주석/설명 영역
+  hazardous_area:
+    korean: 위험 구역
+    description: 위험 구역 표시
+  scope_boundary:
+    korean: 공급 범위
+    description: 공급자/구매자 범위 경계
+  detail_area:
+    korean: 상세도 영역
+    description: 상세도 참조 영역
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 라인 검출"
+      description: "P&ID 라인 검출 및 스타일 분류"
+      formData:
+        file: "pid_drawing.png"
+        method: "lsd"
+        merge_lines: true
+        classify_styles: true
+        classify_colors: true
+        visualize: true
+
+    - name: "영역 검출 포함"
+      description: "점선 박스 영역 검출"
+      formData:
+        file: "bwms_pid.png"
+        method: "combined"
+        detect_regions: true
+        region_line_styles: "dashed,dash_dot"
+        min_region_area: 5000
+        visualize_regions: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          lines:
+            - id: 1
+              start: [100, 200]
+              end: [400, 200]
+              style: "solid"
+              color: "black"
+              usage: "process"
+            - id: 2
+              start: [200, 100]
+              end: [200, 300]
+              style: "dashed"
+              color: "blue"
+              usage: "instrument"
+          intersections:
+            - point: [200, 200]
+              lines: [1, 2]
+          regions:
+            - id: 1
+              type: "signal_group"
+              label: "SIGNAL FOR BWMS"
+              bbox: [500, 100, 800, 400]
+              lines_count: 12
+          statistics:
+            total_lines: 156
+            by_style: {solid: 120, dashed: 28, dash_dot: 8}
+            by_color: {black: 140, blue: 12, red: 4}
+            regions_found: 3
+          visualization: "data:image/png;base64,..."
+        processing_time: 1.85

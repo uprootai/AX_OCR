@@ -30,6 +30,13 @@ export {
   formatImplementationCount,
   getImplementationStatusIcon,
   getImplementationStatusLabel,
+  // Feature Implication helpers
+  getImpliedFeatures,
+  shouldFeatureBeActive,
+  getAllActiveFeatures,
+  getPrimaryFeatures,
+  getPrimaryFeaturesByGroup,
+  getFeatureRelationshipDiagram,
   type FeatureDefinition,
   type FeatureGroup,
   type FeatureKey,

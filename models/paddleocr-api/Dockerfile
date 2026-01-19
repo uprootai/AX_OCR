@@ -1,5 +1,5 @@
-# PaddleOCR 3.0 API Dockerfile
-# PP-OCRv5: 13% accuracy improvement, 106 languages
+# PaddleOCR 2.x API Dockerfile
+# PP-OCRv4: CPU compatible, 80+ languages
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -24,7 +24,7 @@ COPY services/ ./services/
 COPY utils/ ./utils/
 
 # PaddleOCR 모델 다운로드를 위한 디렉토리 생성
-# PP-OCRv5 모델은 HuggingFace에서 자동 다운로드됨
+# PP-OCRv4 모델은 자동 다운로드됨
 RUN mkdir -p /root/.paddleocr
 
 # 포트 노출

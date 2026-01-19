@@ -27,7 +27,8 @@ export function DetectionPage() {
   const [config, setConfig] = useState<Partial<DetectionConfig>>({
     confidence: 0.4,  // Streamlit과 동일
     iou_threshold: 0.5,  // Streamlit과 동일
-    model_id: 'yolo_v11n',
+    model_type: 'bom_detector',
+    backend: 'yolo',
   });
 
   const [showSettings, setShowSettings] = useState(false);
@@ -134,15 +135,14 @@ export function DetectionPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">모델</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">검출 백엔드</label>
               <select
-                value={config.model_id}
-                onChange={(e) => setConfig({ ...config, model_id: e.target.value })}
+                value={config.backend}
+                onChange={(e) => setConfig({ ...config, backend: e.target.value as 'yolo' | 'detectron2' })}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
               >
-                <option value="yolo_v11n">YOLO v11 Nano</option>
-                <option value="yolo_v11s">YOLO v11 Small</option>
-                <option value="yolo_v11m">YOLO v11 Medium</option>
+                <option value="yolo">YOLO (빠른 검출)</option>
+                <option value="detectron2">Detectron2 (마스킹 포함)</option>
               </select>
             </div>
           </div>

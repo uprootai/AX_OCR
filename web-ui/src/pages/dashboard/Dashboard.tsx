@@ -64,9 +64,8 @@ export default function Dashboard() {
       } else {
         setBomError('세션 조회 실패');
       }
-    } catch (error) {
+    } catch {
       setBomError('BOM 서버에 연결할 수 없습니다');
-      console.error('BOM 세션 조회 실패:', error);
     } finally {
       setBomLoading(false);
     }
@@ -85,9 +84,8 @@ export default function Dashboard() {
       } else {
         showToast('✗ 세션 삭제에 실패했습니다', 'error');
       }
-    } catch (error) {
-      console.error('세션 삭제 실패:', error);
-      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ 세션 삭제 실패\n${errorMsg}`, 'error');
     } finally {
       setDeletingSessionId(null);
@@ -113,9 +111,8 @@ export default function Dashboard() {
       } else {
         showToast('✗ 세션 전체 삭제에 실패했습니다', 'error');
       }
-    } catch (error) {
-      console.error('세션 전체 삭제 실패:', error);
-      const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ 세션 전체 삭제 실패\n${errorMsg}`, 'error');
     } finally {
       setIsDeletingAll(false);
@@ -217,8 +214,7 @@ export default function Dashboard() {
           showToast('모든 API가 이미 등록되어 있습니다', 'info');
         }
       }
-    } catch (error) {
-      console.error('Auto-discover failed:', error);
+    } catch {
       showToast('✗ API 자동 검색 실패\nGateway API가 실행 중인지 확인하세요', 'error');
     } finally {
       setIsAutoDiscovering(false);

@@ -3,7 +3,7 @@ Response Models for Gateway API
 
 응답 관련 Pydantic 모델들을 정의합니다.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 
 
@@ -61,8 +61,7 @@ class ComponentData(BaseModel):
     area: Optional[int] = Field(None, description="면적 (픽셀)")
     confidence: Optional[float] = Field(None, description="신뢰도")
 
-    class Config:
-        extra = "allow"  # Allow additional fields from EDGNet
+    model_config = ConfigDict(extra="allow")  # Allow additional fields from EDGNet
 
 
 class SegmentationResults(BaseModel):
@@ -72,8 +71,7 @@ class SegmentationResults(BaseModel):
     processing_time: float = Field(0, description="세그멘테이션 처리 시간 (초)")
     visualized_image: Optional[str] = Field(None, description="Base64 인코딩된 시각화 이미지")
 
-    class Config:
-        extra = "allow"  # Allow additional fields
+    model_config = ConfigDict(extra="allow")  # Allow additional fields
 
 
 class ToleranceResult(BaseModel):
@@ -84,8 +82,7 @@ class ToleranceResult(BaseModel):
     manufacturing_process: Optional[str] = Field(None, description="제조 공정")
     processing_time: float = Field(0, description="공차 예측 처리 시간 (초)")
 
-    class Config:
-        extra = "allow"  # Allow additional fields from Skin Model API
+    model_config = ConfigDict(extra="allow")  # Allow additional fields from Skin Model API
 
 
 class ProcessData(BaseModel):

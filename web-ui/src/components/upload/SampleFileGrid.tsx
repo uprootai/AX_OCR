@@ -58,7 +58,6 @@ export function SampleFileGrid({
     } catch (err) {
       const message = err instanceof Error ? err.message : '샘플 파일 로드 중 오류가 발생했습니다.';
       setError(message);
-      console.error('Sample file load error:', err);
     } finally {
       setLoading(null);
     }

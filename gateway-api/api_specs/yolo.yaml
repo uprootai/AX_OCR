@@ -351,6 +351,54 @@ openapi:
         status: "error"
         message: "Invalid file format. Only JPG, PNG, PDF supported."
 
+# 프로파일 기반 기본값 (MODEL_DEFAULTS 패턴)
+# 백엔드 models/yolo-api/config/model_defaults.py와 동기화
+profiles:
+  default: bom_detector
+  available:
+    - name: engineering
+      label: "기계도면 심볼"
+      description: "치수선, 중심선, 용접기호 등 14종 검출"
+      params:
+        confidence: 0.50
+        iou: 0.45
+        imgsz: 640
+        use_sahi: false
+        augment: false
+
+    - name: pid_class_aware
+      label: "P&ID 분류 (32종)"
+      description: "32종 주요 P&ID 심볼 분류"
+      params:
+        confidence: 0.10
+        iou: 0.45
+        imgsz: 1024
+        use_sahi: true
+        slice_height: 512
+        slice_width: 512
+        overlap_ratio: 0.25
+
+    - name: pid_class_agnostic
+      label: "P&ID 범용"
+      description: "클래스 구분 없이 모든 심볼 검출"
+      params:
+        confidence: 0.10
+        iou: 0.45
+        imgsz: 1024
+        use_sahi: true
+        slice_height: 512
+        slice_width: 512
+        overlap_ratio: 0.25
+
+    - name: bom_detector
+      label: "전력 설비 단선도 (27종)"
+      description: "차단기, 변압기, CT, PT 등 27종 검출"
+      params:
+        confidence: 0.40
+        iou: 0.50
+        imgsz: 1024
+        use_sahi: false
+
 usageTips:
   - "기계도면: model_type=engineering, confidence=0.25, imgsz=1280"
   - "P&ID 분석: model_type=pid_class_aware, confidence=0.25, use_sahi=true"

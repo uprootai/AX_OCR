@@ -13,6 +13,35 @@ export const aiNodes: Record<string, NodeDefinition> = {
     color: '#ec4899',
     icon: 'Sparkles',
     description: '이미지와 텍스트를 함께 이해하는 Vision-Language 모델. 이미지에 대한 질문-답변(VQA) 또는 일반 분석 수행.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '기본 VLM 분석',
+          params: { model: 'gpt-4o-mini', max_tokens: 1000, temperature: 0.3 },
+        },
+        {
+          name: 'classify',
+          label: '분류',
+          description: '도면 유형 분류',
+          params: { model: 'gpt-4o-mini', max_tokens: 50, temperature: 0.1 },
+        },
+        {
+          name: 'detailed',
+          label: '상세 분석',
+          description: '상세 정보 추출',
+          params: { model: 'gpt-4o', max_tokens: 2000, temperature: 0.2 },
+        },
+        {
+          name: 'pid',
+          label: 'P&ID 분석',
+          description: 'P&ID 전용 분석',
+          params: { model: 'gpt-4o', max_tokens: 2000, temperature: 0.2 },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',

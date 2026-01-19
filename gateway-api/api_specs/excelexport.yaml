@@ -1,95 +1,86 @@
-# Excel Export API Spec
-# P&ID 분석 결과 Excel 내보내기
+# Excel Export API Specification
+apiVersion: v1
+kind: APISpec
 
-api_id: excelexport
-display_name: Excel Export
-version: "1.0"
-category: analysis
-port: 5020
-base_url: http://blueprint-ai-bom-backend:5020
+metadata:
+  id: excelexport
+  name: Excel Export
+  version: 1.0.0
+  port: 5020
+  host: blueprint-ai-bom-backend
+  description: P&ID 분석 결과를 Excel 파일로 내보냅니다. Equipment, Valve, Checklist, Deviation을 각 시트에 분리하여 정리합니다.
+  author: AX Team
+  tags:
+    - export
+    - excel
+    - spreadsheet
+    - analysis
 
-description: |
-  P&ID 분석 결과를 Excel 파일로 내보냅니다.
-  Equipment, Valve, Checklist, Deviation을 각 시트에 분리하여 정리합니다.
-  열 너비 자동 조정, 헤더 스타일링이 적용됩니다.
-
-tags:
-  - export
-  - excel
-  - spreadsheet
-  - analysis
-
-endpoints:
-  generate:
-    path: /api/v1/pid-features/{session_id}/export
-    method: POST
-    description: P&ID 분석 결과를 Excel로 내보내기
-    parameters:
-      session_id:
-        type: string
-        required: true
-        in: path
-      export_type:
-        type: string
-        required: true
-        in: query
-        enum: [all, valve, equipment, checklist, deviation]
-      project_name:
-        type: string
-        in: query
-        default: "Unknown Project"
-      drawing_no:
-        type: string
-        in: query
-        default: "N/A"
-      include_rejected:
-        type: boolean
-        in: query
-        default: false
-    response:
-      content_type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+server:
+  endpoint: /api/v1/pid-features/{session_id}/export
+  method: POST
+  contentType: application/json
+  timeout: 60
+  healthEndpoint: /health
 
 blueprintflow:
-  node_type: excelexport
-  label: Excel Export
   category: analysis
   color: "#16a34a"
   icon: FileSpreadsheet
+  requiresImage: false
 
-  inputs:
-    - name: session_data
-      type: SessionData
-      description: 워크플로우 분석 결과
-    - name: image
-      type: Image
-      description: 원본 이미지
-      optional: true
+inputs:
+  - name: session_data
+    type: SessionData
+    required: true
+    description: 워크플로우 분석 결과
+  - name: image
+    type: Image
+    required: false
+    description: 원본 이미지
 
-  outputs:
-    - name: excel_url
-      type: string
-      description: Excel 다운로드 URL
-    - name: filename
-      type: string
-      description: 파일명
-    - name: summary
-      type: ExportSummary
-      description: 내보내기 요약
+outputs:
+  - name: excel_url
+    type: string
+    description: Excel 다운로드 URL
+  - name: filename
+    type: string
+    description: 파일명
+  - name: summary
+    type: ExportSummary
+    description: 내보내기 요약
 
-  parameters:
-    - name: export_type
-      type: select
-      default: all
-      options: [all, valve, equipment, checklist, deviation]
-    - name: project_name
-      type: string
-      default: ""
-    - name: drawing_no
-      type: string
-      default: ""
-    - name: include_rejected
-      type: boolean
-      default: false
+parameters:
+  - name: export_type
+    type: select
+    options:
+      - all
+      - valve
+      - equipment
+      - checklist
+      - deviation
+    default: all
+    description: 내보내기 범위 선택
+  - name: project_name
+    type: string
+    default: ""
+    description: 프로젝트명
+  - name: drawing_no
+    type: string
+    default: ""
+    description: 도면 번호
+  - name: include_rejected
+    type: boolean
+    default: false
+    description: 거부된 항목 포함 여부
+
+i18n:
+  ko:
+    label: Excel Export
+    description: P&ID 분석 결과를 Excel 파일로 내보냅니다
+  en:
+    label: Excel Export
+    description: Export P&ID analysis results to Excel file
 
 resources:
   cpu:
@@ -97,30 +88,3 @@ resources:
     minRam: 100
     cores: 1
     note: openpyxl CPU 전용
-
-# OpenAPI Examples (2025-12-31 추가)
-openapi:
-  requestExamples:
-    - name: "전체 Excel"
-      description: "모든 시트 포함 Excel 생성"
-      params:
-        session_id: "sess_20251231_123456"
-        export_type: "all"
-        project_name: "BWMS Project"
-        drawing_no: "DWG-001"
-        include_rejected: false
-
-    - name: "Equipment 목록"
-      description: "Equipment List Excel"
-      params:
-        session_id: "sess_20251231_123456"
-        export_type: "equipment"
-        project_name: "TECHCROSS"
-
-  responseExamples:
-    - name: "성공 응답"
-      statusCode: 200
-      headers:
-        Content-Type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        Content-Disposition: "attachment; filename=PID_Analysis_all_DWG-001_20251231.xlsx"
-      description: "Excel 바이너리 데이터 (시트: Valve, Equipment, Checklist, Summary)"

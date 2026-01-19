@@ -16,7 +16,7 @@
  * 이 파일은 하위 호환성을 위해 모든 export를 re-export합니다.
  */
 
-export type { NodeParameter, RecommendedInput, NodeDefinition } from './nodes';
+export type { NodeParameter, RecommendedInput, NodeDefinition, ProfileDefinition, ProfilesConfig } from './nodes';
 export { nodeDefinitions, getNodeDefinition, getAllNodeDefinitions } from './nodes';
 
 // Category exports for direct access

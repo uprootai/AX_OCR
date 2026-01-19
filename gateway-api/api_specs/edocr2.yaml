@@ -119,7 +119,6 @@ openapi:
       description: "기계도면에서 치수와 GD&T 추출"
       formData:
         file: "drawing.png"
-        version: "v2"
         language: "ko+en"
         extract_dimensions: true
         extract_gdt: true
@@ -129,7 +128,6 @@ openapi:
       description: "BOM 테이블이 포함된 도면 분석"
       formData:
         file: "bom_drawing.png"
-        version: "v2"
         language: "ko+en"
         extract_dimensions: true
         extract_tables: true
@@ -167,9 +165,80 @@ openapi:
           visualized_image: "data:image/jpeg;base64,..."
         processing_time: 2.45
 
+# 프로파일 기반 기본값 (MODEL_DEFAULTS 패턴)
+# 백엔드 models/edocr2-v2-api/config/defaults.py와 동기화
+profiles:
+  default: full
+  available:
+    - name: full
+      label: "전체 추출"
+      description: "치수, GD&T, 텍스트 모두 추출"
+      params:
+        extract_dimensions: true
+        extract_gdt: true
+        extract_text: true
+        use_vl_model: false
+        visualize: false
+
+    - name: dimension_only
+      label: "치수만 추출"
+      description: "치수 정보만 빠르게 추출"
+      params:
+        extract_dimensions: true
+        extract_gdt: false
+        extract_text: false
+        visualize: false
+
+    - name: gdt_only
+      label: "GD&T만 추출"
+      description: "기하공차/데이텀만 추출"
+      params:
+        extract_dimensions: false
+        extract_gdt: true
+        extract_text: false
+        visualize: false
+
+    - name: text_only
+      label: "텍스트만 추출"
+      description: "일반 텍스트만 추출"
+      params:
+        extract_dimensions: false
+        extract_gdt: false
+        extract_text: true
+        visualize: false
+
+    - name: accurate
+      label: "정확도 우선"
+      description: "VL 모델 사용 + GPU 전처리로 최대 정확도"
+      params:
+        extract_dimensions: true
+        extract_gdt: true
+        extract_text: true
+        use_vl_model: true
+        visualize: true
+
+    - name: fast
+      label: "속도 우선"
+      description: "치수만 빠르게 추출 (VL 모델 미사용)"
+      params:
+        extract_dimensions: true
+        extract_gdt: false
+        extract_text: false
+        visualize: false
+
+    - name: debug
+      label: "디버그 모드"
+      description: "모든 기능 + 시각화 활성화"
+      params:
+        extract_dimensions: true
+        extract_gdt: true
+        extract_text: true
+        visualize: true
+
 usageTips:
   - YOLO와 함께 사용하면 정확도가 높아집니다
   - 한글+영어 혼합 도면은 ko+en 언어 사용
+  - 프로파일 사용 시 개별 파라미터로 덮어쓰기 가능
 
 resources:
   gpu:

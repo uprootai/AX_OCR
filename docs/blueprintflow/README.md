@@ -1,7 +1,7 @@
 # BlueprintFlow Documentation
 
 **Visual Workflow Builder for Drawing Analysis**
-> **최종 업데이트**: 2025-12-31 | **버전**: v23.0
+> **최종 업데이트**: 2026-01-17 | **버전**: v23.1
 
 ---
 
@@ -44,7 +44,7 @@ http://localhost:5173/blueprintflow/builder
 | **Backend Engine** | ✅ Complete | Pipeline engine, DAG execution |
 | **Control Flow** | ✅ Complete | IF, Loop, Merge nodes |
 | **Dynamic API** | ✅ Complete | Runtime API registration |
-| **API Services** | ✅ Complete | 19/19 healthy (100%) |
+| **API Services** | ✅ Complete | 20/20 healthy (100%) |
 | **Blueprint AI BOM** | ✅ Complete | v10.5 TECHCROSS 통합 |
 | **디자인 패턴** | ✅ Complete | 100/100점 달성 |
 | **테스트** | ✅ Complete | 505개 통과 (gateway 364, web-ui 141) |
@@ -85,7 +85,7 @@ http://localhost:5173/blueprintflow/builder
 
 ---
 
-## API Services (19개)
+## API Services (20개)
 
 | Category | Service | Port | GPU |
 |----------|---------|------|-----|
@@ -115,4 +115,4 @@ http://localhost:5173/blueprintflow/builder
 **Total Documentation**: ~800 lines (split across 12 files)
 **Average File Size**: ~65 lines (LLM-friendly)
 
-**Last Updated**: 2025-12-31
+**Last Updated**: 2026-01-17

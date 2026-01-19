@@ -19,6 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  Cpu,
+  Layers,
 } from 'lucide-react';
 
 interface AnalysisOptionsData {
@@ -30,6 +32,10 @@ interface AnalysisOptionsData {
   confidence_threshold: number;
   symbol_model_type: string;
   preset: string | null;
+  // Detectron2 옵션
+  detection_backend: 'yolo' | 'detectron2';
+  return_masks: boolean;
+  return_polygons: boolean;
 }
 
 interface Preset {
@@ -61,6 +67,10 @@ export function AnalysisOptions({
     confidence_threshold: 0.5,
     symbol_model_type: 'bom_detector',
     preset: 'electrical',
+    // Detectron2 옵션 기본값
+    detection_backend: 'yolo',
+    return_masks: false,
+    return_polygons: true,
   });
 
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -299,6 +309,73 @@ export function AnalysisOptions({
             onChange={(e) => updateOption('confidence_threshold', parseFloat(e.target.value))}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
           />
+        </div>
+
+        {/* 검출 백엔드 선택 */}
+        <div className="pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <Cpu className="w-4 h-4 text-indigo-500" />
+            <span className="text-sm font-medium text-gray-700">검출 백엔드</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => updateOption('detection_backend', 'yolo')}
+              className={`
+                flex flex-col items-center p-3 rounded-lg border-2 transition-all
+                ${
+                  options.detection_backend === 'yolo'
+                    ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                }
+              `}
+            >
+              <Zap className="w-5 h-5 mb-1" />
+              <span className="text-sm font-medium">YOLO</span>
+              <span className="text-xs text-gray-500">빠른 검출</span>
+            </button>
+            <button
+              onClick={() => updateOption('detection_backend', 'detectron2')}
+              className={`
+                flex flex-col items-center p-3 rounded-lg border-2 transition-all
+                ${
+                  options.detection_backend === 'detectron2'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                }
+              `}
+            >
+              <Layers className="w-5 h-5 mb-1" />
+              <span className="text-sm font-medium">Detectron2</span>
+              <span className="text-xs text-gray-500">마스킹 포함</span>
+            </button>
+          </div>
+
+          {/* Detectron2 옵션 (선택 시에만 표시) */}
+          {options.detection_backend === 'detectron2' && (
+            <div className="mt-3 p-3 bg-indigo-50 rounded-lg space-y-2">
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm text-indigo-700">마스크 반환 (RLE)</span>
+                <input
+                  type="checkbox"
+                  checked={options.return_masks}
+                  onChange={(e) => updateOption('return_masks', e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                />
+              </label>
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm text-indigo-700">폴리곤 반환 (SVG용)</span>
+                <input
+                  type="checkbox"
+                  checked={options.return_polygons}
+                  onChange={(e) => updateOption('return_polygons', e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                />
+              </label>
+              <p className="text-xs text-indigo-500 mt-2">
+                ⚠️ Detectron2는 처리 시간이 더 오래 걸립니다 (~5초)
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

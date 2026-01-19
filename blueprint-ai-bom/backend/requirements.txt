@@ -14,6 +14,13 @@ ultralytics==8.3.197
 torch>=2.0.0
 torchvision>=0.15.0
 
+# Detectron2 Instance Segmentation (Optional - for mask output)
+# 설치 방법 (CUDA 11.8 기준):
+#   pip install 'git+https://github.com/facebookresearch/detectron2.git'
+# 또는 사전 빌드된 wheel:
+#   pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu118/torch2.0/index.html
+detectron2
+
 # Export (Excel/PDF)
 openpyxl>=3.1.0
 reportlab>=4.0.0

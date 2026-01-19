@@ -1,53 +1,39 @@
-# EDGNet Training
+# EDGNet Training Scripts
 
-EDGNet (GraphSAGE + UNet) 모델 학습 자료
+> EDGNet 모델 학습 및 데이터 증강 스크립트
+> **최종 업데이트**: 2026-01-19
 
-## 📁 디렉토리 구조
+---
 
-```
-training/
-├── datasets/           # 학습 데이터셋
-│   ├── original/      # 원본 데이터
-│   ├── augmented/     # 증강 데이터
-│   └── large/         # Large 데이터셋
-├── scripts/           # 학습 스크립트
-│   ├── train_edgnet_large.py
-│   ├── train_edgnet_simple.py
-│   ├── augment_edgnet*.py
-│   └── generate_edgnet_dataset.py
-└── README.md
-```
+## 스크립트 목록
 
-## 🚀 학습 방법
+| 파일 | 설명 |
+|------|------|
+| `augment_edgnet_data.py` | 데이터 증강 (회전, 밝기, 대비 조절) |
+| `augment_edgnet_dataset.py` | EDGNetDataAugmenter 클래스 |
+| `augment_edgnet_simple.py` | 간단한 증강 스크립트 |
+| `generate_edgnet_dataset.py` | 데이터셋 생성 |
+| `train_edgnet_large.py` | UNet 기반 대규모 학습 |
+| `train_edgnet_simple.py` | SimpleGraphNet 학습 |
+| `retrain_edgnet_gpu.py` | GPU 재학습 |
 
-### 1. 데이터셋 증강
+---
 
-```bash
-python training/scripts/augment_edgnet_data.py \
-  --input training/datasets/original \
-  --output training/datasets/augmented
-```
-
-### 2. 모델 학습
+## 사용법
 
 ```bash
-python training/scripts/train_edgnet_large.py \
-  --data training/datasets/large \
-  --epochs 50 \
-  --batch-size 4 \
-  --save-dir models/
+cd models/edgnet-api/training/scripts
+
+# 데이터 증강
+python augment_edgnet_data.py --input data/ --output augmented/
+
+# 학습 실행
+python train_edgnet_large.py --data_dir data/ --epochs 100
+
+# GPU 재학습
+python retrain_edgnet_gpu.py --model weights/best.pt
 ```
 
-### 3. 학습된 모델 배치
+---
 
-학습 완료 후 `models/` 디렉토리에 생성된 모델 파일을 API에서 사용합니다.
-
-## 📊 데이터셋 정보
-
-- **Original**: 원본 도면 데이터
-- **Augmented**: 회전, 밝기, 노이즈 증강
-- **Large**: 대규모 학습용 데이터셋
-
-## 🔧 의존성
-
-학습에 필요한 패키지는 상위 디렉토리의 `requirements.txt`를 참조하세요.
+*최종 업데이트*: 2026-01-19

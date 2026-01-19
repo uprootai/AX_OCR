@@ -78,9 +78,9 @@ export default function Admin() {
     try {
       const response = await axios.get(ADMIN_ENDPOINTS.status);
       setStatus(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch status:', error);
+    } catch {
+      // 상태 조회 실패는 조용히 처리 (백그라운드 폴링)
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -89,8 +89,8 @@ export default function Admin() {
     try {
       const response = await axios.get(ADMIN_ENDPOINTS.allModels);
       setModels(response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch models:', error);
+    } catch {
+      showToast('✗ 모델 정보 로드 실패', 'error');
     }
   };
 
@@ -98,9 +98,9 @@ export default function Admin() {
     try {
       const response = await axios.get(ADMIN_ENDPOINTS.logs(service));
       setLogs(response.data.logs || '');
-    } catch (error) {
-      console.error('Failed to fetch logs:', error);
+    } catch {
       setLogs('로그를 불러올 수 없습니다.');
+      showToast('✗ 로그 로드 실패', 'error');
     }
   };
 
@@ -128,7 +128,6 @@ export default function Admin() {
 
       showToast('✓ 설정이 성공적으로 백업되었습니다', 'success');
     } catch (err) {
-      console.error('백업 실패:', err);
       const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ 백업 실패\n${errorMsg}`, 'error');
     }
@@ -172,7 +171,6 @@ export default function Admin() {
           showToast('✓ 설정이 복원되었습니다. 페이지를 새로고침합니다...', 'success');
           setTimeout(() => window.location.reload(), 1000);
         } catch (err) {
-          console.error('복원 실패:', err);
           const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
           showToast(`✗ 복원 실패\n${errorMsg}`, 'error');
         }
@@ -205,6 +203,7 @@ export default function Admin() {
     } else if (activeTab === 'logs') {
       fetchLogs(selectedService);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedService]);
 
   if (loading && !status) {

@@ -6,9 +6,9 @@ numpy>=1.24.3
 pillow>=10.1.0
 opencv-python-headless>=4.8.1.78
 
-# PaddleOCR 3.0 (PP-OCRv5)
-# - 13% accuracy improvement over PP-OCRv4
-# - 106 language support
-# - Document structure parsing (PP-StructureV3)
-paddlepaddle>=3.0.0
-paddleocr>=3.0.0
+# PaddleOCR 2.x (CPU compatible)
+# - PP-OCRv4 support
+# - 80+ language support
+# - Stable on CPU without OneDNN issues
+paddlepaddle==2.6.2
+paddleocr==2.8.1

@@ -125,7 +125,7 @@ if __name__ == "__main__":
         image_path = sys.argv[1]
     else:
         # 기본 샘플 이미지
-        image_path = "/home/uproot/ax/poc/samples/S60ME-C INTERM-SHAFT_대 주조전.jpg"
+        image_path = "/home/uproot/ax/poc/web-ui/public/samples/sample3_s60me_shaft.jpg"
 
     if not Path(image_path).exists():
         print(f"에러: 이미지를 찾을 수 없습니다: {image_path}")

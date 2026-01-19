@@ -34,8 +34,7 @@ class Edocr2Executor(BaseNodeExecutor):
 
         filename = self.parameters.get("filename", "workflow_image.jpg")
 
-        # 파라미터 추출
-        version = self.parameters.get("version", "v2")
+        # 파라미터 추출 (version 파라미터 제거 - v2 API만 사용)
         language = self.parameters.get("language", "eng")
         cluster_threshold = self.parameters.get("cluster_threshold", 20)
         extract_dimensions = self.parameters.get("extract_dimensions", True)
@@ -44,11 +43,10 @@ class Edocr2Executor(BaseNodeExecutor):
         extract_tables = self.parameters.get("extract_tables", True)
         visualize = self.parameters.get("visualize", True)  # 기본값을 True로 변경하여 시각화 활성화
 
-        # eDOCr2 API 호출
+        # eDOCr2 API 호출 (v2 전용)
         result = await call_edocr2_ocr(
             file_bytes=file_bytes,
             filename=filename,
-            version=version,
             extract_dimensions=extract_dimensions,
             extract_gdt=extract_gdt,
             extract_text=extract_text,

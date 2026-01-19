@@ -49,14 +49,15 @@ export default function BlueprintFlowList() {
 
   useEffect(() => {
     loadWorkflows();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadWorkflows = async () => {
     try {
       const list = await workflowApi.listWorkflows();
       setWorkflows(list);
-    } catch (error) {
-      console.error('Failed to load workflows:', error);
+    } catch {
+      showToast('✗ 워크플로우 목록 로드 실패', 'error');
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,6 @@ export default function BlueprintFlowList() {
       loadWorkflow(loadedWorkflow);
       navigate('/blueprintflow/builder');
     } catch (error) {
-      console.error('Failed to load workflow:', error);
       const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
       showToast(`✗ 워크플로우 로드 실패\n${errorMsg}`, 'error');
     }
@@ -85,7 +85,6 @@ export default function BlueprintFlowList() {
       await loadWorkflows();
       showToast(`✓ "${name}" 워크플로우가 삭제되었습니다`, 'success');
     } catch (error) {
-      console.error('Failed to delete workflow:', error);
       const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
       showToast(`✗ 워크플로우 삭제 실패\n${errorMsg}`, 'error');
     }
@@ -104,7 +103,6 @@ export default function BlueprintFlowList() {
       await loadWorkflows();
       showToast(`✓ "${workflow.name}" 복제 완료`, 'success');
     } catch (error) {
-      console.error('Failed to duplicate workflow:', error);
       const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
       showToast(`✗ 워크플로우 복제 실패\n${errorMsg}`, 'error');
     }

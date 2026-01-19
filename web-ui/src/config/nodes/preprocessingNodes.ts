@@ -13,6 +13,35 @@ export const preprocessingNodes: Record<string, NodeDefinition> = {
     color: '#dc2626',
     icon: 'Maximize2',
     description: 'Real-ESRGAN 기반 4x 이미지 업스케일링. 저품질 스캔 도면 전처리.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '기본 4x 업스케일링',
+          params: { scale: 4, denoise_strength: 0.5 },
+        },
+        {
+          name: 'drawing',
+          label: '도면용',
+          description: '도면 이미지 최적화 (선명한 선)',
+          params: { scale: 4, denoise_strength: 0.3 },
+        },
+        {
+          name: 'fast',
+          label: '빠른 처리',
+          description: '빠른 처리 (2x)',
+          params: { scale: 2, denoise_strength: 0.5 },
+        },
+        {
+          name: 'quality',
+          label: '고품질',
+          description: '고품질 처리',
+          params: { scale: 4, denoise_strength: 0.5 },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',

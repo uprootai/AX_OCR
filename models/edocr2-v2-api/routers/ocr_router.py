@@ -8,6 +8,7 @@ import shutil
 import logging
 from pathlib import Path
 
+import cv2
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 
@@ -16,6 +17,7 @@ from models.schemas import (
     APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
 )
 from services.ocr_processor import get_processor
+from services.svg_generator import ocr_to_svg_data
 from utils.helpers import allowed_file, cleanup_old_files
 from config.defaults import list_profiles, get_profile_features, get_defaults
 
@@ -73,6 +75,11 @@ async def get_api_info():
                 description="Extracted text block list"
             ),
             IOSchema(
+                name="svg_overlay",
+                type="string",
+                description="SVG overlay for visualization (when include_svg=true)"
+            ),
+            IOSchema(
                 name="processing_time",
                 type="float",
                 description="Processing time (seconds)"
@@ -120,6 +127,13 @@ async def get_api_info():
                 default=False,
                 description="Use GPU preprocessing (CLAHE, denoising)",
                 required=False
+            ),
+            ParameterSchema(
+                name="include_svg",
+                type="boolean",
+                default=False,
+                description="Generate SVG overlay for visualization",
+                required=False
             )
         ],
         blueprintflow=BlueprintFlowMetadata(
@@ -131,6 +145,7 @@ async def get_api_info():
             "dimensions": "data.dimensions",
             "gdt_symbols": "data.gdt_symbols",
             "text_blocks": "data.text_blocks",
+            "svg_overlay": "data.svg_overlay",
             "processing_time": "processing_time"
         }
     )
@@ -145,7 +160,8 @@ async def process_drawing(
     extract_text: bool = Form(True, description="Extract text information"),
     use_vl_model: bool = Form(False, description="Use Vision Language model"),
     visualize: bool = Form(False, description="Generate visualization image"),
-    use_gpu_preprocessing: bool = Form(False, description="Use GPU preprocessing")
+    use_gpu_preprocessing: bool = Form(False, description="Use GPU preprocessing"),
+    include_svg: bool = Form(False, description="Generate SVG overlay")
 ):
     """
     Process engineering drawing OCR
@@ -157,6 +173,7 @@ async def process_drawing(
     - **use_vl_model**: Use Vision Language model (slower but more accurate)
     - **visualize**: Generate visualization image
     - **use_gpu_preprocessing**: Use GPU preprocessing (CLAHE, denoising)
+    - **include_svg**: Generate SVG overlay for frontend visualization
     """
     start_time = time.time()
 
@@ -201,6 +218,35 @@ async def process_drawing(
         )
 
         processing_time = time.time() - start_time
+
+        # Generate SVG overlay if requested
+        if include_svg:
+            try:
+                # Read image to get dimensions
+                img = cv2.imread(str(file_path))
+                if img is not None:
+                    height, width = img.shape[:2]
+                    image_size = (width, height)
+
+                    # Extract data for SVG
+                    dimensions = ocr_result.get("dimensions", [])
+                    gdt_symbols = ocr_result.get("gdt", [])
+                    text_annotations = ocr_result.get("possible_text", [])
+
+                    # Generate SVG data
+                    svg_data = ocr_to_svg_data(
+                        dimensions, gdt_symbols, text_annotations, image_size
+                    )
+
+                    # Add SVG to result
+                    ocr_result["svg_overlay"] = svg_data["svg"]
+                    ocr_result["svg_minimal"] = svg_data["svg_minimal"]
+                    ocr_result["image_size"] = {"width": width, "height": height}
+
+                    logger.info(f"SVG overlay generated: {svg_data['dimension_count']} dims, "
+                               f"{svg_data['gdt_count']} GD&T, {svg_data['text_count']} texts")
+            except Exception as e:
+                logger.warning(f"Failed to generate SVG overlay: {e}")
 
         # Background task: cleanup old files
         background_tasks.add_task(cleanup_old_files, UPLOAD_DIR)

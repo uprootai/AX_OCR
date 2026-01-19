@@ -2,7 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { ZoomIn } from 'lucide-react';
+import { ZoomIn, Layers, Image as ImageIcon } from 'lucide-react';
+
+export interface SVGOverlayData {
+  svg: string;
+  svg_minimal?: string;
+  width: number;
+  height: number;
+  detection_count: number;
+  model_type?: string;
+}
 
 interface YOLOVisualizationProps {
   imageFile: File;
@@ -14,6 +23,10 @@ interface YOLOVisualizationProps {
     value?: string | null;    // Extracted text value
     extracted_text?: string | null;  // Alternative field name for extracted text
   }>;
+  /** SVG 오버레이 데이터 (API에서 include_svg=true로 받은 경우) */
+  svgOverlay?: SVGOverlayData;
+  /** 기본 렌더링 모드 */
+  defaultMode?: 'canvas' | 'svg';
   onZoomClick?: (imageDataUrl: string) => void;
 }
 
@@ -142,10 +155,14 @@ function parseBbox(bbox: unknown): { x: number; y: number; width: number; height
   return null;
 }
 
-export default function YOLOVisualization({ imageFile, detections, onZoomClick }: YOLOVisualizationProps) {
+export default function YOLOVisualization({ imageFile, detections, svgOverlay, defaultMode = 'canvas', onZoomClick }: YOLOVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
+  const [renderMode, setRenderMode] = useState<'canvas' | 'svg'>(svgOverlay ? defaultMode : 'canvas');
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [hoveredDetection, setHoveredDetection] = useState<number | null>(null);
 
   const handleCanvasClick = () => {
     if (canvasRef.current && onZoomClick) {
@@ -202,8 +219,37 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
     setBoundingBoxes(boxes);
   }, [detections]);
 
+  // SVG 모드에서 사용할 이미지 데이터 URL 생성
   useEffect(() => {
-    if (!imageFile || !canvasRef.current) return;
+    if (!imageFile || renderMode !== 'svg') return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImageDataUrl(e.target?.result as string);
+      setImageLoaded(true);
+    };
+    reader.readAsDataURL(imageFile);
+
+    return () => {
+      reader.abort();
+    };
+  }, [imageFile, renderMode]);
+
+  // SVG 오버레이 이벤트 핸들러
+  const handleSvgMouseOver = (e: React.MouseEvent) => {
+    const target = e.target as SVGElement;
+    const detectionId = target.getAttribute('data-id');
+    if (detectionId) {
+      setHoveredDetection(parseInt(detectionId, 10));
+    }
+  };
+
+  const handleSvgMouseOut = () => {
+    setHoveredDetection(null);
+  };
+
+  useEffect(() => {
+    if (!imageFile || !canvasRef.current || renderMode !== 'canvas') return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -318,7 +364,7 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
     };
 
     img.src = url;
-  }, [imageFile, boundingBoxes]);
+  }, [imageFile, boundingBoxes, renderMode]);
 
   // 클래스별 카운트
   const classCounts = boundingBoxes.reduce((acc, box) => {
@@ -337,6 +383,27 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
             <Badge variant="default">
               총 {totalDetections}개 검출
             </Badge>
+            {/* 렌더링 모드 토글 (SVG 오버레이가 있는 경우만) */}
+            {svgOverlay && (
+              <Button
+                variant={renderMode === 'svg' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setRenderMode(renderMode === 'canvas' ? 'svg' : 'canvas')}
+                title={renderMode === 'canvas' ? 'SVG 오버레이 모드로 전환' : 'Canvas 모드로 전환'}
+              >
+                {renderMode === 'canvas' ? (
+                  <>
+                    <Layers className="h-4 w-4 mr-1" />
+                    SVG
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="h-4 w-4 mr-1" />
+                    Canvas
+                  </>
+                )}
+              </Button>
+            )}
             {onZoomClick && imageLoaded && (
               <Button
                 variant="default"
@@ -350,24 +417,64 @@ export default function YOLOVisualization({ imageFile, detections, onZoomClick }
           </div>
         </div>
 
-
-        {/* Canvas */}
-        <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
-          <canvas
-            ref={canvasRef}
-            className={`max-w-full h-auto ${onZoomClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
-            style={{ display: imageLoaded ? 'block' : 'none' }}
-            onClick={onZoomClick ? handleCanvasClick : undefined}
-          />
-          {!imageLoaded && (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-muted-foreground">이미지 로딩 중...</div>
+        {/* SVG 오버레이 모드 */}
+        {renderMode === 'svg' && svgOverlay && (
+          <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
+            <div
+              ref={containerRef}
+              className="relative"
+              style={{ width: svgOverlay.width, height: svgOverlay.height }}
+            >
+              {/* 배경 이미지 */}
+              {imageDataUrl && (
+                <img
+                  src={imageDataUrl}
+                  alt="Detection result"
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+              {/* SVG 오버레이 */}
+              <div
+                className="absolute top-0 left-0 w-full h-full"
+                dangerouslySetInnerHTML={{ __html: svgOverlay.svg }}
+                onMouseOver={handleSvgMouseOver}
+                onMouseOut={handleSvgMouseOut}
+              />
             </div>
-          )}
-        </div>
+            {/* 호버된 검출 정보 */}
+            {hoveredDetection !== null && boundingBoxes[hoveredDetection] && (
+              <div className="p-2 bg-accent/90 text-sm border-t">
+                <span className="font-medium">{boundingBoxes[hoveredDetection].label}</span>
+                {boundingBoxes[hoveredDetection].extractedText && (
+                  <span className="ml-2 text-muted-foreground">
+                    텍스트: "{boundingBoxes[hoveredDetection].extractedText}"
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Canvas 모드 */}
+        {renderMode === 'canvas' && (
+          <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
+            <canvas
+              ref={canvasRef}
+              className={`max-w-full h-auto ${onZoomClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+              style={{ display: imageLoaded ? 'block' : 'none' }}
+              onClick={onZoomClick ? handleCanvasClick : undefined}
+            />
+            {!imageLoaded && (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground">이미지 로딩 중...</div>
+              </div>
+            )}
+          </div>
+        )}
         {onZoomClick && imageLoaded && (
           <p className="text-xs text-muted-foreground text-center">
-            이미지를 클릭하면 확대해서 볼 수 있습니다
+            {renderMode === 'canvas' ? '이미지를 클릭하면 확대해서 볼 수 있습니다' : 'SVG 모드에서는 호버로 상세 정보를 확인할 수 있습니다'}
           </p>
         )}
 

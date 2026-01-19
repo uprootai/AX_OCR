@@ -1,0 +1,170 @@
+# OCR Ensemble API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: ocr_ensemble
+  name: OCR Ensemble
+  version: 1.0.0
+  port: 5011
+  description: 4개 OCR 엔진 가중 투표 앙상블
+  author: AX Team
+  tags:
+    - ocr
+    - ensemble
+    - voting
+
+server:
+  endpoint: /api/v1/ocr
+  method: POST
+  contentType: multipart/form-data
+  timeout: 180
+  healthEndpoint: /health
+
+blueprintflow:
+  category: ocr
+  color: "#14b8a6"
+  icon: Layers
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 분석할 이미지
+
+outputs:
+  - name: results
+    type: EnsembleResult[]
+    description: 앙상블 OCR 결과
+  - name: full_text
+    type: string
+    description: 전체 텍스트
+  - name: engine_status
+    type: object
+    description: 각 엔진 상태
+
+parameters:
+  - name: edocr2_weight
+    type: number
+    default: 0.40
+    min: 0
+    max: 1
+    step: 0.05
+    description: eDOCr2 가중치
+
+  - name: paddleocr_weight
+    type: number
+    default: 0.35
+    min: 0
+    max: 1
+    step: 0.05
+    description: PaddleOCR 가중치
+
+  - name: tesseract_weight
+    type: number
+    default: 0.15
+    min: 0
+    max: 1
+    step: 0.05
+    description: Tesseract 가중치
+
+  - name: trocr_weight
+    type: number
+    default: 0.10
+    min: 0
+    max: 1
+    step: 0.05
+    description: TrOCR 가중치
+
+  - name: similarity_threshold
+    type: number
+    default: 0.7
+    min: 0.5
+    max: 1.0
+    step: 0.05
+    description: 텍스트 유사도 임계값
+
+mappings:
+  output:
+    results: results
+    full_text: full_text
+    engine_status: engine_status
+
+i18n:
+  ko:
+    label: OCR 앙상블
+    description: 4개 OCR 엔진(eDOCr2+PaddleOCR+Tesseract+TrOCR)을 가중 투표로 결합
+  en:
+    label: OCR Ensemble
+    description: Combines 4 OCR engines with weighted voting
+
+examples:
+  - 고정밀 텍스트 추출
+  - 복잡한 도면 OCR
+
+usageTips:
+  - 단일 엔진보다 정확도가 높지만 느립니다
+  - 가중치를 조절하여 도면 타입에 최적화하세요
+  - 여러 엔진이 동의하면 신뢰도가 올라갑니다
+
+resources:
+  gpu:
+    vram: "~6GB"
+    minVram: 4000
+    recommended: "RTX 3060 이상"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~12GB"
+    minRam: 8192
+    cores: 8
+    note: "4개 엔진 병렬 실행 (시간 오래 걸림)"
+  parameterImpact:
+    - parameter: "4개 엔진"
+      impact: "eDOCr2+PaddleOCR+Tesseract+TrOCR 동시 실행"
+      examples: "단일:2GB, 앙상블:6GB+"
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "기본 앙상블"
+      description: "4엔진 가중 투표"
+      formData:
+        file: "drawing.png"
+        edocr2_weight: 0.40
+        paddleocr_weight: 0.35
+        tesseract_weight: 0.15
+        trocr_weight: 0.10
+
+    - name: "eDOCr2 우선"
+      description: "기계도면 특화 가중치"
+      formData:
+        file: "mechanical_drawing.png"
+        edocr2_weight: 0.50
+        paddleocr_weight: 0.30
+        tesseract_weight: 0.10
+        trocr_weight: 0.10
+        similarity_threshold: 0.8
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          results:
+            - text: "Ø25 H7"
+              confidence: 0.96
+              votes: 4
+              bbox: [100, 150, 180, 175]
+            - text: "MATERIAL: SUS304"
+              confidence: 0.92
+              votes: 3
+              bbox: [50, 400, 250, 425]
+          full_text: "Ø25 H7\nMATERIAL: SUS304\n..."
+          engine_status:
+            edocr2: "success"
+            paddleocr: "success"
+            tesseract: "success"
+            trocr: "success"
+        processing_time: 5.45

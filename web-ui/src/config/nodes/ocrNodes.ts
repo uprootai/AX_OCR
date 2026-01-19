@@ -13,6 +13,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#3b82f6',
     icon: 'FileText',
     description: '한국어 텍스트 인식 전문 OCR. 도면의 치수, 공차, 주석 등을 정확하게 읽습니다.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반 OCR',
+          description: '범용 텍스트 인식',
+          params: { extract_dimensions: true, extract_gdt: true, extract_text: true, extract_tables: true },
+        },
+        {
+          name: 'dimension',
+          label: '치수 인식',
+          description: '치수/공차 인식 최적화',
+          params: { extract_dimensions: true, extract_gdt: true, extract_text: false, extract_tables: false },
+        },
+        {
+          name: 'engineering',
+          label: '도면용',
+          description: '도면 텍스트 전체 인식',
+          params: { extract_dimensions: true, extract_gdt: true, extract_text: true, extract_tables: true },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -105,6 +128,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#06b6d4',
     icon: 'FileSearch',
     description: '다국어 지원 OCR. 영어, 숫자 인식에 강점. eDOCr2의 대안으로 사용.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '범용 텍스트 인식',
+          params: { det_db_thresh: 0.3, det_db_box_thresh: 0.5, use_angle_cls: true },
+        },
+        {
+          name: 'engineering',
+          label: '도면용',
+          description: '도면 텍스트 인식 최적화',
+          params: { det_db_thresh: 0.25, det_db_box_thresh: 0.4, use_angle_cls: false },
+        },
+        {
+          name: 'document',
+          label: '문서용',
+          description: '문서 텍스트 인식',
+          params: { det_db_thresh: 0.3, det_db_box_thresh: 0.5, use_angle_cls: true },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -202,6 +248,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#059669',
     icon: 'ScanText',
     description: 'Google Tesseract 기반 OCR. 문서 텍스트 인식, 다국어 지원.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '범용 텍스트 인식 (자동 레이아웃)',
+          params: { lang: 'eng', psm: '3', output_type: 'data' },
+        },
+        {
+          name: 'korean',
+          label: '한국어',
+          description: '한영 혼합 문서 인식',
+          params: { lang: 'eng+kor', psm: '3', output_type: 'data' },
+        },
+        {
+          name: 'single_block',
+          label: '단일 블록',
+          description: '단일 텍스트 블록 인식',
+          params: { lang: 'eng', psm: '6', output_type: 'data' },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -261,6 +330,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#7c3aed',
     icon: 'Wand2',
     description: 'Microsoft TrOCR (Transformer OCR). Scene Text Recognition에 강점.',
+    profiles: {
+      default: 'printed',
+      available: [
+        {
+          name: 'printed',
+          label: '인쇄체',
+          description: '인쇄된 텍스트 인식',
+          params: { model_type: 'printed', max_length: 64, num_beams: 4 },
+        },
+        {
+          name: 'handwritten',
+          label: '필기체',
+          description: '손글씨 텍스트 인식',
+          params: { model_type: 'handwritten', max_length: 64, num_beams: 4 },
+        },
+        {
+          name: 'fast',
+          label: '빠른 처리',
+          description: '빠른 인식 (빔 검색 축소)',
+          params: { model_type: 'printed', max_length: 32, num_beams: 1 },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -319,6 +411,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#0891b2',
     icon: 'Layers',
     description: '4개 OCR 엔진 가중 투표 앙상블 (eDOCr2 40% + PaddleOCR 35% + Tesseract 15% + TrOCR 10%)',
+    profiles: {
+      default: 'balanced',
+      available: [
+        {
+          name: 'balanced',
+          label: '균형',
+          description: '기본 가중치 (eDOCr2 40%, PaddleOCR 35%)',
+          params: { edocr2_weight: 0.40, paddleocr_weight: 0.35, tesseract_weight: 0.15, trocr_weight: 0.10 },
+        },
+        {
+          name: 'edocr2_focus',
+          label: 'eDOCr2 중심',
+          description: 'eDOCr2 가중치 강화 (한국어 도면용)',
+          params: { edocr2_weight: 0.60, paddleocr_weight: 0.25, tesseract_weight: 0.10, trocr_weight: 0.05 },
+        },
+        {
+          name: 'paddle_focus',
+          label: 'PaddleOCR 중심',
+          description: 'PaddleOCR 가중치 강화 (영문 도면용)',
+          params: { edocr2_weight: 0.25, paddleocr_weight: 0.55, tesseract_weight: 0.15, trocr_weight: 0.05 },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -425,6 +540,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#8b5cf6',
     icon: 'ScanText',
     description: 'Surya OCR - 90+ 언어 지원, 레이아웃 분석, 높은 정확도. 기계 도면에 최적화.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '한영 기본 인식',
+          params: { languages: 'ko,en', detect_layout: false },
+        },
+        {
+          name: 'layout',
+          label: '레이아웃 분석',
+          description: '테이블/단락 구조 분석 포함',
+          params: { languages: 'ko,en', detect_layout: true },
+        },
+        {
+          name: 'multilingual',
+          label: '다국어',
+          description: '다국어 도면 인식 (한중일영)',
+          params: { languages: 'ko,en,ja,zh', detect_layout: false },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -493,6 +631,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#0ea5e9',
     icon: 'FileText',
     description: 'DocTR (Document Text Recognition) - 문서 OCR 특화, 정규화된 bbox 출력.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: 'ResNet50 기반 고정밀 인식',
+          params: { det_arch: 'db_resnet50', reco_arch: 'crnn_vgg16_bn', straighten_pages: false },
+        },
+        {
+          name: 'fast',
+          label: '빠른 처리',
+          description: 'MobileNet 기반 빠른 인식',
+          params: { det_arch: 'db_mobilenet_v3_large', reco_arch: 'crnn_mobilenet_v3_small', straighten_pages: false },
+        },
+        {
+          name: 'skewed',
+          label: '기울임 보정',
+          description: '기울어진 스캔 자동 보정',
+          params: { det_arch: 'db_resnet50', reco_arch: 'crnn_vgg16_bn', straighten_pages: true },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',
@@ -565,6 +726,29 @@ export const ocrNodes: Record<string, NodeDefinition> = {
     color: '#22c55e',
     icon: 'Languages',
     description: 'EasyOCR - 80+ 언어 지원, CPU 친화적, 한국어 지원 우수.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '한영 기본 인식',
+          params: { languages: 'ko,en', detail: true, paragraph: false },
+        },
+        {
+          name: 'paragraph',
+          label: '문단 단위',
+          description: '문단 단위로 텍스트 결합',
+          params: { languages: 'ko,en', detail: true, paragraph: true },
+        },
+        {
+          name: 'fast',
+          label: '빠른 처리',
+          description: '배치 처리로 빠른 인식',
+          params: { languages: 'ko,en', detail: false, paragraph: false, batch_size: 8 },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',

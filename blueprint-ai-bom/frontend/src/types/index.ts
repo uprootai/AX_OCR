@@ -73,6 +73,12 @@ export interface BoundingBox {
   y2: number;
 }
 
+// Mask RLE (Run-Length Encoding) for Detectron2
+export interface MaskRLE {
+  size: [number, number]; // [height, width]
+  counts: number[];
+}
+
 export interface Detection {
   id: string;
   class_id: number;
@@ -83,13 +89,23 @@ export interface Detection {
   verification_status: VerificationStatus;
   modified_class_name?: string;
   modified_bbox?: BoundingBox;
+  // Detectron2 마스킹 출력
+  mask?: MaskRLE;
+  polygons?: number[][][]; // [[[x1,y1], [x2,y2], ...]]
 }
+
+// 검출 백엔드 타입
+export type DetectionBackend = 'yolo' | 'detectron2';
 
 export interface DetectionConfig {
   confidence: number;
   iou_threshold: number;
-  model_id: string;
+  model_type?: string;
   device?: string;
+  // Detectron2 통합 옵션
+  backend?: DetectionBackend;
+  return_masks?: boolean;
+  return_polygons?: boolean;
 }
 
 export interface DetectionResult {

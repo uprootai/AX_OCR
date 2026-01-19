@@ -1,11 +1,14 @@
 /**
  * Detection Results Section
  * AI 검출 결과 섹션 컴포넌트
+ * - GT 비교 모드: Canvas 기반 bbox 시각화
+ * - 일반 모드: IntegratedOverlay (Polygon/Mask 지원)
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { InfoTooltip } from '../../../components/Tooltip';
 import { FEATURE_TOOLTIPS } from '../../../components/tooltipContent';
+import { IntegratedOverlay } from '../../../components/IntegratedOverlay';
 import type { Detection } from '../../../types';
 
 interface GTMatch {
@@ -58,6 +61,17 @@ export function DetectionResultsSection({
 }: DetectionResultsSectionProps) {
   const gtCanvasRef = useRef<HTMLCanvasElement>(null);
   const detCanvasRef = useRef<HTMLCanvasElement>(null);
+  const simpleCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Detectron2 polygon/mask 데이터 존재 여부 확인
+  const hasPolygonData = detections.some(d => d.polygons && d.polygons.length > 0);
+  const hasMaskData = detections.some(d => d.mask && d.mask.counts && d.mask.counts.length > 0);
+  const hasDetectron2Data = hasPolygonData || hasMaskData;
+
+  // 뷰 모드: 'overlay' (IntegratedOverlay) or 'canvas' (기존 Canvas)
+  const [viewMode, setViewMode] = useState<'overlay' | 'canvas'>(
+    hasDetectron2Data ? 'overlay' : 'canvas'
+  );
 
   // Draw GT canvas
   useEffect(() => {
@@ -138,6 +152,55 @@ export function DetectionResultsSection({
     img.src = imageData;
   }, [imageData, imageSize, detections, gtCompareResult]);
 
+  // Draw simple canvas (no GT comparison)
+  useEffect(() => {
+    const canvas = simpleCanvasRef.current;
+    if (!canvas || !imageData || !imageSize || gtCompareResult || viewMode !== 'canvas') return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const parentWidth = canvas.parentElement?.clientWidth || 600;
+      const scale = Math.min(parentWidth / img.width, 500 / img.height);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Draw Detection boxes with class-based colors
+      const colors = [
+        '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e',
+        '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
+      ];
+
+      ctx.lineWidth = 2;
+      ctx.font = 'bold 11px sans-serif';
+      detections.forEach((det) => {
+        const color = colors[det.class_id % colors.length];
+        const x1 = det.bbox.x1 * scale;
+        const y1 = det.bbox.y1 * scale;
+        const w = (det.bbox.x2 - det.bbox.x1) * scale;
+        const h = (det.bbox.y2 - det.bbox.y1) * scale;
+
+        // Draw box
+        ctx.strokeStyle = color;
+        ctx.strokeRect(x1, y1, w, h);
+
+        // Draw label background
+        const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillStyle = color;
+        ctx.fillRect(x1, y1 - 16, textWidth + 6, 16);
+
+        // Draw label text
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, x1 + 3, y1 - 4);
+      });
+    };
+    img.src = imageData;
+  }, [imageData, imageSize, detections, gtCompareResult, viewMode]);
+
   return (
     <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
       {/* Title with inline metrics */}
@@ -159,6 +222,64 @@ export function DetectionResultsSection({
         <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
           <p className="text-green-800 dark:text-green-200">
             ✅ Ground Truth 로드됨: {gtCompareResult.gt_count}개 라벨
+          </p>
+        </div>
+      )}
+
+      {/* Detectron2 데이터 알림 및 뷰 모드 토글 */}
+      {hasDetectron2Data && (
+        <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 mb-4 flex items-center justify-between">
+          <p className="text-indigo-800 dark:text-indigo-200">
+            🎭 Detectron2 데이터 포함: {hasPolygonData ? 'Polygon ' : ''}{hasMaskData ? 'Mask' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-indigo-600 dark:text-indigo-300">뷰 모드:</span>
+            <button
+              onClick={() => setViewMode('overlay')}
+              className={`px-3 py-1 text-sm rounded-l-lg border ${
+                viewMode === 'overlay'
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+            >
+              오버레이
+            </button>
+            <button
+              onClick={() => setViewMode('canvas')}
+              className={`px-3 py-1 text-sm rounded-r-lg border-t border-r border-b ${
+                viewMode === 'canvas'
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+            >
+              기본
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* IntegratedOverlay 뷰 (Detectron2 Polygon/Mask 시각화) */}
+      {imageData && imageSize && viewMode === 'overlay' && !gtCompareResult && (
+        <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <IntegratedOverlay
+            imageData={imageData}
+            imageSize={imageSize}
+            detections={detections}
+            maxWidth="100%"
+            maxHeight="500px"
+          />
+          <p className="text-center py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30">
+            Detectron2 검출 결과 ({detections.length}개) - 레이어 토글은 이미지 오른쪽 상단
+          </p>
+        </div>
+      )}
+
+      {/* Simple Canvas 뷰 (GT 없을 때 기본 뷰) */}
+      {imageData && imageSize && viewMode === 'canvas' && !gtCompareResult && (
+        <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <canvas ref={simpleCanvasRef} className="w-full" />
+          <p className="text-center py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/30">
+            검출 결과 ({detections.length}개)
           </p>
         </div>
       )}

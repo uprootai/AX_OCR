@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef } from 'react';
-import { Upload, BarChart3, CheckCircle, XCircle, AlertCircle, FileJson } from 'lucide-react';
+import { Upload, BarChart3, CheckCircle, XCircle, AlertCircle, FileJson, Trash2, Database, CloudUpload, RefreshCw } from 'lucide-react';
 import { InfoTooltip } from '../../../components/Tooltip';
 
 interface GTMatch {
@@ -18,6 +18,13 @@ interface GTMatch {
 interface FNLabel {
   bbox: { x1: number; y1: number; x2: number; y2: number };
   class_name: string;
+}
+
+export interface GTFile {
+  filename: string;
+  label_file: string;
+  size: number;
+  source: 'uploaded' | 'reference';
 }
 
 interface GTCompareResult {
@@ -42,6 +49,12 @@ interface GTComparisonSectionProps {
   onCompare: () => Promise<void>;
   isLoading: boolean;
   apiBaseUrl: string;
+  // 새로 추가된 GT 관리 기능
+  gtFiles?: GTFile[];
+  onDeleteGT?: (filename: string) => Promise<void>;
+  onRefreshGTList?: () => Promise<void>;
+  onSelectGT?: (filename: string) => void;
+  selectedGT?: string | null;
 }
 
 export function GTComparisonSection({
@@ -51,10 +64,30 @@ export function GTComparisonSection({
   onUploadGT,
   onCompare,
   isLoading,
+  gtFiles = [],
+  onDeleteGT,
+  onRefreshGTList,
+  onSelectGT,
+  selectedGT,
 }: GTComparisonSectionProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [showGTList, setShowGTList] = useState(false);
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDeleteGT = async (filename: string) => {
+    if (!onDeleteGT) return;
+    setDeletingFile(filename);
+    try {
+      await onDeleteGT(filename);
+      if (selectedGT === filename) {
+        setUploadedFileName(null);
+      }
+    } finally {
+      setDeletingFile(null);
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -137,6 +170,101 @@ export function GTComparisonSection({
           )}
         </div>
       </div>
+
+      {/* GT 파일 목록 토글 */}
+      {gtFiles.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowGTList(!showGTList)}
+            className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <Database className="w-4 h-4" />
+            사용 가능한 GT 파일 ({gtFiles.length}개)
+            <span className={`transition-transform ${showGTList ? 'rotate-180' : ''}`}>▼</span>
+          </button>
+
+          {showGTList && (
+            <div className="mt-2 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+              {/* 목록 헤더 */}
+              <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  파일 목록
+                </span>
+                {onRefreshGTList && (
+                  <button
+                    onClick={onRefreshGTList}
+                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    title="목록 새로고침"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* 파일 목록 */}
+              <div className="max-h-48 overflow-y-auto">
+                {gtFiles.map((file) => (
+                  <div
+                    key={file.filename}
+                    className={`flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors ${
+                      selectedGT === file.filename ? 'bg-orange-50 dark:bg-orange-900/20' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {/* 소스 배지 */}
+                      {file.source === 'uploaded' ? (
+                        <span
+                          className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                          title="업로드된 파일"
+                        >
+                          <CloudUpload className="w-3 h-3" />
+                          업로드
+                        </span>
+                      ) : (
+                        <span
+                          className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                          title="레퍼런스 파일"
+                        >
+                          <Database className="w-3 h-3" />
+                          레퍼런스
+                        </span>
+                      )}
+
+                      {/* 파일명 (선택 가능) */}
+                      <button
+                        onClick={() => {
+                          onSelectGT?.(file.filename);
+                          setUploadedFileName(file.label_file);
+                        }}
+                        className="text-sm text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 truncate"
+                        title={`${file.filename} 선택`}
+                      >
+                        {file.filename}
+                      </button>
+                    </div>
+
+                    {/* 삭제 버튼 (업로드된 파일만) */}
+                    {file.source === 'uploaded' && onDeleteGT && (
+                      <button
+                        onClick={() => handleDeleteGT(file.filename)}
+                        disabled={deletingFile === file.filename}
+                        className="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                        title="삭제"
+                      >
+                        {deletingFile === file.filename ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 비교 버튼 */}
       <button

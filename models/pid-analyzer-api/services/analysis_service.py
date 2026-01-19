@@ -216,14 +216,54 @@ def merge_symbols_with_ocr(yolo_symbols: List[Dict], ocr_instruments: List[Dict]
 # Connection Analysis
 # =====================
 
+def normalize_bbox(symbol: Dict) -> Optional[Tuple[float, float, float, float]]:
+    """
+    다양한 bbox 형식을 [x1, y1, x2, y2]로 정규화
+
+    지원 형식:
+    1. YOLO API: {"bbox": {"x": x, "y": y, "width": w, "height": h}}
+    2. 리스트: {"bbox": [x1, y1, x2, y2]}
+    3. 직접 좌표: {"x": x, "y": y, "width": w, "height": h}
+    4. xyxy 형식: {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+    """
+    bbox = symbol.get('bbox')
+
+    # 형식 1: YOLO API 딕셔너리 형식 {"bbox": {"x": x, "y": y, "width": w, "height": h}}
+    if isinstance(bbox, dict):
+        x = bbox.get('x', 0)
+        y = bbox.get('y', 0)
+        w = bbox.get('width', 0)
+        h = bbox.get('height', 0)
+        if w > 0 and h > 0:
+            return (x, y, x + w, y + h)
+
+    # 형식 2: 리스트 형식 [x1, y1, x2, y2]
+    if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
+        return tuple(bbox)
+
+    # 형식 3: 심볼 직접 좌표 {"x": x, "y": y, "width": w, "height": h}
+    if 'x' in symbol and 'y' in symbol and 'width' in symbol and 'height' in symbol:
+        x = symbol['x']
+        y = symbol['y']
+        w = symbol['width']
+        h = symbol['height']
+        return (x, y, x + w, y + h)
+
+    # 형식 4: xyxy 형식
+    if 'x1' in symbol and 'y1' in symbol and 'x2' in symbol and 'y2' in symbol:
+        return (symbol['x1'], symbol['y1'], symbol['x2'], symbol['y2'])
+
+    return None
+
+
 def point_to_symbol_distance(point: Tuple[float, float], symbol: Dict) -> float:
     """점에서 심볼 bbox까지의 최소 거리 계산"""
-    bbox = symbol.get('bbox', [])
-    if len(bbox) != 4:
+    bbox = normalize_bbox(symbol)
+    if bbox is None:
         return float('inf')
 
-    x1, y1, x2, y2 = bbox
-    px, py = point
+    x1, y1, x2, y2 = [float(v) for v in bbox]
+    px, py = float(point[0]), float(point[1])
 
     # bbox 내부에 있으면 0 반환
     if x1 <= px <= x2 and y1 <= py <= y2:
@@ -266,14 +306,16 @@ def find_symbol_connections(symbols: List[Dict], lines: List[Dict],
     connection_id = 0
     seen_pairs = set()  # 중복 방지
 
-    # 설정값
-    DIRECT_MARGIN = 50  # 직접 연결 최대 거리 (픽셀)
-    EXTENDED_MARGIN = 100  # 확장 연결 최대 거리
+    # 설정값 (고해상도 도면 지원: 3000x2000+ 이미지 기준)
+    DIRECT_MARGIN = 150  # 직접 연결 최대 거리 (픽셀)
+    EXTENDED_MARGIN = 250  # 확장 연결 최대 거리
 
     # 1. 직접 연결 탐지 (라인 끝점이 심볼에 닿는 경우)
     for line in lines:
-        start = tuple(line.get('start_point', [0, 0]))
-        end = tuple(line.get('end_point', [0, 0]))
+        start_raw = line.get('start_point', [0, 0])
+        end_raw = line.get('end_point', [0, 0])
+        start = (float(start_raw[0]), float(start_raw[1]))
+        end = (float(end_raw[0]), float(end_raw[1]))
 
         from_symbol = find_nearest_symbol(start, symbols, DIRECT_MARGIN)
         to_symbol = find_nearest_symbol(end, symbols, DIRECT_MARGIN)
@@ -477,6 +519,361 @@ def build_connectivity_graph(symbols: List[Dict], connections: List[Dict]) -> Di
             'isolated_symbols': len([s for s in symbols if s['id'] not in nodes])
         }
     }
+
+
+# =====================
+# Path Finding (BFS/DFS)
+# =====================
+
+def find_path_bfs(adjacency: Dict, start_id: int, end_id: int) -> Dict:
+    """
+    BFS로 두 노드 간 최단 경로 찾기
+
+    Args:
+        adjacency: 인접 리스트 {node_id: [{'target': ..., 'line_type': ...}, ...]}
+        start_id: 시작 노드 ID
+        end_id: 도착 노드 ID
+
+    Returns:
+        {
+            'found': bool,
+            'path': [node_id, ...],
+            'path_length': int,
+            'edges': [{'from': ..., 'to': ..., 'line_type': ...}, ...]
+        }
+    """
+    from collections import deque
+
+    if start_id == end_id:
+        return {
+            'found': True,
+            'path': [start_id],
+            'path_length': 0,
+            'edges': []
+        }
+
+    visited = {start_id}
+    # queue: (current_node, path, edges)
+    queue = deque([(start_id, [start_id], [])])
+
+    while queue:
+        current, path, edges = queue.popleft()
+
+        for neighbor in adjacency.get(current, []):
+            target = neighbor['target']
+            edge_info = {
+                'from': current,
+                'to': target,
+                'line_type': neighbor.get('line_type', 'unknown'),
+                'connection_id': neighbor.get('connection_id')
+            }
+
+            if target == end_id:
+                return {
+                    'found': True,
+                    'path': path + [target],
+                    'path_length': len(path),
+                    'edges': edges + [edge_info]
+                }
+
+            if target not in visited:
+                visited.add(target)
+                queue.append((target, path + [target], edges + [edge_info]))
+
+    return {
+        'found': False,
+        'path': [],
+        'path_length': -1,
+        'edges': []
+    }
+
+
+def find_path_dfs(adjacency: Dict, start_id: int, end_id: int,
+                  max_depth: int = 50) -> Dict:
+    """
+    DFS로 두 노드 간 경로 찾기
+
+    Args:
+        adjacency: 인접 리스트
+        start_id: 시작 노드 ID
+        end_id: 도착 노드 ID
+        max_depth: 최대 탐색 깊이 (무한 루프 방지)
+
+    Returns:
+        {
+            'found': bool,
+            'path': [node_id, ...],
+            'path_length': int,
+            'edges': [...]
+        }
+    """
+    if start_id == end_id:
+        return {
+            'found': True,
+            'path': [start_id],
+            'path_length': 0,
+            'edges': []
+        }
+
+    visited = set()
+
+    def dfs(current: int, path: List[int], edges: List[Dict], depth: int):
+        if depth > max_depth:
+            return None
+
+        if current == end_id:
+            return {'path': path, 'edges': edges}
+
+        visited.add(current)
+
+        for neighbor in adjacency.get(current, []):
+            target = neighbor['target']
+            if target not in visited:
+                edge_info = {
+                    'from': current,
+                    'to': target,
+                    'line_type': neighbor.get('line_type', 'unknown'),
+                    'connection_id': neighbor.get('connection_id')
+                }
+                result = dfs(target, path + [target], edges + [edge_info], depth + 1)
+                if result:
+                    return result
+
+        visited.remove(current)  # 백트래킹
+        return None
+
+    result = dfs(start_id, [start_id], [], 0)
+
+    if result:
+        return {
+            'found': True,
+            'path': result['path'],
+            'path_length': len(result['path']) - 1,
+            'edges': result['edges']
+        }
+
+    return {
+        'found': False,
+        'path': [],
+        'path_length': -1,
+        'edges': []
+    }
+
+
+def find_all_paths(adjacency: Dict, start_id: int, end_id: int,
+                   max_depth: int = 20, max_paths: int = 100) -> List[Dict]:
+    """
+    두 노드 간 모든 경로 찾기 (DFS 기반)
+
+    Args:
+        adjacency: 인접 리스트
+        start_id: 시작 노드 ID
+        end_id: 도착 노드 ID
+        max_depth: 최대 탐색 깊이
+        max_paths: 최대 경로 수
+
+    Returns:
+        [{'path': [...], 'path_length': int, 'edges': [...]}, ...]
+    """
+    all_paths = []
+
+    def dfs(current: int, path: List[int], edges: List[Dict], visited: set):
+        if len(all_paths) >= max_paths:
+            return
+
+        if len(path) > max_depth:
+            return
+
+        if current == end_id:
+            all_paths.append({
+                'path': path.copy(),
+                'path_length': len(path) - 1,
+                'edges': edges.copy()
+            })
+            return
+
+        for neighbor in adjacency.get(current, []):
+            target = neighbor['target']
+            if target not in visited:
+                edge_info = {
+                    'from': current,
+                    'to': target,
+                    'line_type': neighbor.get('line_type', 'unknown'),
+                    'connection_id': neighbor.get('connection_id')
+                }
+                visited.add(target)
+                path.append(target)
+                edges.append(edge_info)
+
+                dfs(target, path, edges, visited)
+
+                path.pop()
+                edges.pop()
+                visited.remove(target)
+
+    visited = {start_id}
+    dfs(start_id, [start_id], [], visited)
+
+    return all_paths
+
+
+def is_reachable(adjacency: Dict, start_id: int, end_id: int) -> bool:
+    """
+    두 노드 간 연결 가능 여부 확인 (BFS)
+
+    Args:
+        adjacency: 인접 리스트
+        start_id: 시작 노드 ID
+        end_id: 도착 노드 ID
+
+    Returns:
+        bool: 연결 가능 여부
+    """
+    result = find_path_bfs(adjacency, start_id, end_id)
+    return result['found']
+
+
+def get_connected_components(adjacency: Dict, all_node_ids: List[int]) -> List[List[int]]:
+    """
+    연결된 컴포넌트 찾기 (Union-Find / BFS)
+
+    Args:
+        adjacency: 인접 리스트
+        all_node_ids: 모든 노드 ID 목록
+
+    Returns:
+        [[node_ids in component1], [node_ids in component2], ...]
+    """
+    from collections import deque
+
+    visited = set()
+    components = []
+
+    for start_id in all_node_ids:
+        if start_id in visited:
+            continue
+
+        # BFS로 연결된 모든 노드 탐색
+        component = []
+        queue = deque([start_id])
+        visited.add(start_id)
+
+        while queue:
+            current = queue.popleft()
+            component.append(current)
+
+            for neighbor in adjacency.get(current, []):
+                target = neighbor['target']
+                if target not in visited:
+                    visited.add(target)
+                    queue.append(target)
+
+        components.append(component)
+
+    return components
+
+
+def check_path_contains(path: List[int], symbols: List[Dict],
+                        required_classes: List[str]) -> Dict:
+    """
+    경로에 특정 심볼 클래스가 포함되어 있는지 확인
+
+    Args:
+        path: 노드 ID 경로 [id1, id2, ...]
+        symbols: 심볼 목록
+        required_classes: 필수 클래스명 목록 ['check_valve', 'pump', ...]
+
+    Returns:
+        {
+            'all_present': bool,
+            'found_classes': ['check_valve', ...],
+            'missing_classes': ['pump', ...],
+            'class_positions': {'check_valve': 2, ...}  # 경로 내 위치
+        }
+    """
+    # 심볼 ID → 클래스명 매핑
+    id_to_class = {s['id']: s.get('class_name', 'unknown') for s in symbols}
+
+    # 경로 내 클래스 수집
+    path_classes = [id_to_class.get(node_id, 'unknown') for node_id in path]
+
+    found = []
+    missing = []
+    positions = {}
+
+    for req_class in required_classes:
+        if req_class in path_classes:
+            found.append(req_class)
+            positions[req_class] = path_classes.index(req_class)
+        else:
+            missing.append(req_class)
+
+    return {
+        'all_present': len(missing) == 0,
+        'found_classes': found,
+        'missing_classes': missing,
+        'class_positions': positions,
+        'path_classes': path_classes
+    }
+
+
+def find_symbols_between(adjacency: Dict, symbols: List[Dict],
+                         start_class: str, end_class: str) -> List[Dict]:
+    """
+    두 심볼 클래스 사이의 경로와 중간 심볼 찾기
+
+    Args:
+        adjacency: 인접 리스트
+        symbols: 심볼 목록
+        start_class: 시작 심볼 클래스 (예: 'ECU')
+        end_class: 끝 심볼 클래스 (예: 'ANU')
+
+    Returns:
+        [{
+            'start_symbol': {...},
+            'end_symbol': {...},
+            'path': [...],
+            'intermediate_symbols': [{...}, ...],
+            'path_length': int
+        }, ...]
+    """
+    # 클래스별 심볼 그룹화
+    class_to_symbols = defaultdict(list)
+    id_to_symbol = {}
+    for s in symbols:
+        class_name = s.get('class_name', 'unknown')
+        class_to_symbols[class_name].append(s)
+        id_to_symbol[s['id']] = s
+
+    start_symbols = class_to_symbols.get(start_class, [])
+    end_symbols = class_to_symbols.get(end_class, [])
+
+    results = []
+
+    for start_sym in start_symbols:
+        for end_sym in end_symbols:
+            if start_sym['id'] == end_sym['id']:
+                continue
+
+            path_result = find_path_bfs(adjacency, start_sym['id'], end_sym['id'])
+
+            if path_result['found']:
+                # 중간 심볼 추출 (시작/끝 제외)
+                intermediate_ids = path_result['path'][1:-1]
+                intermediate_symbols = [id_to_symbol[nid] for nid in intermediate_ids
+                                        if nid in id_to_symbol]
+
+                results.append({
+                    'start_symbol': start_sym,
+                    'end_symbol': end_sym,
+                    'path': path_result['path'],
+                    'path_length': path_result['path_length'],
+                    'edges': path_result['edges'],
+                    'intermediate_symbols': intermediate_symbols,
+                    'intermediate_classes': [s.get('class_name') for s in intermediate_symbols]
+                })
+
+    return results
 
 
 # =====================
@@ -702,11 +1099,12 @@ def visualize_graph(image: np.ndarray, symbols: List[Dict],
 
     # 심볼 바운딩박스 및 ID 표시
     for symbol in symbols:
-        bbox = symbol.get('bbox', [])
+        # normalize_bbox를 사용하여 다양한 bbox 형식 지원
+        normalized = normalize_bbox(symbol)
         center = symbol.get('center', [0, 0])
 
-        if len(bbox) == 4:
-            x1, y1, x2, y2 = [int(v) for v in bbox]
+        if normalized is not None:
+            x1, y1, x2, y2 = [int(v) for v in normalized]
             cv2.rectangle(vis, (x1, y1), (x2, y2), (100, 100, 255), 1)
 
         pt = (int(center[0]), int(center[1]))

@@ -36,7 +36,7 @@ const TEMPLATES = [
   { index: 16, name: 'AI Benchmark', nodes: 8, category: 'benchmark' },
 ];
 
-const SAMPLE_IMAGE = '/home/uproot/ax/poc/samples/S60ME-C INTERM-SHAFT_대 주조전.jpg';
+const SAMPLE_IMAGE = '/home/uproot/ax/poc/web-ui/public/samples/sample3_s60me_shaft.jpg';
 
 // Load template helper
 async function loadTemplate(page: Page, templateIndex: number): Promise<number> {

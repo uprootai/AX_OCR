@@ -278,8 +278,8 @@ export default function DataTableView({
       await navigator.clipboard.writeText(json);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
+    } catch {
+      // 클립보드 복사 실패 시 조용히 처리
     }
   }, [data]);
 

@@ -73,7 +73,11 @@ export function useWorkflowState() {
   const [config, setConfig] = useState<DetectionConfig>({
     confidence: 0.4,
     iou_threshold: 0.5,
-    model_id: 'yolo',
+    model_type: 'bom_detector',
+    // Detectron2 옵션
+    backend: 'yolo',
+    return_masks: false,
+    return_polygons: true,
   });
 
   // Class examples

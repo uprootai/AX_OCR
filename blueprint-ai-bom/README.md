@@ -2,7 +2,7 @@
 
 > **AI 기반 도면 분석 및 BOM 생성 솔루션**
 > AX POC BlueprintFlow에서 Export되는 납품용 독립 실행 모듈
-> **최종 업데이트**: 2025-12-27
+> **최종 업데이트**: 2026-01-17
 
 ---
 
@@ -14,10 +14,11 @@
 
 | 항목 | 값 |
 |------|-----|
-| **상태** | ✅ 구현 완료 (v10.3) |
+| **상태** | ✅ 구현 완료 (v10.5) |
 | **프론트엔드** | http://localhost:3000 (Docker) / :5173 (dev) |
 | **백엔드** | http://localhost:5020 |
 | **검출 클래스** | 27개 산업용 전장 부품 |
+| **검출 백엔드** | YOLO (빠른 검출) / Detectron2 (마스킹 포함) |
 | **출력 형식** | Excel, CSV, JSON, PDF |
 | **장기 로드맵** | ✅ 4/4 기능 완료 (VLM 분류, 노트 추출, 영역 세분화, 리비전 비교) |
 
@@ -55,9 +56,10 @@ blueprint-ai-bom/
 │   │   ├── verification.py       # 검증 스키마 (v8.0)
 │   │   ├── feedback.py           # Feedback 스키마 (v8.0)
 │   │   └── typed_dicts.py        # TypedDict 정의
-│   ├── services/                 # 비즈니스 로직 (12개)
+│   ├── services/                 # 비즈니스 로직 (19개)
 │   │   ├── session_service.py
-│   │   ├── detection_service.py
+│   │   ├── detection_service.py  # YOLO/Detectron2 검출
+│   │   ├── detectron2_service.py # Mask R-CNN 세그멘테이션 (NEW)
 │   │   ├── bom_service.py
 │   │   ├── dimension_service.py
 │   │   ├── dimension_relation_service.py

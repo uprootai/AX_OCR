@@ -98,8 +98,13 @@ class ProcessInfo(BaseModel):
 
 class ComponentCreateRequest(BaseModel):
     name: str = Field(..., description="부품명")
+    part_id: Optional[str] = Field(None, description="부품 ID (사용자 지정)")
     part_number: Optional[str] = Field(None, description="품번")
+    category: Optional[str] = Field(None, description="카테고리 (예: transformer, circuit_breaker)")
     material: Optional[str] = Field(None, description="재질 (예: SUS304, AL6061)")
+    manufacturer: Optional[str] = Field(None, description="제조사")
+    unit_price: Optional[float] = Field(None, description="단가")
+    specifications: Optional[Dict[str, Any]] = Field(default={}, description="사양 정보")
     dimensions: List[DimensionInfo] = Field(default=[], description="치수 정보")
     tolerances: List[ToleranceInfo] = Field(default=[], description="공차 정보")
     processes: List[ProcessInfo] = Field(default=[], description="필요 공정")

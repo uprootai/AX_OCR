@@ -80,8 +80,7 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
       const filename = samplePath.split('/').pop() || 'sample.jpg';
       const file = new File([blob], filename, { type: 'image/jpeg' });
       handleFileSelect(file);
-    } catch (error) {
-      console.error('Failed to load sample image:', error);
+    } catch {
       onShowToast?.('✗ 샘플 이미지 로드 실패', 'error');
     }
   }, [handleFileSelect, onShowToast]);

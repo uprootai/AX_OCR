@@ -34,6 +34,7 @@ const LINE_DETECTOR_BASE = import.meta.env.VITE_LINE_DETECTOR_URL || 'http://loc
 const PID_ANALYZER_BASE = import.meta.env.VITE_PID_ANALYZER_URL || 'http://localhost:5018';
 const DESIGN_CHECKER_BASE = import.meta.env.VITE_DESIGN_CHECKER_URL || 'http://localhost:5019';
 const BLUEPRINT_AI_BOM_BASE = import.meta.env.VITE_BLUEPRINT_AI_BOM_URL || 'http://localhost:5020';
+const PID_COMPOSER_BASE = import.meta.env.VITE_PID_COMPOSER_URL || 'http://localhost:5021';
 
 // Axios 인스턴스 생성
 const gatewayAPI = axios.create({ baseURL: API_BASE });
@@ -60,6 +61,7 @@ const lineDetectorAPI = axios.create({ baseURL: LINE_DETECTOR_BASE });
 const pidAnalyzerAPI = axios.create({ baseURL: PID_ANALYZER_BASE });
 const designCheckerAPI = axios.create({ baseURL: DESIGN_CHECKER_BASE });
 const blueprintAiBomAPI = axios.create({ baseURL: BLUEPRINT_AI_BOM_BASE });
+const pidComposerAPI = axios.create({ baseURL: PID_COMPOSER_BASE });
 
 // 진행률 콜백 타입
 export type ProgressCallback = (progress: number) => void;
@@ -583,6 +585,7 @@ export const checkAllServices = async () => {
     knowledge: knowledgeAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
     vl: vlAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
     blueprint_ai_bom: blueprintAiBomAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
+    pid_composer: pidComposerAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
   };
 
   const entries = Object.entries(healthChecks);

@@ -2,13 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { ZoomIn } from 'lucide-react';
+import { ZoomIn, Layers, Image as ImageIcon } from 'lucide-react';
 import type { OCRResult } from '../../types/api';
+
+export interface SVGOverlayData {
+  svg: string;
+  svg_minimal?: string;
+  width: number;
+  height: number;
+  dimension_count?: number;
+  gdt_count?: number;
+  text_count?: number;
+  detection_count?: number;
+}
 
 interface OCRVisualizationProps {
   imageFile?: File;
   imageBase64?: string;  // Support base64 image string
   ocrResult: OCRResult;
+  /** SVG 오버레이 데이터 (API에서 include_svg=true로 받은 경우) */
+  svgOverlay?: SVGOverlayData;
+  /** 기본 렌더링 모드 */
+  defaultMode?: 'canvas' | 'svg';
   onZoomClick?: (imageDataUrl: string) => void;
   compact?: boolean;  // Compact mode for BlueprintFlow
 }
@@ -72,10 +87,21 @@ function parseLocation(location: unknown): { x: number; y: number; width: number
   return null;
 }
 
-export default function OCRVisualization({ imageFile, imageBase64, ocrResult, onZoomClick, compact: _compact = false }: OCRVisualizationProps) {
+export default function OCRVisualization({
+  imageFile,
+  imageBase64,
+  ocrResult,
+  svgOverlay,
+  defaultMode = 'canvas',
+  onZoomClick,
+  compact: _compact = false
+}: OCRVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
+  const [renderMode, setRenderMode] = useState<'canvas' | 'svg'>(svgOverlay ? defaultMode : 'canvas');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const handleCanvasClick = () => {
     if (canvasRef.current && onZoomClick) {
@@ -143,9 +169,32 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
     setBoundingBoxes(boxes);
   }, [ocrResult]);
 
+  // Create image URL for SVG mode
   useEffect(() => {
-    // Support both File and base64
-    if ((!imageFile && !imageBase64) || !canvasRef.current) return;
+    if (!imageFile && !imageBase64) return;
+    if (renderMode !== 'svg') return;
+
+    let url: string | null = null;
+    if (imageFile) {
+      url = URL.createObjectURL(imageFile);
+    } else if (imageBase64) {
+      url = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:image/jpeg;base64,${imageBase64}`;
+    }
+    setImageUrl(url);
+    setImageLoaded(true);
+
+    return () => {
+      if (url && imageFile) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [imageFile, imageBase64, renderMode]);
+
+  useEffect(() => {
+    // Support both File and base64 (Canvas mode)
+    if ((!imageFile && !imageBase64) || !canvasRef.current || renderMode !== 'canvas') return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -265,7 +314,27 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
             <Badge variant="default">
               총 {totalDetections}개 인식
             </Badge>
-            {onZoomClick && imageLoaded && (
+            {/* SVG/Canvas 모드 토글 버튼 */}
+            {svgOverlay && (
+              <Button
+                variant={renderMode === 'svg' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setRenderMode(renderMode === 'canvas' ? 'svg' : 'canvas')}
+              >
+                {renderMode === 'svg' ? (
+                  <>
+                    <Layers className="h-4 w-4 mr-2" />
+                    SVG 모드
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Canvas 모드
+                  </>
+                )}
+              </Button>
+            )}
+            {onZoomClick && imageLoaded && renderMode === 'canvas' && (
               <Button
                 variant="default"
                 size="sm"
@@ -296,23 +365,60 @@ export default function OCRVisualization({ imageFile, imageBase64, ocrResult, on
           )}
         </div>
 
-        {/* Canvas */}
-        <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
-          <canvas
-            ref={canvasRef}
-            className={`max-w-full h-auto ${onZoomClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
-            style={{ display: imageLoaded ? 'block' : 'none' }}
-            onClick={onZoomClick ? handleCanvasClick : undefined}
-          />
-          {!imageLoaded && (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-muted-foreground">이미지 로딩 중...</div>
+        {/* SVG Mode */}
+        {renderMode === 'svg' && svgOverlay && (
+          <div
+            ref={containerRef}
+            className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900"
+          >
+            <div
+              className="relative"
+              style={{ width: svgOverlay.width, height: svgOverlay.height }}
+            >
+              {/* Background Image */}
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt="OCR visualization"
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{ width: svgOverlay.width, height: svgOverlay.height }}
+                />
+              )}
+              {/* SVG Overlay */}
+              <div
+                className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+                style={{ width: svgOverlay.width, height: svgOverlay.height }}
+                dangerouslySetInnerHTML={{ __html: svgOverlay.svg }}
+              />
             </div>
-          )}
-        </div>
-        {onZoomClick && imageLoaded && (
+          </div>
+        )}
+
+        {/* Canvas Mode */}
+        {renderMode === 'canvas' && (
+          <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
+            <canvas
+              ref={canvasRef}
+              className={`max-w-full h-auto ${onZoomClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+              style={{ display: imageLoaded ? 'block' : 'none' }}
+              onClick={onZoomClick ? handleCanvasClick : undefined}
+            />
+            {!imageLoaded && (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground">이미지 로딩 중...</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {onZoomClick && imageLoaded && renderMode === 'canvas' && (
           <p className="text-xs text-muted-foreground text-center">
             이미지를 클릭하면 확대해서 볼 수 있습니다
+          </p>
+        )}
+        {renderMode === 'svg' && (
+          <p className="text-xs text-muted-foreground text-center">
+            SVG 모드: 마우스를 올리면 상세 정보를 확인할 수 있습니다
           </p>
         )}
 

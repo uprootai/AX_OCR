@@ -6,6 +6,7 @@ import time
 import shutil
 import logging
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -20,6 +21,14 @@ from models.schemas import (
 )
 from services.state import get_edgnet_service, get_unet_service
 from utils.helpers import allowed_file, cleanup_old_files
+from config.defaults import (
+    DEFAULTS,
+    MODEL_CONFIGS,
+    DEFAULT_PROFILE,
+    get_defaults,
+    list_profiles,
+    get_model_info,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +39,17 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'tiff', 'bmp'}
 
 router = APIRouter(prefix="/api/v1", tags=["segmentation"])
+
+
+@router.get("/profiles")
+async def get_profiles():
+    """사용 가능한 프로파일 목록"""
+    return {
+        "profiles": DEFAULTS,
+        "models": MODEL_CONFIGS,
+        "default_profile": DEFAULT_PROFILE,
+        "available_profiles": list_profiles(),
+    }
 
 
 @router.get("/info", response_model=APIInfoResponse)
@@ -83,6 +103,14 @@ async def get_api_info():
         ],
         parameters=[
             ParameterSchema(
+                name="profile",
+                type="select",
+                default=DEFAULT_PROFILE,
+                description="프로파일 선택 (용도별 최적 설정)",
+                required=False,
+                options=list(DEFAULTS.keys())
+            ),
+            ParameterSchema(
                 name="model",
                 type="select",
                 default="graphsage",
@@ -120,6 +148,7 @@ async def get_api_info():
                 required=False
             )
         ],
+        profiles=list_profiles(),
         blueprintflow=BlueprintFlowMetadata(
             icon="🎨",
             color="#f59e0b",
@@ -138,25 +167,42 @@ async def get_api_info():
 async def segment_drawing(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="도면 이미지 (PNG, JPG)"),
-    model: str = Form("graphsage", description="모델 선택 (graphsage: 빠름, unet: 정확)"),
-    visualize: bool = Form(True, description="시각화 생성"),
-    num_classes: int = Form(3, description="분류 클래스 수 (2 or 3)"),
-    save_graph: bool = Form(False, description="그래프 저장"),
-    vectorize: bool = Form(False, description="도면 벡터화 (DXF 출력용)")
+    profile: Optional[str] = Form(None, description="프로파일 선택 (drawing_classification, text_detection, edge_detection, mask_extraction, graph_analysis, fast)"),
+    model: Optional[str] = Form(None, description="모델 선택 (graphsage: 빠름, unet: 정확)"),
+    visualize: Optional[bool] = Form(None, description="시각화 생성"),
+    num_classes: Optional[int] = Form(None, description="분류 클래스 수 (2 or 3)"),
+    save_graph: Optional[bool] = Form(None, description="그래프 저장"),
+    vectorize: Optional[bool] = Form(None, description="도면 벡터화 (DXF 출력용)")
 ):
     """
     도면 세그멘테이션 - 컴포넌트 분류
 
-    - **file**: 도면 이미지 (PNG, JPG, TIFF)
-    - **model**: 모델 선택 (graphsage or unet)
-    - **visualize**: 분류 결과 시각화 이미지 생성 여부
-    - **num_classes**: 2 (Text/Non-text) 또는 3 (Contour/Text/Dimension)
-    - **save_graph**: 그래프 구조 JSON 저장 여부
-    - **vectorize**: 도면 벡터화 (Bezier 곡선, DXF 출력용)
+    프로파일 기반 설정:
+    - drawing_classification: Contour/Text/Dimension 3클래스 분류 (기본)
+    - text_detection: Text/Non-text 2클래스 분류
+    - edge_detection: UNet 기반 정밀 엣지 검출
+    - mask_extraction: 세그멘테이션 마스크 추출
+    - graph_analysis: 그래프 구조 분석 (연구용)
+    - fast: 시각화 없이 빠른 처리
+
+    개별 파라미터로 프로파일 설정을 덮어쓸 수 있습니다.
     """
     start_time = time.time()
     edgnet_service = get_edgnet_service()
     unet_service = get_unet_service()
+
+    # 프로파일 기반 기본값 적용
+    selected_profile = profile or DEFAULT_PROFILE
+    defaults = get_defaults(selected_profile)
+
+    # 개별 파라미터로 기본값 덮어쓰기
+    model = model if model is not None else defaults.get("model", "graphsage")
+    visualize = visualize if visualize is not None else defaults.get("visualize", True)
+    num_classes = num_classes if num_classes is not None else defaults.get("num_classes", 3)
+    save_graph = save_graph if save_graph is not None else defaults.get("save_graph", False)
+    vectorize = vectorize if vectorize is not None else defaults.get("vectorize", False)
+
+    logger.info(f"Using profile: {selected_profile}, model: {model}")
 
     # Validate file
     if not allowed_file(file.filename, ALLOWED_EXTENSIONS):
@@ -229,7 +275,15 @@ async def segment_drawing(
             "status": "success",
             "data": segment_result,
             "processing_time": round(processing_time, 2),
-            "file_id": file_id
+            "file_id": file_id,
+            "options_used": {
+                "profile": selected_profile,
+                "model": model,
+                "visualize": visualize,
+                "num_classes": num_classes,
+                "save_graph": save_graph,
+                "vectorize": vectorize
+            }
         }
 
     except Exception as e:

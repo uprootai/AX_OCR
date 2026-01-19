@@ -124,9 +124,8 @@ export default function AddAPIDialog({ isOpen, onClose }: AddAPIDialogProps) {
       setSearchSuccess(true);
       setSearchError('');
 
-    } catch (error) {
-      console.error('API 자동 검색 실패:', error);
-      setSearchError(error instanceof Error ? error.message : 'API 정보를 가져오는데 실패했습니다');
+    } catch (err) {
+      setSearchError(err instanceof Error ? err.message : 'API 정보를 가져오는데 실패했습니다');
       setSearchSuccess(false);
     } finally {
       setIsSearching(false);

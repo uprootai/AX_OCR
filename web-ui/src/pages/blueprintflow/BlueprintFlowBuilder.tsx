@@ -133,11 +133,11 @@ function WorkflowBuilderCanvas() {
   // Validate connection
   const isValidConnection = useCallback((connection: Connection) => {
     if (connection.source === connection.target) {
-      console.warn('Self-connection not allowed');
+      showToast('자기 자신으로의 연결은 허용되지 않습니다', 'warning');
       return false;
     }
     return true;
-  }, []);
+  }, [showToast]);
 
   // Handle connect
   const handleConnect = useCallback((connection: Connection) => {
@@ -276,7 +276,6 @@ function WorkflowBuilderCanvas() {
       await workflowApi.saveWorkflow(workflow);
       showToast('✓ 워크플로우가 저장되었습니다', 'success');
     } catch (error) {
-      console.error('Failed to save workflow:', error);
       const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
       showToast(`✗ 워크플로우 저장 실패\n${errorMsg}`, 'error');
     }

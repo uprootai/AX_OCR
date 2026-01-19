@@ -23,6 +23,8 @@ import {
   Minus,
   ShieldCheck,
   FileSpreadsheet,
+  ClipboardCheck,
+  Workflow,
 } from 'lucide-react';
 import type { NodeConfig } from './types';
 
@@ -131,6 +133,46 @@ export const baseNodeConfigs: NodeConfig[] = [
     description: 'Ground Truth comparison',
     icon: '📊',
     color: '#f97316',
+    category: 'analysis',
+  },
+  {
+    type: 'pidcomposer',
+    label: 'PID Composer',
+    description: 'P&ID layer composition',
+    icon: Layers,
+    color: '#8b5cf6',
+    category: 'analysis',
+  },
+  {
+    type: 'pidfeatures',
+    label: 'PID Features',
+    description: 'TECHCROSS P&ID analysis',
+    icon: Workflow,
+    color: '#8b5cf6',
+    category: 'analysis',
+  },
+  {
+    type: 'pdfexport',
+    label: 'PDF Export',
+    description: 'Export to PDF report',
+    icon: FileText,
+    color: '#dc2626',
+    category: 'analysis',
+  },
+  {
+    type: 'excelexport',
+    label: 'Excel Export',
+    description: 'Export to Excel file',
+    icon: FileSpreadsheet,
+    color: '#16a34a',
+    category: 'analysis',
+  },
+  {
+    type: 'verificationqueue',
+    label: 'Verification Queue',
+    description: 'Human-in-the-Loop queue',
+    icon: ClipboardCheck,
+    color: '#f59e0b',
     category: 'analysis',
   },
   // AI Nodes

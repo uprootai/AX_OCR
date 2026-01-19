@@ -90,13 +90,13 @@ class TestDetectionConfig:
         config = DetectionConfig(
             confidence=0.5,
             iou_threshold=0.6,
-            model_id="custom_model",
+            model_type="pid_symbol",
             device="cuda"
         )
 
         assert config.confidence == 0.5
         assert config.iou_threshold == 0.6
-        assert config.model_id == "custom_model"
+        assert config.model_type == "pid_symbol"
         assert config.device == "cuda"
 
 

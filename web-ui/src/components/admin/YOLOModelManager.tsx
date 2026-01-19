@@ -76,9 +76,8 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
       const response = await axios.get<ModelsResponse>(`${apiBaseUrl}/api/v1/models`);
       setModels(response.data.models);
       setDefaultModel(response.data.default_model);
-    } catch (err) {
+    } catch {
       setError('모델 목록을 가져오는데 실패했습니다.');
-      console.error('Failed to fetch models:', err);
     } finally {
       setLoading(false);
     }
@@ -114,7 +113,6 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
       fetchModels();
       showToast(`✓ '${modelId}' 모델이 업데이트되었습니다`, 'success');
     } catch (err) {
-      console.error(err);
       const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ 모델 업데이트 실패\n${errorMsg}`, 'error');
     }
@@ -132,7 +130,6 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
       fetchModels();
       showToast(`✓ '${modelId}' 모델 파일 업로드 완료`, 'success');
     } catch (err) {
-      console.error(err);
       const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ 파일 업로드 실패\n${errorMsg}`, 'error');
     }
@@ -397,7 +394,6 @@ function AddModelForm({
       showToast(`✓ '${modelId}' 모델이 추가되었습니다`, 'success');
       onSuccess();
     } catch (err) {
-      console.error(err);
       const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ 모델 추가 실패\n${errorMsg}`, 'error');
     } finally {

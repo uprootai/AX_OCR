@@ -13,6 +13,35 @@ export const analysisNodes: Record<string, NodeDefinition> = {
     color: '#f59e0b',
     icon: 'Ruler',
     description: '인식된 치수 데이터를 분석하여 공차를 계산하고 제조 가능성을 평가합니다.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반 분석',
+          description: '기본 공차 분석 (Steel 기준)',
+          params: { default_material: 'steel', tolerance_class: 'medium' },
+        },
+        {
+          name: 'precision',
+          label: '정밀 부품',
+          description: '정밀 가공 부품용 (엄격한 공차)',
+          params: { default_material: 'steel', tolerance_class: 'fine' },
+        },
+        {
+          name: 'lightweight',
+          label: '경량 부품',
+          description: '경량화 부품용 (알루미늄/티타늄)',
+          params: { default_material: 'aluminum', tolerance_class: 'medium' },
+        },
+        {
+          name: 'marine',
+          label: '선박용',
+          description: '선박/해양 부품용 (스테인리스)',
+          params: { default_material: 'stainless', tolerance_class: 'medium' },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'dimensions',
@@ -97,6 +126,35 @@ export const analysisNodes: Record<string, NodeDefinition> = {
     color: '#7c3aed',
     icon: 'Network',
     description: 'P&ID 심볼과 라인을 분석하여 연결 관계, BOM, 장비 목록을 생성합니다.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반 분석',
+          description: '기본 연결성 분석 (모든 출력 포함)',
+          params: { generate_bom: true, generate_valve_list: true, generate_equipment_list: true, enable_ocr: true, visualize: true },
+        },
+        {
+          name: 'connectivity_only',
+          label: '연결성만',
+          description: '연결 관계만 분석 (BOM 생성 안함)',
+          params: { generate_bom: false, generate_valve_list: false, generate_equipment_list: false, enable_ocr: false, visualize: false },
+        },
+        {
+          name: 'bom_export',
+          label: 'BOM 추출',
+          description: 'BOM 및 장비 리스트 추출용',
+          params: { generate_bom: true, generate_valve_list: true, generate_equipment_list: true, enable_ocr: true, visualize: false },
+        },
+        {
+          name: 'bwms',
+          label: 'BWMS 분석',
+          description: 'Ballast Water Management System 전용',
+          params: { generate_bom: true, generate_valve_list: true, generate_equipment_list: true, enable_ocr: true, visualize: true },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'symbols',
@@ -890,6 +948,35 @@ export const analysisNodes: Record<string, NodeDefinition> = {
     icon: 'Layers',
     description:
       'P&ID 도면에 심볼, 라인, 텍스트, 영역 레이어를 합성하여 시각화합니다. 서버 사이드 이미지 렌더링 및 클라이언트용 SVG 오버레이 생성을 지원합니다.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: '기본 SVG 오버레이',
+          params: { show_symbols: true, show_lines: true, show_texts: true, stroke_width: 2, opacity: 0.8 },
+        },
+        {
+          name: 'review',
+          label: '도면 검토',
+          description: '도면 검토용 (모든 요소 강조)',
+          params: { show_symbols: true, show_lines: true, show_texts: true, stroke_width: 3, opacity: 0.9 },
+        },
+        {
+          name: 'symbols_only',
+          label: '심볼만',
+          description: '심볼만 표시',
+          params: { show_symbols: true, show_lines: false, show_texts: false, stroke_width: 2, opacity: 0.8 },
+        },
+        {
+          name: 'print',
+          label: '인쇄용',
+          description: '인쇄 최적화 (고대비)',
+          params: { show_symbols: true, show_lines: true, show_texts: true, stroke_width: 1, opacity: 1.0 },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'image',

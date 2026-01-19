@@ -483,20 +483,31 @@ const apiNodes = [
 
 ---
 
-## 🎯 현재 지원되는 API (9개)
+## 🎯 현재 지원되는 API (20개)
 
 | API | Port | Dashboard | BlueprintFlow | 상태 |
 |-----|------|-----------|---------------|------|
 | **Gateway** | 8000 | ✅ | - | ✅ Healthy |
-| **YOLO** | 5005 | ✅ | ✅ | ✅ Healthy |
-| **eDOCr v1** | 5001 | ✅ | - | ✅ Healthy |
-| **eDOCr v2** | 5002 | ✅ | ✅ | ✅ Healthy |
-| **EDGNet** | 5012 | ✅ | ✅ | ✅ Healthy |
-| **Skin Model** | 5003 | ✅ | ✅ | ✅ Healthy |
-| **PaddleOCR** | 5006 | ✅ | ✅ | ✅ Healthy |
+| **eDOCr2** | 5002 | ✅ | ✅ | ✅ Healthy |
+| **SkinModel** | 5003 | ✅ | ✅ | ✅ Healthy |
 | **VL API** | 5004 | ✅ | ✅ | 🔑 API Key 필요 |
+| **YOLO** | 5005 | ✅ | ✅ | ✅ Healthy |
+| **PaddleOCR** | 5006 | ✅ | ✅ | ✅ Healthy |
+| **Knowledge** | 5007 | ✅ | ✅ | ✅ Healthy |
+| **Tesseract** | 5008 | ✅ | ✅ | ✅ Healthy |
+| **TrOCR** | 5009 | ✅ | ✅ | ✅ Healthy |
+| **ESRGAN** | 5010 | ✅ | ✅ | ✅ Healthy |
+| **OCR Ensemble** | 5011 | ✅ | ✅ | ✅ Healthy |
+| **EDGNet** | 5012 | ✅ | ✅ | ✅ Healthy |
+| **Surya OCR** | 5013 | ✅ | ✅ | ✅ Healthy |
+| **DocTR** | 5014 | ✅ | ✅ | ✅ Healthy |
+| **EasyOCR** | 5015 | ✅ | ✅ | ✅ Healthy |
+| **Line Detector** | 5016 | ✅ | ✅ | ✅ Healthy |
+| **PID Analyzer** | 5018 | ✅ | ✅ | ✅ Healthy |
+| **Design Checker** | 5019 | ✅ | ✅ | ✅ Healthy |
+| **Blueprint AI BOM** | 5020 | ✅ | ✅ | ✅ Healthy |
 
-**총 8개 API 모니터링 중**, BlueprintFlow에서 6개 노드 사용 가능
+**총 20개 API 모니터링 중**, BlueprintFlow에서 28개 노드 사용 가능
 
 ---
 
@@ -539,6 +550,6 @@ const apiNodes = [
 
 ---
 
-**최종 업데이트**: 2025-11-20
+**최종 업데이트**: 2026-01-17
 **작성자**: Claude Code
-**버전**: 1.0
+**버전**: 2.0

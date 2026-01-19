@@ -4,7 +4,7 @@
 # Tests each template workflow directly via gateway API
 
 GATEWAY_URL="http://localhost:8000"
-SAMPLE_IMAGE="/home/uproot/ax/poc/samples/S60ME-C INTERM-SHAFT_대 주조전.jpg"
+SAMPLE_IMAGE="/home/uproot/ax/poc/web-ui/public/samples/sample3_s60me_shaft.jpg"
 
 # Colors
 RED='\033[0;31m'

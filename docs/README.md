@@ -1,7 +1,7 @@
 # AX BlueprintFlow Documentation
 
 > 기계 도면 자동 분석 및 제조 견적 생성 시스템 문서
-> **최종 업데이트**: 2025-12-31 | **버전**: v23.0
+> **최종 업데이트**: 2026-01-17 | **버전**: v23.1
 
 ---
 
@@ -21,12 +21,12 @@
 ## System Status
 
 ```
-AX POC v23.0
+AX POC v23.1
 디자인 패턴: 100/100점
 테스트: 505개 통과 (gateway 364, web-ui 141)
 BlueprintFlow: 28개 노드
 ESLint: 0 에러, 3 경고
-API: 19/19 healthy
+API: 20/20 healthy
 ```
 
 ---
@@ -53,7 +53,7 @@ docs/
 │   └── VL_API_SETUP_GUIDE.md     # VL API 설정
 │
 ├── API 레퍼런스 (api/)
-│   └── {api}/parameters.md       # 각 API 파라미터 (19개)
+│   └── {api}/parameters.md       # 각 API 파라미터 (20개)
 │
 ├── BlueprintFlow (blueprintflow/)
 │   ├── README.md                 # BlueprintFlow 개요
@@ -83,7 +83,7 @@ docs/
 
 ---
 
-## API Services (19개)
+## API Services (20개)
 
 | Category | Service | Port | Parameters | Status |
 |----------|---------|------|------------|--------|
@@ -146,5 +146,5 @@ Visual workflow builder for API composition.
 
 ---
 
-**Last Updated**: 2025-12-31
+**Last Updated**: 2026-01-17
 **Managed By**: Claude Code (Opus 4.5)

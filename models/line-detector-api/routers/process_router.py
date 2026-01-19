@@ -37,6 +37,14 @@ from services import (
     numpy_to_base64,
 )
 from services.svg_generator import generate_line_svg, generate_region_svg, lines_to_svg_data
+from config.defaults import (
+    DEFAULTS,
+    DETECTION_DEFAULTS,
+    DEFAULT_PROFILE,
+    get_defaults,
+    list_profiles,
+    get_detection_method_info,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +59,17 @@ class ProcessResponse(BaseModel):
     data: Dict[str, Any]
     processing_time: float
     error: Optional[str] = None
+
+
+@router.get("/profiles")
+async def get_profiles():
+    """사용 가능한 프로파일 목록"""
+    return {
+        "profiles": DEFAULTS,
+        "detection_methods": DETECTION_DEFAULTS,
+        "default_profile": DEFAULT_PROFILE,
+        "available_profiles": list_profiles(),
+    }
 
 
 @router.get("/info")
@@ -81,6 +100,7 @@ async def get_info():
             {"name": "visualization", "type": "Image", "description": "시각화 이미지"}
         ],
         "parameters": [
+            {"name": "profile", "type": "select", "options": list(DEFAULTS.keys()), "default": DEFAULT_PROFILE, "description": "프로파일 선택 (용도별 최적 설정)"},
             {"name": "method", "type": "select", "options": ["lsd", "hough", "combined"], "default": "lsd"},
             {"name": "merge_lines", "type": "boolean", "default": True},
             {"name": "classify_types", "type": "boolean", "default": True},
@@ -95,6 +115,7 @@ async def get_info():
             {"name": "min_length", "type": "number", "default": 0, "description": "최소 라인 길이 (픽셀). 0=필터링 안함"},
             {"name": "max_lines", "type": "number", "default": 0, "description": "최대 라인 수 제한. 0=제한 없음"}
         ],
+        "profiles": list_profiles(),
         "line_style_types": LINE_STYLE_TYPES,
         "line_purpose_types": LINE_PURPOSE_TYPES,
         "region_types": REGION_TYPES
@@ -104,25 +125,55 @@ async def get_info():
 @router.post("/process", response_model=ProcessResponse)
 async def process(
     file: UploadFile = File(..., description="P&ID 도면 이미지"),
-    method: str = Form(default="lsd", description="검출 방식 (lsd, hough, combined)"),
-    merge_lines: bool = Form(default=True, description="공선 라인 병합"),
-    classify_types: bool = Form(default=True, description="라인 유형 분류 (배관/신호선)"),
-    classify_colors: bool = Form(default=True, description="색상 기반 라인 분류"),
-    classify_styles: bool = Form(default=True, description="스타일 분류 (실선/점선)"),
-    find_intersections_flag: bool = Form(default=True, alias="find_intersections", description="교차점 검출"),
-    detect_regions: bool = Form(default=False, description="점선 박스 영역 검출"),
-    region_line_styles: str = Form(default="dashed,dash_dot", description="영역 검출에 사용할 라인 스타일"),
-    min_region_area: int = Form(default=5000, description="최소 영역 크기 (픽셀²)"),
-    visualize: bool = Form(default=True, description="결과 시각화"),
-    visualize_regions_flag: bool = Form(default=True, alias="visualize_regions", description="영역 시각화 포함"),
+    profile: Optional[str] = Form(default=None, description="프로파일 선택 (pid, simple, region_focus, connectivity)"),
+    method: Optional[str] = Form(default=None, description="검출 방식 (lsd, hough, combined)"),
+    merge_lines: Optional[bool] = Form(default=None, description="공선 라인 병합"),
+    classify_types: Optional[bool] = Form(default=None, description="라인 유형 분류 (배관/신호선)"),
+    classify_colors: Optional[bool] = Form(default=None, description="색상 기반 라인 분류"),
+    classify_styles: Optional[bool] = Form(default=None, description="스타일 분류 (실선/점선)"),
+    find_intersections_flag: Optional[bool] = Form(default=None, alias="find_intersections", description="교차점 검출"),
+    detect_regions: Optional[bool] = Form(default=None, description="점선 박스 영역 검출"),
+    region_line_styles: Optional[str] = Form(default=None, description="영역 검출에 사용할 라인 스타일"),
+    min_region_area: Optional[int] = Form(default=None, description="최소 영역 크기 (픽셀²)"),
+    visualize: Optional[bool] = Form(default=None, description="결과 시각화"),
+    visualize_regions_flag: Optional[bool] = Form(default=None, alias="visualize_regions", description="영역 시각화 포함"),
     include_svg: bool = Form(default=False, description="SVG 오버레이 포함"),
-    min_length: float = Form(default=0, description="최소 라인 길이 (픽셀)"),
-    max_lines: int = Form(default=0, description="최대 라인 수 제한")
+    min_length: Optional[float] = Form(default=None, description="최소 라인 길이 (픽셀)"),
+    max_lines: Optional[int] = Form(default=None, description="최대 라인 수 제한")
 ):
     """
     P&ID 라인 검출 메인 엔드포인트
+
+    프로파일 기반 설정:
+    - pid: P&ID 라인 검출 최적화 (기본값)
+    - simple: 단순 라인 검출 (분류 없음)
+    - region_focus: 점선 박스 영역 검출 중심
+    - connectivity: 라인 연결성 분석
+
+    개별 파라미터로 프로파일 설정을 덮어쓸 수 있습니다.
     """
     start_time = time.time()
+
+    # 프로파일 기반 기본값 적용
+    selected_profile = profile or DEFAULT_PROFILE
+    defaults = get_defaults(selected_profile)
+
+    # 개별 파라미터로 기본값 덮어쓰기
+    method = method if method is not None else defaults.get("method", "lsd")
+    merge_lines = merge_lines if merge_lines is not None else defaults.get("merge_lines", True)
+    classify_types = classify_types if classify_types is not None else defaults.get("classify_types", True)
+    classify_colors = classify_colors if classify_colors is not None else defaults.get("classify_colors", True)
+    classify_styles = classify_styles if classify_styles is not None else defaults.get("classify_styles", True)
+    find_intersections_flag = find_intersections_flag if find_intersections_flag is not None else defaults.get("find_intersections", True)
+    detect_regions = detect_regions if detect_regions is not None else defaults.get("detect_regions", False)
+    region_line_styles = region_line_styles if region_line_styles is not None else defaults.get("region_line_styles", "dashed,dash_dot")
+    min_region_area = min_region_area if min_region_area is not None else defaults.get("min_region_area", 5000)
+    visualize = visualize if visualize is not None else defaults.get("visualize", True)
+    visualize_regions_flag = visualize_regions_flag if visualize_regions_flag is not None else defaults.get("visualize_regions", True)
+    min_length = min_length if min_length is not None else defaults.get("min_length", 0)
+    max_lines = max_lines if max_lines is not None else defaults.get("max_lines", 0)
+
+    logger.info(f"Using profile: {selected_profile}")
 
     try:
         # 이미지 로드
@@ -309,12 +360,16 @@ async def process(
             "method": method,
             "image_size": {"width": image.shape[1], "height": image.shape[0]},
             "options_used": {
+                "profile": selected_profile,
+                "method": method,
                 "classify_types": classify_types,
                 "classify_colors": classify_colors,
                 "classify_styles": classify_styles,
                 "detect_regions": detect_regions,
                 "region_line_styles": region_line_styles if detect_regions else None,
-                "min_region_area": min_region_area if detect_regions else None
+                "min_region_area": min_region_area if detect_regions else None,
+                "min_length": min_length,
+                "max_lines": max_lines
             }
         }
 

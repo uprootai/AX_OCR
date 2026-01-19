@@ -144,8 +144,13 @@ class Neo4jService:
     async def create_component(
         self,
         name: str,
+        part_id: Optional[str] = None,
         part_number: Optional[str] = None,
+        category: Optional[str] = None,
         material: Optional[str] = None,
+        manufacturer: Optional[str] = None,
+        unit_price: Optional[float] = None,
+        specifications: Optional[Dict] = None,
         dimensions: List[Dict] = None,
         tolerances: List[Dict] = None,
         processes: List[Dict] = None,
@@ -158,32 +163,44 @@ class Neo4jService:
         Component --REQUIRES--> Process
         Component --MADE_OF--> Material
         """
-        component_id = str(uuid.uuid4())[:8]
+        # 사용자 지정 part_id가 있으면 사용, 없으면 UUID 생성
+        component_id = part_id or str(uuid.uuid4())[:8]
         dimensions = dimensions or []
         tolerances = tolerances or []
         processes = processes or []
         metadata = metadata or {}
+        specifications = specifications or {}
 
         if not self._connected:
             logger.warning("Neo4j not connected, returning mock ID")
             return f"mock-{component_id}"
 
         async with self.driver.session() as session:
-            # 1. Component 노드 생성
+            # 1. Component 노드 생성 (모든 속성 포함)
             await session.run(
                 """
                 CREATE (c:Component {
                     id: $id,
+                    part_id: $part_id,
                     name: $name,
                     part_number: $part_number,
+                    category: $category,
+                    manufacturer: $manufacturer,
+                    unit_price: $unit_price,
+                    specifications: $specifications,
                     created_at: $created_at,
                     metadata: $metadata
                 })
                 """,
                 {
                     "id": component_id,
+                    "part_id": part_id,
                     "name": name,
                     "part_number": part_number,
+                    "category": category,
+                    "manufacturer": manufacturer,
+                    "unit_price": unit_price,
+                    "specifications": str(specifications) if specifications else "{}",
                     "created_at": datetime.now().isoformat(),
                     "metadata": str(metadata)
                 }

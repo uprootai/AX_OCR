@@ -539,12 +539,23 @@ curl http://localhost:8000/api/v1/health
 | 교체 대상 | 디렉토리 | 엔드포인트 | 포트 |
 |----------|---------|-----------|------|
 | YOLO | `/models/yolo-api/` | `/api/v1/detect` | 5005 |
-| PaddleOCR | `/models/paddleocr-api/` | `/api/v1/ocr` | 5006 |
-| eDOCr2 v1 | `/models/edocr2-api/` | `/api/v1/ocr` | 5001 |
-| eDOCr2 v2 | `/models/edocr2-v2-api/` | `/api/v2/ocr` | 5002 |
-| EDGNet | `/models/edgnet-api/` | `/api/v1/segment` | 5012 |
+| eDOCr2 | `/models/edocr2-v2-api/` | `/api/v1/process` | 5002 |
 | SkinModel | `/models/skinmodel-api/` | `/api/v1/predict` | 5003 |
 | VL API | `/models/vl-api/` | `/api/v1/analyze` | 5004 |
+| PaddleOCR | `/models/paddleocr-api/` | `/api/v1/ocr` | 5006 |
+| Knowledge | `/models/knowledge-api/` | `/api/v1/hybrid/search` | 5007 |
+| Tesseract | `/models/tesseract-api/` | `/api/v1/ocr` | 5008 |
+| TrOCR | `/models/trocr-api/` | `/api/v1/ocr` | 5009 |
+| ESRGAN | `/models/esrgan-api/` | `/api/v1/upscale` | 5010 |
+| OCR Ensemble | `/models/ocr-ensemble-api/` | `/api/v1/ensemble` | 5011 |
+| EDGNet | `/models/edgnet-api/` | `/api/v1/segment` | 5012 |
+| Surya OCR | `/models/surya-ocr-api/` | `/api/v1/ocr` | 5013 |
+| DocTR | `/models/doctr-api/` | `/api/v1/ocr` | 5014 |
+| EasyOCR | `/models/easyocr-api/` | `/api/v1/ocr` | 5015 |
+| Line Detector | `/models/line-detector-api/` | `/api/v1/detect` | 5016 |
+| PID Analyzer | `/models/pid-analyzer-api/` | `/api/v1/analyze` | 5018 |
+| Design Checker | `/models/design-checker-api/` | `/api/v1/check` | 5019 |
+| Blueprint AI BOM | `/blueprint-ai-bom/` | `/api/v1/analyze` | 5020 |
 
 ### 교체 체크리스트
 
@@ -561,4 +572,5 @@ curl http://localhost:8000/api/v1/health
 ---
 
 **작성일:** 2025-11-21
-**버전:** 1.0.0
+**최종 수정:** 2026-01-17
+**버전:** 1.1.0

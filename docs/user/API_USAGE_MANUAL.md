@@ -1,8 +1,9 @@
 # API 사용 매뉴얼
 
 **작성일**: 2025-11-03
+**최종 업데이트**: 2026-01-17
 **대상**: API 사용자 및 프론트엔드 개발자
-**버전**: v1.0
+**버전**: v2.0
 
 ---
 
@@ -27,12 +28,16 @@
 | 서비스 | URL | 포트 |
 |--------|-----|------|
 | YOLOv11 API | `http://localhost:5005` | 5005 |
-| eDOCr2 API | `http://localhost:5001` | 5001 |
+| eDOCr2 API | `http://localhost:5002` | 5002 |
 | EDGNet API | `http://localhost:5012` | 5012 |
 | Skin Model API | `http://localhost:5003` | 5003 |
+| PID Analyzer API | `http://localhost:5018` | 5018 |
+| Design Checker API | `http://localhost:5019` | 5019 |
+| Blueprint AI BOM | `http://localhost:5020` | 5020 |
+| Knowledge API | `http://localhost:5007` | 5007 |
 | Gateway API | `http://localhost:8000` | 8000 |
 
-**참고**: EDGNet API는 Docker 내부에서 5002 포트로 실행되지만, 외부 접속은 5012 포트를 사용합니다.
+**전체 API 목록**: 20개 API 서비스 (상세: [API 문서](/docs/api/README.md))
 
 ### 공통 응답 형식
 

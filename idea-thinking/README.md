@@ -51,7 +51,8 @@ idea-thinking/
 | 아이디어 | 상태 | 관련 기술 | 문서 |
 |----------|------|-----------|------|
 | **DocLayout-YOLO Fine-tuning** | ⏸️ 보류 | Colab T4 16GB 필요 (RTX 3080 8GB 불가) | [001](sub/001_doclayout_yolo_finetuning.md) |
-| PP-StructureV3 테이블 OCR | 💭 탐색 | BOM 테이블 인식 개선 | - |
+| **PP-StructureV3 테이블 OCR** | 🔬 검증 (리소스 제약) | BOM 테이블 인식, **12개+ 모델 로드** (별도 컨테이너 필요) | [002](sub/002_pp_structurev3_table_ocr.md) |
+| **TableTransformer** | ✅ **서비스 모듈 구현 완료** | **330MB GPU**, DocLayout-YOLO+EasyOCR 통합, `table_structure_recognizer.py` | [003](sub/003_table_transformer_ocr.md) |
 | SFDLA 도메인 적응 | 💭 탐색 | TECHCROSS 도면 특화 | - |
 
 ---
@@ -99,4 +100,4 @@ idea-thinking/
 ---
 
 *관리자*: Claude Code (Opus 4.5)
-*최종 업데이트*: 2025-12-31
+*최종 업데이트*: 2026-01-17

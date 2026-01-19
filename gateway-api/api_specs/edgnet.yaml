@@ -83,6 +83,71 @@ i18n:
     label: EDGNet Segmentation
     description: Analyzes drawing structure and classifies by layers
 
+# 프로파일 기반 기본값 (MODEL_DEFAULTS 패턴)
+# 백엔드 models/edgnet-api/config/defaults.py와 동기화
+profiles:
+  default: drawing_classification
+  available:
+    - name: drawing_classification
+      label: "도면 컴포넌트 분류"
+      description: "Contour/Text/Dimension 3클래스 분류 (기본)"
+      params:
+        model: graphsage
+        visualize: true
+        num_classes: 3
+        save_graph: false
+        vectorize: false
+
+    - name: text_detection
+      label: "텍스트 영역 검출"
+      description: "Text/Non-text 2클래스 분류"
+      params:
+        model: graphsage
+        visualize: true
+        num_classes: 2
+        save_graph: false
+        vectorize: false
+
+    - name: edge_detection
+      label: "엣지 검출"
+      description: "UNet 기반 정밀 엣지 검출"
+      params:
+        model: unet
+        visualize: true
+        num_classes: 3
+        save_graph: false
+        vectorize: false
+
+    - name: mask_extraction
+      label: "마스크 추출"
+      description: "세그멘테이션 마스크 추출 (후처리용)"
+      params:
+        model: unet
+        visualize: false
+        num_classes: 3
+        save_graph: false
+        vectorize: false
+
+    - name: graph_analysis
+      label: "그래프 구조 분석"
+      description: "그래프 구조 JSON 저장 (연구용)"
+      params:
+        model: graphsage
+        visualize: true
+        num_classes: 3
+        save_graph: true
+        vectorize: false
+
+    - name: fast
+      label: "빠른 처리"
+      description: "시각화 없이 빠른 분류만"
+      params:
+        model: graphsage
+        visualize: false
+        num_classes: 3
+        save_graph: false
+        vectorize: false
+
 resources:
   gpu:
     vram: "~3GB"

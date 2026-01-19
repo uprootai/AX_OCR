@@ -33,7 +33,7 @@ const TEMPLATES = [
 ];
 
 // Sample image path
-const SAMPLE_IMAGE = '/home/uproot/ax/poc/samples/S60ME-C INTERM-SHAFT_대 주조전.jpg';
+const SAMPLE_IMAGE = '/home/uproot/ax/poc/web-ui/public/samples/sample3_s60me_shaft.jpg';
 
 // Helper function to load template and navigate to builder
 async function loadTemplateAndNavigate(page: Page, templateIndex: number): Promise<void> {

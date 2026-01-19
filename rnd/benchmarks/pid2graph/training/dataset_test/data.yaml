@@ -1,0 +1,14 @@
+path: /home/uproot/ax/poc/rnd/benchmarks/pid2graph/training/dataset_test
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: crossing
+  1: connector
+  2: border_node
+  3: general
+  4: tank
+  5: valve
+  6: pump
+  7: arrow
+nc: 8

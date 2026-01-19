@@ -1,7 +1,7 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus } from 'lucide-react';
+import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, Zap } from 'lucide-react';
 import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getNodeDefinition } from '../../config/nodeDefinitions';
+import { useNodeDefinitions } from '../../hooks/useNodeDefinitions';
 import { getRecommendedNodes, FEATURE_NODE_RECOMMENDATIONS } from '../../config/nodes/inputNodes';
 import {
   getGroupImplementationStats,
@@ -38,6 +38,9 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
   const [showExamples, setShowExamples] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+
+  // Get node definitions with dynamic profiles
+  const { getDefinition } = useNodeDefinitions();
 
   // Get uploaded image from store
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
@@ -109,7 +112,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
   }
 
   const nodeType = selectedNode.type || '';
-  const definition = getNodeDefinition(nodeType);
+  const definition = getDefinition(nodeType);
 
   if (!definition) {
     return (
@@ -270,7 +273,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
               {/* Node buttons */}
               <div className="flex flex-wrap gap-2">
                 {featuresRecommendation.nodes.map((nodeTypeId) => {
-                  const nodeDef = getNodeDefinition(nodeTypeId);
+                  const nodeDef = getDefinition(nodeTypeId);
                   return (
                     <button
                       key={nodeTypeId}
@@ -367,6 +370,59 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             </CardHeader>
             {showParameters && (
               <CardContent className="space-y-3">
+                {/* Profile Selector */}
+                {definition.profiles && definition.profiles.available.length > 0 && (
+                  <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-4 h-4 text-purple-500" />
+                      <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                        프로파일 (기본값 프리셋)
+                      </span>
+                    </div>
+                    <select
+                      value={selectedNode.data?.parameters?._profile || definition.profiles.default}
+                      onChange={(e) => {
+                        const profileName = e.target.value;
+                        const profile = definition.profiles?.available.find(p => p.name === profileName);
+                        if (profile) {
+                          // 프로파일 선택 시 해당 프로파일의 모든 파라미터 값 적용
+                          const currentData = selectedNode.data || {};
+                          const currentParams = currentData.parameters || {};
+                          onUpdateNode(selectedNode.id, {
+                            ...currentData,
+                            parameters: {
+                              ...currentParams,
+                              ...profile.params,
+                              _profile: profileName, // 선택된 프로파일 기록
+                            },
+                          });
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      {definition.profiles.available.map((profile) => (
+                        <option key={profile.name} value={profile.name}>
+                          {profile.label}
+                        </option>
+                      ))}
+                    </select>
+                    {/* 선택된 프로파일 설명 */}
+                    {(() => {
+                      const currentProfile = selectedNode.data?.parameters?._profile || definition.profiles?.default;
+                      const profile = definition.profiles?.available.find(p => p.name === currentProfile);
+                      if (profile) {
+                        return (
+                          <div className="mt-2 text-xs text-purple-600 dark:text-purple-400 flex items-start gap-1.5">
+                            <HelpCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span>{profile.description}</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+
                 {definition.parameters.map((param) => {
                   const currentValue =
                     selectedNode.data?.parameters?.[param.name] ?? param.default;

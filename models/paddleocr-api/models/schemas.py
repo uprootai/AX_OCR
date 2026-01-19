@@ -21,6 +21,8 @@ class OCRResponse(BaseModel):
     detections: List[TextDetection] = Field(..., description="텍스트 검출 목록")
     metadata: Dict[str, Any] = Field(..., description="메타데이터")
     visualized_image: Optional[str] = Field(None, description="시각화 이미지 (base64)")
+    svg_overlay: Optional[str] = Field(None, description="SVG 오버레이 (프론트엔드용)")
+    svg_minimal: Optional[str] = Field(None, description="최소 SVG 오버레이 (라벨 없음)")
 
 
 class HealthResponse(BaseModel):
@@ -31,7 +33,7 @@ class HealthResponse(BaseModel):
     gpu_available: bool = Field(..., description="GPU 사용 가능 여부")
     model_loaded: bool = Field(..., description="모델 로드 여부")
     lang: str = Field(..., description="OCR 언어 설정")
-    ocr_version: str = Field(default="PP-OCRv5", description="OCR 모델 버전")
+    ocr_version: str = Field(default="PP-OCRv4", description="OCR 모델 버전")
 
 
 class ParameterSchema(BaseModel):

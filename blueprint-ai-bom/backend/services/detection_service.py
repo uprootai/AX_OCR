@@ -1,6 +1,9 @@
-"""Detection Service - YOLO 검출 서비스 (전기 패널 도면 BOM 전용)
+"""Detection Service - 검출 서비스 (전기 패널 도면 BOM 전용)
 
-yolo-api를 호출하여 일관된 검출 결과를 보장합니다.
+지원 백엔드:
+- YOLO (기본): yolo-api 호출, 빠른 검출 (~40ms)
+- Detectron2: 로컬 Mask R-CNN, 인스턴스 세그멘테이션 (~200-500ms)
+
 BlueprintFlow Builder와 동일한 모델과 파라미터를 사용합니다.
 """
 
@@ -15,8 +18,9 @@ import os
 import httpx
 import mimetypes
 
-from schemas.detection import DetectionConfig, Detection, BoundingBox, VerificationStatus
+from schemas.detection import DetectionConfig, Detection, BoundingBox, VerificationStatus, DetectionBackend
 from services.utils.pricing_utils import load_pricing_db, get_pricing_info
+from services.detectron2_service import get_detectron2_service
 
 logger = logging.getLogger(__name__)
 
@@ -152,9 +156,13 @@ class DetectionService:
         image_path: str,
         config: Optional[DetectionConfig] = None
     ) -> Dict[str, Any]:
-        """이미지에서 객체 검출 (yolo-api 호출)
+        """이미지에서 객체 검출
 
-        지원 모델:
+        지원 백엔드:
+        - yolo (기본): yolo-api 호출, 빠른 검출 (~40ms)
+        - detectron2: 로컬 Mask R-CNN, 인스턴스 세그멘테이션 (~200-500ms)
+
+        지원 모델 (YOLO):
         - bom_detector: 전력 설비 단선도 (27종)
         - pid_symbol: P&ID 심볼 (60종) - BWMS P&ID 권장
         - pid_class_aware: P&ID 분류 (32종)
@@ -166,6 +174,10 @@ class DetectionService:
 
         if config is None:
             config = DetectionConfig()
+
+        # Detectron2 백엔드 선택 시
+        if config.backend == DetectionBackend.DETECTRON2:
+            return self._detect_with_detectron2(image_path, config)
 
         # 모델 타입 결정 (config에서 지정하거나 기본값 사용)
         model_type = getattr(config, 'model_type', None) or self.MODEL_SETTINGS["model_type"]
@@ -243,10 +255,23 @@ class DetectionService:
                         display_name = class_name
                     pricing_info = self.get_pricing_info(class_name)
 
-                    # bbox 변환 (yolo-api는 x1,y1,x2,y2 형식)
+                    # bbox 변환 (yolo-api는 x,y,width,height 또는 x1,y1,x2,y2 형식)
                     bbox = det.get("bbox", {})
                     if isinstance(bbox, dict):
-                        x1, y1, x2, y2 = bbox.get("x1", 0), bbox.get("y1", 0), bbox.get("x2", 0), bbox.get("y2", 0)
+                        # x,y,width,height 형식 (yolo-api 기본)
+                        if "width" in bbox and "height" in bbox:
+                            x = bbox.get("x", 0)
+                            y = bbox.get("y", 0)
+                            w = bbox.get("width", 0)
+                            h = bbox.get("height", 0)
+                            x1, y1 = x, y
+                            x2, y2 = x + w, y + h
+                        # x1,y1,x2,y2 형식
+                        else:
+                            x1 = bbox.get("x1", 0)
+                            y1 = bbox.get("y1", 0)
+                            x2 = bbox.get("x2", 0)
+                            y2 = bbox.get("y2", 0)
                     elif isinstance(bbox, list) and len(bbox) == 4:
                         x1, y1, x2, y2 = bbox
                     else:
@@ -291,6 +316,48 @@ class DetectionService:
             "image_width": image_width,
             "image_height": image_height,
         }
+
+    def _detect_with_detectron2(
+        self,
+        image_path: str,
+        config: DetectionConfig
+    ) -> Dict[str, Any]:
+        """Detectron2를 사용한 인스턴스 세그멘테이션
+
+        Args:
+            image_path: 이미지 파일 경로
+            config: 검출 설정
+
+        Returns:
+            검출 결과 (마스크/폴리곤 포함)
+        """
+        detectron2_service = get_detectron2_service()
+
+        if not detectron2_service.is_available:
+            raise RuntimeError(
+                "Detectron2를 사용할 수 없습니다. "
+                "detectron2 설치 확인: pip install detectron2"
+            )
+
+        # Detectron2 검출 실행
+        result = detectron2_service.detect(
+            image_path=image_path,
+            confidence=config.confidence,
+            return_masks=config.return_masks,
+            return_polygons=config.return_polygons,
+        )
+
+        # 가격 정보 추가
+        for detection in result["detections"]:
+            class_name = detection["class_name"]
+            detection["pricing"] = self.get_pricing_info(class_name)
+
+        logger.info(
+            f"Detectron2 검출 완료: {result['total_count']}개, "
+            f"{result['processing_time_ms']:.1f}ms"
+        )
+
+        return result
 
     def add_manual_detection(
         self,

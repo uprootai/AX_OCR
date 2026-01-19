@@ -1,0 +1,43 @@
+# CODEOWNERS - Automatic review assignments
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything
+* @AX-POC/core-team
+
+# Frontend
+/web-ui/ @AX-POC/frontend-team
+/web-ui/src/components/ @AX-POC/frontend-team
+/web-ui/e2e/ @AX-POC/qa-team
+
+# Backend - Gateway API
+/gateway-api/ @AX-POC/backend-team
+/gateway-api/blueprintflow/ @AX-POC/backend-team
+/gateway-api/api_specs/ @AX-POC/backend-team
+
+# ML Models
+/models/ @AX-POC/ml-team
+/models/yolo-api/ @AX-POC/ml-team
+/models/design-checker-api/ @AX-POC/ml-team
+/models/pid-analyzer-api/ @AX-POC/ml-team
+
+# OCR Services
+/models/edocr2-v2-api/ @AX-POC/ocr-team
+/models/paddleocr-api/ @AX-POC/ocr-team
+/models/tesseract-api/ @AX-POC/ocr-team
+
+# DevOps & CI/CD
+/.github/ @AX-POC/devops-team
+/docker-compose*.yml @AX-POC/devops-team
+/Makefile @AX-POC/devops-team
+
+# Documentation
+/CLAUDE.md @AX-POC/core-team
+/.claude/ @AX-POC/core-team
+/.todo/ @AX-POC/core-team
+
+# Shared modules
+/models/shared/ @AX-POC/backend-team @AX-POC/ml-team
+
+# Configuration files (require senior review)
+/.env.example @AX-POC/core-team
+/.pre-commit-config.yaml @AX-POC/devops-team

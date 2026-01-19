@@ -50,10 +50,6 @@ MODEL_DIRS = {
         "container": "/app/admin_models/yolo",
         "host": "/home/uproot/ax/poc/models/yolo-api/models"
     },
-    "edocr2": {
-        "container": "/app/admin_models/edocr2",
-        "host": "/home/uproot/ax/poc/models/edocr2-api/models"
-    },
     "edocr2-v2": {
         "container": "/app/admin_models/edocr2-v2",
         "host": "/home/uproot/ax/poc/models/edocr2-v2-api/models"

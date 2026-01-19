@@ -4,7 +4,7 @@ Helper Utilities
 OCR-YOLO 매칭 등 기타 유틸리티 함수들
 """
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ def match_yolo_with_ocr(
     yolo_detections: List[Dict],
     ocr_dimensions: List[Dict],
     iou_threshold: float = 0.3,
-    calculate_bbox_iou_func = None
+    calculate_bbox_iou_func: Optional[Callable] = None
 ) -> List[Dict]:
     """
     YOLO 검출 결과와 OCR 치수 결과를 매칭
@@ -32,14 +32,14 @@ def match_yolo_with_ocr(
         from .image_utils import calculate_bbox_iou
         calculate_bbox_iou_func = calculate_bbox_iou
 
-    # Debug: OCR dimensions 구조 확인
+    # Debug logging (only visible when DEBUG level is enabled)
     if ocr_dimensions:
-        logger.info(f"[DEBUG] First OCR dimension keys: {list(ocr_dimensions[0].keys())}")
-        logger.info(f"[DEBUG] First OCR dimension sample: {ocr_dimensions[0]}")
+        logger.debug(f"First OCR dimension keys: {list(ocr_dimensions[0].keys())}")
+        logger.debug(f"First OCR dimension sample: {ocr_dimensions[0]}")
 
     if yolo_detections:
-        logger.info(f"[DEBUG] First YOLO detection keys: {list(yolo_detections[0].keys())}")
-        logger.info(f"[DEBUG] First YOLO bbox: {yolo_detections[0].get('bbox', {})}")
+        logger.debug(f"First YOLO detection keys: {list(yolo_detections[0].keys())}")
+        logger.debug(f"First YOLO bbox: {yolo_detections[0].get('bbox', {})}")
 
     matched_detections = []
 
@@ -85,7 +85,7 @@ def match_yolo_with_ocr(
         if matched_value:
             matched_det['value'] = matched_value
             matched_det['matched_iou'] = round(max_iou, 3)
-            logger.info(f"[MATCH] YOLO #{idx} matched with OCR #{best_ocr_idx}: value='{matched_value}', IoU={max_iou:.3f}")
+            logger.debug(f"YOLO #{idx} matched with OCR #{best_ocr_idx}: value='{matched_value}', IoU={max_iou:.3f}")
 
         matched_detections.append(matched_det)
 

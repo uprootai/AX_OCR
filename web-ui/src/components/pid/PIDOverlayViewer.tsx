@@ -1,10 +1,13 @@
 /**
  * PIDOverlayViewer - P&ID 도면 오버레이 뷰어
  *
- * Gateway PID Overlay API와 연동하여 심볼, 라인, 텍스트, 영역을 시각화합니다.
+ * Design Checker API와 연동하여 심볼 검출 결과를 시각화합니다.
+ *
+ * Note: 현재 심볼 검출만 지원합니다. 라인/텍스트/영역은 BlueprintFlow에서
+ * 전체 파이프라인을 통해 사용할 수 있습니다.
  *
  * Features:
- * - 레이어별 토글 (심볼/라인/텍스트/영역)
+ * - YOLO 기반 심볼 검출 시각화
  * - SVG 오버레이 또는 이미지 출력
  * - 확대/축소 지원
  * - 호버 시 상세 정보 표시
@@ -93,13 +96,14 @@ const LINE_TYPE_COLORS: Record<string, string> = {
 
 interface PIDOverlayViewerProps {
   initialImage?: string;
-  gatewayUrl?: string;
+  /** Design Checker API URL (default: http://localhost:5019) */
+  apiUrl?: string;
   onOverlayGenerated?: (data: OverlayData) => void;
 }
 
 export function PIDOverlayViewer({
   initialImage,
-  gatewayUrl = 'http://localhost:8000',
+  apiUrl = 'http://localhost:5019',
   onOverlayGenerated,
 }: PIDOverlayViewerProps) {
   // State
@@ -145,20 +149,19 @@ export function PIDOverlayViewer({
     };
     reader.readAsDataURL(file);
 
-    // Call API
+    // Call Design Checker API for symbol detection
     setIsLoading(true);
     setError(null);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('layers', 'all');
-      formData.append('output_format', 'both');
-      formData.append('show_labels', showLabels ? 'true' : 'false');
-      formData.append('symbol_model', 'pid_symbol');
-      formData.append('symbol_confidence', '0.3');
+      formData.append('model_type', 'pid_class_aware');
+      formData.append('confidence', '0.3');
+      formData.append('use_sahi', 'true');
+      formData.append('visualize', 'true');
 
-      const response = await fetch(`${gatewayUrl}/api/v1/pid-overlay/generate`, {
+      const response = await fetch(`${apiUrl}/api/v1/pipeline/detect`, {
         method: 'POST',
         body: formData,
       });
@@ -170,14 +173,23 @@ export function PIDOverlayViewer({
       const result = await response.json();
 
       if (result.success) {
+        // Parse Design Checker response format
+        const detections = result.data?.detections || [];
+        const symbols: Symbol[] = detections.map((d: { class_name: string; class_id: number; confidence: number; bbox: BBox }) => ({
+          class_id: d.class_id,
+          class_name: d.class_name,
+          confidence: d.confidence,
+          bbox: d.bbox,
+        }));
+
         const data: OverlayData = {
-          symbols: result.symbols || [],
-          lines: result.lines || [],
-          texts: result.texts || [],
-          regions: result.regions || [],
-          statistics: result.statistics || {
-            image_size: { width: 1000, height: 800 },
-            symbols_count: 0,
+          symbols: symbols,
+          lines: [],  // Line detection not available in this simple mode
+          texts: [],  // OCR not available in this simple mode
+          regions: [],  // Region segmentation not available in this simple mode
+          statistics: {
+            image_size: { width: 1000, height: 800 },  // Will be updated by actual image
+            symbols_count: symbols.length,
             lines_count: 0,
             texts_count: 0,
             regions_count: 0,
@@ -185,18 +197,18 @@ export function PIDOverlayViewer({
         };
 
         setOverlayData(data);
-        setSvgOverlay(result.svg_overlay || null);
-        setAnnotatedImage(result.annotated_image || null);
+        setSvgOverlay(null);  // Use client-side SVG rendering
+        setAnnotatedImage(result.data?.visualized_image || null);
         onOverlayGenerated?.(data);
       } else {
         throw new Error(result.error || 'Unknown error');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate overlay');
+      setError(err instanceof Error ? err.message : 'Failed to detect symbols');
     } finally {
       setIsLoading(false);
     }
-  }, [gatewayUrl, showLabels, onOverlayGenerated]);
+  }, [apiUrl, onOverlayGenerated]);
 
   // Toggle layer visibility
   const toggleLayer = useCallback((layer: keyof LayerVisibility) => {

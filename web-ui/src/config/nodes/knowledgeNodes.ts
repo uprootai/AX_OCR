@@ -13,6 +13,35 @@ export const knowledgeNodes: Record<string, NodeDefinition> = {
     color: '#9333ea',
     icon: 'Database',
     description: 'Neo4j 그래프DB + RAG 기반 도메인 지식 엔진. 유사 부품 검색, ISO/ASME 규격 검증, 비용 추정 지원.',
+    profiles: {
+      default: 'general',
+      available: [
+        {
+          name: 'general',
+          label: '일반',
+          description: 'Hybrid 검색 (GraphRAG + VectorRAG)',
+          params: { search_mode: 'hybrid', graph_weight: 0.6, top_k: 5, validate_standards: true, include_cost: true },
+        },
+        {
+          name: 'similarity',
+          label: '유사도 검색',
+          description: 'VectorRAG 기반 유사 부품 검색',
+          params: { search_mode: 'vector', top_k: 10, validate_standards: false, include_cost: true },
+        },
+        {
+          name: 'graph',
+          label: '그래프 검색',
+          description: 'GraphRAG 기반 관계 중심 검색',
+          params: { search_mode: 'graph', top_k: 5, validate_standards: true, include_cost: false },
+        },
+        {
+          name: 'validation',
+          label: '규격 검증',
+          description: 'ISO/ASME 규격 검증 전용',
+          params: { search_mode: 'graph', top_k: 3, validate_standards: true, include_cost: false },
+        },
+      ],
+    },
     inputs: [
       {
         name: 'ocr_results',

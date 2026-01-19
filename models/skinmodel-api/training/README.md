@@ -1,42 +1,31 @@
-# Skin Model Training
+# SkinModel Training Scripts
 
-기하공차 예측 ML 모델 학습 자료
+> SkinModel (공차 분석) 머신러닝 학습 스크립트
+> **최종 업데이트**: 2026-01-19
 
-## 📁 디렉토리 구조
+---
 
-```
-training/
-├── scripts/
-│   ├── implement_skinmodel_ml.py
-│   └── upgrade_skinmodel_xgboost.py
-└── README.md
-```
+## 스크립트 목록
 
-## 🚀 학습 방법
+| 파일 | 설명 |
+|------|------|
+| `implement_skinmodel_ml.py` | ToleranceMLTrainer 클래스 - ML 모델 학습 |
+| `upgrade_skinmodel_xgboost.py` | XGBoost 모델 업그레이드 |
 
-### 1. 기본 ML 모델 학습
+---
 
-```bash
-python training/scripts/implement_skinmodel_ml.py
-```
-
-### 2. XGBoost로 업그레이드
+## 사용법
 
 ```bash
-python training/scripts/upgrade_skinmodel_xgboost.py
+cd models/skinmodel-api/training/scripts
+
+# ML 모델 학습
+python implement_skinmodel_ml.py --data training_data/ --output models/
+
+# XGBoost 업그레이드
+python upgrade_skinmodel_xgboost.py --input models/ --output upgraded/
 ```
 
-### 3. 학습된 모델 배치
+---
 
-학습 완료 후 `.pkl` 파일들이 `models/` 디렉토리에 생성되어 API에서 사용됩니다.
-
-## 📊 모델 정보
-
-- **Flatness Predictor**: 평탄도 예측
-- **Cylindricity Predictor**: 원통도 예측
-- **Position Predictor**: 위치 공차 예측
-
-## 🔧 알고리즘
-
-- Random Forest (기본)
-- XGBoost (업그레이드)
+*최종 업데이트*: 2026-01-19

@@ -66,15 +66,15 @@ scrape_configs:
         target_label: instance
         replacement: 'paddleocr-api'
 
-  # EasyOCR API
-  - job_name: 'easyocr-api'
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['easyocr-api:5015']
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-        replacement: 'easyocr-api'
+  # EasyOCR API (현재 미실행 - 필요시 활성화)
+  # - job_name: 'easyocr-api'
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['easyocr-api:5015']
+  #   relabel_configs:
+  #     - source_labels: [__address__]
+  #       target_label: instance
+  #       replacement: 'easyocr-api'
 
   # Line Detector API
   - job_name: 'line-detector-api'
@@ -95,3 +95,73 @@ scrape_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'pid-analyzer-api'
+
+  # Design Checker API
+  - job_name: 'design-checker-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['design-checker-api:5019']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'design-checker-api'
+
+  # ESRGAN API
+  - job_name: 'esrgan-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['esrgan-api:5010']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'esrgan-api'
+
+  # EDGNet API
+  - job_name: 'edgnet-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['edgnet-api:5012']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'edgnet-api'
+
+  # Knowledge API
+  - job_name: 'knowledge-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['knowledge-api:5007']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'knowledge-api'
+
+  # PID Composer API
+  - job_name: 'pid-composer-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['pid-composer-api:5021']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'pid-composer-api'
+
+  # Skin Model API
+  - job_name: 'skinmodel-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['skinmodel-api:5003']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'skinmodel-api'
+
+  # Vision Language API
+  - job_name: 'vl-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['vl-api:5004']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'vl-api'

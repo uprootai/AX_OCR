@@ -4,7 +4,7 @@
  */
 
 // Types
-export type { NodeParameter, RecommendedInput, NodeDefinition } from './types';
+export type { NodeParameter, RecommendedInput, NodeDefinition, ProfileDefinition, ProfilesConfig } from './types';
 
 // Node definitions by category
 export { inputNodes } from './inputNodes';

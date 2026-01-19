@@ -4,7 +4,7 @@
  * BlueprintFlow NodeDefinition으로 변환
  */
 
-import type { NodeDefinition, NodeParameter, RecommendedInput } from '../config/nodeDefinitions';
+import type { NodeDefinition, NodeParameter, RecommendedInput, ProfilesConfig } from '../config/nodeDefinitions';
 
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8000';
 
@@ -74,6 +74,16 @@ export interface APISpec {
   };
   examples?: string[];
   usageTips?: string[];
+  /** 프로파일 기반 기본값 (MODEL_DEFAULTS 패턴) */
+  profiles?: {
+    default: string;
+    available: {
+      name: string;
+      label: string;
+      description: string;
+      params: Record<string, string | number | boolean>;
+    }[];
+  };
 }
 
 /**
@@ -109,6 +119,20 @@ export function specToNodeDefinition(spec: APISpec, lang: 'ko' | 'en' = 'ko'): N
     description: i18n.parameters?.[param.name] || param.description || '',
   }));
 
+  // 프로파일 변환
+  let profiles: ProfilesConfig | undefined;
+  if (spec.profiles) {
+    profiles = {
+      default: spec.profiles.default,
+      available: spec.profiles.available.map(p => ({
+        name: p.name,
+        label: p.label,
+        description: p.description,
+        params: p.params,
+      })),
+    };
+  }
+
   return {
     type: metadata.id,
     label: i18n.label || metadata.name,
@@ -130,6 +154,7 @@ export function specToNodeDefinition(spec: APISpec, lang: 'ko' | 'en' = 'ko'): N
     examples: spec.examples || [],
     usageTips: spec.usageTips,
     recommendedInputs: blueprintflow.recommendedInputs,
+    profiles,
   };
 }
 

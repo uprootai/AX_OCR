@@ -12,6 +12,7 @@ from models.schemas import (
     APIInfoResponse, ParameterSchema, IOSchema, BlueprintFlowMetadata
 )
 from services.ocr import get_ocr_service
+from services.svg_generator import ocr_to_svg_data
 from utils.helpers import image_to_numpy, draw_ocr_results
 
 logger = logging.getLogger(__name__)
@@ -29,12 +30,13 @@ async def get_api_info():
 
     Provides metadata for automatic API registration in BlueprintFlow and Dashboard.
     """
+    ocr_version = os.getenv("OCR_VERSION", "PP-OCRv4")
     return APIInfoResponse(
         id="paddleocr",
         name="PaddleOCR 3.0 API",
-        display_name="PaddleOCR PP-OCRv5",
+        display_name=f"PaddleOCR {ocr_version}",
         version="3.0.0",
-        description="PP-OCRv5: 13% improved accuracy, 106 language support",
+        description=f"{ocr_version}: 106 language support, CPU/GPU compatible",
         openapi_url="/openapi.json",
         base_url=f"http://localhost:{PORT}",
         endpoint="/api/v1/ocr",
@@ -60,6 +62,11 @@ async def get_api_info():
                 description="Total detected text count"
             ),
             IOSchema(
+                name="svg_overlay",
+                type="string",
+                description="SVG overlay for visualization (when include_svg=true)"
+            ),
+            IOSchema(
                 name="processing_time",
                 type="float",
                 description="Processing time (seconds)"
@@ -69,9 +76,9 @@ async def get_api_info():
             ParameterSchema(
                 name="ocr_version",
                 type="select",
-                default="PP-OCRv5",
-                options=["PP-OCRv5", "PP-OCRv4", "PP-OCRv3"],
-                description="OCR model version (PP-OCRv5 recommended)",
+                default="PP-OCRv4",
+                options=["PP-OCRv4", "PP-OCRv3"],
+                description="OCR model version (PP-OCRv4 for CPU compatibility)",
                 required=False
             ),
             ParameterSchema(
@@ -125,6 +132,13 @@ async def get_api_info():
                 default=False,
                 description="Generate OCR result visualization image",
                 required=False
+            ),
+            ParameterSchema(
+                name="include_svg",
+                type="boolean",
+                default=False,
+                description="Generate SVG overlay for frontend visualization",
+                required=False
             )
         ],
         blueprintflow=BlueprintFlowMetadata(
@@ -135,6 +149,7 @@ async def get_api_info():
         output_mappings={
             "detections": "detections",
             "total_texts": "total_texts",
+            "svg_overlay": "svg_overlay",
             "processing_time": "processing_time"
         }
     )
@@ -147,7 +162,8 @@ async def perform_ocr(
     det_db_box_thresh: float = Form(default=0.6, description="Box threshold (0-1)"),
     use_textline_orientation: bool = Form(default=True, description="Enable text line orientation classification"),
     min_confidence: float = Form(default=0.5, description="Minimum confidence filter (0-1)"),
-    visualize: bool = Form(default=False, description="Generate OCR result visualization image")
+    visualize: bool = Form(default=False, description="Generate OCR result visualization image"),
+    include_svg: bool = Form(default=False, description="Generate SVG overlay")
 ):
     """
     PaddleOCR 3.0 Text Recognition (PP-OCRv5)
@@ -175,6 +191,7 @@ async def perform_ocr(
         det_db_box_thresh = float(det_db_box_thresh) if isinstance(det_db_box_thresh, str) else det_db_box_thresh
         use_textline_orientation = use_textline_orientation if isinstance(use_textline_orientation, bool) else (use_textline_orientation.lower() == 'true' if isinstance(use_textline_orientation, str) else bool(use_textline_orientation))
         visualize = visualize if isinstance(visualize, bool) else (visualize.lower() == 'true' if isinstance(visualize, str) else bool(visualize))
+        include_svg = include_svg if isinstance(include_svg, bool) else (include_svg.lower() == 'true' if isinstance(include_svg, str) else bool(include_svg))
     except (ValueError, AttributeError) as e:
         raise HTTPException(status_code=400, detail=f"Invalid parameter type: {e}")
 
@@ -200,6 +217,31 @@ async def perform_ocr(
             visualized_image = draw_ocr_results(img_array, detections)
             logger.info("Visualization image generated")
 
+        # Generate SVG overlay if requested
+        svg_overlay = None
+        svg_minimal = None
+        if include_svg and detections:
+            try:
+                height, width = img_array.shape[:2]
+                image_size = (width, height)
+
+                # Convert detections to dict format for SVG generator
+                detection_dicts = []
+                for det in detections:
+                    if hasattr(det, 'model_dump'):
+                        detection_dicts.append(det.model_dump())
+                    elif hasattr(det, 'dict'):
+                        detection_dicts.append(det.dict())
+                    elif isinstance(det, dict):
+                        detection_dicts.append(det)
+
+                svg_data = ocr_to_svg_data(detection_dicts, image_size)
+                svg_overlay = svg_data["svg"]
+                svg_minimal = svg_data["svg_minimal"]
+                logger.info(f"SVG overlay generated: {svg_data['detection_count']} detections")
+            except Exception as e:
+                logger.warning(f"Failed to generate SVG overlay: {e}")
+
         # Metadata
         metadata = {
             "filename": file.filename,
@@ -221,7 +263,9 @@ async def perform_ocr(
             total_texts=len(detections),
             detections=detections,
             metadata=metadata,
-            visualized_image=visualized_image
+            visualized_image=visualized_image,
+            svg_overlay=svg_overlay,
+            svg_minimal=svg_minimal
         )
 
     except Exception as e:

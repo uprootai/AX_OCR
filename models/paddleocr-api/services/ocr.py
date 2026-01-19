@@ -1,6 +1,6 @@
 """
-PaddleOCR 3.0 Inference Service
-PP-OCRv5: 13% accuracy improvement, 106 languages support
+PaddleOCR 2.x Inference Service
+PP-OCRv4: CPU compatible, 80+ languages support
 """
 import os
 import logging
@@ -8,12 +8,12 @@ from typing import List, Optional, Any
 
 import numpy as np
 
-# PaddleOCR import
+# PaddleOCR 2.x import
 try:
     from paddleocr import PaddleOCR
 except ImportError:
     PaddleOCR = None
-    print("WARNING: PaddleOCR not installed. Install with: pip install paddleocr>=3.0.0")
+    print("WARNING: PaddleOCR not installed. Install with: pip install paddleocr==2.8.1")
 
 from models.schemas import TextDetection
 from utils.helpers import bbox_to_position
@@ -22,32 +22,27 @@ logger = logging.getLogger(__name__)
 
 
 class PaddleOCRService:
-    """PaddleOCR 3.0 inference service with PP-OCRv5"""
+    """PaddleOCR 2.x inference service with PP-OCRv4"""
 
     def __init__(self):
         """Initialize PaddleOCR service"""
         self.model: Optional[Any] = None
         self.lang = os.getenv("OCR_LANG", "en")
-        self.ocr_version = os.getenv("OCR_VERSION", "PP-OCRv5")
+        self.ocr_version = os.getenv("OCR_VERSION", "PP-OCRv4")
 
         # Device configuration
-        device = os.getenv("DEVICE", "cpu")
-        if os.getenv("USE_GPU", "false").lower() == "true":
-            device = "gpu:0"
-        self.device = device
+        self.use_gpu = os.getenv("USE_GPU", "false").lower() == "true"
 
         # Processing options
-        self.use_doc_orientation = os.getenv("USE_DOC_ORIENTATION", "false").lower() == "true"
-        self.use_doc_unwarping = os.getenv("USE_DOC_UNWARPING", "false").lower() == "true"
-        self.use_textline_orientation = os.getenv("USE_TEXTLINE_ORIENTATION", "true").lower() == "true"
+        self.use_angle_cls = os.getenv("USE_ANGLE_CLS", "true").lower() == "true"
 
         # Detection thresholds
-        self.text_det_thresh = float(os.getenv("TEXT_DET_THRESH", "0.3"))
-        self.text_det_box_thresh = float(os.getenv("TEXT_DET_BOX_THRESH", "0.6"))
+        self.det_db_thresh = float(os.getenv("TEXT_DET_THRESH", "0.3"))
+        self.det_db_box_thresh = float(os.getenv("TEXT_DET_BOX_THRESH", "0.6"))
 
     def load_model(self) -> bool:
         """
-        Load PaddleOCR 3.0 model (PP-OCRv5)
+        Load PaddleOCR 2.x model (PP-OCRv4)
 
         Returns:
             True if model loaded successfully, False otherwise
@@ -57,26 +52,24 @@ class PaddleOCRService:
             return False
 
         try:
-            logger.info(f"Initializing PaddleOCR 3.0 with:")
+            logger.info(f"Initializing PaddleOCR 2.x with:")
             logger.info(f"  - OCR Version: {self.ocr_version}")
             logger.info(f"  - Language: {self.lang}")
-            logger.info(f"  - Device: {self.device}")
-            logger.info(f"  - Text Line Orientation: {self.use_textline_orientation}")
+            logger.info(f"  - Use GPU: {self.use_gpu}")
+            logger.info(f"  - Use Angle Classification: {self.use_angle_cls}")
 
-            # PaddleOCR 3.0 initialization
+            # PaddleOCR 2.x initialization
             self.model = PaddleOCR(
-                ocr_version=self.ocr_version,
+                use_angle_cls=self.use_angle_cls,
                 lang=self.lang,
-                device=self.device,
-                use_doc_orientation_classify=self.use_doc_orientation,
-                use_doc_unwarping=self.use_doc_unwarping,
-                use_textline_orientation=self.use_textline_orientation,
-                text_det_thresh=self.text_det_thresh,
-                text_det_box_thresh=self.text_det_box_thresh,
-                text_recognition_batch_size=6,
+                use_gpu=self.use_gpu,
+                det_db_thresh=self.det_db_thresh,
+                det_db_box_thresh=self.det_db_box_thresh,
+                show_log=False,  # Disable verbose logging
+                ocr_version=self.ocr_version,
             )
 
-            logger.info("PaddleOCR 3.0 (PP-OCRv5) model initialized successfully")
+            logger.info(f"PaddleOCR 2.x ({self.ocr_version}) model initialized successfully")
             return True
 
         except Exception as e:
@@ -89,7 +82,7 @@ class PaddleOCRService:
         min_confidence: float = 0.5
     ) -> List[TextDetection]:
         """
-        Run OCR inference on image using PP-OCRv5
+        Run OCR inference on image using PP-OCRv4
 
         Args:
             img_array: Image as numpy array (BGR format)
@@ -101,32 +94,34 @@ class PaddleOCRService:
         if self.model is None:
             raise RuntimeError("PaddleOCR model not loaded")
 
-        # PaddleOCR 3.0 uses predict() method
-        # Returns list of OCRResult objects
-        results = self.model.predict(img_array)
+        # PaddleOCR 2.x uses ocr() method
+        # Returns list of results for each image
+        results = self.model.ocr(img_array, cls=self.use_angle_cls)
 
         logger.info(f"PaddleOCR results: {len(results) if results else 0} pages")
 
         detections = []
 
         if results and len(results) > 0:
-            # Each result is an OCRResult object for a page
-            for ocr_result in results:
-                detections.extend(self._parse_ocr_result(ocr_result, min_confidence))
+            # Each result is a list of (bbox, (text, confidence)) for a page
+            for page_result in results:
+                if page_result is None:
+                    continue
+                detections.extend(self._parse_ocr_result(page_result, min_confidence))
 
         logger.info(f"Total detections after filtering: {len(detections)}")
         return detections
 
     def _parse_ocr_result(
         self,
-        ocr_result: Any,
+        page_result: List,
         min_confidence: float
     ) -> List[TextDetection]:
         """
-        Parse PaddleOCR 3.0 OCRResult object
+        Parse PaddleOCR 2.x result
 
         Args:
-            ocr_result: OCRResult object from PaddleOCR 3.0
+            page_result: List of (bbox, (text, confidence)) tuples
             min_confidence: Minimum confidence threshold
 
         Returns:
@@ -134,45 +129,32 @@ class PaddleOCRService:
         """
         detections = []
 
-        # Try different attribute access patterns for 3.x compatibility
         try:
-            # Method 1: Direct attribute access (3.0+ preferred)
-            if hasattr(ocr_result, 'rec_texts'):
-                rec_texts = ocr_result.rec_texts
-                rec_scores = ocr_result.rec_scores
-                rec_polys = getattr(ocr_result, 'rec_polys', None) or getattr(ocr_result, 'dt_polys', [])
-            # Method 2: Dict-like access
-            elif hasattr(ocr_result, 'get'):
-                rec_texts = ocr_result.get('rec_texts', [])
-                rec_scores = ocr_result.get('rec_scores', [])
-                rec_polys = ocr_result.get('rec_polys', ocr_result.get('dt_polys', []))
-            # Method 3: Try __getitem__
-            elif hasattr(ocr_result, '__getitem__'):
-                rec_texts = ocr_result['rec_texts']
-                rec_scores = ocr_result['rec_scores']
-                rec_polys = ocr_result.get('rec_polys', ocr_result.get('dt_polys', []))
-            else:
-                logger.warning(f"Unknown OCRResult format: {type(ocr_result)}")
-                return []
+            for item in page_result:
+                if item is None or len(item) < 2:
+                    continue
 
-            logger.debug(f"Parsing {len(rec_texts)} text regions")
+                bbox_points = item[0]  # [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+                text_info = item[1]    # (text, confidence)
 
-            for i, (text, score) in enumerate(zip(rec_texts, rec_scores)):
-                confidence = float(score)
+                if text_info is None or len(text_info) < 2:
+                    continue
+
+                text = str(text_info[0])
+                confidence = float(text_info[1])
+
                 if confidence < min_confidence:
                     continue
 
-                # Get polygon if available
-                poly = rec_polys[i] if i < len(rec_polys) else None
-                bbox = self._normalize_bbox(poly)
-
+                # Normalize bbox
+                bbox = self._normalize_bbox(bbox_points)
                 if bbox is None:
                     continue
 
                 position = bbox_to_position(bbox)
 
                 detection = TextDetection(
-                    text=str(text),
+                    text=text,
                     confidence=confidence,
                     bbox=bbox,
                     position=position
@@ -222,15 +204,13 @@ class PaddleOCRService:
     def get_info(self) -> dict:
         """Get service information"""
         return {
-            "version": "3.0.0",
+            "version": "2.8.1",
             "ocr_version": self.ocr_version,
             "lang": self.lang,
-            "device": self.device,
+            "use_gpu": self.use_gpu,
             "model_loaded": self.model is not None,
             "features": {
-                "doc_orientation": self.use_doc_orientation,
-                "doc_unwarping": self.use_doc_unwarping,
-                "textline_orientation": self.use_textline_orientation
+                "angle_cls": self.use_angle_cls,
             }
         }
 

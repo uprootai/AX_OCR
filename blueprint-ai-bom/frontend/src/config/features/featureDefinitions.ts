@@ -492,6 +492,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     badgeTextClass: 'text-yellow-700 dark:text-yellow-300',
     implementationStatus: 'implemented',
     implementationLocation: 'longterm_router.py + vlm_classifier.py (GPT-4o-mini/OpenAI)',
+    isPrimary: true,
   },
 };
 

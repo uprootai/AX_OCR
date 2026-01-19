@@ -1,7 +1,11 @@
 /**
  * PIDOverlayPage - P&ID 오버레이 테스트 페이지
  *
- * P&ID 도면의 심볼, 라인, 텍스트, 영역을 시각화하는 페이지입니다.
+ * P&ID 도면의 심볼을 검출하여 시각화하는 페이지입니다.
+ * Design Checker API의 pipeline/detect 엔드포인트를 사용합니다.
+ *
+ * Note: 전체 레이어(심볼+라인+텍스트+영역)가 필요한 경우
+ * BlueprintFlow를 사용하세요.
  */
 
 import { useState } from 'react';
@@ -19,9 +23,12 @@ export function PIDOverlayPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">P&ID 오버레이 뷰어</h1>
+        <h1 className="text-2xl font-bold mb-2">P&ID 심볼 검출 뷰어</h1>
         <p className="text-gray-600 dark:text-gray-400">
-          P&ID 도면을 업로드하면 심볼, 라인, 텍스트, 영역을 자동으로 검출하여 시각화합니다.
+          P&ID 도면을 업로드하면 YOLO를 통해 심볼을 자동으로 검출하여 시각화합니다.
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+          💡 전체 분석(심볼+라인+텍스트+영역)은 <a href="/blueprintflow" className="text-blue-500 hover:underline">BlueprintFlow</a>를 사용하세요.
         </p>
       </div>
 
@@ -43,7 +50,7 @@ export function PIDOverlayPage() {
 
       {/* Main viewer */}
       <PIDOverlayViewer
-        gatewayUrl="http://localhost:8000"
+        apiUrl="http://localhost:5019"
         onOverlayGenerated={(data) => {
           setLastResult({
             symbols: data.statistics.symbols_count,
@@ -86,16 +93,15 @@ export function PIDOverlayPage() {
       <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <h3 className="text-sm font-semibold mb-2">API 엔드포인트</h3>
         <code className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">
-          POST http://localhost:8000/api/v1/pid-overlay/generate
+          POST http://localhost:5019/api/v1/pipeline/detect
         </code>
         <div className="mt-3 text-xs text-gray-500">
-          <p className="font-semibold">레이어 옵션:</p>
+          <p className="font-semibold">파라미터:</p>
           <ul className="list-disc list-inside mt-1">
-            <li><code>symbols</code> - YOLO로 검출된 P&ID 심볼</li>
-            <li><code>lines</code> - 배관/신호 라인</li>
-            <li><code>texts</code> - OCR로 검출된 텍스트</li>
-            <li><code>regions</code> - 점선 박스 영역</li>
-            <li><code>all</code> - 모든 레이어</li>
+            <li><code>model_type</code> - YOLO 모델 타입 (pid_class_aware)</li>
+            <li><code>confidence</code> - 검출 신뢰도 임계값</li>
+            <li><code>use_sahi</code> - SAHI 슬라이싱 사용</li>
+            <li><code>visualize</code> - 시각화 이미지 생성</li>
           </ul>
         </div>
       </div>

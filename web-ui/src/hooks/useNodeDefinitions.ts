@@ -99,12 +99,25 @@ export function useNodeDefinitions(
     }
   }, [refreshInterval, enableDynamicSpecs, loadDynamicSpecs]);
 
-  // 정적 + 동적 병합 (정적이 우선)
+  // 정적 + 동적 병합 (정적 기본, 동적 profiles 추가)
   const definitions = useMemo(() => {
-    return {
-      ...dynamicDefs,
-      ...nodeDefinitions, // 정적 정의가 우선
-    };
+    const merged: Record<string, NodeDefinition> = { ...nodeDefinitions };
+
+    // 동적 스펙에서 profiles 등 추가 필드 병합
+    for (const [key, dynamicDef] of Object.entries(dynamicDefs)) {
+      if (merged[key]) {
+        // 정적 정의가 있으면 profiles만 추가
+        merged[key] = {
+          ...merged[key],
+          profiles: dynamicDef.profiles || merged[key].profiles,
+        };
+      } else {
+        // 정적 정의가 없으면 동적 정의 사용
+        merged[key] = dynamicDef;
+      }
+    }
+
+    return merged;
   }, [dynamicDefs]);
 
   // 카테고리별 그룹화

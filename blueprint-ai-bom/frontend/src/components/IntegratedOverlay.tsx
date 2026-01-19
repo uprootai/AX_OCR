@@ -1,11 +1,67 @@
 /**
  * IntegratedOverlay - 통합 시각화 컴포넌트
- * 심볼, 선, 치수, 텍스트를 한 화면에 레이어로 표시하고 제어
+ * 심볼, 선, 치수, 텍스트, 마스크, 폴리곤을 한 화면에 레이어로 표시하고 제어
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import type { Detection } from '../types';
+import type { Detection, MaskRLE } from '../types';
+
+/**
+ * RLE (Run-Length Encoding) 마스크 디코딩
+ * Detectron2 COCO RLE 형식을 이진 마스크로 변환
+ */
+function decodeRLE(rle: MaskRLE): Uint8Array {
+    const [height, width] = rle.size;
+    const mask = new Uint8Array(height * width);
+
+    let position = 0;
+    let value = 0; // 0으로 시작 (COCO RLE 형식)
+
+    for (const count of rle.counts) {
+        for (let i = 0; i < count; i++) {
+            if (position < mask.length) {
+                mask[position++] = value;
+            }
+        }
+        value = 1 - value; // 0과 1을 번갈아 설정
+    }
+
+    return mask;
+}
+
+/**
+ * Canvas에 마스크 렌더링
+ */
+function renderMaskToCanvas(
+    ctx: CanvasRenderingContext2D,
+    mask: MaskRLE,
+    color: string,
+    opacity: number = 0.4
+) {
+    const [height, width] = mask.size;
+    const decoded = decodeRLE(mask);
+
+    // 색상 파싱 (hex to RGB)
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    const a = Math.round(opacity * 255);
+
+    const imageData = ctx.createImageData(width, height);
+
+    for (let i = 0; i < decoded.length; i++) {
+        if (decoded[i] === 1) {
+            const idx = i * 4;
+            imageData.data[idx] = r;
+            imageData.data[idx + 1] = g;
+            imageData.data[idx + 2] = b;
+            imageData.data[idx + 3] = a;
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+}
 
 interface Point {
     x: number;
@@ -60,6 +116,8 @@ interface LayerVisibility {
     dimensions: boolean;
     links: boolean;
     labels: boolean;
+    masks: boolean;      // Detectron2 마스크
+    polygons: boolean;   // Detectron2 폴리곤
 }
 
 export function IntegratedOverlay({
@@ -79,7 +137,55 @@ export function IntegratedOverlay({
         dimensions: true,
         links: true,
         labels: true,
+        masks: true,      // Detectron2 마스크
+        polygons: true,   // Detectron2 폴리곤
     });
+
+    // Canvas refs for mask rendering
+    const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+
+    // Detectron2 데이터 확인
+    const hasPolygons = detections.some(d => d.polygons && d.polygons.length > 0);
+    const hasMasks = detections.some(d => d.mask && d.mask.counts && d.mask.counts.length > 0);
+
+    // 마스크 색상 (클래스별 고유 색상)
+    const getMaskColor = useCallback((index: number): string => {
+        const colors = [
+            '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e',
+            '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
+            '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
+        ];
+        return colors[index % colors.length];
+    }, []);
+
+    // 폴리곤 좌표를 SVG points 문자열로 변환
+    const polygonToPoints = useCallback((polygon: number[][]): string => {
+        return polygon.map(([x, y]) => `${x},${y}`).join(' ');
+    }, []);
+
+    // 마스크 렌더링 (Canvas)
+    useEffect(() => {
+        if (!visibility.masks || !hasMasks || !maskCanvasRef.current) return;
+
+        const canvas = maskCanvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Canvas 크기 설정
+        canvas.width = imageSize.width;
+        canvas.height = imageSize.height;
+
+        // 기존 내용 지우기
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 각 검출의 마스크 렌더링
+        detections.forEach((det, idx) => {
+            if (det.mask && det.mask.counts && det.mask.counts.length > 0) {
+                const color = getMaskColor(idx);
+                renderMaskToCanvas(ctx, det.mask, color, 0.4);
+            }
+        });
+    }, [visibility.masks, hasMasks, detections, imageSize, getMaskColor]);
 
 
 
@@ -167,6 +273,42 @@ export function IntegratedOverlay({
                     {visibility.links ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                 </button>
 
+                {/* Detectron2 마스크/폴리곤 토글 */}
+                {(hasPolygons || hasMasks) && (
+                    <>
+                        <div className="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+                        <div className="text-xs font-semibold text-gray-500 px-2">Detectron2</div>
+
+                        {hasMasks && (
+                            <button
+                                onClick={() => toggleLayer('masks')}
+                                className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded text-xs ${visibility.masks ? 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                            >
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                                    마스크
+                                </span>
+                                {visibility.masks ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                            </button>
+                        )}
+
+                        {hasPolygons && (
+                            <button
+                                onClick={() => toggleLayer('polygons')}
+                                className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded text-xs ${visibility.polygons ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                            >
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
+                                    폴리곤
+                                </span>
+                                {visibility.polygons ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                            </button>
+                        )}
+                    </>
+                )}
+
                 <div className="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
 
                 <button
@@ -179,7 +321,7 @@ export function IntegratedOverlay({
                 </button>
             </div>
 
-            {/* 메인 뷰포트 (이미지 + SVG 오버레이) */}
+            {/* 메인 뷰포트 (이미지 + Canvas + SVG 오버레이) */}
             <div className="relative w-full h-full">
                 {/* 이미지 */}
                 <img
@@ -188,6 +330,15 @@ export function IntegratedOverlay({
                     className="w-full h-auto block select-none"
                     draggable={false}
                 />
+
+                {/* Canvas 레이어 (Detectron2 마스크) */}
+                {hasMasks && visibility.masks && (
+                    <canvas
+                        ref={maskCanvasRef}
+                        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                        style={{ mixBlendMode: 'multiply' }}
+                    />
+                )}
 
                 {/* SVG 레이어 */}
                 <svg
@@ -236,8 +387,27 @@ export function IntegratedOverlay({
                         />
                     ))}
 
-                    {/* C. 심볼 (Symbols) */}
-                    {visibility.symbols && detections.map((det) => (
+                    {/* C. 폴리곤 (Detectron2 Polygons) - 심볼 아래 */}
+                    {visibility.polygons && hasPolygons && detections.map((det, idx) => (
+                        det.polygons && det.polygons.length > 0 && (
+                            <g key={`poly-${det.id}`}>
+                                {det.polygons.map((polygon, polyIdx) => (
+                                    <polygon
+                                        key={`poly-${det.id}-${polyIdx}`}
+                                        points={polygonToPoints(polygon)}
+                                        fill={getMaskColor(idx)}
+                                        fillOpacity={0.25}
+                                        stroke={getMaskColor(idx)}
+                                        strokeWidth={2}
+                                        strokeLinejoin="round"
+                                    />
+                                ))}
+                            </g>
+                        )
+                    ))}
+
+                    {/* D. 심볼 (Symbols) */}
+                    {visibility.symbols && detections.map((det, idx) => (
                         <g key={`sym-${det.id}`}>
                             <rect
                                 x={det.bbox.x1}
@@ -245,14 +415,14 @@ export function IntegratedOverlay({
                                 width={det.bbox.x2 - det.bbox.x1}
                                 height={det.bbox.y2 - det.bbox.y1}
                                 fill="none"
-                                stroke={COLORS.symbol}
+                                stroke={det.polygons && det.polygons.length > 0 ? getMaskColor(idx) : COLORS.symbol}
                                 strokeWidth={2}
                             />
                             {visibility.labels && (
                                 <text
                                     x={det.bbox.x1}
                                     y={det.bbox.y1 - 5}
-                                    fill={COLORS.symbol}
+                                    fill={det.polygons && det.polygons.length > 0 ? getMaskColor(idx) : COLORS.symbol}
                                     fontSize={14}
                                     fontWeight="bold"
                                 >

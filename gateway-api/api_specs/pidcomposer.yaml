@@ -1,0 +1,156 @@
+# PID Composer API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: pidcomposer
+  name: PID Composer
+  version: 1.0.0
+  port: 5021
+  host: pid-composer-api
+  description: P&ID 도면에 심볼, 라인, 텍스트, 영역 레이어를 합성하여 시각화합니다.
+  author: AX Team
+  tags:
+    - visualization
+    - overlay
+    - composition
+    - svg
+    - pid
+
+server:
+  endpoint: /api/v1/compose
+  method: POST
+  contentType: application/json
+  timeout: 30
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#8b5cf6"
+  icon: Layers
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 원본 P&ID 이미지
+  - name: symbols
+    type: array
+    required: false
+    description: 심볼 레이어 데이터
+  - name: lines
+    type: array
+    required: false
+    description: 라인 레이어 데이터
+  - name: texts
+    type: array
+    required: false
+    description: 텍스트 레이어 데이터
+  - name: regions
+    type: array
+    required: false
+    description: 영역 레이어 데이터
+
+outputs:
+  - name: composed_image
+    type: Image
+    description: 합성된 이미지
+  - name: svg_overlay
+    type: string
+    description: SVG 오버레이 (프론트엔드용)
+  - name: statistics
+    type: object
+    description: 합성 통계
+
+parameters:
+  - name: enabled_layers
+    type: multiselect
+    options:
+      - symbols
+      - lines
+      - texts
+      - regions
+    default: ["symbols", "lines", "texts", "regions"]
+    description: 활성화할 레이어
+  - name: output_format
+    type: select
+    options:
+      - png
+      - jpg
+      - webp
+    default: png
+    description: 출력 이미지 형식
+  - name: include_svg
+    type: boolean
+    default: true
+    description: SVG 오버레이 포함
+  - name: include_legend
+    type: boolean
+    default: false
+    description: 범례 포함
+  - name: symbol_color
+    type: color
+    default: "#FF7800"
+    description: 심볼 색상
+  - name: symbol_thickness
+    type: slider
+    default: 2
+    min: 1
+    max: 10
+    description: 심볼 테두리 두께
+  - name: symbol_fill_alpha
+    type: slider
+    default: 0.1
+    min: 0
+    max: 1
+    step: 0.05
+    description: 심볼 채우기 투명도
+  - name: show_symbol_labels
+    type: boolean
+    default: true
+    description: 심볼 라벨 표시
+  - name: line_thickness
+    type: slider
+    default: 2
+    min: 1
+    max: 10
+    description: 라인 두께
+  - name: show_flow_arrows
+    type: boolean
+    default: false
+    description: 플로우 화살표 표시
+  - name: text_color
+    type: color
+    default: "#FFA500"
+    description: 텍스트 색상
+  - name: show_text_values
+    type: boolean
+    default: true
+    description: 텍스트 값 표시
+  - name: region_fill_alpha
+    type: slider
+    default: 0.15
+    min: 0
+    max: 0.5
+    step: 0.05
+    description: 영역 채우기 투명도
+  - name: show_region_labels
+    type: boolean
+    default: true
+    description: 영역 라벨 표시
+
+i18n:
+  ko:
+    label: PID Composer
+    description: P&ID 도면에 레이어를 합성하여 시각화합니다
+  en:
+    label: PID Composer
+    description: Compose layers onto P&ID diagrams for visualization
+
+resources:
+  cpu:
+    ram: "~500MB"
+    minRam: 256
+    cores: 1
+    note: 경량 서비스, OpenCV만 사용

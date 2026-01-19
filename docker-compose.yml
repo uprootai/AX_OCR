@@ -175,9 +175,12 @@ services:
       - ./models/paddleocr-api/results:/tmp/paddleocr-api/results
     environment:
       - PADDLEOCR_PORT=5006
-      - USE_GPU=true
+      - USE_GPU=false
       - USE_ANGLE_CLS=true
       - OCR_LANG=en
+      - OCR_VERSION=PP-OCRv4
+      - FLAGS_use_mkldnn=0
+      - MKLDNN_DISABLE=1
       - PYTHONUNBUFFERED=1
     networks:
       - ax_poc_network
@@ -223,7 +226,6 @@ services:
       - ./models/yolo-api/models:/app/admin_models/yolo:ro
       - ./models/skinmodel-api/models:/app/admin_models/skinmodel:ro
       - ./models/edgnet-api/models:/app/admin_models/edgnet:ro
-      - ./models/edocr2-api/models:/app/admin_models/edocr2:ro
       - ./models/edocr2-v2-api/models:/app/admin_models/edocr2-v2:ro
     environment:
       - GATEWAY_PORT=8000

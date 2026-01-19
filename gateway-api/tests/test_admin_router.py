@@ -57,11 +57,10 @@ class TestModelDirs:
         assert "container" in MODEL_DIRS["yolo"]
         assert "host" in MODEL_DIRS["yolo"]
 
-    def test_model_dirs_has_edocr2(self):
-        """edocr2 모델 경로 확인"""
+    def test_model_dirs_has_edocr2_v2(self):
+        """edocr2-v2 모델 경로 확인 (edocr2는 deprecated)"""
         from routers.admin_router import MODEL_DIRS
 
-        assert "edocr2" in MODEL_DIRS
         assert "edocr2-v2" in MODEL_DIRS
 
     def test_model_dirs_has_edgnet(self):

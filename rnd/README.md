@@ -1,6 +1,6 @@
 # AX POC - R&D (Research & Development)
 
-> **최종 업데이트**: 2025-12-31
+> **최종 업데이트**: 2026-01-19
 > **목적**: 프로젝트 관련 연구 개발, SOTA 논문 수집, 실험 및 벤치마크 관리
 
 ---
@@ -67,13 +67,13 @@ rnd/
 | YOLOv11 아키텍처 | YOLO (5005) | ✅ 적용됨 |
 | PaddleOCR 3.0 업그레이드 | PaddleOCR (5006) | ✅ 완료 |
 | LLaVA-CoT 단계별 추론 | VL (5004) | ✅ 완료 |
-| **DocLayout-YOLO 테스트** | Layout Analysis | ✅ 완료 (4GB VRAM, 40ms/img) |
+| DocLayout-YOLO 테스트 | Layout Analysis | ✅ 완료 (4GB VRAM, 40ms/img) |
+| **PID2Graph Fine-tuning** | YOLO (5005) | ✅ 완료 (mAP50: 68.5%, Recall: 66.0%) |
 
 ### 실현 가능 (P1)
 | 연구 주제 | GPU 요구 | 상태 |
 |-----------|----------|------|
 | DocLayout-YOLO Fine-tuning | ~2-4GB | 📋 도면 전용 클래스 학습 필요 |
-| PID2Graph 벤치마크 | 없음 | 📋 진행 가능 |
 | PP-StructureV3 | ~1-2GB | 📋 진행 가능 |
 
 ### 대기
@@ -122,7 +122,7 @@ rnd/
 
 | 데이터셋 | 출처 | 용도 | 수집 상태 |
 |----------|------|------|----------|
-| PID2Graph | arXiv 2411.13929 | P&ID 학습 | 📋 계획 |
+| PID2Graph | arXiv 2411.13929 | P&ID 학습 | ✅ 완료 (9.3GB, 1000장 학습) |
 | DocLayNet | arXiv 2206.01062 | 레이아웃 학습 | 📋 계획 |
 | TECHCROSS 도면 | 고객 제공 | BWMS 특화 | ✅ 일부 확보 |
 | 기계 도면 (사내) | 기존 데이터 | GD&T 학습 | 📋 계획 |
@@ -142,6 +142,7 @@ rnd/
 
 | 날짜 | 변경 내용 |
 |------|----------|
+| 2026-01-19 | **PID2Graph Fine-tuning 완료**: YOLOv11n 기반, 1000장 학습, mAP50 68.5%, Recall 66.0% (기존 11.5% → 66.0%) |
 | 2025-12-31 (v3) | **DocLayout-YOLO 테스트 완료**: 4GB VRAM, 40ms 추론 속도, 기계도면/P&ID 6개 이미지 테스트, Fine-tuning 필요성 확인 |
 | 2025-12-31 (v2) | **SOTA 심층 조사**: 49개 논문 수집 (14개 신규), YOLOv12/Qwen3-VL/DocLayout-YOLO 등 차기 업그레이드 후보 발견 |
 | 2025-12-31 | VL API v1.1.0: LLaVA-CoT 스타일 다단계 추론 추가, SOTA 부합도 80% → 81% |

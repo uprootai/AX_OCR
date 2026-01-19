@@ -1,8 +1,8 @@
 # AX 도면 분석 시스템 - 설치 가이드
 
 > 온프레미스 납품용 설치 및 운영 매뉴얼
-> 버전: 1.0.0
-> 작성일: 2025-11-13
+> 버전: 1.1.0
+> 작성일: 2026-01-17
 
 ---
 
@@ -216,7 +216,7 @@ NODE_ENV=production
 WEB_UI_PORT=5173
 GATEWAY_API_PORT=8000
 YOLO_API_PORT=5005
-EDOCR2_API_PORT=5001
+EDOCR2_API_PORT=5002
 EDGNET_API_PORT=5012
 PADDLE_API_PORT=5006
 SKINMODEL_API_PORT=5003
@@ -546,5 +546,5 @@ LOG_LEVEL=warn
 
 ---
 
-**AX 도면 분석 시스템 v1.0.0**
-© 2025 All Rights Reserved
+**AX 도면 분석 시스템 v1.1.0**
+© 2026 All Rights Reserved

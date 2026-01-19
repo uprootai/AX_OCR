@@ -14,6 +14,12 @@ class VerificationStatus(str, Enum):
     MANUAL = "manual"
 
 
+class DetectionBackend(str, Enum):
+    """검출 백엔드"""
+    YOLO = "yolo"
+    DETECTRON2 = "detectron2"
+
+
 class DetectionConfig(BaseModel):
     """검출 설정 - 모델별 최적화 값"""
     confidence: float = Field(default=0.40, ge=0.05, le=1.0, description="신뢰도 임계값")
@@ -25,6 +31,20 @@ class DetectionConfig(BaseModel):
     )
     use_sahi: bool = Field(default=False, description="P&ID용 SAHI 슬라이싱 활성화")
     device: Optional[str] = Field(default=None, description="디바이스 (cuda/cpu)")
+
+    # Detectron2 통합 옵션
+    backend: DetectionBackend = Field(
+        default=DetectionBackend.YOLO,
+        description="검출 백엔드 (yolo: 빠른 검출, detectron2: 마스킹 포함)"
+    )
+    return_masks: bool = Field(
+        default=False,
+        description="마스크 반환 여부 (detectron2 전용, RLE 인코딩)"
+    )
+    return_polygons: bool = Field(
+        default=True,
+        description="폴리곤 반환 여부 (detectron2 전용, SVG/Canvas용 윤곽선)"
+    )
 
 
 class BoundingBox(BaseModel):
@@ -45,6 +65,12 @@ class BoundingBox(BaseModel):
     @property
     def center(self) -> tuple:
         return ((self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2)
+
+
+class MaskRLE(BaseModel):
+    """RLE 인코딩된 마스크"""
+    size: List[int] = Field(description="마스크 크기 [height, width]")
+    counts: List[int] = Field(description="RLE 카운트")
 
 
 class Detection(BaseModel):
@@ -68,6 +94,16 @@ class Detection(BaseModel):
     modified_bbox: Optional[BoundingBox] = Field(
         default=None,
         description="수정된 바운딩 박스"
+    )
+
+    # Detectron2 마스킹 결과 (선택적)
+    mask: Optional[MaskRLE] = Field(
+        default=None,
+        description="RLE 인코딩된 인스턴스 마스크 (detectron2)"
+    )
+    polygons: Optional[List[List[List[float]]]] = Field(
+        default=None,
+        description="윤곽선 폴리곤 좌표 (detectron2, SVG/Canvas용)"
     )
 
 

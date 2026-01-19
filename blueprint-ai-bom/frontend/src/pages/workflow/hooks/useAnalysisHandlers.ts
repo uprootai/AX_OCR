@@ -19,6 +19,10 @@ interface AnalysisOptionsData {
   confidence_threshold: number;
   symbol_model_type: string;
   preset: string | null;
+  // Detectron2 옵션
+  detection_backend: 'yolo' | 'detectron2';
+  return_masks: boolean;
+  return_polygons: boolean;
 }
 
 interface LineData {

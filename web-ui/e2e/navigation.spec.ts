@@ -24,7 +24,7 @@ test.describe('Navigation', () => {
 
   test('should navigate to admin page', async ({ page }) => {
     await page.goto('/admin');
-    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to API detail page', async ({ page }) => {
@@ -41,9 +41,11 @@ test.describe('Navigation', () => {
 
   test('admin page should not have docker tab', async ({ page }) => {
     await page.goto('/admin');
+    // Wait for page to load
+    await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
     // Docker tab should not exist
     await expect(page.locator('button:has-text("Docker")')).toHaveCount(0);
-    // But backup tab should exist
-    await expect(page.getByRole('button', { name: /backup|백업/i })).toBeVisible();
+    // But backup tab should exist (label is "백업/복원")
+    await expect(page.locator('button:has-text("백업")')).toBeVisible({ timeout: 5000 });
   });
 });

@@ -62,9 +62,9 @@ export function useContainerStatus({ onExecute, onShowToast }: UseContainerStatu
         clearTimeout(timeoutId);
         throw fetchError;
       }
-    } catch (error) {
-      console.error('Failed to check container status:', error);
-      return []; // Continue execution if check fails (타임아웃 포함)
+    } catch {
+      // 컨테이너 상태 확인 실패 시 조용히 실행 계속 (타임아웃 포함)
+      return [];
     }
   }, []);
 
@@ -82,8 +82,7 @@ export function useContainerStatus({ onExecute, onShowToast }: UseContainerStatu
       setContainerWarningModal({ isOpen: false, stoppedContainers: [], isStarting: false });
       // Execute workflow after starting containers
       await onExecute();
-    } catch (error) {
-      console.error('Failed to start containers:', error);
+    } catch {
       onShowToast?.('✗ 컨테이너 시작 실패. Dashboard에서 수동으로 시작해주세요.', 'error');
       setContainerWarningModal({ isOpen: false, stoppedContainers: [], isStarting: false });
     }
@@ -125,10 +124,10 @@ export function useContainerStatus({ onExecute, onShowToast }: UseContainerStatu
 
       // 워크플로우 실행 (비동기, 완료를 기다리지 않음)
       onExecute().catch(error => {
-        console.error('Workflow execution failed:', error);
+        const errorMsg = error instanceof Error ? error.message : '알 수 없는 오류';
+        onShowToast?.(`✗ 워크플로우 실행 실패: ${errorMsg}`, 'error');
       });
-    } catch (error) {
-      console.error('Container check failed:', error);
+    } catch {
       setIsCheckingContainers(false);
     }
   }, [checkContainerStatus, onExecute, onShowToast]);

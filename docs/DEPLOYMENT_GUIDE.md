@@ -1,31 +1,69 @@
-# 🚀 API Deployment Guide
+# API 배포 가이드
 
-> **개별 API 배포 및 전달 가이드**
+> 개별 API 배포 및 Docker 이미지 전달 가이드
+> **버전**: 2.0.0
+> **최종 수정**: 2026-01-17
 
 ---
 
-## 📦 프로젝트 구조
+## 프로젝트 구조
 
 ```
 /home/uproot/ax/poc/
 ├── docker-compose.yml      # 전체 시스템 통합
 ├── gateway-api/            # Gateway (오케스트레이터)
 ├── web-ui/                 # 프론트엔드
-└── models/                 # 🎯 모든 추론 API
-    ├── yolo-api/
-    ├── edocr2-api/
-    ├── edocr2-v2-api/
-    ├── edgnet-api/
-    ├── paddleocr-api/
-    ├── skinmodel-api/
-    └── vl-api/
+└── models/                 # 모든 추론 API (20개)
+    ├── yolo-api/           # YOLO 객체 검출
+    ├── edocr2-v2-api/      # eDOCr2 도면 OCR
+    ├── edgnet-api/         # EDGNet 세그멘테이션
+    ├── paddleocr-api/      # PaddleOCR
+    ├── skinmodel-api/      # SkinModel 공차 예측
+    ├── vl-api/             # VL Vision-Language
+    ├── tesseract-api/      # Tesseract OCR
+    ├── trocr-api/          # TrOCR
+    ├── esrgan-api/         # ESRGAN 업스케일링
+    ├── ocr-ensemble-api/   # OCR 앙상블
+    ├── surya-ocr-api/      # Surya OCR
+    ├── doctr-api/          # DocTR OCR
+    ├── easyocr-api/        # EasyOCR
+    ├── line-detector-api/  # Line Detector
+    ├── pid-analyzer-api/   # PID Analyzer
+    ├── design-checker-api/ # Design Checker
+    └── knowledge-api/      # Knowledge (Neo4j)
 ```
 
-**각 API는 독립적으로 실행 가능합니다!**
+**각 API는 독립적으로 실행 가능합니다.**
 
 ---
 
-## 🎯 개별 API 배포 방법
+## API 서비스 목록 (20개)
+
+| 서비스 | 포트 | GPU | 이미지 크기 | 용도 |
+|--------|------|-----|-------------|------|
+| Gateway | 8000 | - | ~500MB | API 오케스트레이션 |
+| YOLO | 5005 | Yes | ~8GB | 도면 객체 검출 |
+| eDOCr2 | 5002 | Yes | ~10GB | 도면 OCR |
+| PaddleOCR | 5006 | Yes | ~2GB | 범용 OCR |
+| Tesseract | 5008 | - | ~1GB | 문서 OCR |
+| TrOCR | 5009 | Yes | ~3GB | 필기체 OCR |
+| ESRGAN | 5010 | Yes | ~2GB | 4x 업스케일링 |
+| OCR Ensemble | 5011 | - | ~500MB | 4엔진 투표 |
+| EDGNet | 5012 | Yes | ~8GB | 세그멘테이션 |
+| Surya OCR | 5013 | - | ~2GB | 다국어 OCR |
+| DocTR | 5014 | - | ~2GB | 문서 OCR |
+| EasyOCR | 5015 | Yes | ~2GB | 범용 OCR |
+| Line Detector | 5016 | - | ~1GB | P&ID 라인 검출 |
+| PID Analyzer | 5018 | - | ~1GB | P&ID 연결 분석 |
+| Design Checker | 5019 | - | ~1GB | P&ID 설계 검증 |
+| Blueprint AI BOM | 5020 | - | ~1GB | Human-in-the-Loop BOM |
+| SkinModel | 5003 | - | ~1GB | 공차 예측 |
+| VL | 5004 | - | ~200MB | Vision-Language |
+| Knowledge | 5007 | - | ~500MB | Neo4j GraphRAG |
+
+---
+
+## 배포 방법
 
 ### Option 1: Docker Image 파일로 전달
 
@@ -33,343 +71,145 @@
 
 ```bash
 # API 디렉토리로 이동
-cd /home/uproot/ax/poc/models/paddleocr-api
+cd /home/uproot/ax/poc/models/yolo-api
 
 # Docker 이미지 빌드
-docker build -t ax-paddleocr-api:latest .
+docker build -t ax-yolo-api:latest .
 
 # 이미지를 tar 파일로 저장
-docker save ax-paddleocr-api:latest -o paddleocr-api.tar
+docker save ax-yolo-api:latest -o yolo-api.tar
 ```
 
 #### 2. 파일 전달
 
 ```bash
-# USB, 네트워크 등으로 전달
-scp paddleocr-api.tar user@remote-server:/path/to/destination/
+# 네트워크 전송
+scp yolo-api.tar user@remote-server:/path/to/destination/
 
 # 또는 외장 HDD에 복사
-cp paddleocr-api.tar /mnt/usb/
+cp yolo-api.tar /mnt/usb/
 ```
 
 #### 3. 수신 측에서 실행
 
 ```bash
 # 이미지 로드
-docker load -i paddleocr-api.tar
+docker load -i yolo-api.tar
 
 # 컨테이너 실행
 docker run -d \
-  --name paddleocr-api \
-  -p 5006:5006 \
+  --name yolo-api \
+  -p 5005:5005 \
   --gpus all \
   -e USE_GPU=true \
-  -e OCR_LANG=en \
-  ax-paddleocr-api:latest
+  ax-yolo-api:latest
 
 # 헬스 체크
-curl http://localhost:5006/health
+curl http://localhost:5005/health
 ```
 
 ---
 
-### Option 2: docker-compose로 배포
+### Option 2: Docker Compose로 배포
 
 #### 1. API 디렉토리 전체 전달
 
 ```bash
 # API 디렉토리 압축
 cd /home/uproot/ax/poc/models
-tar -czf paddleocr-api.tar.gz paddleocr-api/
+tar -czf yolo-api.tar.gz yolo-api/
 
 # 전달
-scp paddleocr-api.tar.gz user@remote:/path/
+scp yolo-api.tar.gz user@remote:/path/
 ```
 
-#### 2. 수신 측에서 압축 해제 및 실행
+#### 2. 수신 측에서 실행
 
 ```bash
 # 압축 해제
-tar -xzf paddleocr-api.tar.gz
-cd paddleocr-api/
+tar -xzf yolo-api.tar.gz
+cd yolo-api/
 
 # docker-compose로 실행
-docker-compose -f docker-compose.single.yml up -d
+docker compose up -d
 
 # 로그 확인
-docker logs paddleocr-api-standalone -f
+docker logs yolo-api -f
 
 # API 문서 확인
-# http://localhost:5006/docs
+# http://localhost:5005/docs
 ```
 
 ---
 
-### Option 3: GitHub Container Registry (추후)
-
-```bash
-# Push (관리자)
-docker tag ax-paddleocr-api:latest ghcr.io/your-org/ax-paddleocr-api:latest
-docker push ghcr.io/your-org/ax-paddleocr-api:latest
-
-# Pull (사용자)
-docker pull ghcr.io/your-org/ax-paddleocr-api:latest
-docker run -d -p 5006:5006 --gpus all ghcr.io/your-org/ax-paddleocr-api:latest
-```
-
----
-
-## 📋 각 API 정보
-
-### 1. PaddleOCR API
-
-| 속성 | 값 |
-|------|-----|
-| **포트** | 5006 |
-| **GPU** | Recommended |
-| **이미지 크기** | ~1.7GB |
-| **용도** | 범용 OCR (80+ 언어 지원) |
-| **문서** | `models/paddleocr-api/README.md` |
-
-**전달 명령어**:
-```bash
-cd models/paddleocr-api
-docker build -t ax-paddleocr-api .
-docker save ax-paddleocr-api -o paddleocr-api.tar
-```
-
----
-
-### 2. YOLO API
-
-| 속성 | 값 |
-|------|-----|
-| **포트** | 5005 |
-| **GPU** | Required |
-| **이미지 크기** | ~8.2GB |
-| **용도** | 도면 객체 검출 (14 classes) |
-| **문서** | `models/yolo-api/README.md` |
-
-**전달 명령어**:
-```bash
-cd models/yolo-api
-docker build -t ax-yolo-api .
-docker save ax-yolo-api -o yolo-api.tar
-```
-
----
-
-### 3. eDOCr2 v1 API
-
-| 속성 | 값 |
-|------|-----|
-| **포트** | 5001 |
-| **GPU** | Required |
-| **이미지 크기** | ~10.2GB |
-| **용도** | 빠른 도면 OCR |
-| **문서** | `models/edocr2-api/README.md` |
-
-**주의**: 외부 모델 의존성
-```
-/home/uproot/ax/opensource/01-immediate/edocr2/edocr2
-```
-
----
-
-### 4. eDOCr2 v2 API
-
-| 속성 | 값 |
-|------|-----|
-| **포트** | 5002 |
-| **GPU** | Required |
-| **이미지 크기** | ~10.4GB |
-| **용도** | 고급 도면 OCR + 테이블 지원 |
-| **문서** | `models/edocr2-v2-api/README.md` |
-
-**주의**: 외부 모델 의존성
-```
-/home/uproot/ax/opensource/01-immediate/edocr2/edocr2
-```
-
----
-
-### 5. EDGNet API
-
-| 속성 | 값 |
-|------|-----|
-| **포트** | 5012 (외부) / 5002 (내부) |
-| **GPU** | Required |
-| **이미지 크기** | ~8.1GB |
-| **용도** | 세그멘테이션 (GraphSAGE + UNet) |
-| **문서** | `models/edgnet-api/README.md` |
-
-**주의**: 2개 모델 사용
-```
-GraphSAGE: /home/uproot/ax/dev/test_results/sample_tests/graphsage_models/
-UNet: models/edgnet-api/models/edgnet_large.pth (355MB)
-```
-
----
-
-### 6. Skin Model API
-
-| 속성 | 값 |
-|------|-----|
-| **포트** | 5003 |
-| **GPU** | No |
-| **이미지 크기** | ~1.3GB |
-| **용도** | 공차 예측 (XGBoost) |
-| **문서** | `models/skinmodel-api/README.md` |
-
-**전달 명령어**:
-```bash
-cd models/skinmodel-api
-docker build -t ax-skinmodel-api .
-docker save ax-skinmodel-api -o skinmodel-api.tar
-```
-
----
-
-### 7. VL API
-
-| 속성 | 값 |
-|------|-----|
-| **포트** | 5004 |
-| **GPU** | No |
-| **이미지 크기** | ~200MB |
-| **용도** | 비전-언어 모델 (Claude/GPT-4V) |
-| **문서** | `models/vl-api/README.md` |
-
-**주의**: API 키 필요
-```bash
--e ANTHROPIC_API_KEY=sk-...
--e OPENAI_API_KEY=sk-...
-```
-
----
-
-## 🧪 단독 API 테스트
-
-### 1. API 빌드 및 실행
-
-```bash
-# 예시: PaddleOCR API
-cd /home/uproot/ax/poc/models/paddleocr-api
-
-# docker-compose로 실행
-docker-compose -f docker-compose.single.yml up -d
-
-# 로그 확인
-docker logs -f paddleocr-api-standalone
-```
-
-### 2. Health Check
-
-```bash
-curl http://localhost:5006/health
-```
-
-예상 응답:
-```json
-{
-  "status": "healthy",
-  "service": "PaddleOCR API",
-  "version": "1.0.0"
-}
-```
-
-### 3. API 문서 확인
-
-브라우저에서: **http://localhost:5006/docs**
-
-### 4. 테스트 요청
-
-```bash
-curl -X POST http://localhost:5006/api/v1/ocr \
-  -F "file=@/path/to/test-image.jpg" \
-  -F "use_gpu=true" \
-  -F "lang=en"
-```
-
-### 5. 종료
-
-```bash
-docker-compose -f docker-compose.single.yml down
-```
-
----
-
-## 🔧 외부 의존성 처리
-
-일부 API는 외부 소스 코드나 모델을 사용합니다:
-
-### eDOCr2 APIs (v1, v2)
-
-**의존성**:
-```
-/home/uproot/ax/opensource/01-immediate/edocr2/edocr2
-```
-
-**해결책 1**: 소스 코드 함께 전달
-```bash
-tar -czf edocr2-package.tar.gz \
-  models/edocr2-v2-api/ \
-  /home/uproot/ax/opensource/01-immediate/edocr2/
-```
-
-**해결책 2**: Dockerfile에 소스 복사
-```dockerfile
-# Dockerfile 수정
-COPY edocr2/ /app/edocr2/
-COPY models/ /models/
-```
-
-### EDGNet API
-
-**의존성**:
-```
-/home/uproot/ax/dev/edgnet
-/home/uproot/ax/dev/test_results/sample_tests/graphsage_models/
-```
-
-**해결책**: 모델과 소스 번들링
-```bash
-tar -czf edgnet-package.tar.gz \
-  models/edgnet-api/ \
-  /home/uproot/ax/dev/edgnet/ \
-  /home/uproot/ax/dev/test_results/sample_tests/graphsage_models/
-```
-
----
-
-## 📊 전체 시스템 실행
+## 전체 시스템 실행
 
 ### 모든 API 동시 실행
 
 ```bash
 cd /home/uproot/ax/poc
-docker-compose up -d
+docker compose up -d
 
 # 상태 확인
-docker-compose ps
+docker compose ps
 
 # 로그 확인
-docker-compose logs -f gateway-api
+docker compose logs -f gateway-api
 ```
 
 ### 선택적 API 실행
 
 ```bash
-# YOLO + PaddleOCR만
-docker-compose up -d yolo-api paddleocr-api
+# 필수 서비스만
+docker compose up -d gateway-api yolo-api edocr2-v2-api skinmodel-api
 
-# Gateway + 필수 서비스
-docker-compose up -d gateway-api yolo-api edocr2-v2-api skinmodel-api
+# YOLO + OCR 조합
+docker compose up -d gateway-api yolo-api paddleocr-api
+
+# P&ID 분석 조합
+docker compose up -d gateway-api yolo-api pid-analyzer-api design-checker-api
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## API 테스트
+
+### Health Check
+
+```bash
+# 개별 서비스
+curl http://localhost:5005/health  # YOLO
+curl http://localhost:5002/api/v2/health  # eDOCr2
+curl http://localhost:8000/health  # Gateway
+
+# 전체 서비스 일괄 확인
+for port in 5002 5003 5004 5005 5006 5007 5008 5009 5010 5011 5012; do
+  echo -n "Port $port: "
+  curl -s http://localhost:$port/health | jq -r '.status // "error"'
+done
+```
+
+### 테스트 요청
+
+```bash
+# YOLO 분석
+curl -X POST http://localhost:5005/api/v1/detect \
+  -F "file=@test_drawing.png" \
+  -F "model_type=engineering"
+
+# eDOCr2 분석
+curl -X POST http://localhost:5002/api/v2/process \
+  -F "file=@test_drawing.png" \
+  -F "language=ko"
+
+# Gateway 통합 분석
+curl -X POST http://localhost:8000/api/v1/analyze \
+  -F "file=@test_drawing.png"
+```
+
+---
+
+## 문제 해결
 
 ### 1. GPU 인식 안 됨
 
@@ -385,18 +225,18 @@ docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 
 ```bash
 # 사용 중인 포트 확인
-netstat -tulpn | grep 5006
+netstat -tulpn | grep 5005
 
-# docker-compose.single.yml에서 포트 변경
+# docker-compose.yml에서 포트 변경
 ports:
-  - "5007:5006"  # 호스트:컨테이너
+  - "5006:5005"  # 호스트:컨테이너
 ```
 
 ### 3. 볼륨 마운트 오류
 
 ```bash
 # 디렉토리 존재 확인
-ls -la /home/uproot/ax/opensource/01-immediate/edocr2/edocr2
+ls -la /path/to/volume
 
 # 권한 확인
 chmod -R 755 /path/to/volume
@@ -409,35 +249,22 @@ chmod -R 755 /path/to/volume
 docker images | grep "ax-.*-api"
 
 # 특정 이미지 상세 정보
-docker inspect ax-paddleocr-api:latest
+docker inspect ax-yolo-api:latest
 ```
 
 ---
 
-## 📚 추가 문서
+## 다음 단계
 
-- [ARCHITECTURE.md](../ARCHITECTURE.md) - 시스템 아키텍처
-- [README.md](../README.md) - 프로젝트 개요
-- [WORKFLOWS.md](../WORKFLOWS.md) - 개발 워크플로우
+1. **CI/CD 파이프라인**
+   - GitHub Actions 자동 빌드
+   - Container Registry 배포
 
----
-
-## 🎯 다음 단계
-
-1. **GitHub Repositories 생성**
-   - 각 API를 독립 repo로 분리
-   - Git submodule로 관리
-
-2. **CI/CD 파이프라인**
-   - 자동 Docker 이미지 빌드
-   - GitHub Container Registry 배포
-
-3. **Kubernetes 지원**
-   - Helm charts 추가
+2. **Kubernetes 지원**
+   - Helm charts
    - Production 배포 자동화
 
 ---
 
-**Last Updated**: 2025-11-20
-**Version**: 1.0.0
-**Maintained By**: AX Project Team
+**AX 도면 분석 시스템 v23.1**
+© 2026 All Rights Reserved

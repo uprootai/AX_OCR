@@ -1,13 +1,14 @@
 # Knowledge API Parameters
 
 > GraphRAG + VectorRAG 기반 도메인 지식 엔진
+> **최종 업데이트**: 2026-01-17 | **버전**: 1.0.0
 
 ## 기본 정보
 
 | 항목 | 값 |
 |------|-----|
 | **Port** | 5007 |
-| **Endpoint** | `/api/v1/hybrid/search` |
+| **Main Endpoints** | `/api/v1/hybrid/search`, `/api/v1/graph/component` |
 | **Method** | POST |
 | **Content-Type** | application/json |
 | **Timeout** | 30초 |
@@ -80,11 +81,44 @@
 | `similar_parts` | Part[] | 유사 부품 목록 |
 | `total_found` | number | 검색된 총 결과 수 |
 
+---
+
+## Component 생성 (`/api/v1/graph/component`)
+
+### 입력 파라미터
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `name` | string | ✅ | 부품명 |
+| `part_id` | string | ❌ | 부품 ID (미지정시 UUID 자동생성) |
+| `category` | string | ❌ | 카테고리 (transformer, circuit_breaker 등) |
+| `manufacturer` | string | ❌ | 제조사 |
+| `unit_price` | number | ❌ | 단가 |
+| `specifications` | object | ❌ | 사양 정보 (JSON) |
+| `material` | string | ❌ | 재질 |
+| `dimensions` | DimensionInfo[] | ❌ | 치수 정보 |
+| `tolerances` | ToleranceInfo[] | ❌ | 공차 정보 |
+| `processes` | ProcessInfo[] | ❌ | 필요 공정 |
+| `metadata` | object | ❌ | 추가 메타데이터 |
+
+### 응답 예시
+
+```json
+{
+  "status": "success",
+  "component_id": "TR-001",
+  "message": "Component 변압기 3상 22.9kV created successfully"
+}
+```
+
+---
+
 ## 사용 팁
 
 - GraphRAG는 관계 기반 검색에 강합니다
 - VectorRAG는 의미 기반 유사도 검색에 강합니다
 - Hybrid 모드가 가장 정확합니다
+- Component 생성 시 `part_id`를 지정하면 해당 ID로 저장됩니다
 
 ## 추천 연결
 

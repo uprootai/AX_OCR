@@ -75,6 +75,7 @@ export const test = base.extend<object, ApiFixtures>({
    * Created once per worker, reused across all tests
    */
   apiContext: [
+    // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
       const ctx = await request.newContext({
         baseURL: API_BASE_URL,

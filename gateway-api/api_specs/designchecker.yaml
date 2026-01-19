@@ -1,0 +1,346 @@
+# Design Checker API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: designchecker
+  name: Design Checker
+  version: 1.0.0
+  port: 5019
+  host: design-checker-api
+  description: P&ID 도면 설계 오류 검출 및 규정 검증 API
+  author: AX Team
+  tags:
+    - analysis
+    - pid
+    - validation
+
+server:
+  endpoint: /api/v1/check
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /api/v1/health
+
+blueprintflow:
+  category: analysis
+  color: "#ef4444"
+  icon: ShieldCheck
+  requiresImage: false
+
+inputs:
+  - name: symbols
+    type: array
+    required: true
+    description: YOLO 검출 결과 (model_type=pid_class_aware 사용)
+  - name: connections
+    type: array
+    required: true
+    description: PID Analyzer 연결 분석 결과
+  - name: lines
+    type: array
+    required: false
+    description: Line Detector 결과
+  - name: texts
+    type: array
+    required: false
+    description: OCR 텍스트 결과 (BWMS 규칙 검사에 필요)
+
+outputs:
+  - name: violations
+    type: array
+    description: 위반 사항 목록
+  - name: summary
+    type: object
+    description: 검사 요약
+  - name: compliance_score
+    type: number
+    description: 규정 준수율 (0-100%)
+
+parameters:
+  - name: categories
+    type: select
+    options:
+      - all
+      - connectivity
+      - symbol
+      - labeling
+      - specification
+      - standard
+      - safety
+      - bwms
+    default: all
+    description: 검사할 규칙 카테고리 (all=전체)
+  - name: severity_threshold
+    type: select
+    options:
+      - error
+      - warning
+      - info
+    default: info
+    description: 보고할 최소 심각도
+  - name: include_bwms
+    type: boolean
+    default: true
+    description: BWMS 규칙 포함 여부 (TECHCROSS 전용 7개 규칙)
+
+i18n:
+  ko:
+    label: Design Checker
+    description: P&ID 도면 설계 오류 검출 및 규정 검증
+  en:
+    label: Design Checker
+    description: P&ID design error detection and rule validation
+
+resources:
+  gpu:
+    vram: "N/A"
+    minVram: 0
+    recommended: "CPU 전용"
+    cudaVersion: "N/A"
+  cpu:
+    ram: "~1GB"
+    minRam: 512
+    cores: 2
+    note: "규칙 기반 검증 - 매우 가벼움"
+
+# Pipeline 엔드포인트 (통합 파이프라인)
+additionalEndpoints:
+  - path: /api/v1/pipeline/detect
+    method: POST
+    contentType: multipart/form-data
+    description: YOLO로 P&ID 심볼 검출 + 장비 매핑
+    parameters:
+      - name: file
+        type: file
+        required: true
+        description: P&ID 도면 이미지
+      - name: model_type
+        type: string
+        default: pid_class_aware
+        description: YOLO 모델 타입
+      - name: confidence
+        type: number
+        default: 0.1
+        description: 검출 신뢰도 임계값
+      - name: use_sahi
+        type: boolean
+        default: true
+        description: SAHI 슬라이싱 사용
+      - name: visualize
+        type: boolean
+        default: true
+        description: 시각화 이미지 생성
+    returns:
+      - detections: 검출된 심볼 목록
+      - equipment: 장비 매핑 결과
+      - visualized_image: 시각화 이미지
+
+  - path: /api/v1/pipeline/ocr
+    method: POST
+    contentType: multipart/form-data
+    description: OCR 텍스트 추출 (eDOCr2/PaddleOCR)
+    parameters:
+      - name: file
+        type: file
+        required: true
+        description: P&ID 도면 이미지
+      - name: ocr_source
+        type: select
+        options: [paddleocr, edocr2, both]
+        default: edocr2
+        description: OCR 소스
+      - name: extract_dimensions
+        type: boolean
+        default: true
+        description: 치수 추출 (eDOCr2)
+      - name: extract_gdt
+        type: boolean
+        default: true
+        description: GD&T 추출 (eDOCr2)
+      - name: visualize
+        type: boolean
+        default: false
+        description: 시각화 이미지 생성
+    returns:
+      - paddleocr: PaddleOCR 결과
+      - edocr2: eDOCr2 결과 (치수/GD&T/텍스트)
+      - combined: 통합 텍스트 및 태그
+
+  - path: /api/v1/pipeline/validate
+    method: POST
+    contentType: multipart/form-data
+    description: YOLO + OCR + Design Checker 통합 검증
+    parameters:
+      - name: file
+        type: file
+        required: true
+        description: P&ID 도면 이미지
+      - name: model_type
+        type: string
+        default: pid_class_aware
+        description: YOLO 모델 타입
+      - name: confidence
+        type: number
+        default: 0.1
+        description: YOLO 검출 신뢰도
+      - name: product_type
+        type: select
+        options: [ECS, HYCHLOR, AUTO]
+        default: AUTO
+        description: 제품 유형
+      - name: use_ocr
+        type: boolean
+        default: true
+        description: OCR 추가 검증 사용
+      - name: ocr_source
+        type: select
+        options: [paddleocr, edocr2, both]
+        default: edocr2
+        description: OCR 소스
+    returns:
+      - yolo: YOLO 검출 결과
+      - ocr: OCR 추출 결과
+      - validation: 설계 검증 결과
+      - summary: 검사 요약
+
+  - path: /api/v1/pipeline/validate/export
+    method: POST
+    contentType: multipart/form-data
+    description: 검증 결과 Excel/PDF 내보내기
+    parameters:
+      - name: file
+        type: file
+        required: true
+        description: P&ID 도면 이미지
+      - name: format
+        type: select
+        options: [excel, pdf]
+        default: excel
+        description: 내보내기 형식
+      - name: include_images
+        type: boolean
+        default: true
+        description: 이미지 포함 여부
+    returns:
+      - file: 생성된 Excel/PDF 파일 (StreamingResponse)
+
+# OpenAPI Examples (2025-12-31 추가)
+openapi:
+  requestExamples:
+    - name: "전체 규칙 검사"
+      description: "모든 카테고리 규칙 검사"
+      json:
+        symbols:
+          - class_name: "valve"
+            tag: "V-001"
+            bbox: {x1: 100, y1: 200, x2: 150, y2: 250}
+          - class_name: "pump"
+            tag: "P-001"
+            bbox: {x1: 300, y1: 400, x2: 380, y2: 480}
+        connections:
+          - from: "V-001"
+            to: "P-001"
+            type: "process"
+        categories: "all"
+        severity_threshold: "warning"
+        include_bwms: true
+
+    - name: "BWMS 전용"
+      description: "TECHCROSS BWMS 규칙만 검사"
+      json:
+        symbols: []
+        connections: []
+        texts:
+          - text: "ECS-100"
+            bbox: [100, 50, 200, 80]
+        categories: "bwms"
+        include_bwms: true
+
+    # Pipeline 엔드포인트 예제 (2026-01-16 추가)
+    - name: "Pipeline Detect"
+      endpoint: /api/v1/pipeline/detect
+      description: "P&ID 심볼 검출 (PIDOverlayViewer용)"
+      formData:
+        file: "pid_drawing.png"
+        model_type: "pid_class_aware"
+        confidence: 0.1
+        use_sahi: true
+        visualize: true
+
+    - name: "Pipeline OCR (eDOCr2)"
+      endpoint: /api/v1/pipeline/ocr
+      description: "기계도면 특화 OCR"
+      formData:
+        file: "pid_drawing.png"
+        ocr_source: "edocr2"
+        extract_dimensions: true
+        extract_gdt: true
+        visualize: false
+
+    - name: "Pipeline Validate"
+      endpoint: /api/v1/pipeline/validate
+      description: "YOLO + OCR + 설계 검증 통합"
+      formData:
+        file: "pid_drawing.png"
+        model_type: "pid_class_aware"
+        confidence: 0.1
+        product_type: "AUTO"
+        use_ocr: true
+        ocr_source: "edocr2"
+
+  responseExamples:
+    - name: "성공 응답 (/check)"
+      statusCode: 200
+      response:
+        status: "success"
+        data:
+          violations:
+            - rule_id: "CONN-001"
+              category: "connectivity"
+              severity: "error"
+              message: "밸브 V-003이 어떤 배관에도 연결되지 않음"
+              location: {x: 500, y: 300}
+            - rule_id: "BWMS-002"
+              category: "bwms"
+              severity: "warning"
+              message: "ECS 시스템에 필수 압력 센서 누락"
+          summary:
+            total_rules: 27
+            checked: 27
+            passed: 25
+            failed: 2
+          compliance_score: 92.6
+        processing_time: 0.35
+
+    - name: "Pipeline Detect 응답"
+      endpoint: /api/v1/pipeline/detect
+      statusCode: 200
+      response:
+        success: true
+        data:
+          yolo:
+            model_type: "pid_class_aware"
+            total_detections: 45
+            class_counts:
+              valve: 12
+              pump: 3
+              tank: 2
+              pipe_connection: 15
+              instrument: 8
+              label: 5
+            processing_time: 2.35
+          detections:
+            - class_name: "valve"
+              class_id: 0
+              confidence: 0.85
+              bbox: [100, 200, 150, 250]
+              center: [125, 225]
+          equipment:
+            detected: ["valve", "pump", "tank"]
+            count: 3
+            mapping:
+              valve: ["V-001", "V-002"]
+              pump: ["P-001"]
+          visualized_image: "data:image/jpeg;base64,..."
+        processing_time: 2.45

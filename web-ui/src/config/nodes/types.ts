@@ -44,6 +44,22 @@ export interface RecommendedInput {
   reason: string;
 }
 
+/**
+ * 프로파일 정의
+ * API 스펙의 profiles 섹션과 동기화
+ */
+export interface ProfileDefinition {
+  name: string;
+  label: string;
+  description: string;
+  params: Record<string, string | number | boolean>;
+}
+
+export interface ProfilesConfig {
+  default: string;
+  available: ProfileDefinition[];
+}
+
 export interface NodeDefinition {
   type: string;
   label: string;
@@ -68,4 +84,6 @@ export interface NodeDefinition {
   examples: string[];
   usageTips?: string[];
   recommendedInputs?: RecommendedInput[];
+  /** 프로파일 기반 기본값 (MODEL_DEFAULTS 패턴) */
+  profiles?: ProfilesConfig;
 }

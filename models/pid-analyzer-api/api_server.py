@@ -34,6 +34,7 @@ from routers import (
     bwms_router,
     equipment_router,
     region_router,
+    dwg_router,
 )
 
 # Logging
@@ -99,6 +100,7 @@ app.include_router(analysis_router)
 app.include_router(bwms_router)
 app.include_router(equipment_router)
 app.include_router(region_router)
+app.include_router(dwg_router)
 
 
 # =====================

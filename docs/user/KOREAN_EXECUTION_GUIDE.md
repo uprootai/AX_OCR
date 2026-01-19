@@ -369,10 +369,16 @@ docker-compose ps
 ```
 
 **실행되는 서비스**:
-- eDOCr2 API: http://localhost:5001
-- EDGNet API: http://localhost:5002
-- Skin Model API: http://localhost:5003
-- YOLOv11 API: http://localhost:5005
+- eDOCr2 API: http://localhost:5002
+- SkinModel API: http://localhost:5003
+- VL API: http://localhost:5004
+- YOLO API: http://localhost:5005
+- PaddleOCR API: http://localhost:5006
+- Knowledge API: http://localhost:5007
+- EDGNet API: http://localhost:5012
+- PID Analyzer API: http://localhost:5018
+- Design Checker API: http://localhost:5019
+- Blueprint AI BOM: http://localhost:5020
 - Gateway API: http://localhost:8000
 
 ### 통합 시스템 테스트
@@ -575,5 +581,5 @@ curl -X POST http://localhost:5005/api/v1/detect -F "file=@test.jpg"
 ---
 
 **작성자**: AX 실증사업팀
-**최종 업데이트**: 2025-11-03
+**최종 업데이트**: 2026-01-17
 **문의**: dev@uproot.com

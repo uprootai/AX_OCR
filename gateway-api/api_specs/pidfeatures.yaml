@@ -1,129 +1,107 @@
-# PID Features API Spec
-# TECHCROSS 통합 워크플로우 - Valve/Equipment/Checklist 통합 분석
+# PID Features API Specification
+apiVersion: v1
+kind: APISpec
 
-api_id: pidfeatures
-display_name: PID Features
-version: "1.0"
-category: analysis
-port: 5020
-base_url: http://blueprint-ai-bom-backend:5020
+metadata:
+  id: pidfeatures
+  name: PID Features
+  version: 1.0.0
+  port: 5020
+  host: blueprint-ai-bom-backend
+  description: TECHCROSS P&ID 통합 분석 노드. Valve Signal List, Equipment List, Design Checklist를 한 번에 검출합니다.
+  author: AX Team
+  tags:
+    - pid
+    - techcross
+    - valve
+    - equipment
+    - checklist
+    - bwms
 
-description: |
-  TECHCROSS P&ID 통합 분석 노드.
-  Valve Signal List, Equipment List, Design Checklist를 한 번에 검출합니다.
-  신뢰도 기반 검증 큐를 자동 생성하여 Human-in-the-Loop 워크플로우를 지원합니다.
-
-tags:
-  - pid
-  - techcross
-  - valve
-  - equipment
-  - checklist
-  - bwms
-
-endpoints:
-  # 밸브 검출
-  detect_valves:
-    path: /api/v1/pid-features/{session_id}/valve-signal/detect
-    method: POST
-    description: 밸브 신호 검출
-    parameters:
-      session_id:
-        type: string
-        required: true
-        in: path
-
-  # 장비 검출
-  detect_equipment:
-    path: /api/v1/pid-features/{session_id}/equipment/detect
-    method: POST
-    description: 장비 검출
-    parameters:
-      session_id:
-        type: string
-        required: true
-        in: path
-
-  # 체크리스트 검증
-  check_checklist:
-    path: /api/v1/pid-features/{session_id}/checklist/check
-    method: POST
-    description: 설계 체크리스트 검증
-    parameters:
-      session_id:
-        type: string
-        required: true
-        in: path
-      product_type:
-        type: string
-        in: query
-        default: ALL
-        enum: [ALL, ECS, HYCHLOR]
-
-  # 검증 큐 조회
-  get_queue:
-    path: /api/v1/pid-features/{session_id}/verify/queue
-    method: GET
-    description: 검증 대기 큐 조회
+server:
+  endpoint: /api/v1/pid-features/{session_id}/valve-signal/detect
+  method: POST
+  contentType: application/json
+  timeout: 120
+  healthEndpoint: /health
 
 blueprintflow:
-  node_type: pidfeatures
-  label: PID Features
   category: analysis
   color: "#8b5cf6"
   icon: Workflow
+  requiresImage: true
 
-  inputs:
-    - name: image
-      type: Image
-      description: P&ID 도면 이미지
-    - name: detections
-      type: Detection[]
-      description: YOLO 검출 결과
-      optional: true
-    - name: ocr_results
-      type: OCRResult[]
-      description: OCR 결과
-      optional: true
-    - name: lines
-      type: Line[]
-      description: 라인 검출 결과
-      optional: true
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: P&ID 도면 이미지
+  - name: detections
+    type: Detection[]
+    required: false
+    description: YOLO 검출 결과
+  - name: ocr_results
+    type: OCRResult[]
+    required: false
+    description: OCR 결과
+  - name: lines
+    type: Line[]
+    required: false
+    description: 라인 검출 결과
 
-  outputs:
-    - name: valves
-      type: Valve[]
-      description: 밸브 목록
-    - name: equipment
-      type: Equipment[]
-      description: 장비 목록
-    - name: checklist
-      type: ChecklistItem[]
-      description: 체크리스트 결과
-    - name: verification_queue
-      type: VerificationItem[]
-      description: 검증 대기 큐
-    - name: session_id
-      type: string
-      description: 세션 ID
+outputs:
+  - name: valves
+    type: Valve[]
+    description: 밸브 목록
+  - name: equipment
+    type: Equipment[]
+    description: 장비 목록
+  - name: checklist
+    type: ChecklistItem[]
+    description: 체크리스트 결과
+  - name: verification_queue
+    type: VerificationItem[]
+    description: 검증 대기 큐
+  - name: session_id
+    type: string
+    description: 세션 ID
 
-  parameters:
-    - name: features
-      type: checkboxGroup
-      default: [valve_signal, equipment, checklist]
-      options: [valve_signal, equipment, checklist]
-    - name: product_type
-      type: select
-      default: ALL
-      options: [ALL, ECS, HYCHLOR]
-    - name: confidence_threshold
-      type: number
-      default: 0.7
-      min: 0.1
-      max: 0.99
-    - name: auto_verify_high_confidence
-      type: boolean
-      default: true
+parameters:
+  - name: features
+    type: checkboxGroup
+    options:
+      - valve_signal
+      - equipment
+      - checklist
+    default: ["valve_signal", "equipment", "checklist"]
+    description: 활성화할 기능
+  - name: product_type
+    type: select
+    options:
+      - ALL
+      - ECS
+      - HYCHLOR
+    default: ALL
+    description: 제품 타입
+  - name: confidence_threshold
+    type: number
+    default: 0.7
+    min: 0.1
+    max: 0.99
+    step: 0.05
+    description: 신뢰도 임계값
+  - name: auto_verify_high_confidence
+    type: boolean
+    default: true
+    description: 고신뢰도 자동 검증
+
+i18n:
+  ko:
+    label: PID Features
+    description: TECHCROSS P&ID 통합 분석 (Valve/Equipment/Checklist)
+  en:
+    label: PID Features
+    description: TECHCROSS P&ID integrated analysis (Valve/Equipment/Checklist)
 
 resources:
   cpu:
@@ -131,62 +109,3 @@ resources:
     minRam: 200
     cores: 2
     note: 다중 API 호출
-
-# OpenAPI Examples (2025-12-31 추가)
-openapi:
-  requestExamples:
-    - name: "전체 분석"
-      description: "Valve + Equipment + Checklist 통합 분석"
-      json:
-        image: "pid_drawing.png"
-        detections:
-          - class_name: "valve"
-            tag: "V-001"
-            confidence: 0.95
-        features: ["valve_signal", "equipment", "checklist"]
-        product_type: "ECS"
-        confidence_threshold: 0.7
-        auto_verify_high_confidence: true
-
-    - name: "밸브만 분석"
-      description: "Valve Signal List 추출"
-      json:
-        image: "pid_ecs.png"
-        features: ["valve_signal"]
-        product_type: "ECS"
-
-  responseExamples:
-    - name: "성공 응답"
-      statusCode: 200
-      response:
-        status: "success"
-        data:
-          session_id: "flow_20251231_abc123"
-          valves:
-            - valve_id: "V-001"
-              tag: "XV-101"
-              type: "Ball Valve"
-              size: "2\""
-              confidence: 0.95
-              verification_status: "auto_verified"
-          equipment:
-            - tag: "P-101"
-              type: "Centrifugal Pump"
-              confidence: 0.88
-          checklist:
-            - item_no: "1-1-001"
-              description: "ECS 전해조 설치 확인"
-              auto_status: "pass"
-              confidence: 0.92
-          verification_queue:
-            - item_id: "V-003"
-              item_type: "valve"
-              confidence: 0.65
-              data: {}
-          summary:
-            valve_count: 12
-            equipment_count: 5
-            checklist_count: 60
-            pending_verification: 8
-            product_type: "ECS"
-        processing_time: 3.45
