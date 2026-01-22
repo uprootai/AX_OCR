@@ -13,21 +13,13 @@
 | **빌드** | ✅ 15.00s | TypeScript 오류 0개 |
 | **ESLint** | ✅ 0 errors | 1 warning (minor) |
 | **노드 정의** | ✅ 30개 | table_detector 포함 |
-| **API 디렉토리** | 20개 | 정상 |
+| **API 스펙** | ✅ 25개 | tabledetector 포함 |
 
 ---
 
 ## 🟢 현재 작업 없음
 
-모든 계획된 P0~P2 작업이 완료되었습니다.
-
-### 최근 완료 작업 (2026-01-22)
-
-| 작업 | 커밋 | 상세 |
-|------|------|------|
-| P2: 테스트 커버리지 | `9931dfd` | 549 → 668 (+119) |
-| P3: 신뢰도 분포 차트 | `3bc6876` | ConfidenceDistributionChart |
-| DSE Bearing 템플릿 | `041f76c` | 100/100 점수 |
+모든 계획된 작업이 완료되었습니다.
 
 ---
 
@@ -47,13 +39,10 @@
 
 ```
 .todo/
-├── ACTIVE.md          # 현재 파일 (활성 작업)
-├── BACKLOG.md         # 향후 작업 목록
-├── COMPLETED.md       # 완료 아카이브
-├── 12_API_SPEC_NAMING_CONSISTENCY.md  # 정보용
-├── AUDIT_*.md         # 디렉토리 감사 (6개)
-├── *_AUDIT_*.md       # 감사 계획/인벤토리
-└── archive/           # 완료된 상세 문서 (18개)
+├── ACTIVE.md      # 현재 파일 (활성 작업)
+├── BACKLOG.md     # 향후 작업 목록
+├── COMPLETED.md   # 완료 아카이브
+└── archive/       # 완료된 상세 문서 (28개)
 ```
 
 ---
