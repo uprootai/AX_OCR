@@ -77,8 +77,7 @@ describe('ConfidenceDistributionChart', () => {
       { confidence: 0.9 },
       { confidence: NaN },
       { confidence: 0.5 },
-      // @ts-expect-error Testing invalid data
-      { confidence: 'invalid' },
+      { confidence: 'invalid' as unknown as number }, // Testing invalid runtime data
     ];
     render(<ConfidenceDistributionChart detections={mixedDetections} />);
     expect(screen.getByText('총 2개 검출')).toBeInTheDocument();
