@@ -3,6 +3,7 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { ZoomIn, Layers, Image as ImageIcon } from 'lucide-react';
+import { ConfidenceDistributionChart } from '../charts/ConfidenceDistributionChart';
 
 export interface SVGOverlayData {
   svg: string;
@@ -563,6 +564,21 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Confidence Distribution Chart */}
+        {boundingBoxes.length > 0 && (
+          <div className="mt-4">
+            <ConfidenceDistributionChart
+              detections={boundingBoxes.map(box => ({
+                confidence: box.confidence,
+                class_name: box.className,
+              }))}
+              title="신뢰도 분포"
+              compact={true}
+              showStatistics={true}
+            />
           </div>
         )}
 
