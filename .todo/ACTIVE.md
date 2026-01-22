@@ -31,7 +31,7 @@
 |------|------|------|
 | Config 디렉토리 일관성 | ✅ 검증 완료 | 18/18 API (defaults.py 또는 대안) |
 | 프로파일 시스템 (DEFAULTS) | ✅ 검증 완료 | 16개 API에 DEFAULTS 딕셔너리 존재 |
-| 테스트 스위트 | ✅ 549개 통과 | web-ui: 185, gateway: 364 |
+| 테스트 스위트 | ✅ **668개** 통과 | web-ui: 304, gateway: 364 |
 | API 헬스체크 | ✅ 14/18 healthy | 선택적 API 4개 미배포 |
 | SVG 생성기 | ✅ 5개 API 존재 | pid-composer, line-detector, yolo, edocr2, paddleocr |
 | NodeDefinitions | ✅ 30개 노드 | 테스트 업데이트 완료 (29→30) |
@@ -95,7 +95,7 @@
 ### E2E 테스트 구조화 (2026-01-16)
 - 테스트 파일 구조 정리 ✅
 - fixture 분리 ✅
-- 549개 테스트 통과 ✅ (업데이트: 2026-01-22)
+- **668개** 테스트 통과 ✅ (업데이트: 2026-01-22, P2 완료)
 
 ### 디렉토리 정리 (2026-01-19)
 - rnd/ 정리 및 모델 추가 ✅
@@ -113,7 +113,7 @@
 | 디렉토리 정리 | 100% | ✅ 완료 (검증됨) |
 | Config 일관성 | 100% | ✅ 완료 (18/18 API 검증) |
 | 프로파일 통합 | 100% | ✅ 완료 (16개 API 검증) |
-| 테스트 스위트 | 100% | ✅ 549개 통과 |
+| 테스트 스위트 | 100% | ✅ **668개** 통과 (+119) |
 | 커밋 준비 | 100% | ✅ 완료 (73fae41) |
 
 ---
@@ -135,8 +135,24 @@
 1. ~~P0: 커밋 생성~~ ✅ 완료 (73fae41)
 2. ~~P1: DSE Bearing 템플릿 파라미터 정리~~ ✅ 완료 (95/100)
 3. ~~P2: DSE Bearing ExcelExport 템플릿 연동~~ ✅ 완료 (041f76c, 100/100)
-4. **P2**: 테스트 커버리지 확대 (549 → 600+)
-5. **P3**: 시각화 기능 확장
+4. ~~P2: 테스트 커버리지 확대~~ ✅ 완료 (549 → 668, 9931dfd)
+5. ~~P3: 시각화 기능 확장~~ ✅ 완료 (ConfidenceDistributionChart, 3bc6876)
+
+### 완료된 P2/P3 상세 (2026-01-22)
+
+**P2: 테스트 커버리지 확대 (+119 tests)**
+- `hooks/useAPIRegistry.test.ts`: 14 tests
+- `hooks/useHyperParameters.test.ts`: 12 tests
+- `lib/api.test.ts`: 43 tests
+- `services/apiRegistryService.test.ts`: 19 tests
+- `utils/specToHyperparams.test.ts`: 16 tests
+- `charts/ConfidenceDistributionChart.test.tsx`: 15 tests
+
+**P3: 시각화 기능**
+- `ConfidenceDistributionChart`: 신뢰도 분포 히스토그램
+- 5단계 색상 코딩 (낮음→최상)
+- 통계 표시 (평균, 중앙값, 표준편차)
+- YOLOVisualization에 통합
 
 ---
 
