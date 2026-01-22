@@ -42,6 +42,19 @@ class BOMExecutor(BaseNodeExecutor):
             검증 UI URL, 세션 정보
         """
         try:
+            # 0. 다중 부모 노드 입력 처리 (from_ prefix 병합)
+            # input_collector.py는 부모가 2개 이상이면 from_<node_id> prefix를 유지함
+            # 예: {'from_imageinput_1': {...}, 'from_yolo_1': {...}}
+            # 이를 단일 딕셔너리로 병합: {'image': '...', 'detections': [...], ...}
+            if any(key.startswith("from_") for key in inputs.keys()):
+                merged_inputs = {}
+                for key, value in inputs.items():
+                    if key.startswith("from_") and isinstance(value, dict):
+                        merged_inputs.update(value)
+                    elif not key.startswith("from_"):
+                        merged_inputs[key] = value
+                logger.info(f"다중 부모 입력 병합: {list(inputs.keys())} → {list(merged_inputs.keys())}")
+                inputs = merged_inputs
             # 0. 활성화할 기능 가져오기 (2025-12-24: inputs에서 우선, 없으면 파라미터에서)
             # ImageInput에서 전달된 features 우선 사용
             features = inputs.get("features")

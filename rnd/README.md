@@ -1,6 +1,6 @@
 # AX POC - R&D (Research & Development)
 
-> **최종 업데이트**: 2026-01-19
+> **최종 업데이트**: 2026-01-20
 > **목적**: 프로젝트 관련 연구 개발, SOTA 논문 수집, 실험 및 벤치마크 관리
 
 ---
@@ -16,7 +16,8 @@ rnd/
 ├── papers/                   # 논문 수집 및 정리
 │   └── README.md            # 49개 SOTA 논문 인덱스
 ├── experiments/             # 실험 기록
-│   └── doclayout_yolo/      # ✅ DocLayout-YOLO 테스트 (2025-12-31)
+│   ├── doclayout_yolo/      # ✅ DocLayout-YOLO 테스트 (2025-12-31)
+│   └── bwms_pipeline_improvement/  # 🔴 BWMS 파이프라인 개선 (2026-01-20)
 ├── benchmarks/              # 성능 벤치마크
 │   └── (향후 벤치마크 결과)
 └── models/                  # 모델 실험 및 가중치
@@ -69,6 +70,11 @@ rnd/
 | LLaVA-CoT 단계별 추론 | VL (5004) | ✅ 완료 |
 | DocLayout-YOLO 테스트 | Layout Analysis | ✅ 완료 (4GB VRAM, 40ms/img) |
 | **PID2Graph Fine-tuning** | YOLO (5005) | ✅ 완료 (mAP50: 68.5%, Recall: 66.0%) |
+
+### 진행 중 🔴
+| 연구 주제 | 상태 | 비고 |
+|-----------|------|------|
+| **BWMS 파이프라인 개선** | 🔴 분석 중 | YOLO 신뢰도, Line Detector 노이즈, BWMS 규칙 |
 
 ### 실현 가능 (P1)
 | 연구 주제 | GPU 요구 | 상태 |
@@ -142,6 +148,7 @@ rnd/
 
 | 날짜 | 변경 내용 |
 |------|----------|
+| 2026-01-20 | **BWMS 파이프라인 개선 연구 시작**: YOLO 신뢰도, Line Detector 노이즈, Design Checker 규칙 최적화 분석 |
 | 2026-01-19 | **PID2Graph Fine-tuning 완료**: YOLOv11n 기반, 1000장 학습, mAP50 68.5%, Recall 66.0% (기존 11.5% → 66.0%) |
 | 2025-12-31 (v3) | **DocLayout-YOLO 테스트 완료**: 4GB VRAM, 40ms 추론 속도, 기계도면/P&ID 6개 이미지 테스트, Fine-tuning 필요성 확인 |
 | 2025-12-31 (v2) | **SOTA 심층 조사**: 49개 논문 수집 (14개 신규), YOLOv12/Qwen3-VL/DocLayout-YOLO 등 차기 업그레이드 후보 발견 |

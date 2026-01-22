@@ -272,9 +272,12 @@ class PipelineEngine:
                 self.logger.error(f"노드 실행 실패: {node.id} - {result.get('error')}")
 
         except Exception as e:
-            context.set_node_status(node.id, "failed", error=str(e))
+            error_msg = str(e)
+            context.set_node_status(node.id, "failed", error=error_msg)
+            # 빈 출력 설정 (다음 노드가 graceful하게 처리할 수 있도록)
+            context.set_node_output(node.id, {"_error": error_msg, "_node_failed": True})
             self.logger.error(f"노드 실행 중 에러: {node.id} - {e}", exc_info=True)
-            raise
+            # 에러를 raise하지 않음 - 다음 노드가 계속 실행되도록 함
 
     async def execute_workflow_stream(
         self,

@@ -62,6 +62,15 @@ services:
             - gpu
             count: 1
             driver: nvidia
+  table-detector-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities:
+            - gpu
+            count: 1
+            driver: nvidia
   yolo-api:
     deploy:
       resources:

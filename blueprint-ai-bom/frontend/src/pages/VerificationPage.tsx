@@ -343,7 +343,10 @@ export function VerificationPage() {
 
         {/* 오른쪽: 참조 패널 (Streamlit과 동일) */}
         {showReferencePanel && (
-          <ReferencePanel onClose={() => setShowReferencePanel(false)} />
+          <ReferencePanel
+            onClose={() => setShowReferencePanel(false)}
+            drawingType={currentSession?.drawing_type}
+          />
         )}
       </div>
     </div>

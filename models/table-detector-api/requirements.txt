@@ -1,0 +1,25 @@
+# FastAPI Framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
+
+# Image Processing
+Pillow>=10.0.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+
+# Table Detection & Extraction
+img2table>=1.2.0
+
+# OCR Engines (optional - install based on preference)
+# Tesseract is default, others are optional
+pytesseract>=0.3.10
+
+# Table Transformer (TATR) - optional for better detection
+transformers>=4.35.0
+torch>=2.0.0
+timm>=0.9.0  # TATR backbone (ResNet) 필요
+
+# Utils
+httpx>=0.25.0

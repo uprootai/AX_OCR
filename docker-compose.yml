@@ -578,6 +578,31 @@ services:
       retries: 3
       start_period: 30s
 
+  # Table Detector API (포트 5022)
+  # 테이블 검출 및 구조 추출 (TATR + img2table)
+  table-detector-api:
+    build:
+      context: ./models/table-detector-api
+      dockerfile: Dockerfile
+    container_name: table-detector-api
+    ports:
+      - "5022:5022"
+    volumes:
+      - ./models/table-detector-api/uploads:/tmp/table-detector/uploads
+      - ./models/table-detector-api/results:/tmp/table-detector/results
+    environment:
+      - TABLE_DETECTOR_PORT=5022
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5022/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   # PID Analyzer API (포트 5018)
   # 심볼 연결 분석, BOM 생성
   pid-analyzer-api:

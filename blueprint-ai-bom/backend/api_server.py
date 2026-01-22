@@ -912,15 +912,23 @@ async def get_template():
 
 
 @app.get("/api/config/class-examples")
-async def get_class_examples():
-    """클래스별 참조 이미지 목록"""
+async def get_class_examples(drawing_type: str = "electrical"):
+    """클래스별 참조 이미지 목록
+
+    Args:
+        drawing_type: 도면 타입 ("electrical" 또는 "pid")
+    """
     import base64
     import glob
 
-    class_examples_dir = BASE_DIR / "class_examples"
+    # drawing_type에 따라 디렉토리 선택
+    if drawing_type == "pid":
+        class_examples_dir = BASE_DIR / "class_examples_pid"
+    else:
+        class_examples_dir = BASE_DIR / "class_examples"
 
     if not class_examples_dir.exists():
-        return {"examples": [], "message": "class_examples 디렉토리가 없습니다."}
+        return {"examples": [], "message": f"class_examples 디렉토리가 없습니다. (drawing_type: {drawing_type})"}
 
     examples = []
     pattern = str(class_examples_dir / "*.jpg")

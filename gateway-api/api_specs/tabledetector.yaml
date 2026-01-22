@@ -1,0 +1,210 @@
+# Table Detector API Specification
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: tabledetector
+  name: Table Detector
+  version: 1.0.0
+  port: 5022
+  host: table-detector-api
+  description: 테이블 검출 및 구조 추출 API (TATR + img2table)
+  author: AX Team
+  tags:
+    - detection
+    - table
+    - extraction
+    - engineering-drawing
+
+server:
+  endpoint: /api/v1/analyze
+  method: POST
+  contentType: multipart/form-data
+  timeout: 120
+  healthEndpoint: /api/v1/health
+
+blueprintflow:
+  category: detection
+  color: "#10B981"
+  icon: TableCells
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 테이블이 포함된 이미지 (도면, 문서 등)
+
+outputs:
+  - name: tables
+    type: array
+    description: 추출된 테이블 목록 (headers, data, html)
+  - name: regions
+    type: array
+    description: 검출된 테이블 영역 목록 (bounding boxes)
+  - name: tables_count
+    type: number
+    description: 추출된 테이블 개수
+  - name: regions_count
+    type: number
+    description: 검출된 영역 개수
+
+parameters:
+  - name: mode
+    type: select
+    options:
+      - detect
+      - extract
+      - analyze
+    default: analyze
+    description: 처리 모드 (detect=영역검출, extract=내용추출, analyze=통합)
+  - name: ocr_engine
+    type: select
+    options:
+      - tesseract
+      - paddle
+      - easyocr
+    default: tesseract
+    description: OCR 엔진 선택
+  - name: borderless
+    type: boolean
+    default: true
+    description: 테두리 없는 테이블 검출
+  - name: confidence_threshold
+    type: number
+    min: 0.1
+    max: 1.0
+    default: 0.7
+    step: 0.1
+    description: 테이블 검출 신뢰도 임계값
+  - name: min_confidence
+    type: number
+    min: 0
+    max: 100
+    default: 50
+    step: 10
+    description: OCR 최소 신뢰도 (0-100)
+  - name: output_format
+    type: select
+    options:
+      - json
+      - csv
+      - html
+      - dataframe
+    default: json
+    description: 출력 형식
+
+i18n:
+  ko:
+    label: Table Detector
+    description: 테이블 검출 및 구조 추출 (TATR + img2table)
+  en:
+    label: Table Detector
+    description: Table detection and structure extraction (TATR + img2table)
+
+profiles:
+  default: engineering
+  available:
+    - name: engineering
+      label: "기계도면 테이블"
+      description: "Parts List, BOM, 치수 테이블 추출"
+      params:
+        mode: analyze
+        ocr_engine: tesseract
+        borderless: true
+        confidence_threshold: 0.7
+        min_confidence: 50
+        output_format: json
+
+    - name: document
+      label: "일반 문서 테이블"
+      description: "일반 문서/보고서 테이블 추출"
+      params:
+        mode: analyze
+        ocr_engine: paddle
+        borderless: false
+        confidence_threshold: 0.5
+        min_confidence: 40
+        output_format: json
+
+    - name: detection_only
+      label: "테이블 검출만"
+      description: "테이블 영역만 검출 (내용 추출 안함)"
+      params:
+        mode: detect
+        confidence_threshold: 0.6
+
+    - name: korean
+      label: "한글 문서"
+      description: "한글 테이블 최적화"
+      params:
+        mode: analyze
+        ocr_engine: paddle
+        borderless: true
+        confidence_threshold: 0.7
+        min_confidence: 60
+        output_format: json
+
+resources:
+  gpu:
+    vram: "~2GB"
+    minVram: 1024
+    recommended: "TATR 사용 시 GPU 권장"
+    cudaVersion: "11.8+"
+  cpu:
+    ram: "~4GB"
+    minRam: 2048
+    cores: 4
+    note: "img2table은 CPU로 충분, TATR은 GPU 권장"
+  parameterImpact:
+    - parameter: mode
+      impact: "analyze > extract > detect (처리시간)"
+      examples: "detect:빠름, analyze:느림"
+    - parameter: ocr_engine
+      impact: "paddle/easyocr: 정확도↑, 시간↑"
+      examples: "tesseract:빠름, paddle:정확"
+    - parameter: borderless
+      impact: "true: 처리시간↑, 검출률↑"
+      examples: "false:테두리만, true:전체"
+
+openapi:
+  requestExamples:
+    - name: "Parts List 추출"
+      description: "도면의 Parts List 테이블 추출"
+      formData:
+        file: "TD0062066.png"
+        mode: "analyze"
+        ocr_engine: "tesseract"
+        borderless: true
+        output_format: "json"
+
+    - name: "테이블 영역만 검출"
+      description: "테이블 위치만 확인"
+      formData:
+        file: "drawing.png"
+        mode: "detect"
+        confidence_threshold: 0.7
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        success: true
+        image_size: {width: 2480, height: 3508}
+        regions_detected: 2
+        tables_extracted: 2
+        regions:
+          - id: 0
+            bbox: [1800, 2800, 2400, 3400]
+            confidence: 0.95
+            label: "table"
+        tables:
+          - id: 0
+            rows: 5
+            cols: 4
+            headers: ["NO", "PART NAME", "MAT'L", "Q'TY"]
+            data:
+              - ["1", "CASING", "SF440A", "1"]
+              - ["2", "LINER PAD", "ASTM B23", "8"]
+            html: "<table>...</table>"
+        processing_time_ms: 2450

@@ -327,9 +327,9 @@ describe('nodeDefinitions', () => {
   });
 
   describe('Node count verification', () => {
-    it('should have exactly 29 node types', () => {
-      // 23 기존 + 5 신규 + 1 pidcomposer (gtcomparison, pdfexport, excelexport, pidfeatures, verificationqueue, pidcomposer)
-      expect(Object.keys(nodeDefinitions).length).toBe(29);
+    it('should have exactly 30 node types', () => {
+      // 23 기존 + 5 신규 + 1 pidcomposer + 1 table_detector (gtcomparison, pdfexport, excelexport, pidfeatures, verificationqueue, pidcomposer, table_detector)
+      expect(Object.keys(nodeDefinitions).length).toBe(30);
     });
 
     it('should have correct count per category', () => {
@@ -339,7 +339,7 @@ describe('nodeDefinitions', () => {
       });
 
       expect(categoryCounts['input']).toBe(2);      // imageinput, textinput
-      expect(categoryCounts['detection']).toBe(1);  // yolo (통합 API로 P&ID 포함)
+      expect(categoryCounts['detection']).toBe(2);  // yolo (통합 API), table_detector
       expect(categoryCounts['ocr']).toBe(8);        // edocr2, paddleocr, tesseract, trocr, ocr_ensemble, suryaocr, doctr, easyocr
       expect(categoryCounts['segmentation']).toBe(2); // edgnet, linedetector
       expect(categoryCounts['preprocessing']).toBe(1); // esrgan

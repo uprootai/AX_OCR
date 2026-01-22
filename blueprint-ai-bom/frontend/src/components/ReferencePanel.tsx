@@ -17,9 +17,10 @@ interface ClassExample {
 
 interface ReferencePanelProps {
   onClose: () => void;
+  drawingType?: 'pid' | 'electrical' | 'sld' | string;
 }
 
-export function ReferencePanel({ onClose }: ReferencePanelProps) {
+export function ReferencePanel({ onClose, drawingType = 'electrical' }: ReferencePanelProps) {
   const [examples, setExamples] = useState<ClassExample[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +33,10 @@ export function ReferencePanel({ onClose }: ReferencePanelProps) {
       setIsLoading(true);
       setError(null);
       try {
+        // drawing_type을 쿼리 파라미터로 전달
+        const apiDrawingType = drawingType === 'pid' ? 'pid' : 'electrical';
         const { data } = await axios.get<{ examples: ClassExample[] }>(
-          `${API_BASE_URL}/api/config/class-examples`
+          `${API_BASE_URL}/api/config/class-examples?drawing_type=${apiDrawingType}`
         );
         setExamples(data.examples || []);
       } catch (err) {
@@ -45,7 +48,7 @@ export function ReferencePanel({ onClose }: ReferencePanelProps) {
     };
 
     loadExamples();
-  }, []);
+  }, [drawingType]);
 
   // Filter examples by search query
   const filteredExamples = examples.filter(ex =>

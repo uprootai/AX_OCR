@@ -715,7 +715,7 @@ export function WorkflowPage() {
       </main>
 
       {/* 심볼 참조 패널 */}
-      <ReferencePanel onClose={() => {}} />
+      <ReferencePanel onClose={() => {}} drawingType={effectiveDrawingType} />
     </div>
   );
 }

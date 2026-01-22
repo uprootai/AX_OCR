@@ -25,6 +25,7 @@ import {
   FileSpreadsheet,
   ClipboardCheck,
   Workflow,
+  Table,
 } from 'lucide-react';
 import type { NodeConfig } from './types';
 
@@ -66,6 +67,14 @@ export const baseNodeConfigs: NodeConfig[] = [
     description: '기계도면 + P&ID 심볼 검출',
     icon: Target,
     color: '#10b981',
+    category: 'detection',
+  },
+  {
+    type: 'table_detector',
+    label: 'Table Detector',
+    description: '테이블 검출 및 구조 추출',
+    icon: Table,
+    color: '#10B981',
     category: 'detection',
   },
   {

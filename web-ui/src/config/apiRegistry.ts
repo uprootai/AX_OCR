@@ -77,6 +77,19 @@ export const API_REGISTRY: APIDefinition[] = [
     color: '#ef4444',
     gpuEnabled: true,
   },
+  {
+    id: 'table_detector',
+    nodeType: 'table_detector',
+    displayName: 'Table Detector',
+    containerName: 'table-detector-api',
+    specId: 'tabledetector',
+    port: 5022,
+    category: 'detection',
+    description: '테이블 검출 및 구조 추출',
+    icon: '📊',
+    color: '#10B981',
+    gpuEnabled: true,
+  },
   // OCR
   {
     id: 'edocr2',

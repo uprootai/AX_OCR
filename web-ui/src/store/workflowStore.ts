@@ -261,6 +261,11 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   setSelectedNode: (node) => set({ selectedNode: node }),
 
   clearWorkflow: () => {
+    // 세션스토리지에서 이미지 삭제
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('blueprintflow-uploadedImage');
+      sessionStorage.removeItem('blueprintflow-uploadedFileName');
+    }
     set({
       workflowName: 'Untitled Workflow',
       workflowDescription: '',
@@ -269,6 +274,10 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       selectedNode: null,
       executionResult: null,
       executionError: null,
+      uploadedImage: null,
+      uploadedFileName: null,
+      nodeStatuses: {},
+      isExecuting: false,
     });
   },
 

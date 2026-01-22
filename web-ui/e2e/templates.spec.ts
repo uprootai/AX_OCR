@@ -3,12 +3,15 @@ import { test, expect } from '@playwright/test';
 /**
  * BlueprintFlow Templates Page Tests
  *
- * Tests all 17 templates across 5 categories:
- * - Featured (2): Complete Drawing Analysis, P&ID Analysis
+ * Tests all 31 templates across 8 categories:
+ * - Featured (4): Complete Drawing Analysis, P&ID Analysis, TECHCROSS BWMS Checklist, DSE Bearing 1-1
  * - Basic (2): Speed Pipeline, Basic OCR
  * - Advanced (5): Accuracy Pipeline, OCR Ensemble, Multi-OCR, Conditional OCR, Loop Detection
- * - P&ID (6): PID Symbol Detection, PID Line Analysis, etc.
  * - AI (2): VL-Assisted, Knowledge-Enhanced
+ * - Benchmark (6): Full OCR, Detection, Segmentation, Analysis, Preprocessing, AI
+ * - TechCross (4): BWMS Checklist, Valve Signal List, Equipment List, Deviation Analysis
+ * - DSE Bearing (10): 1-1 Analysis, 1-2 Quote, 1-3 BOM Match, 2-1 Ring ASSY, 2-2 Casing ASSY,
+ *                     2-3 Thrust Bearing, 2-4 CV Cone Cover, 2-5 GD&T, 2-6 BOM Extract, 3-1 Precision
  */
 
 test.describe('BlueprintFlow Templates Page', () => {
@@ -28,22 +31,31 @@ test.describe('BlueprintFlow Templates Page', () => {
       await expect(page.locator('text=/\\d+ templates/')).toBeVisible();
     });
 
-    test('should display all category sections', async ({ page }) => {
-      // Featured Templates section
-      const featuredSection = page.locator('text=/추천 템플릿|Featured Templates/');
-      await expect(featuredSection.first()).toBeVisible();
+    test('should display all category tabs', async ({ page }) => {
+      // Tab-based UI: check for category tab buttons
+      // Featured tab
+      const featuredTab = page.locator('button:has-text("Featured")');
+      await expect(featuredTab.first()).toBeVisible();
 
-      // Basic Templates section
-      const basicSection = page.locator('text=/기본 템플릿|Basic Templates/');
-      await expect(basicSection.first()).toBeVisible();
+      // Basic tab
+      const basicTab = page.locator('button:has-text("Basic")');
+      await expect(basicTab.first()).toBeVisible();
 
-      // Advanced Templates section
-      const advancedSection = page.locator('text=/고급 템플릿|Advanced Templates/');
-      await expect(advancedSection.first()).toBeVisible();
+      // Advanced tab
+      const advancedTab = page.locator('button:has-text("Advanced")');
+      await expect(advancedTab.first()).toBeVisible();
 
-      // AI Templates section
-      const aiSection = page.locator('text=/AI.*템플릿|AI-Powered Templates/');
-      await expect(aiSection.first()).toBeVisible();
+      // AI tab
+      const aiTab = page.locator('button:has-text("AI")');
+      await expect(aiTab.first()).toBeVisible();
+
+      // TechCross tab
+      const techcrossTab = page.locator('button:has-text("TECHCROSS")');
+      await expect(techcrossTab.first()).toBeVisible();
+
+      // DSE Bearing tab
+      const dseBearingTab = page.locator('button:has-text("DSE Bearing")');
+      await expect(dseBearingTab.first()).toBeVisible();
     });
 
     test('should display How Templates Work section', async ({ page }) => {
@@ -90,8 +102,8 @@ test.describe('BlueprintFlow Templates Page', () => {
     });
 
     test('Speed Pipeline should show fast estimated time', async ({ page }) => {
-      // Speed Pipeline shows "3-5s"
-      const timeText = page.locator('text="3-5s"');
+      // Speed Pipeline shows "8-12s"
+      const timeText = page.locator('text="8-12s"');
       await expect(timeText.first()).toBeVisible();
     });
   });
@@ -152,14 +164,14 @@ test.describe('BlueprintFlow Templates Page', () => {
       // All templates should have "X nodes" text
       const nodeCountElements = page.locator('text=/\\d+ nodes/');
       const count = await nodeCountElements.count();
-      expect(count).toBeGreaterThanOrEqual(17); // At least 17 templates
+      expect(count).toBeGreaterThanOrEqual(30); // At least 27 templates
     });
 
     test('each template should show estimated time', async ({ page }) => {
-      // Templates show time like "3-5s", "10-15s", etc.
+      // Templates show time like "8-12s", "10-15s", etc.
       const timeElements = page.locator('text=/\\d+-\\d+s/');
       const count = await timeElements.count();
-      expect(count).toBeGreaterThanOrEqual(17);
+      expect(count).toBeGreaterThanOrEqual(30);
     });
 
     test('each template should show accuracy percentage', async ({ page }) => {
@@ -173,20 +185,20 @@ test.describe('BlueprintFlow Templates Page', () => {
     test('each template should have Use Template button', async ({ page }) => {
       const useButtons = page.locator('button:has-text("Use Template")');
       const count = await useButtons.count();
-      expect(count).toBeGreaterThanOrEqual(17);
+      expect(count).toBeGreaterThanOrEqual(30);
     });
 
     test('should display Pipeline Flow badges for each template', async ({ page }) => {
       const pipelineFlowLabels = page.locator('text="Pipeline Flow:"');
       const count = await pipelineFlowLabels.count();
-      expect(count).toBeGreaterThanOrEqual(17);
+      expect(count).toBeGreaterThanOrEqual(30);
     });
 
     test('each template should show use case recommendation', async ({ page }) => {
       // Each template should have "When to use" or "이럴 때 사용하세요" section
       const useCaseLabels = page.locator('text=/When to use|이럴 때 사용하세요/');
       const count = await useCaseLabels.count();
-      expect(count).toBeGreaterThanOrEqual(17);
+      expect(count).toBeGreaterThanOrEqual(30);
     });
   });
 
@@ -222,7 +234,7 @@ test.describe('BlueprintFlow Templates Page', () => {
       expect(nodeCount).toBeGreaterThan(0);
     });
 
-    test('loading P&ID template should add 5 nodes', async ({ page }) => {
+    test('loading P&ID template should add 6 nodes', async ({ page }) => {
       // Find and click the P&ID template Use Template button
       // P&ID template is in Featured section
       const pidCard = page.locator('text=/P&ID.*분석.*파이프라인|P&ID Analysis Pipeline/').first();
@@ -241,10 +253,10 @@ test.describe('BlueprintFlow Templates Page', () => {
       await expect(page).toHaveURL(/\/blueprintflow\/builder/);
       await page.waitForTimeout(1000);
 
-      // P&ID template has 5 nodes
+      // P&ID template has 6 nodes
       const nodes = page.locator('.react-flow__node');
       const nodeCount = await nodes.count();
-      expect(nodeCount).toBe(5);
+      expect(nodeCount).toBe(6);
     });
   });
 
@@ -253,21 +265,115 @@ test.describe('BlueprintFlow Templates Page', () => {
   // ==========================================
 
   test.describe('Template Count Summary', () => {
-    test('should have exactly 17 templates', async ({ page }) => {
+    test('should have exactly 31 templates', async ({ page }) => {
       const useButtons = page.locator('button:has-text("Use Template")');
       const count = await useButtons.count();
-      expect(count).toBe(17);
+      expect(count).toBe(31);
     });
 
-    test('Featured section should have 2 templates', async ({ page }) => {
-      // Find Featured section and count templates
-      const _featuredBadge = page.locator('text=/추천 템플릿|Featured Templates/').first()
-        .locator('xpath=following-sibling::*[contains(@class, "Badge") or contains(text(), "2")]');
+    test('Featured section should have 4 templates', async ({ page }) => {
+      // Click Featured tab first
+      await page.locator('button:has-text("Featured")').first().click();
+      await page.waitForTimeout(500);
 
-      // Alternative: count cards in Featured section by checking for FEATURED badge
+      // Count featured cards (with amber ring)
       const featuredCards = page.locator('.ring-amber-400, .ring-amber-500');
       const count = await featuredCards.count();
-      expect(count).toBe(2);
+      expect(count).toBe(4); // Complete Analysis, P&ID, TECHCROSS BWMS, DSE Bearing 1-1
+    });
+  });
+
+  // ==========================================
+  // TechCross Templates Tests
+  // ==========================================
+
+  test.describe('TechCross Templates', () => {
+    test('should display BWMS Checklist template', async ({ page }) => {
+      const template = page.locator('text=/TECHCROSS 1-1.*BWMS Checklist/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display Valve Signal List template', async ({ page }) => {
+      const template = page.locator('text=/TECHCROSS 1-2.*Valve Signal List/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display Equipment List template', async ({ page }) => {
+      const template = page.locator('text=/TECHCROSS 1-3.*Equipment List/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display Deviation Analysis template', async ({ page }) => {
+      const template = page.locator('text=/TECHCROSS 1-4.*Deviation Analysis/');
+      await expect(template.first()).toBeVisible();
+    });
+  });
+
+  // ==========================================
+  // DSE Bearing Templates Tests
+  // ==========================================
+
+  test.describe('DSE Bearing Templates', () => {
+    test.beforeEach(async ({ page }) => {
+      // Click DSE Bearing tab to show templates
+      await page.locator('button:has-text("DSE Bearing")').first().click();
+      await page.waitForTimeout(500);
+    });
+
+    test('should display DSE Bearing 1-1 Analysis template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 1-1.*도면 분석|DSE Bearing 1-1.*Analysis/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 1-2 Quote template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 1-2.*견적|DSE Bearing 1-2.*Quote/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 1-3 BOM Match template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 1-3.*BOM.*매칭|DSE Bearing 1-3.*BOM.*Match/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 2-1 Ring ASSY template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 2-1.*Ring ASSY/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 2-2 Casing ASSY template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 2-2.*Casing ASSY/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 2-3 Thrust Bearing template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 2-3.*Thrust Bearing/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 2-4 CV Cone Cover template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 2-4.*CV Cone Cover/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 2-5 GD&T template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 2-5.*GD&T/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 2-6 BOM Extract template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 2-6.*BOM.*추출|DSE Bearing 2-6.*BOM.*Extract/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('should display DSE Bearing 3-1 Precision Analysis template', async ({ page }) => {
+      const template = page.locator('text=/DSE Bearing 3-1.*정밀.*분석|DSE Bearing 3-1.*Precision/');
+      await expect(template.first()).toBeVisible();
+    });
+
+    test('DSE Bearing tab should have 10 templates', async ({ page }) => {
+      const useButtons = page.locator('button:has-text("Use Template")');
+      const count = await useButtons.count();
+      expect(count).toBe(10);
     });
   });
 });

@@ -1,31 +1,31 @@
 # ESRGAN API Dockerfile
-# CPU 버전 - GPU 버전은 nvidia/cuda 베이스 이미지 사용
+# GPU 버전 - PyTorch 공식 이미지 기반
 
-FROM python:3.10-slim
+FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
 
 WORKDIR /app
 
 # System dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    libgl1 \
+    libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Python dependencies (CPU version)
+# Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Optional: Install Real-ESRGAN for better quality
-# Uncomment below for Real-ESRGAN support (requires more disk space)
-# RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
-# RUN pip install --no-cache-dir basicsr realesrgan
+# Install Real-ESRGAN then force numpy downgrade for PyTorch 2.0 compatibility
+RUN pip install --no-cache-dir basicsr==1.4.2 realesrgan==0.3.0 && \
+    pip install --no-cache-dir --force-reinstall "numpy<2"
 
 # Copy application
 COPY api_server.py .
+COPY schemas.py .
 COPY routers/ ./routers/
 COPY services/ ./services/
 

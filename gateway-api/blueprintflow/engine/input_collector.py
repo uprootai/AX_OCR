@@ -36,6 +36,8 @@ async def collect_node_inputs(
 
     # 부모 노드들의 출력 수집
     inputs = {}
+    has_failed_parent = False
+
     for edge in incoming_edges:
         source_node_id = edge.source
         source_output = context.get_node_output(source_node_id)
@@ -44,8 +46,20 @@ async def collect_node_inputs(
             logger.warning(f"부모 노드 {source_node_id}의 출력이 없습니다")
             continue
 
+        # 부모 노드 실패 체크
+        if isinstance(source_output, dict) and source_output.get("_node_failed"):
+            logger.warning(f"부모 노드 {source_node_id}가 실패했습니다. 에러: {source_output.get('_error')}")
+            has_failed_parent = True
+            # 실패한 노드의 출력은 건너뛰기 (빈 값 전달)
+            continue
+
         # 출력을 입력으로 병합
         inputs[f"from_{source_node_id}"] = source_output
+
+    # 모든 부모가 실패한 경우 _has_failed_parent 플래그 설정
+    if has_failed_parent and not inputs:
+        inputs["_has_failed_parent"] = True
+        logger.warning(f"노드 {node_id}: 모든 부모 노드가 실패했습니다")
 
     # 부모가 여러 개인 경우: from_ prefix 유지 (Merge 노드용)
     if len(incoming_edges) > 1:

@@ -1,4 +1,4 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, Zap } from 'lucide-react';
+import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, Zap, PlayCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNodeDefinitions } from '../../hooks/useNodeDefinitions';
@@ -45,6 +45,10 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
   // Get uploaded image from store
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
   const uploadedFileName = useWorkflowStore((state) => state.uploadedFileName);
+
+  // Get node execution status from store
+  const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
+  const currentNodeStatus = selectedNode ? nodeStatuses[selectedNode.id] : null;
 
   // features 기반 추천 노드 계산 (ImageInput 노드일 때만)
   const featuresRecommendation = useMemo(() => {
@@ -348,6 +352,83 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             ))}
           </CardContent>
         </Card>
+
+        {/* Execution Result Preview */}
+        {currentNodeStatus && (
+          <Card className={`border-l-4 ${
+            currentNodeStatus.status === 'completed' ? 'border-l-green-500 bg-green-50 dark:bg-green-900/20' :
+            currentNodeStatus.status === 'failed' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' :
+            currentNodeStatus.status === 'running' ? 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20' :
+            'border-l-gray-300'
+          }`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                {currentNodeStatus.status === 'completed' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                {currentNodeStatus.status === 'failed' && <XCircle className="w-4 h-4 text-red-500" />}
+                {currentNodeStatus.status === 'running' && <Clock className="w-4 h-4 text-blue-500 animate-spin" />}
+                {currentNodeStatus.status === 'pending' && <PlayCircle className="w-4 h-4 text-gray-400" />}
+                실행 결과
+                {currentNodeStatus.elapsedSeconds && (
+                  <span className="text-xs text-gray-500 ml-auto">
+                    {currentNodeStatus.elapsedSeconds.toFixed(1)}초
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs">
+              {currentNodeStatus.status === 'failed' && currentNodeStatus.error && (
+                <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded text-red-700 dark:text-red-300">
+                  ❌ {currentNodeStatus.error}
+                </div>
+              )}
+              {currentNodeStatus.status === 'completed' && currentNodeStatus.output && (
+                <div className="space-y-2">
+                  {/* 주요 결과 요약 */}
+                  {Array.isArray(currentNodeStatus.output.dimensions) && currentNodeStatus.output.dimensions.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">📏 치수:</span>
+                      <span>{currentNodeStatus.output.dimensions.length}개</span>
+                    </div>
+                  )}
+                  {Array.isArray(currentNodeStatus.output.tables) && currentNodeStatus.output.tables.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">📊 테이블:</span>
+                      <span>{currentNodeStatus.output.tables.length}개</span>
+                    </div>
+                  )}
+                  {Array.isArray(currentNodeStatus.output.detections) && currentNodeStatus.output.detections.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">🎯 검출:</span>
+                      <span>{currentNodeStatus.output.detections.length}개</span>
+                    </div>
+                  )}
+                  {Array.isArray(currentNodeStatus.output.texts) && currentNodeStatus.output.texts.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">📝 텍스트:</span>
+                      <span>{currentNodeStatus.output.texts.length}개</span>
+                    </div>
+                  )}
+                  {/* JSON 미리보기 (접기/펼치기) */}
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
+                      JSON 데이터 보기
+                    </summary>
+                    <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
+                      {JSON.stringify(currentNodeStatus.output, null, 2).slice(0, 2000)}
+                      {JSON.stringify(currentNodeStatus.output).length > 2000 && '...'}
+                    </pre>
+                  </details>
+                </div>
+              )}
+              {currentNodeStatus.status === 'running' && (
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <div className="animate-pulse">실행 중...</div>
+                  {currentNodeStatus.message && <span>({currentNodeStatus.message})</span>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Parameters */}
         {definition.parameters.length > 0 && (

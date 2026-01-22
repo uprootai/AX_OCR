@@ -78,7 +78,7 @@ def load_model():
             scale=4,
             model_path=model_path,
             model=model,
-            tile=0,  # 0: no tile, 512: 512x512 tiles
+            tile=256,  # 256x256 tiles for 8GB GPU (conservative)
             tile_pad=10,
             pre_pad=0,
             half=True if DEVICE == "cuda" else False,
