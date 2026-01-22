@@ -232,7 +232,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'edocr2_1', type: 'edocr2', label: '치수/텍스트 OCR', parameters: { extract_dimensions: true, extract_gdt: true, language: 'ko+en' }, position: { x: 350, y: 300 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: { features: ['table_extraction', 'dimension_extraction', 'human_verification'], drawing_type: 'mechanical' }, position: { x: 600, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '공차 분석', parameters: { task: 'tolerance', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 850, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'BOM Excel 내보내기', parameters: { template: 'dsebearing_bom', include_tolerances: true }, position: { x: 1100, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'BOM Excel 내보내기', parameters: { export_type: 'all', project_name: 'DSE Bearing BOM' }, position: { x: 1100, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'tabledetector_1' },
@@ -263,7 +263,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: { features: ['table_extraction', 'vlm_auto_classification', 'dimension_extraction', 'human_verification'], drawing_type: 'mechanical' }, position: { x: 600, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '공차 분석', parameters: { task: 'manufacturability', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 850, y: 200 } },
           { id: 'merge_1', type: 'merge', label: '분석 결과 통합', parameters: {}, position: { x: 1050, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: '견적서 Excel', parameters: { template: 'dsebearing_quote', include_costs: true }, position: { x: 1250, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: '견적서 Excel', parameters: { export_type: 'all', project_name: 'DSE Bearing Quote' }, position: { x: 1250, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'vl_1' },
@@ -293,7 +293,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'imageinput_1', type: 'imageinput', label: '부품도 입력', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'edocr2_1', type: 'edocr2', label: '도면번호/품명 OCR', parameters: { extract_text: true, extract_tables: true, language: 'ko+en' }, position: { x: 350, y: 200 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'BOM 매칭 (AI BOM)', parameters: { features: ['part_number_extraction', 'bom_matching', 'human_verification'], drawing_type: 'mechanical' }, position: { x: 600, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'BOM 매칭 결과', parameters: { template: 'dsebearing_bom_match' }, position: { x: 850, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'BOM 매칭 결과', parameters: { export_type: 'all', project_name: 'DSE Bearing BOM Match' }, position: { x: 850, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'edocr2_1' },
@@ -321,7 +321,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'edocr2_1', type: 'edocr2', label: '치수/공차 OCR', parameters: { extract_dimensions: true, extract_gdt: true, extract_tables: true }, position: { x: 500, y: 300 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'BOM 검증 (AI BOM)', parameters: { features: ['table_extraction', 'part_list', 'human_verification'], drawing_type: 'bearing_ring' }, position: { x: 750, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '틈새 공차 분석', parameters: { task: 'tolerance', material_type: 'steel', correlation_length: 2.0 }, position: { x: 1000, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'Ring ASSY BOM', parameters: { template: 'dsebearing_ring_assy', include_clearance: true }, position: { x: 1250, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'Ring ASSY BOM', parameters: { export_type: 'all', project_name: 'DSE Bearing Ring ASSY' }, position: { x: 1250, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'esrgan_1' },
@@ -353,7 +353,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'edocr2_1', type: 'edocr2', label: '나사/포트 OCR', parameters: { extract_dimensions: true, extract_text: true, language: 'ko+en' }, position: { x: 500, y: 300 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Casing 검증', parameters: { features: ['table_extraction', 'machining_specs', 'human_verification'], drawing_type: 'bearing_casing' }, position: { x: 750, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '가공 난이도 분석', parameters: { task: 'manufacturability', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 1000, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'Casing 가공 명세', parameters: { template: 'dsebearing_casing', include_machining: true }, position: { x: 1250, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'Casing 가공 명세', parameters: { export_type: 'all', project_name: 'DSE Bearing Casing' }, position: { x: 1250, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'esrgan_1' },
@@ -387,7 +387,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Thrust BOM 검증', parameters: { features: ['table_extraction', 'thrust_pad_count', 'human_verification'], drawing_type: 'thrust_bearing' }, position: { x: 800, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: 'PAD 틈새 분석', parameters: { task: 'tolerance', material_type: 'steel', correlation_length: 1.5 }, position: { x: 1050, y: 200 } },
           { id: 'merge_1', type: 'merge', label: '분석 통합', parameters: {}, position: { x: 1250, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'Thrust Bearing BOM', parameters: { template: 'dsebearing_thrust', include_pad_analysis: true }, position: { x: 1450, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'Thrust Bearing BOM', parameters: { export_type: 'all', project_name: 'DSE Thrust Bearing' }, position: { x: 1450, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'esrgan_1' },
@@ -424,7 +424,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'CV BOM 검증', parameters: { features: ['table_extraction', 'weld_detail', 'hole_pattern', 'human_verification'], drawing_type: 'cv_cone_cover' }, position: { x: 800, y: 175 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '용접 난이도 분석', parameters: { task: 'manufacturability', manufacturing_process: 'welding', material_type: 'steel' }, position: { x: 1050, y: 100 } },
           { id: 'merge_1', type: 'merge', label: '분석 통합', parameters: {}, position: { x: 1250, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'CV 제작 명세', parameters: { template: 'dsebearing_cv_cone', include_weld_procedure: true }, position: { x: 1450, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'CV 제작 명세', parameters: { export_type: 'all', project_name: 'DSE CV Cone Cover' }, position: { x: 1450, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'esrgan_1' },
@@ -460,7 +460,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: '앙상블 검증', parameters: { engines: ['edocr2', 'paddleocr', 'tesseract'] }, position: { x: 800, y: 200 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'GD&T 검증', parameters: { features: ['vlm_gdt_extraction', 'datum_reference', 'human_verification'], drawing_type: 'gdt_focused' }, position: { x: 1050, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: 'GD&T 스택 분석', parameters: { task: 'validate', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 1300, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'GD&T 리포트', parameters: { template: 'dsebearing_gdt', include_stack_analysis: true }, position: { x: 1550, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'GD&T 리포트', parameters: { export_type: 'all', project_name: 'DSE GD&T Analysis' }, position: { x: 1550, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'esrgan_1' },
@@ -493,7 +493,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'edocr2_1', type: 'edocr2', label: 'BOM 셀 OCR', parameters: { extract_text: true, extract_tables: true, language: 'ko+en' }, position: { x: 350, y: 300 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'BOM 구조화', parameters: { features: ['table_extraction', 'cell_parsing', 'material_mapping', 'human_verification'], drawing_type: 'bom_focused' }, position: { x: 600, y: 200 } },
           { id: 'vl_1', type: 'vl', label: 'VLM 보정', parameters: { prompt: 'BOM 테이블에서 누락되거나 잘못 인식된 항목이 있는지 확인하고, 부품 번호와 재질 코드를 검증해주세요' }, position: { x: 850, y: 200 } },
-          { id: 'excelexport_1', type: 'excelexport', label: 'BOM Excel', parameters: { template: 'dsebearing_bom_full', include_material_specs: true }, position: { x: 1100, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'BOM Excel', parameters: { export_type: 'all', project_name: 'DSE Full BOM' }, position: { x: 1100, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'table_detector_1' },
@@ -524,7 +524,7 @@ export default function BlueprintFlowTemplates() {
           // Table Detector: 테이블 영역 검출 + 구조 추출
           { id: 'table_detector_1', type: 'table_detector', label: 'Parts List 검출', parameters: { mode: 'analyze', ocr_engine: 'paddle', borderless: true, confidence_threshold: 0.7, min_confidence: 60, output_format: 'json' }, position: { x: 500, y: 200 } },
           // Excel 출력
-          { id: 'excelexport_1', type: 'excelexport', label: 'Parts List Excel', parameters: { template: 'dsebearing_parts_list', auto_format: true }, position: { x: 750, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'Parts List Excel', parameters: { export_type: 'all', project_name: 'DSE Parts List' }, position: { x: 750, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'esrgan_1' },
@@ -554,7 +554,7 @@ export default function BlueprintFlowTemplates() {
           // AI BOM: Human-in-the-Loop 검증
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Parts List 검증 (AI BOM)', parameters: { features: ['table_verification', 'human_verification'] }, position: { x: 850, y: 200 } },
           // Excel 출력
-          { id: 'excelexport_1', type: 'excelexport', label: 'Parts List Excel', parameters: { template: 'dsebearing_parts_list', auto_format: true }, position: { x: 1100, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: 'Parts List Excel', parameters: { export_type: 'all', project_name: 'DSE Parts List' }, position: { x: 1100, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
@@ -595,7 +595,7 @@ export default function BlueprintFlowTemplates() {
           // 7단계: 결과 통합
           { id: 'merge_1', type: 'merge', label: '정밀 결과 통합', parameters: {}, position: { x: 1050, y: 250 } },
           // 8단계: Excel 출력
-          { id: 'excelexport_1', type: 'excelexport', label: '정밀 BOM Excel', parameters: { template: 'dsebearing_precision', include_tolerances: true, include_welding: true, include_gdt: true }, position: { x: 1250, y: 250 } },
+          { id: 'excelexport_1', type: 'excelexport', label: '정밀 BOM Excel', parameters: { export_type: 'all', project_name: 'DSE Precision Analysis' }, position: { x: 1250, y: 250 } },
         ],
         edges: [
           // ImageInput → ESRGAN → 3개 병렬 처리 (Table Detector, eDOCr2, OCR Ensemble)
