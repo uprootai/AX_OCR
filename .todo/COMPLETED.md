@@ -7,6 +7,36 @@
 
 ## 2026-01-22 완료
 
+### 0. DSE Bearing 100점 달성 (P1)
+
+**상태**: ✅ **전체 완료**
+
+| Phase | 작업 | 상태 |
+|-------|------|------|
+| Phase 1 | Title Block Parser | ✅ 완료 |
+| Phase 2 | Parts List 강화 | ✅ 완료 |
+| Phase 3 | Dimension Parser | ✅ 완료 |
+| Phase 4 | BOM 자동 매칭 | ✅ 완료 |
+| Phase 5 | 견적 자동화 (Excel/PDF) | ✅ 완료 |
+| Phase 6 | 통합 파이프라인 | ✅ 완료 |
+
+**구현 내역**:
+- `gateway-api/routers/dsebearing_router.py` - 전체 API 라우터
+- `gateway-api/services/` - 4개 서비스 (parser, price_db, customer, exporter)
+- `gateway-api/blueprintflow/executors/` - 5개 Executor
+- `tests/unit/test_dsebearing_services.py` - 25개 단위 테스트
+- `tests/e2e/test_dsebearing_pipeline.py` - E2E 테스트
+- `gateway-api/api_specs/dsebearing.yaml` - 통합 API 스펙
+- `apply-company/dsebearing/API_GUIDE.md` - 사용 가이드
+
+**기능**:
+- 12개 재질 가격 DB (SF45A, ASTM B23 등)
+- 2개 고객 프로파일 (DSE 5%, DOOSAN 8% 할인)
+- 수량별 할인 (10개 5%, 50개 10%, 100개 15%)
+- Excel/PDF 견적서 출력
+
+---
+
 ### 1. P2: 테스트 커버리지 확대 (+119 tests)
 
 **커밋**: `9931dfd`
@@ -52,11 +82,30 @@
 
 ---
 
+### 4. Archive 정리 및 .todo 관리 시스템 문서화
+
+| 작업 | 상태 |
+|------|------|
+| Archive 파일 검토 (29개) | ✅ |
+| 완료/중복/역사적 파일 삭제 (27개) | ✅ |
+| 진행 중 파일 유지 (2개) | ✅ |
+| CLAUDE.md에 .todo/ 관리 섹션 추가 | ✅ |
+| skills/README.md 경로 수정 | ✅ |
+
+**삭제된 파일 (27개)**:
+- 완료된 문서: AUDIT_PHASE1-6.md, CONFIG/NODE/API 관련 문서
+- 중복 문서: 01_NEW_API_CHECKLIST.md (skills/api-creation-guide.md와 동일)
+- 역사적 문서: FILE_INVENTORY.md, DIRECTORY_AUDIT_PLAN.md
+
+**유지된 파일 (2개)**:
+- `02_VISUALIZATION_EXTENSION.md` - BOM 통합 작업 진행 중
+- `04_GATEWAY_SERVICE_SEPARATION.md` - 향후 아키텍처 작업
+
+---
+
 ## 2026-01-19 완료
 
-### 4. Config 디렉토리 일관성
-
-**상세**: `archive/11_CONFIG_DIRECTORY_CONSISTENCY.md`
+### 5. Config 디렉토리 일관성
 
 | API | 상태 |
 |-----|------|
@@ -65,19 +114,17 @@
 
 ---
 
-### 5. 프로파일 시스템 통합
-
-**상세**: `archive/14_NODE_PROFILES_INTEGRATION.md`
+### 6. 프로파일 시스템 통합
 
 | 작업 | 상태 |
 |------|------|
 | 백엔드 config/defaults.py 패턴 | ✅ 19/19 API |
 | 프론트엔드 ProfileDefinition 타입 | ✅ |
-| NodeDefinitions profiles 필드 | ✅ 14 노드 |
+| NodeDefinitions profiles 필드 | ✅ 18 노드 |
 
 ---
 
-### 6. 디렉토리 정리
+### 7. 디렉토리 정리
 
 **커밋**: `73fae41`
 
@@ -93,9 +140,7 @@
 
 ## 2026-01-16 완료
 
-### 7. 코드 정리 작업 (P0~P3)
-
-**원본**: `archive/05_CLEANUP_TASKS.md`
+### 8. 코드 정리 작업 (P0~P3)
 
 | 작업 | 상태 |
 |------|------|
@@ -107,9 +152,7 @@
 
 ---
 
-### 8. Design Checker Pipeline 통합 (P0~P1)
-
-**원본**: `archive/07_DESIGN_CHECKER_PIPELINE_INTEGRATION.md`
+### 9. Design Checker Pipeline 통합 (P0~P1)
 
 | 작업 | 상태 |
 |------|------|
@@ -120,9 +163,7 @@
 
 ---
 
-### 9. Feature Implication 시스템 (P0~P1)
-
-**원본**: `archive/08_FEATURE_IMPLICATION_SYSTEM.md`
+### 10. Feature Implication 시스템 (P0~P1)
 
 | 작업 | 상태 |
 |------|------|
@@ -132,9 +173,7 @@
 
 ---
 
-### 10. Toast 마이그레이션
-
-**원본**: `archive/UX_IMPROVEMENT_TOAST_LOADING.md`
+### 11. Toast 마이그레이션
 
 | 작업 | 상태 |
 |------|------|

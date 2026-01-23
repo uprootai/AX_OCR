@@ -332,6 +332,76 @@ export const API_REGISTRY: APIDefinition[] = [
     color: '#8b5cf6',
     gpuEnabled: false,
   },
+  // Title Block Parser (DSE Bearing)
+  {
+    id: 'titleblock',
+    nodeType: 'titleblock',
+    displayName: 'Title Block Parser',
+    containerName: 'gateway-api',  // Gateway 내부 처리
+    specId: 'titleblock',
+    port: 8000,
+    category: 'analysis',
+    description: '도면 Title Block에서 도면번호, Rev, 품명, 재질 추출',
+    icon: '📋',
+    color: '#6366f1',
+    gpuEnabled: false,
+  },
+  // Parts List Parser (DSE Bearing)
+  {
+    id: 'partslist',
+    nodeType: 'partslist',
+    displayName: 'Parts List Parser',
+    containerName: 'gateway-api',  // Gateway 내부 처리
+    specId: 'partslist',
+    port: 8000,
+    category: 'analysis',
+    description: '도면 Parts List에서 부품번호, 품명, 재질, 수량 추출',
+    icon: '📊',
+    color: '#10b981',
+    gpuEnabled: false,
+  },
+  // Dimension Parser (DSE Bearing)
+  {
+    id: 'dimensionparser',
+    nodeType: 'dimensionparser',
+    displayName: 'Dimension Parser',
+    containerName: 'gateway-api',  // Gateway 내부 처리
+    specId: 'dimensionparser',
+    port: 8000,
+    category: 'analysis',
+    description: '베어링 치수 구조화 파싱 (OD/ID, 공차, GD&T)',
+    icon: '📐',
+    color: '#f59e0b',
+    gpuEnabled: false,
+  },
+  // BOM Matcher (DSE Bearing)
+  {
+    id: 'bommatcher',
+    nodeType: 'bommatcher',
+    displayName: 'BOM Matcher',
+    containerName: 'gateway-api',  // Gateway 내부 처리
+    specId: 'bommatcher',
+    port: 8000,
+    category: 'analysis',
+    description: 'Title Block + Parts List + Dimension → 통합 BOM 생성',
+    icon: '📦',
+    color: '#059669',
+    gpuEnabled: false,
+  },
+  // Quote Generator (DSE Bearing)
+  {
+    id: 'quotegenerator',
+    nodeType: 'quotegenerator',
+    displayName: 'Quote Generator',
+    containerName: 'gateway-api',  // Gateway 내부 처리
+    specId: 'quotegenerator',
+    port: 8000,
+    category: 'analysis',
+    description: 'BOM 기반 자동 견적 생성 (재료비, 가공비, 마진)',
+    icon: '🧮',
+    color: '#dc2626',
+    gpuEnabled: false,
+  },
 ];
 
 // ============ 유틸리티 함수들 ============

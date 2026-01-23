@@ -21,8 +21,8 @@ from services.svg_generator import (
     detections_to_svg_data,
     MODEL_COLORS,
     CLASS_COLORS,
-    _escape_html,
 )
+from services.svg_common import escape_html
 
 
 class TestSVGGeneration:
@@ -205,20 +205,20 @@ class TestHTMLEscape:
 
     def test_escape_ampersand(self):
         """& 이스케이프"""
-        assert _escape_html("A & B") == "A &amp; B"
+        assert escape_html("A & B") == "A &amp; B"
 
     def test_escape_less_than(self):
         """< 이스케이프"""
-        assert _escape_html("A < B") == "A &lt; B"
+        assert escape_html("A < B") == "A &lt; B"
 
     def test_escape_greater_than(self):
         """> 이스케이프"""
-        assert _escape_html("A > B") == "A &gt; B"
+        assert escape_html("A > B") == "A &gt; B"
 
     def test_escape_quotes(self):
         """따옴표 이스케이프"""
-        assert _escape_html('A "B" C') == 'A &quot;B&quot; C'
-        assert _escape_html("A 'B' C") == "A &#039;B&#039; C"
+        assert escape_html('A "B" C') == 'A &quot;B&quot; C'
+        assert escape_html("A 'B' C") == "A &#039;B&#039; C"
 
     def test_escape_in_svg(self):
         """SVG에서 이스케이프 적용"""

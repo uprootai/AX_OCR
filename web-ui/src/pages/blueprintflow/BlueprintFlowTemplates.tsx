@@ -619,6 +619,41 @@ export default function BlueprintFlowTemplates() {
         ],
       },
     },
+    // DSE Bearing 3-2: 완전 자동 견적 파이프라인 (신규 노드 활용)
+    {
+      nameKey: 'dseBearingFullQuote',
+      descKey: 'dseBearingFullQuoteDesc',
+      useCaseKey: 'dseBearingFullQuoteUseCase',
+      estimatedTime: '35-45s',
+      accuracy: '96%',
+      category: 'dsebearing',
+      featured: true,
+      workflow: {
+        name: 'DSE Bearing 3-2: 완전 자동 견적',
+        description: 'Title Block → Parts List → Dimension → BOM Matcher → Quote Generator → Excel 견적서 자동 생성',
+        nodes: [
+          { id: 'imageinput_1', type: 'imageinput', label: '베어링 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'titleblock_1', type: 'titleblock', label: 'Title Block 파싱', parameters: { detection_method: 'auto', title_block_position: 'bottom_right', ocr_engine: 'paddle', company_template: 'doosan', profile: 'bearing' }, position: { x: 350, y: 100 } },
+          { id: 'partslist_1', type: 'partslist', label: 'Parts List 파싱', parameters: { table_position: 'auto', ocr_engine: 'paddle', normalize_material: true, normalize_headers: true, profile: 'bearing' }, position: { x: 350, y: 300 } },
+          { id: 'edocr2_1', type: 'edocr2', label: '치수 OCR', parameters: { extract_dimensions: true, extract_gdt: true }, position: { x: 600, y: 200 } },
+          { id: 'dimensionparser_1', type: 'dimensionparser', label: '치수 파싱', parameters: { dimension_type: 'bearing', parse_tolerance: true, parse_gdt: true, extract_od_id: true }, position: { x: 850, y: 200 } },
+          { id: 'bommatcher_1', type: 'bommatcher', label: 'BOM 통합 + 견적', parameters: { match_strategy: 'hybrid', confidence_threshold: 0.7, include_dimensions: true, validate_material: true, generate_quote: true, customer_id: 'DSE', material_markup: 1.3, labor_markup: 1.5 }, position: { x: 1100, y: 200 } },
+          { id: 'quotegenerator_1', type: 'quotegenerator', label: '견적서 출력', parameters: { currency: 'KRW', tax_rate: 10, quantity_discount: true }, position: { x: 1350, y: 200 } },
+          { id: 'excelexport_1', type: 'excelexport', label: '견적서 Excel', parameters: { export_type: 'all', project_name: 'DSE Bearing Quote' }, position: { x: 1600, y: 200 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'imageinput_1', target: 'titleblock_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'partslist_1' },
+          { id: 'e3', source: 'imageinput_1', target: 'edocr2_1' },
+          { id: 'e4', source: 'edocr2_1', target: 'dimensionparser_1' },
+          { id: 'e5', source: 'titleblock_1', target: 'bommatcher_1' },
+          { id: 'e6', source: 'partslist_1', target: 'bommatcher_1' },
+          { id: 'e7', source: 'dimensionparser_1', target: 'bommatcher_1' },
+          { id: 'e8', source: 'bommatcher_1', target: 'quotegenerator_1' },
+          { id: 'e9', source: 'quotegenerator_1', target: 'excelexport_1' },
+        ],
+      },
+    },
 
     // ============ BASIC TEMPLATES ============
     {

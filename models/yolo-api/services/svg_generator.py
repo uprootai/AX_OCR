@@ -6,6 +6,7 @@ YOLO Detection SVG Generator
 """
 
 from typing import List, Dict, Any, Tuple, Optional
+from .svg_common import escape_html, create_svg_header, create_svg_footer
 
 
 # 모델별 기본 색상 설정
@@ -119,7 +120,7 @@ def generate_detection_svg(
         color = CLASS_COLORS.get(class_name, default_color)
 
         # 검출 박스 (class_name 이스케이프)
-        escaped_class_name = _escape_html(class_name)
+        escaped_class_name = escape_html(class_name)
         svg_parts.append(
             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
             f'class="detection-box" '
@@ -147,7 +148,7 @@ def generate_detection_svg(
             # 라벨 텍스트
             svg_parts.append(
                 f'<text x="{x + 4}" y="{label_y + 13}" class="detection-label">'
-                f'{_escape_html(label_text)}</text>'
+                f'{escape_html(label_text)}</text>'
             )
 
     svg_parts.append('</g>')
@@ -223,12 +224,3 @@ def detections_to_svg_data(
     }
 
 
-def _escape_html(text: str) -> str:
-    """HTML 특수문자 이스케이프"""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#039;")
-    )

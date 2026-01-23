@@ -1,0 +1,252 @@
+# BOM Matcher API Specification
+# Gateway 내부 처리 (별도 마이크로서비스 없음)
+# Title Block + Parts List + Dimension → 통합 BOM 생성
+
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: bommatcher
+  name: BOM Matcher
+  version: 1.0.0
+  port: 8000  # Gateway 내부 처리
+  host: gateway-api
+  description: 도면 분석 결과를 통합하여 BOM(Bill of Materials) 자동 생성
+  author: AX Team
+  tags:
+    - analysis
+    - bom
+    - bearing
+    - integration
+
+server:
+  endpoint: /api/v1/bom/match
+  method: POST
+  contentType: application/json
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#059669"
+  icon: Package
+  requiresImage: false
+
+inputs:
+  - name: titleblock_data
+    type: TitleBlockData
+    required: false
+    description: Title Block Parser 출력 (도면번호, Rev, 품명 등)
+  - name: partslist_data
+    type: PartsListData[]
+    required: false
+    description: Parts List Parser 출력 (부품 목록)
+  - name: dimension_data
+    type: BearingSpec
+    required: false
+    description: Dimension Parser 출력 (치수 정보)
+  - name: yolo_detections
+    type: Detection[]
+    required: false
+    description: YOLO 검출 결과 (심볼, 영역)
+  - name: ocr_results
+    type: TextResult[]
+    required: false
+    description: OCR 결과 (추가 텍스트)
+
+outputs:
+  - name: bom
+    type: BOMEntry[]
+    description: 통합 BOM 목록
+  - name: drawing_info
+    type: DrawingInfo
+    description: 도면 메타 정보
+  - name: match_confidence
+    type: number
+    description: 매칭 신뢰도 (0-1)
+  - name: unmatched_items
+    type: string[]
+    description: 매칭되지 않은 항목 목록
+  - name: warnings
+    type: string[]
+    description: 처리 중 발생한 경고
+
+parameters:
+  - name: match_strategy
+    type: select
+    options:
+      - strict
+      - fuzzy
+      - hybrid
+    default: hybrid
+    description: 매칭 전략 (strict=정확일치, fuzzy=유사일치, hybrid=복합)
+
+  - name: confidence_threshold
+    type: number
+    min: 0
+    max: 1
+    step: 0.05
+    default: 0.7
+    description: 매칭 최소 신뢰도
+
+  - name: include_dimensions
+    type: boolean
+    default: true
+    description: 치수 정보 포함 여부
+
+  - name: include_tolerances
+    type: boolean
+    default: true
+    description: 공차 정보 포함 여부
+
+  - name: validate_material
+    type: boolean
+    default: true
+    description: 재질 코드 검증
+
+  - name: output_format
+    type: select
+    options:
+      - json
+      - excel
+      - csv
+    default: json
+    description: 출력 형식
+
+i18n:
+  ko:
+    label: BOM Matcher
+    description: 도면 분석 결과를 통합하여 BOM 자동 생성
+  en:
+    label: BOM Matcher
+    description: Auto-generate BOM by integrating drawing analysis results
+
+profiles:
+  default: bearing
+  available:
+    - name: bearing
+      label: "베어링 BOM"
+      description: "DSE Bearing 도면 BOM 최적화"
+      params:
+        match_strategy: hybrid
+        confidence_threshold: 0.7
+        include_dimensions: true
+        include_tolerances: true
+        validate_material: true
+        output_format: json
+
+    - name: general
+      label: "일반 BOM"
+      description: "범용 BOM 생성"
+      params:
+        match_strategy: fuzzy
+        confidence_threshold: 0.6
+        include_dimensions: false
+        include_tolerances: false
+        validate_material: false
+        output_format: json
+
+    - name: strict
+      label: "정밀 BOM"
+      description: "높은 신뢰도 매칭"
+      params:
+        match_strategy: strict
+        confidence_threshold: 0.9
+        include_dimensions: true
+        include_tolerances: true
+        validate_material: true
+        output_format: json
+
+examples:
+  - "Title Block + Parts List → 통합 BOM"
+  - "도면번호 BRG-001, 부품 3개 → 구조화된 BOM JSON"
+  - "치수 정보 포함 BOM → OD/ID 필드 추가"
+
+usageTips:
+  - "⭐ Title Block → Parts List → Dimension → BOM Matcher 순서 연결"
+  - "💡 match_strategy=hybrid로 최적 매칭"
+  - "📋 Excel 출력으로 고객 제출용 BOM 생성"
+  - "🔗 Blueprint AI BOM과 연동 가능"
+
+recommendedInputs:
+  - from: titleblock
+    field: titleblock_data
+    reason: "⭐ 도면 메타 정보 (도면번호, Rev)"
+  - from: partslist
+    field: partslist_data
+    reason: "⭐ 부품 목록 (품번, 품명, 재질)"
+  - from: dimensionparser
+    field: dimension_data
+    reason: "치수 정보 (OD/ID, 공차)"
+  - from: yolo
+    field: yolo_detections
+    reason: "심볼 검출 결과"
+
+resources:
+  gpu:
+    vram: "0"
+    recommended: "CPU로 충분 (매칭 로직)"
+  cpu:
+    ram: "~512MB"
+    minRam: 256
+    cores: 1
+    note: "경량 매칭 작업"
+
+openapi:
+  requestExamples:
+    - name: "베어링 BOM 생성"
+      description: "Title Block + Parts List + Dimension 통합"
+      jsonBody:
+        titleblock_data:
+          drawing_number: "BRG-2024-001"
+          revision: "A"
+          title: "THRUST BEARING ASSEMBLY"
+          material: "SF440A"
+        partslist_data:
+          - part_no: "1"
+            part_name: "UPPER THRUST PAD"
+            material: "BABBITT"
+            quantity: 8
+          - part_no: "2"
+            part_name: "LOWER THRUST PAD"
+            material: "BABBITT"
+            quantity: 8
+        dimension_data:
+          outer_diameter: 670
+          inner_diameter: 440
+          length: 200
+        match_strategy: "hybrid"
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        success: true
+        bom:
+          - item_no: 1
+            part_no: "1"
+            part_name: "UPPER THRUST PAD"
+            material: "ASTM B23 GR.2"
+            quantity: 8
+            dimensions:
+              od: 670
+              id: 440
+            match_confidence: 0.95
+          - item_no: 2
+            part_no: "2"
+            part_name: "LOWER THRUST PAD"
+            material: "ASTM B23 GR.2"
+            quantity: 8
+            dimensions:
+              od: 670
+              id: 440
+            match_confidence: 0.95
+        drawing_info:
+          drawing_number: "BRG-2024-001"
+          revision: "A"
+          title: "THRUST BEARING ASSEMBLY"
+          base_material: "SF440A"
+        match_confidence: 0.95
+        unmatched_items: []
+        warnings: []
+        processing_time_ms: 120

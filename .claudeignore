@@ -1,0 +1,130 @@
+# ============================================================
+# Claude Code Context Optimization - .claudeignore
+# 메모리 관리를 위해 불필요한 파일/디렉토리 제외
+# ============================================================
+
+# ============ 대용량 디렉토리 (28GB+) ============
+# R&D 실험, 논문, 학습 데이터 (22GB)
+rnd/
+
+# 오프라인 모델 가중치 (4.5GB)
+offline_models/
+
+# Neo4j 및 기타 데이터 (500MB+)
+data/
+
+# 고객사별 적용 프로젝트
+apply-company/
+
+# ============ 빌드/캐시 ============
+node_modules/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+.next/
+.nuxt/
+.vite/
+*.egg-info/
+.eggs/
+
+# ============ 모델 가중치 ============
+*.pt
+*.pth
+*.onnx
+*.bin
+*.safetensors
+*.h5
+*.pkl
+*.pickle
+*.joblib
+
+# ============ 로그/임시 ============
+*.log
+logs/
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# ============ 락 파일 (코드 이해에 불필요) ============
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+poetry.lock
+Pipfile.lock
+
+# ============ Git ============
+.git/
+
+# ============ IDE/에디터 ============
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ============ 테스트 아티팩트 ============
+coverage/
+.nyc_output/
+htmlcov/
+.coverage
+*.cover
+
+# ============ Docker 볼륨 ============
+volumes/
+
+# ============ 환경 설정 (민감 정보) ============
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ============ 문서 빌드 ============
+site/
+_site/
+.docusaurus/
+
+# ============ 기타 대용량 ============
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.mp4
+*.avi
+*.mov
+*.pdf
+
+# ============ YOLO 학습 결과 ============
+runs/
+wandb/
+
+# ============ Jupyter ============
+.ipynb_checkpoints/
+
+# ============ 특정 서비스 캐시 ============
+models/*/cache/
+models/*/__pycache__/
+
+# ============ E2E 테스트 결과 ============
+playwright-report/
+test-results/
+
+# ============ API 업로드/결과 디렉토리 ============
+uploads/
+results/
+outputs/
+temp/
+tmp/
+
+# ============ 특정 모델 내부 캐시 ============
+models/yolo-api/uploads/
+models/yolo-api/results/
+models/edocr2-v2-api/uploads/
+models/*/temp/
+models/*/tmp/

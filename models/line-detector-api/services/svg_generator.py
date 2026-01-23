@@ -5,6 +5,7 @@ Line Detector SVG Generator
 프론트엔드에서 호버, 클릭 이벤트 지원
 """
 
+from .svg_common import escape_html, create_svg_header, create_svg_footer
 from typing import List, Dict, Any, Tuple, Optional
 
 
@@ -156,7 +157,7 @@ def generate_line_svg(
             )
             svg_parts.append(
                 f'<text x="{label_x + 4}" y="{label_y - 3}" class="line-label">'
-                f'{_escape_html(label_text)}</text>'
+                f'{escape_html(label_text)}</text>'
             )
 
     svg_parts.append('</g>')
@@ -278,7 +279,7 @@ def generate_region_svg(
             )
             svg_parts.append(
                 f'<text x="{x1 + 4}" y="{y1 - 5}" class="region-label">'
-                f'{_escape_html(label_text)}</text>'
+                f'{escape_html(label_text)}</text>'
             )
 
     svg_parts.append('</g>')
@@ -338,12 +339,3 @@ def regions_to_svg_data(
     }
 
 
-def _escape_html(text: str) -> str:
-    """HTML 특수문자 이스케이프"""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#039;")
-    )

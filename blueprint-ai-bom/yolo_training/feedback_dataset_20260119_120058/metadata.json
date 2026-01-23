@@ -1,0 +1,20 @@
+{
+  "created_at": "20260119_120058",
+  "image_count": 0,
+  "label_count": 4,
+  "class_count": 3,
+  "class_mapping": {
+    "DS ASSY": 0,
+    "PT": 1,
+    "차단기": 2
+  },
+  "class_distribution": {
+    "DS ASSY": 2,
+    "차단기": 1,
+    "PT": 1
+  },
+  "sessions": [
+    "c5d947f9-02d3-46a3-8861-b95421e24202",
+    "49c350c4-183c-459e-baa9-71be407293d4"
+  ]
+}

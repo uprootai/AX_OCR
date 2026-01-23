@@ -231,6 +231,9 @@
     "dseBearingPrecision": "DSE Bearing 3-1: 정밀 분석",
     "dseBearingPrecisionDesc": "GPU 업스케일링 + 복잡한 다단 공차(+0.15/-0.00), 특수 폰트 도면번호, 용접 기호를 정확하게 추출하는 고정밀 파이프라인",
     "dseBearingPrecisionUseCase": "기존 OCR이 어려운 도면에 사용합니다: ① 다단 공차(+0.15/-0.00) → cluster_threshold=15로 분리 추출, ② 특수 폰트 도면번호 → OCR 앙상블 4엔진 가중 투표, ③ 용접 기호 → YOLO + VL 모델 세부 파싱. 3개 OCR 병렬 처리로 빠른 실행.",
+    "dseBearingFullQuote": "DSE Bearing 3-2: 완전 자동 견적",
+    "dseBearingFullQuoteDesc": "Title Block → Parts List → Dimension → BOM Matcher → Quote Generator → Excel 견적서 자동 생성",
+    "dseBearingFullQuoteUseCase": "도면에서 견적서까지 완전 자동화된 파이프라인입니다. Title Block에서 도면번호/품명/재질 추출, Parts List에서 부품 목록 파싱, Dimension Parser로 치수/공차/GD&T 구조화, BOM Matcher로 데이터 통합, Quote Generator로 재료비/가공비/마진 자동 계산 후 Excel 견적서를 생성합니다. 수량 할인(10개↑ 5%, 50개↑ 10%)도 자동 적용됩니다.",
     "completeAnalysis": "완전 도면 분석",
     "completeAnalysisDesc": "ESRGAN 업스케일 + 검출 + OCR Ensemble + 공차 분석 + VL AI 설명까지 전체 파이프라인",
     "accuracyPipeline": "정확도 우선 파이프라인",
@@ -540,5 +543,27 @@
       "portInvalid": "포트는 1024~65535 범위여야 합니다",
       "descriptionRequired": "설명은 필수입니다"
     }
+  },
+  "quote": {
+    "title": "견적서",
+    "titleWithEnglish": "견적서 (Quotation)",
+    "issueDate": "발행일",
+    "customer": "고객",
+    "save": "저장",
+    "cancel": "취소",
+    "edit": "편집",
+    "itemName": "품명",
+    "material": "재질",
+    "materialCost": "재료비",
+    "laborCost": "가공비",
+    "quantity": "수량",
+    "unitPrice": "단가",
+    "amount": "금액",
+    "subtotal": "소계",
+    "discount": "할인",
+    "tax": "부가세 (10%)",
+    "total": "합계",
+    "validityNote": "* 본 견적서는 발행일로부터 30일간 유효합니다.",
+    "deliveryNote": "* 납기: 발주 후 4-6주 (협의 필요)"
   }
 }

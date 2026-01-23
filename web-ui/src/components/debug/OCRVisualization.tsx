@@ -1,9 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { ZoomIn, Layers, Image as ImageIcon } from 'lucide-react';
+import { ZoomIn, Layers, Image as ImageIcon, Eye, EyeOff, Hash, Square, Type } from 'lucide-react';
 import type { OCRResult } from '../../types/api';
+import { useLayerToggle, type LayerConfig } from '../../hooks/useLayerToggle';
+
+// OCR 레이어 설정
+const OCR_LAYER_CONFIG: Record<string, LayerConfig> = {
+  dimension: { label: '치수', color: '#3b82f6', icon: Hash, defaultVisible: true },
+  gdt: { label: 'GD&T', color: '#10b981', icon: Square, defaultVisible: true },
+  text: { label: '텍스트', color: '#f59e0b', icon: Type, defaultVisible: true },
+};
 
 export interface SVGOverlayData {
   svg: string;
@@ -102,6 +110,25 @@ export default function OCRVisualization({
   const [boundingBoxes, setBoundingBoxes] = useState<BoundingBox[]>([]);
   const [renderMode, setRenderMode] = useState<'canvas' | 'svg'>(svgOverlay ? defaultMode : 'canvas');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // 레이어 토글 훅
+  const {
+    visibility,
+    toggleLayer,
+    showLabels,
+    toggleLabels,
+    layerConfigs,
+    visibleCount,
+    totalCount,
+  } = useLayerToggle({
+    layers: OCR_LAYER_CONFIG,
+    initialShowLabels: true,
+  });
+
+  // 필터링된 바운딩 박스 (레이어 visibility 기반)
+  const filteredBoundingBoxes = useMemo(() => {
+    return boundingBoxes.filter(box => visibility[box.type]);
+  }, [boundingBoxes, visibility]);
 
   const handleCanvasClick = () => {
     if (canvasRef.current && onZoomClick) {
@@ -230,8 +257,8 @@ export default function OCRVisualization({
       const labelPadding = Math.round(4 * scaleFactor);
       const labelHeight = Math.round(20 * scaleFactor);
 
-      // Draw bounding boxes
-      boundingBoxes.forEach((box) => {
+      // Draw bounding boxes (filtered by visibility)
+      filteredBoundingBoxes.forEach((box) => {
         // Use actual bbox dimensions if available, otherwise use default size
         const defaultBoxSize = 80 * scaleFactor;
         const boxWidth = box.width > 0 ? box.width : defaultBoxSize;
@@ -259,35 +286,37 @@ export default function OCRVisualization({
         ctx.arc(x + boxWidth / 2, y + boxHeight / 2, pointRadius, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Draw label with dynamic font size
-        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif`;
-        const textMetrics = ctx.measureText(box.label);
-        const labelX = Math.max(labelPadding, x + boxWidth / 2 - textMetrics.width / 2);
+        // Draw label with dynamic font size (if showLabels is true)
+        if (showLabels) {
+          ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif`;
+          const textMetrics = ctx.measureText(box.label);
+          const labelX = Math.max(labelPadding, x + boxWidth / 2 - textMetrics.width / 2);
 
-        // Ensure label stays within canvas bounds
-        const labelOffset = Math.round(10 * scaleFactor);
-        let labelY = y - labelOffset;
+          // Ensure label stays within canvas bounds
+          const labelOffset = Math.round(10 * scaleFactor);
+          let labelY = y - labelOffset;
 
-        // If label would go above canvas, place it below the box instead
-        if (labelY - labelHeight < 0) {
-          labelY = y + boxHeight + labelOffset + labelHeight;
+          // If label would go above canvas, place it below the box instead
+          if (labelY - labelHeight < 0) {
+            labelY = y + boxHeight + labelOffset + labelHeight;
+          }
+
+          // Draw label background with rounded corners effect
+          ctx.fillStyle = color;
+          ctx.fillRect(
+            labelX - labelPadding,
+            labelY - labelHeight + labelPadding,
+            textMetrics.width + labelPadding * 2,
+            labelHeight
+          );
+
+          // Draw label text with shadow for better readability
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 2 * scaleFactor;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(box.label, labelX, labelY);
+          ctx.shadowBlur = 0;
         }
-
-        // Draw label background with rounded corners effect
-        ctx.fillStyle = color;
-        ctx.fillRect(
-          labelX - labelPadding,
-          labelY - labelHeight + labelPadding,
-          textMetrics.width + labelPadding * 2,
-          labelHeight
-        );
-
-        // Draw label text with shadow for better readability
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 2 * scaleFactor;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(box.label, labelX, labelY);
-        ctx.shadowBlur = 0;
       });
 
       setImageLoaded(true);
@@ -298,12 +327,18 @@ export default function OCRVisualization({
       console.error('Failed to load image');
       if (url) URL.revokeObjectURL(url);
     };
-  }, [imageFile, imageBase64, boundingBoxes]);
+  }, [imageFile, imageBase64, filteredBoundingBoxes, showLabels]);
 
   const dimensionCount = ocrResult.dimensions?.length || 0;
   const gdtCount = ocrResult.gdt?.length || 0;
   const textCount = (ocrResult.possible_text as unknown[])?.length || 0;
   const totalDetections = dimensionCount + gdtCount + textCount;
+  const filteredDetections = filteredBoundingBoxes.length;
+
+  // 필터링된 타입별 카운트
+  const filteredDimensionCount = visibility.dimension ? (boundingBoxes.filter(b => b.type === 'dimension').length) : 0;
+  const filteredGdtCount = visibility.gdt ? (boundingBoxes.filter(b => b.type === 'gdt').length) : 0;
+  const filteredTextCount = visibility.text ? (boundingBoxes.filter(b => b.type === 'text').length) : 0;
 
   return (
     <Card>
@@ -312,7 +347,9 @@ export default function OCRVisualization({
           <h3 className="text-lg font-semibold">OCR 인식 위치 시각화</h3>
           <div className="flex gap-2">
             <Badge variant="default">
-              총 {totalDetections}개 인식
+              {filteredDetections === totalDetections
+                ? `총 ${totalDetections}개 인식`
+                : `${filteredDetections}/${totalDetections}개 표시`}
             </Badge>
             {/* SVG/Canvas 모드 토글 버튼 */}
             {svgOverlay && (
@@ -347,20 +384,64 @@ export default function OCRVisualization({
           </div>
         </div>
 
+        {/* 레이어 토글 컨트롤 */}
+        <div className="flex flex-wrap items-center gap-2 p-2 bg-accent/20 rounded-lg">
+          <span className="text-sm font-medium text-muted-foreground">레이어:</span>
+          {layerConfigs.map(({ key, config, visible }) => {
+            const Icon = config.icon || Layers;
+            const count = key === 'dimension' ? dimensionCount : key === 'gdt' ? gdtCount : textCount;
+            if (count === 0) return null;
+            return (
+              <Button
+                key={key}
+                variant={visible ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleLayer(key as keyof typeof OCR_LAYER_CONFIG)}
+                className="gap-1.5"
+                style={{
+                  backgroundColor: visible ? config.color : undefined,
+                  borderColor: config.color,
+                }}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {config.label} ({count})
+                {visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              </Button>
+            );
+          })}
+          <div className="h-4 border-l border-border mx-1" />
+          <Button
+            variant={showLabels ? 'default' : 'outline'}
+            size="sm"
+            onClick={toggleLabels}
+            className="gap-1.5"
+          >
+            라벨
+            {showLabels ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          </Button>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {visibleCount}/{totalCount} 레이어
+          </span>
+        </div>
+
         {/* Legend */}
         <div className="flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-            <span>치수 ({dimensionCount}개)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-500 rounded"></div>
-            <span>GD&T ({gdtCount}개)</span>
-          </div>
-          {textCount > 0 && (
+          {visibility.dimension && filteredDimensionCount > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>치수 ({filteredDimensionCount}개)</span>
+            </div>
+          )}
+          {visibility.gdt && filteredGdtCount > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>GD&T ({filteredGdtCount}개)</span>
+            </div>
+          )}
+          {visibility.text && filteredTextCount > 0 && (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-orange-500 rounded"></div>
-              <span>텍스트 ({textCount}개)</span>
+              <span>텍스트 ({filteredTextCount}개)</span>
             </div>
           )}
         </div>
@@ -424,9 +505,13 @@ export default function OCRVisualization({
 
         {/* Details List */}
         <div className="space-y-2">
-          <h4 className="font-medium">인식된 항목 상세</h4>
+          <h4 className="font-medium">
+            인식된 항목 상세 ({filteredDetections === totalDetections
+              ? `${totalDetections}개`
+              : `${filteredDetections}/${totalDetections}개`})
+          </h4>
           <div className="space-y-1 text-sm">
-            {boundingBoxes.map((box, index) => (
+            {filteredBoundingBoxes.map((box, index) => (
               <div
                 key={index}
                 className="flex items-center gap-2 p-2 rounded bg-accent/50"

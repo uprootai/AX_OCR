@@ -20,11 +20,11 @@ from services.svg_generator import (
     generate_region_svg,
     lines_to_svg_data,
     regions_to_svg_data,
-    LINE_TYPE_COLORS,
     LINE_STYLE_COLORS,
+    LINE_TYPE_COLORS,
     REGION_TYPE_COLORS,
-    _escape_html,
 )
+from services.svg_common import escape_html
 
 
 class TestLineSVGGeneration:
@@ -283,20 +283,20 @@ class TestHTMLEscape:
 
     def test_escape_ampersand(self):
         """& 이스케이프"""
-        assert _escape_html("A & B") == "A &amp; B"
+        assert escape_html("A & B") == "A &amp; B"
 
     def test_escape_less_than(self):
         """< 이스케이프"""
-        assert _escape_html("A < B") == "A &lt; B"
+        assert escape_html("A < B") == "A &lt; B"
 
     def test_escape_greater_than(self):
         """> 이스케이프"""
-        assert _escape_html("A > B") == "A &gt; B"
+        assert escape_html("A > B") == "A &gt; B"
 
     def test_escape_quotes(self):
         """따옴표 이스케이프"""
-        assert _escape_html('A "B" C') == 'A &quot;B&quot; C'
-        assert _escape_html("A 'B' C") == "A &#039;B&#039; C"
+        assert escape_html('A "B" C') == 'A &quot;B&quot; C'
+        assert escape_html("A 'B' C") == "A &#039;B&#039; C"
 
 
 class TestInteractivity:

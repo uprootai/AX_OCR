@@ -19,6 +19,29 @@
 
 ## 📋 향후 작업 목록
 
+### 0. DSE Bearing 100점 달성 ✅ 완료
+
+**우선순위**: P1 (고객 프로젝트)
+**진행 상태**: ✅ **전체 완료** (2026-01-22)
+
+| Phase | 작업 | 상태 |
+|-------|------|------|
+| Phase 1 | Title Block Parser | ✅ 완료 |
+| Phase 2 | Parts List 강화 | ✅ 완료 |
+| Phase 3 | 복합 치수 파서 | ✅ 완료 |
+| Phase 4 | BOM 자동 매칭 | ✅ 완료 |
+| Phase 5 | 견적 자동화 | ✅ 완료 |
+| Phase 6 | 통합 파이프라인 | ✅ 완료 |
+
+**완료 내역**:
+- 전체 API 파이프라인 구현
+- 25개 단위 테스트 통과
+- E2E 테스트 통과
+- Excel/PDF 견적서 출력
+- API 문서화 완료
+
+---
+
 ### 1. 시각화 기능 확장
 
 **우선순위**: P3
@@ -85,33 +108,15 @@
 
 ### 새 API 추가 체크리스트
 
-**위치**: `archive/01_NEW_API_CHECKLIST.md`
+**위치**: `.claude/skills/api-creation-guide.md`
 
-새 API 추가 시 6단계 체크리스트:
+새 API 추가 시 스캐폴딩 스크립트 및 체크리스트:
 
-1. **마이크로서비스 생성**
-   ```bash
-   python scripts/create_api.py {api-name} --port {port} --category {category}
-   ```
+```bash
+python scripts/create_api.py {api-name} --port {port} --category {category}
+```
 
-2. **API 스펙 작성**
-   - `gateway-api/api_specs/{api-name}.yaml`
-
-3. **Gateway 통합**
-   - Executor 등록
-   - 라우터 추가
-
-4. **프론트엔드 통합**
-   - nodeDefinitions.ts
-   - apiRegistry.ts
-
-5. **테스트 작성**
-   - 단위 테스트
-   - 통합 테스트
-
-6. **문서화**
-   - CLAUDE.md 업데이트
-   - API 문서 작성
+**상세 가이드**: `.claude/skills/api-creation-guide.md` 참조
 
 ---
 
@@ -121,6 +126,7 @@
 |------|------|----------|------|
 | Q1 2026 | Toast 마이그레이션 | P1 | ✅ 완료 |
 | Q1 2026 | 테스트 커버리지 80%+ | P2 | ✅ 목표 달성 |
+| **Q1 2026** | **DSE Bearing 100점** | **P1** | ⏳ 계획 완료 |
 | Q2 2026 | 시각화 기능 확장 | P3 | ⏳ 진행 중 |
 | Q2 2026 | Gateway 서비스 분리 | P3 | ⏳ 계획됨 |
 

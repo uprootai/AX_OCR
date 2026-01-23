@@ -184,6 +184,47 @@ export const baseNodeConfigs: NodeConfig[] = [
     color: '#f59e0b',
     category: 'analysis',
   },
+  // DSE Bearing Nodes
+  {
+    type: 'titleblock',
+    label: 'Title Block Parser',
+    description: 'DSE Bearing 도면 Title Block 파싱',
+    icon: FileText,
+    color: '#6366f1',
+    category: 'analysis',
+  },
+  {
+    type: 'partslist',
+    label: 'Parts List Parser',
+    description: 'DSE Bearing 도면 부품 목록 파싱',
+    icon: Table,
+    color: '#10b981',
+    category: 'analysis',
+  },
+  {
+    type: 'dimensionparser',
+    label: 'Dimension Parser',
+    description: '베어링 치수 구조화 파싱',
+    icon: Ruler,
+    color: '#f59e0b',
+    category: 'analysis',
+  },
+  {
+    type: 'bommatcher',
+    label: 'BOM Matcher',
+    description: '도면 분석 결과 통합 BOM 생성',
+    icon: Database,
+    color: '#059669',
+    category: 'analysis',
+  },
+  {
+    type: 'quotegenerator',
+    label: 'Quote Generator',
+    description: 'BOM 기반 자동 견적 생성',
+    icon: FileSpreadsheet,
+    color: '#dc2626',
+    category: 'analysis',
+  },
   // AI Nodes
   {
     type: 'vl',

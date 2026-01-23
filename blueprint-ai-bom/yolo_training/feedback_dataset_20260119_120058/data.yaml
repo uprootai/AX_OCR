@@ -1,0 +1,5 @@
+path: /data/yolo_training/feedback_dataset_20260119_120058
+train: images
+val: images
+nc: 3
+names: ['DS ASSY', 'PT', '차단기']

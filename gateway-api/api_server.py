@@ -34,7 +34,7 @@ from api_registry import get_api_registry
 from routers import (
     admin_router, api_key_router, gpu_config_router, docker_router, results_router,
     container_router, spec_router, registry_router, workflow_router, config_router,
-    process_router, quote_router, download_router
+    process_router, quote_router, download_router, dsebearing_router
 )
 # PID Overlay moved to pid-composer-api (port 5021)
 from routers.admin_router import set_api_registry
@@ -158,6 +158,7 @@ app.include_router(config_router)
 app.include_router(process_router)
 app.include_router(quote_router)
 app.include_router(download_router)
+app.include_router(dsebearing_router)
 
 
 # =====================

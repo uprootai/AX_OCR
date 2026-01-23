@@ -1,0 +1,206 @@
+# Parts List Parser API Specification
+# Gateway 내부 처리 (별도 마이크로서비스 없음)
+# Table Detector + 헤더 정규화 + 재질 코드 정규화
+
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: partslist
+  name: Parts List Parser
+  version: 1.0.0
+  port: 8000  # Gateway 내부 처리
+  host: gateway-api
+  description: 도면 Parts List 테이블에서 부품번호, 품명, 재질, 수량 등 구조화된 정보 추출
+  author: AX Team
+  tags:
+    - analysis
+    - parts-list
+    - bom
+    - table
+
+server:
+  endpoint: /api/v1/partslist/parse
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#10b981"
+  icon: Table
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 도면 이미지 (Parts List 포함)
+  - name: tables
+    type: Table[]
+    required: false
+    description: Table Detector 결과 (있으면 재사용)
+
+outputs:
+  - name: parts_list
+    type: PartsListData
+    description: 파싱된 Parts List 데이터
+  - name: parts
+    type: Part[]
+    description: 부품 목록 배열
+  - name: parts_count
+    type: number
+    description: 추출된 부품 개수
+  - name: headers
+    type: string[]
+    description: 정규화된 헤더 목록
+  - name: raw_tables
+    type: Table[]
+    description: 원본 테이블 데이터
+  - name: confidence
+    type: number
+    description: 추출 신뢰도 (0-1)
+
+parameters:
+  - name: table_position
+    type: select
+    options:
+      - auto
+      - top_left
+      - top_right
+      - bottom_left
+      - bottom_right
+    default: auto
+    description: Parts List 위치 (auto=자동 검출)
+
+  - name: ocr_engine
+    type: select
+    options:
+      - tesseract
+      - paddle
+      - easyocr
+    default: paddle
+    description: OCR 엔진 선택 (paddle 권장 - 한글 지원)
+
+  - name: normalize_material
+    type: boolean
+    default: true
+    description: 재질 코드 자동 정규화 (SF440 → SF440A)
+
+  - name: normalize_headers
+    type: boolean
+    default: true
+    description: 헤더 자동 정규화 (MAT'L → material)
+
+  - name: expected_headers
+    type: checkboxGroup
+    default: ["no", "part_name", "material", "quantity"]
+    options:
+      - no
+      - part_name
+      - material
+      - quantity
+      - remarks
+      - drawing_no
+      - weight
+      - specification
+    description: 예상되는 헤더 필드
+
+i18n:
+  ko:
+    label: Parts List Parser
+    description: 도면 Parts List에서 부품번호, 품명, 재질, 수량 자동 추출
+  en:
+    label: Parts List Parser
+    description: Extract part number, name, material, quantity from Parts List
+
+profiles:
+  default: bearing
+  available:
+    - name: bearing
+      label: "베어링 도면"
+      description: "DSE Bearing 도면 Parts List 최적화"
+      params:
+        table_position: auto
+        ocr_engine: paddle
+        normalize_material: true
+        normalize_headers: true
+
+    - name: generic
+      label: "일반 도면"
+      description: "범용 Parts List 파싱"
+      params:
+        table_position: auto
+        ocr_engine: tesseract
+        normalize_material: true
+        normalize_headers: true
+
+    - name: korean
+      label: "한글 도면"
+      description: "한글 헤더 Parts List"
+      params:
+        table_position: auto
+        ocr_engine: paddle
+        normalize_material: true
+        normalize_headers: true
+
+examples:
+  - "도면 이미지 → Parts List Parser → 부품 목록 추출"
+  - "Parts List Parser → BOM Matcher → 자동 BOM 매칭"
+
+usageTips:
+  - "⭐ DSE Bearing 도면은 'bearing' 프로파일 사용 권장"
+  - "💡 normalize_material=true로 재질 코드 자동 통일"
+  - "🔗 Title Block Parser와 함께 사용하여 완전한 도면 정보 추출"
+  - "📊 parts_count로 추출된 부품 개수 확인"
+
+recommendedInputs:
+  - from: imageinput
+    field: image
+    reason: "도면 이미지 입력"
+  - from: tabledetector
+    field: tables
+    reason: "Table Detector 결과 재사용 가능"
+
+resources:
+  gpu:
+    vram: "~1GB"
+    minVram: 512
+    recommended: "CPU로 충분"
+  cpu:
+    ram: "~2GB"
+    minRam: 1024
+    cores: 2
+    note: "Table Detector 호출 시 GPU 사용 가능"
+
+openapi:
+  requestExamples:
+    - name: "베어링 도면 Parts List"
+      description: "DSE Bearing 도면에서 Parts List 추출"
+      formData:
+        file: "TD0062018.png"
+        ocr_engine: "paddle"
+        normalize_material: true
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        success: true
+        parts_list:
+          headers: ["no", "part_name", "material", "quantity", "remarks"]
+          parts:
+            - no: 1
+              part_name: "BEARING CASING ASSY(T1)"
+              material: "SF440A"
+              quantity: 1
+              remarks: ""
+            - no: 2
+              part_name: "LINER PAD"
+              material: "ASTM B23 GR.2"
+              quantity: 8
+              remarks: "BABBITT"
+        parts_count: 2
+        confidence: 0.89
+        processing_time_ms: 1850

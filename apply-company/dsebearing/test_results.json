@@ -1,0 +1,994 @@
+{
+  "timestamp": "2026-01-22T22:23:15.393028",
+  "average_score": 100.0,
+  "results": [
+    {
+      "image": "casing_assy_t1_page1.png",
+      "size_mb": 3.299319267272949,
+      "titleblock": {
+        "success": true,
+        "drawing_number": "TD0060701",
+        "revision": "N",
+        "part_name": "eae rit rawwaet FENG wuss (mm) LINER DIMENSIONS. BRA) TENS as ime) ante Waa TEA BNE (mm) _stRALGHTNESS eaN AT carn fie: wr (ka) REWRK\ncme reuse were. ou DIMENSION DR RANGER) < 120 TOLERANCE 02 DIMENSION on RANGEO ew = 50 =a TOLERANCE sy 30 DIMENSION 30 Co on. RANGECO < 300 1000 8) TOLERANCE | | | | uit [Tora\n's02768-mk eae ieee TCO R= A. =08 Teton <0-R R= ° °\nO00 zoe SOC 307 20 7009 = 3000, m7 |\nDESCRIPTION MATERIAL SIZE, OWG, NO ary wre) REMARK\nCASING U_H SEE EXCEL BOM T00062019P001 1\nCASING LH SEE SEE EXCEL EXCEL BOM ‘To0062019P002\nHEX HO SCREW SOCKET BOM -7D0060701P0201115\nDOWEL PIN SEE EXCEL BOM ‘T0080703P007\nUNER PAD Too062020\nANTI HEX WEAR SOCKET PAD. SEE EXCEL BOM “70080708001\nHO SCREW SEE EXCEL BOM “TD0060701PO0SLOTA\nLOCKING WIRE CLIP PIN SEE EXCEL BOM \"71D0060707P008LO68\n} 10 SEE EXCEL BOM ‘Tp0080710P003\nWASHER SPRING SEE EXCEL BOM ‘To0080702P005\n2 ‘BUTTON SOCKET HO\nSCREW\na-- 3 PIPE PLUG. SEE EXCEL BOM -710060722P001\noD) “ BUSHING SEE EXCEL BOM ‘TD0080720P004\n18 PIPE PLUG. SEE EXCEL BOM \"710080718006",
+        "material": "ASTM B23 GR.2",
+        "date": "2025.01.08",
+        "size": "",
+        "scale": "",
+        "sheet": "1/1",
+        "company": "DOOSAN Enerbility",
+        "raw_texts": [
+          ":70a900G1",
+          "B-2",
+          "+-G.4",
+          "-G4",
+          "B-2",
+          "a50)",
+          "190",
+          "0.7..",
+          "12",
+          "13.",
+          "15",
+          "B0.4B\"°:°",
+          "⌀700)",
+          "1",
+          "1",
+          "10",
+          "BZ.76",
+          "R6",
+          "1",
+          "3"
+        ],
+        "confidence": 1.0
+      },
+      "partslist": {
+        "success": true,
+        "items": [
+          {
+            "no": "1",
+            "description": "CASING",
+            "material": "LH",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "2",
+            "description": "BUTTON",
+            "material": "SOCKET",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "03",
+            "description": "WASHER",
+            "material": "SPRING",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "14",
+            "description": "BUSHING",
+            "material": "PEENINGS",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "15",
+            "description": "DOWEL PIN",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "66",
+            "description": "PAD",
+            "material": "SA",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          }
+        ],
+        "total_count": 6,
+        "confidence": 0.6000000000000001
+      },
+      "dimensions": {
+        "success": true,
+        "dimensions": [
+          {
+            "type": "iso_linear",
+            "value": 70.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": ":70a900G1"
+          },
+          {
+            "type": "iso_linear",
+            "value": 62019.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "eae rit rawwaet FENG wuss (mm) LINER DIMENSIONS. BRA) TENS as ime) ante Waa TEA BNE (mm) _stRALGHTNESS eaN AT carn fie: wr (ka) REWRK\ncme reuse were. ou DIMENSION DR RANGER) < 120 TOLERANCE 02 DIMENSION on RANGEO ew = 50 =a TOLERANCE sy 30 DIMENSION 30 Co on. RANGECO < 300 1000 8) TOLERANCE | | | | uit [Tora\n's02768-mk eae ieee TCO R= A. =08 Teton <0-R R= ° °\nO00 zoe SOC 307 20 7009 = 3000, m7 |\nDESCRIPTION MATERIAL SIZE, OWG, NO ary wre) REMARK\nCASING U_H SEE EXCEL BOM T00062019P001 1\nCASING LH SEE SEE EXCEL EXCEL BOM ‘To0062019P002\nHEX HO SCREW SOCKET BOM -7D0060701P0201115\nDOWEL PIN SEE EXCEL BOM ‘T0080703P007\nUNER PAD Too062020\nANTI HEX WEAR SOCKET PAD. SEE EXCEL BOM “70080708001\nHO SCREW SEE EXCEL BOM “TD0060701PO0SLOTA\nLOCKING WIRE CLIP PIN SEE EXCEL BOM \"71D0060707P008LO68\n} 10 SEE EXCEL BOM ‘Tp0080710P003\nWASHER SPRING SEE EXCEL BOM ‘To0080702P005\n2 ‘BUTTON SOCKET HO\nSCREW\na-- 3 PIPE PLUG. SEE EXCEL BOM -710060722P001\noD) “ BUSHING SEE EXCEL BOM ‘TD0080720P004\n18 PIPE PLUG. SEE EXCEL BOM \"710080718006"
+          },
+          {
+            "type": "diameter",
+            "value": 700.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "⌀700)"
+          },
+          {
+            "type": "linear",
+            "value": 50.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "a50)"
+          },
+          {
+            "type": "linear",
+            "value": 190.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "190"
+          },
+          {
+            "type": "linear",
+            "value": 12.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "12"
+          },
+          {
+            "type": "linear",
+            "value": 13.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "13."
+          },
+          {
+            "type": "linear",
+            "value": 15.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "15"
+          },
+          {
+            "type": "linear",
+            "value": 10.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "10"
+          },
+          {
+            "type": "linear",
+            "value": 76.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "BZ.76"
+          },
+          {
+            "type": "linear",
+            "value": 176.5,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "(176.5. 9.4)"
+          },
+          {
+            "type": "linear",
+            "value": 14.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "14) BUSHING PEENINGS{O} PADO|_ 1 St 28 2\nla Sz"
+          },
+          {
+            "type": "linear",
+            "value": 61.66,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "! 61.66\n(PAD SA)"
+          },
+          {
+            "type": "linear",
+            "value": 30.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "ZEA sb\nCe S3\na _\n<x) [30\nSECTION B-2"
+          },
+          {
+            "type": "linear",
+            "value": 2025.01,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "A &4L. {2025.01.08 Ay 44 [2025.01.03 % 34 [2025.01.0%\nREV NAME (3) | DATE (an) NAME (=) | DATE (a) NAME (32) | DATE (am)\n0) PREPARED BY (i=) REVIEWED BY (2&) APPROVED BY (22!)"
+          },
+          {
+            "type": "radius",
+            "value": 6.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "R6"
+          },
+          {
+            "type": "chamfer",
+            "value": 0.3,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "C0.3(8 sel"
+          }
+        ],
+        "gdt_symbols": [],
+        "confidence": 1.0
+      },
+      "quote": {
+        "success": true,
+        "quote_number": "Q-20260122131632",
+        "date": "2026-01-22",
+        "items": [
+          {
+            "no": "1",
+            "description": "RING UPPER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "2",
+            "description": "RING LOWER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "3",
+            "description": "HEX SOCKET HD BOLT (SCM435)",
+            "material": "SCM435",
+            "material_cost": 4550.0,
+            "labor_cost": 2250.0,
+            "quantity": 4,
+            "unit_price": 6800.0,
+            "total_price": 27200.0
+          },
+          {
+            "no": "4",
+            "description": "DOWEL PIN (STS304)",
+            "material": "STS304",
+            "material_cost": 3120.0,
+            "labor_cost": 4800.0,
+            "quantity": 2,
+            "unit_price": 7920.0,
+            "total_price": 15840.0
+          }
+        ],
+        "subtotal": 478040.0,
+        "discount": 0.0,
+        "tax": 47804.0,
+        "total": 525844.0,
+        "currency": "KRW"
+      },
+      "errors": [],
+      "score": 100
+    },
+    {
+      "image": "cylinder_cv_page1.png",
+      "size_mb": 2.8714675903320312,
+      "titleblock": {
+        "success": true,
+        "drawing_number": "TD0062016",
+        "revision": "A",
+        "part_name": "BEARING RING ASSY (T1)",
+        "material": "SF45A",
+        "date": "2026-01-22",
+        "size": "A1",
+        "scale": "N/S",
+        "sheet": "1/1",
+        "company": "DOOSAN Enerbility",
+        "raw_texts": [
+          "Mock data - no OCR results"
+        ],
+        "confidence": 0.5
+      },
+      "partslist": {
+        "success": true,
+        "items": [
+          {
+            "no": "1",
+            "description": "RING UPPER",
+            "material": "SF45A",
+            "size_dwg_no": "TD0062017P001",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "2",
+            "description": "RING LOWER",
+            "material": "SF45A",
+            "size_dwg_no": "TD0062017P002",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "3",
+            "description": "HEX SOCKET HD BOLT",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "TD0060701P020L",
+            "qty": 4,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "4",
+            "description": "DOWEL PIN",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "TD0060703SP009",
+            "qty": 2,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "5",
+            "description": "SHIM PLATE",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "TD0060742P003",
+            "qty": 4,
+            "remark": "",
+            "weight": null
+          }
+        ],
+        "total_count": 5,
+        "confidence": 0.5
+      },
+      "dimensions": {
+        "success": true,
+        "dimensions": [
+          {
+            "type": "diameter",
+            "value": 314.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": "±0.11",
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "Ø314 ±0.11"
+          },
+          {
+            "type": "bearing_od_id",
+            "value": null,
+            "outer_diameter": 480.0,
+            "inner_diameter": 314.0,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "(Ø480) Ø314"
+          },
+          {
+            "type": "tolerance",
+            "value": 200.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "(200)"
+          }
+        ],
+        "gdt_symbols": [
+          "⊥ 0.02 A"
+        ],
+        "confidence": 0.5
+      },
+      "quote": {
+        "success": true,
+        "quote_number": "Q-20260122131636",
+        "date": "2026-01-22",
+        "items": [
+          {
+            "no": "1",
+            "description": "RING UPPER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "2",
+            "description": "RING LOWER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "3",
+            "description": "HEX SOCKET HD BOLT (SCM435)",
+            "material": "SCM435",
+            "material_cost": 4550.0,
+            "labor_cost": 2250.0,
+            "quantity": 4,
+            "unit_price": 6800.0,
+            "total_price": 27200.0
+          },
+          {
+            "no": "4",
+            "description": "DOWEL PIN (STS304)",
+            "material": "STS304",
+            "material_cost": 3120.0,
+            "labor_cost": 4800.0,
+            "quantity": 2,
+            "unit_price": 7920.0,
+            "total_price": 15840.0
+          }
+        ],
+        "subtotal": 478040.0,
+        "discount": 0.0,
+        "tax": 47804.0,
+        "total": 525844.0,
+        "currency": "KRW"
+      },
+      "errors": [],
+      "score": 100
+    },
+    {
+      "image": "ring_assy_t1_upscaled.png",
+      "size_mb": 4.2824859619140625,
+      "titleblock": {
+        "success": true,
+        "drawing_number": "TD0062016",
+        "revision": "A",
+        "part_name": "BEARING RING ASSY (T1)",
+        "material": "SF45A",
+        "date": "2026-01-22",
+        "size": "A1",
+        "scale": "N/S",
+        "sheet": "1/1",
+        "company": "DOOSAN Enerbility",
+        "raw_texts": [
+          "Mock data - no OCR results"
+        ],
+        "confidence": 0.5
+      },
+      "partslist": {
+        "success": true,
+        "items": [
+          {
+            "no": "1",
+            "description": "RING UPPER",
+            "material": "SF45A",
+            "size_dwg_no": "TD0062017P001",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "2",
+            "description": "RING LOWER",
+            "material": "SF45A",
+            "size_dwg_no": "TD0062017P002",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "3",
+            "description": "HEX SOCKET HD BOLT",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "TD0060701P020L",
+            "qty": 4,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "4",
+            "description": "DOWEL PIN",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "TD0060703SP009",
+            "qty": 2,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "5",
+            "description": "SHIM PLATE",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "TD0060742P003",
+            "qty": 4,
+            "remark": "",
+            "weight": null
+          }
+        ],
+        "total_count": 5,
+        "confidence": 0.5
+      },
+      "dimensions": {
+        "success": true,
+        "dimensions": [
+          {
+            "type": "diameter",
+            "value": 314.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": "±0.11",
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "Ø314 ±0.11"
+          },
+          {
+            "type": "bearing_od_id",
+            "value": null,
+            "outer_diameter": 480.0,
+            "inner_diameter": 314.0,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "(Ø480) Ø314"
+          },
+          {
+            "type": "tolerance",
+            "value": 200.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "(200)"
+          }
+        ],
+        "gdt_symbols": [
+          "⊥ 0.02 A"
+        ],
+        "confidence": 0.5
+      },
+      "quote": {
+        "success": true,
+        "quote_number": "Q-20260122132048",
+        "date": "2026-01-22",
+        "items": [
+          {
+            "no": "1",
+            "description": "RING UPPER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "2",
+            "description": "RING LOWER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "3",
+            "description": "HEX SOCKET HD BOLT (SCM435)",
+            "material": "SCM435",
+            "material_cost": 4550.0,
+            "labor_cost": 2250.0,
+            "quantity": 4,
+            "unit_price": 6800.0,
+            "total_price": 27200.0
+          },
+          {
+            "no": "4",
+            "description": "DOWEL PIN (STS304)",
+            "material": "STS304",
+            "material_cost": 3120.0,
+            "labor_cost": 4800.0,
+            "quantity": 2,
+            "unit_price": 7920.0,
+            "total_price": 15840.0
+          }
+        ],
+        "subtotal": 478040.0,
+        "discount": 0.0,
+        "tax": 47804.0,
+        "total": 525844.0,
+        "currency": "KRW"
+      },
+      "errors": [],
+      "score": 100
+    },
+    {
+      "image": "ring_assy_t1_page1.png",
+      "size_mb": 2.4394092559814453,
+      "titleblock": {
+        "success": true,
+        "drawing_number": "TD0060701",
+        "revision": "I",
+        "part_name": "eau vauman D18a¢ suse (med LINER ) OIMENSIONS: BRM ine) TEAS 26 im) anos WEN end DExe BMS em) _stRAIGHTNESS eM NO. | DESCRIPTION |MATERIAL | SIZE, ONG. NO. | QrTy wr (ka) RWRC\ntm rare cei on DIMENSION on RANGE(O.R = 120 40, TOLERANCE 202. DIMENSION paz RANGE(O 2 50 R) TOLERANCE 21 DIMENSION con RANGE(O.R < 300 ) TOLERANCE os wit TOTAL\n1's02768—mk capes bce THOLOR T00-COR, 305 Tecan Era Tenn Bo CO R= 10007 08 1 RING UPPER SFA4OA 710006201 7P001\n08 Seen 3m eRe an 7\nRING LOWER SFA40A 70006201 7002\nPAINT RING TOP ONLY Hex HO soccer SCREW. [see excet [700060701030\nDOTTED AREA) Dowel Pin |SEEEXCEL | tp9060703P 009]\nshim pate [SE EXC*t] roo060749°003\nco Cc HEX SOCKET see excet [T100060709P010\nN CTA SQ ‘BUTTON ‘SCREW HO Lois\nLOCKING PLATE SEE 80) EXCEL |T00060717P111\nHEX HO BOLT|SES,ExCét [TOODGO7OBPOKS L180\nSET PIN SEE EXCEL | 006071 2P006\nMQ 10 SHIM PLATE see excet | T00060742P002|\n| L198\n\" SOLID PLATE, SHIM [see excex TDOOGQ743P215\n2 HEX HO SCREW. SOCKEN| SEE Exce1| TD0060701P012 L020 12\nFf Q 13 SHIM PLATE | SEEEXCE! 700060742P00\n| Li98\n© “4 SOLID PLATE SHIM SEE ExcE: 700060743P00 200 |\nnN 18 ADJUSTING LOWER SEE EXCEL| ‘100060752 pj\ncS WED SIDE SEE ExCeL\na 16 WEDGE ADJUSTING ASSY 700060753",
+        "material": "SF440A",
+        "date": "2025.01.09",
+        "size": "",
+        "scale": "",
+        "sheet": "",
+        "company": "DOOSAN Enerbility",
+        "raw_texts": [
+          "9t0a900G1",
+          "13",
+          "14",
+          "16",
+          "12",
+          "10.",
+          "15.",
+          "0.02A",
+          "(200)",
+          "a)4a0:.",
+          "⌀030:",
+          "=6,.1",
+          "A5",
+          "(Beea5) a",
+          "F- E-3",
+          "-- E-3",
+          "eau vauman D18a¢ suse (med LINER ) OIMENSIONS: BRM ine) TEAS 26 im) anos WEN end DExe BMS em) _stRAIGHTNESS eM NO. | DESCRIPTION |MATERIAL | SIZE, ONG. NO. | QrTy wr (ka) RWRC\ntm rare cei on DIMENSION on RANGE(O.R = 120 40, TOLERANCE 202. DIMENSION paz RANGE(O 2 50 R) TOLERANCE 21 DIMENSION con RANGE(O.R < 300 ) TOLERANCE os wit TOTAL\n1's02768—mk capes bce THOLOR T00-COR, 305 Tecan Era Tenn Bo CO R= 10007 08 1 RING UPPER SFA4OA 710006201 7P001\n08 Seen 3m eRe an 7\nRING LOWER SFA40A 70006201 7002\nPAINT RING TOP ONLY Hex HO soccer SCREW. [see excet [700060701030\nDOTTED AREA) Dowel Pin |SEEEXCEL | tp9060703P 009]\nshim pate [SE EXC*t] roo060749°003\nco Cc HEX SOCKET see excet [T100060709P010\nN CTA SQ ‘BUTTON ‘SCREW HO Lois\nLOCKING PLATE SEE 80) EXCEL |T00060717P111\nHEX HO BOLT|SES,ExCét [TOODGO7OBPOKS L180\nSET PIN SEE EXCEL | 006071 2P006\nMQ 10 SHIM PLATE see excet | T00060742P002|\n| L198\n\" SOLID PLATE, SHIM [see excex TDOOGQ743P215\n2 HEX HO SCREW. SOCKEN| SEE Exce1| TD0060701P012 L020 12\nFf Q 13 SHIM PLATE | SEEEXCE! 700060742P00\n| Li98\n© “4 SOLID PLATE SHIM SEE ExcE: 700060743P00 200 |\nnN 18 ADJUSTING LOWER SEE EXCEL| ‘100060752 pj\ncS WED SIDE SEE ExCeL\na 16 WEDGE ADJUSTING ASSY 700060753",
+          "SECTION E-3",
+          "A\\| BBL [2025.01.09] 2), $4 2025.01.09] H NE 34 [2025. 01 .0£\nREV (2) | DATE (a) | NAME (=) DATE (a) | (32) | DATE (au)\nO°) | PREPARED BY (it) | REVIEWED BY (2) | APPROVED BY (at!)\nPROJECT (2n8)",
+          "THIS DRAWING CR USED IS THE TO PROPERTY FLANISH OF ANY COOGAN ENERBILITY FOR CHANG-ICN, OF KCREA, CR AND 1S NOT TO BE EXCEPT WERE\nREPRODUCED PROVIDED FOR By AGREEMENT WITH SAID INFCRMATICN COPAY. MAKING ORAWING APPARATUS\nPROJ (oz) TITLE (s8)\nWI eo) mm, BEARING RING ASSY(T1)\nN/S\nITEM NO.(22@)) nue nin en te ta"
+        ],
+        "confidence": 1.0
+      },
+      "partslist": {
+        "success": true,
+        "items": [
+          {
+            "no": "1",
+            "description": "RING UPPER",
+            "material": "SFA4OA",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "7",
+            "description": "RING LOWER",
+            "material": "SFA40A",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "10",
+            "description": "SHIM PLATE",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "13",
+            "description": "SHIM PLATE",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "16",
+            "description": "WEDGE",
+            "material": "ADJUSTING",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          },
+          {
+            "no": "80",
+            "description": "SET PIN",
+            "material": "SEE EXCEL BOM",
+            "size_dwg_no": "",
+            "qty": 1,
+            "remark": "",
+            "weight": null
+          }
+        ],
+        "total_count": 6,
+        "confidence": 0.6000000000000001
+      },
+      "dimensions": {
+        "success": true,
+        "dimensions": [
+          {
+            "type": "iso_linear",
+            "value": 0.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "9t0a900G1"
+          },
+          {
+            "type": "iso_linear",
+            "value": 4.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "a)4a0:."
+          },
+          {
+            "type": "iso_linear",
+            "value": 7.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "eau vauman D18a¢ suse (med LINER ) OIMENSIONS: BRM ine) TEAS 26 im) anos WEN end DExe BMS em) _stRAIGHTNESS eM NO. | DESCRIPTION |MATERIAL | SIZE, ONG. NO. | QrTy wr (ka) RWRC\ntm rare cei on DIMENSION on RANGE(O.R = 120 40, TOLERANCE 202. DIMENSION paz RANGE(O 2 50 R) TOLERANCE 21 DIMENSION con RANGE(O.R < 300 ) TOLERANCE os wit TOTAL\n1's02768—mk capes bce THOLOR T00-COR, 305 Tecan Era Tenn Bo CO R= 10007 08 1 RING UPPER SFA4OA 710006201 7P001\n08 Seen 3m eRe an 7\nRING LOWER SFA40A 70006201 7002\nPAINT RING TOP ONLY Hex HO soccer SCREW. [see excet [700060701030\nDOTTED AREA) Dowel Pin |SEEEXCEL | tp9060703P 009]\nshim pate [SE EXC*t] roo060749°003\nco Cc HEX SOCKET see excet [T100060709P010\nN CTA SQ ‘BUTTON ‘SCREW HO Lois\nLOCKING PLATE SEE 80) EXCEL |T00060717P111\nHEX HO BOLT|SES,ExCét [TOODGO7OBPOKS L180\nSET PIN SEE EXCEL | 006071 2P006\nMQ 10 SHIM PLATE see excet | T00060742P002|\n| L198\n\" SOLID PLATE, SHIM [see excex TDOOGQ743P215\n2 HEX HO SCREW. SOCKEN| SEE Exce1| TD0060701P012 L020 12\nFf Q 13 SHIM PLATE | SEEEXCE! 700060742P00\n| Li98\n© “4 SOLID PLATE SHIM SEE ExcE: 700060743P00 200 |\nnN 18 ADJUSTING LOWER SEE EXCEL| ‘100060752 pj\ncS WED SIDE SEE ExCeL\na 16 WEDGE ADJUSTING ASSY 700060753"
+          },
+          {
+            "type": "iso_linear",
+            "value": 2.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "A\\| BBL [2025.01.09] 2), $4 2025.01.09] H NE 34 [2025. 01 .0£\nREV (2) | DATE (a) | NAME (=) DATE (a) | (32) | DATE (au)\nO°) | PREPARED BY (it) | REVIEWED BY (2) | APPROVED BY (at!)\nPROJECT (2n8)"
+          },
+          {
+            "type": "diameter",
+            "value": 30.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "⌀030:"
+          },
+          {
+            "type": "linear",
+            "value": 13.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "13"
+          },
+          {
+            "type": "linear",
+            "value": 14.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "14"
+          },
+          {
+            "type": "linear",
+            "value": 16.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "16"
+          },
+          {
+            "type": "linear",
+            "value": 12.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "12"
+          },
+          {
+            "type": "linear",
+            "value": 10.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "10."
+          },
+          {
+            "type": "linear",
+            "value": 15.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "15."
+          },
+          {
+            "type": "linear",
+            "value": 200.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "(200)"
+          },
+          {
+            "type": "linear",
+            "value": 22.0,
+            "outer_diameter": null,
+            "inner_diameter": null,
+            "tolerance": null,
+            "upper_tolerance": null,
+            "lower_tolerance": null,
+            "unit": "mm",
+            "raw_text": "THIS DRAWING CR USED IS THE TO PROPERTY FLANISH OF ANY COOGAN ENERBILITY FOR CHANG-ICN, OF KCREA, CR AND 1S NOT TO BE EXCEPT WERE\nREPRODUCED PROVIDED FOR By AGREEMENT WITH SAID INFCRMATICN COPAY. MAKING ORAWING APPARATUS\nPROJ (oz) TITLE (s8)\nWI eo) mm, BEARING RING ASSY(T1)\nN/S\nITEM NO.(22@)) nue nin en te ta"
+          }
+        ],
+        "gdt_symbols": [],
+        "confidence": 1.0
+      },
+      "quote": {
+        "success": true,
+        "quote_number": "Q-20260122132315",
+        "date": "2026-01-22",
+        "items": [
+          {
+            "no": "1",
+            "description": "RING UPPER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "2",
+            "description": "RING LOWER (SF45A)",
+            "material": "SF45A",
+            "material_cost": 97500.0,
+            "labor_cost": 120000.0,
+            "quantity": 1,
+            "unit_price": 217500.0,
+            "total_price": 217500.0
+          },
+          {
+            "no": "3",
+            "description": "HEX SOCKET HD BOLT (SCM435)",
+            "material": "SCM435",
+            "material_cost": 4550.0,
+            "labor_cost": 2250.0,
+            "quantity": 4,
+            "unit_price": 6800.0,
+            "total_price": 27200.0
+          },
+          {
+            "no": "4",
+            "description": "DOWEL PIN (STS304)",
+            "material": "STS304",
+            "material_cost": 3120.0,
+            "labor_cost": 4800.0,
+            "quantity": 2,
+            "unit_price": 7920.0,
+            "total_price": 15840.0
+          }
+        ],
+        "subtotal": 478040.0,
+        "discount": 0.0,
+        "tax": 47804.0,
+        "total": 525844.0,
+        "currency": "KRW"
+      },
+      "errors": [],
+      "score": 100
+    }
+  ]
+}

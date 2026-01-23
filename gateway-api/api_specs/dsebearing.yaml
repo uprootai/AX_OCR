@@ -1,0 +1,447 @@
+# DSE Bearing API Specification
+# Complete API for bearing drawing analysis and quote generation
+
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: dsebearing
+  name: DSE Bearing Pipeline
+  version: 1.0.0
+  port: 8000
+  host: gateway-api
+  description: |
+    DSE Bearing 도면 분석 및 견적 생성 통합 API
+    - Title Block 파싱 (도면번호, 품명, 재질)
+    - Parts List 추출 (부품 목록, 수량)
+    - Dimension 파싱 (치수 정보)
+    - BOM 매칭 (부품-도면 연결)
+    - 견적 생성 (재료비, 가공비, 마진)
+    - Excel/PDF 출력
+  author: AX Team
+  tags:
+    - bearing
+    - quote
+    - bom
+    - parsing
+
+server:
+  baseUrl: /api/v1/dsebearing
+  contentType: multipart/form-data
+  timeout: 120
+  healthEndpoint: /prices/materials
+
+# ===== API Endpoints =====
+
+endpoints:
+
+  # ----- Title Block Parsing -----
+  - path: /titleblock
+    method: POST
+    description: 도면 Title Block 파싱 (도면번호, 품명, 재질, 리비전)
+    contentType: multipart/form-data
+    inputs:
+      - name: file
+        type: file
+        required: true
+        description: 도면 이미지 (PNG, JPG)
+      - name: profile
+        type: string
+        required: false
+        default: bearing
+        description: 파싱 프로파일
+    outputs:
+      - name: drawing_number
+        type: string
+        description: 도면번호 (예: TD0062016)
+      - name: revision
+        type: string
+        description: 리비전 (예: A, B)
+      - name: part_name
+        type: string
+        description: 품명
+      - name: material
+        type: string
+        description: 재질
+      - name: confidence
+        type: number
+        description: 파싱 신뢰도 (0-1)
+
+  # ----- Parts List Parsing -----
+  - path: /partslist
+    method: POST
+    description: 도면 Parts List 추출 (부품 목록, 재질, 수량)
+    contentType: multipart/form-data
+    inputs:
+      - name: file
+        type: file
+        required: true
+        description: 도면 이미지
+      - name: profile
+        type: string
+        required: false
+        default: bearing
+        description: 파싱 프로파일
+    outputs:
+      - name: items
+        type: PartsListItem[]
+        description: 부품 목록
+      - name: confidence
+        type: number
+        description: 파싱 신뢰도
+
+  # ----- Dimension Parser -----
+  - path: /dimensionparser
+    method: POST
+    description: 도면 치수 추출
+    contentType: multipart/form-data
+    inputs:
+      - name: file
+        type: file
+        required: true
+        description: 도면 이미지
+      - name: dimension_type
+        type: string
+        required: false
+        default: bearing
+        description: 치수 타입
+    outputs:
+      - name: dimensions
+        type: Dimension[]
+        description: 치수 목록
+      - name: count
+        type: number
+        description: 치수 개수
+
+  # ----- BOM Matcher -----
+  - path: /bommatcher
+    method: POST
+    description: Title Block + Parts List → BOM 통합 및 견적 생성
+    contentType: multipart/form-data
+    inputs:
+      - name: titleblock_data
+        type: string (JSON)
+        required: true
+        description: Title Block 파싱 결과
+      - name: partslist_data
+        type: string (JSON)
+        required: true
+        description: Parts List 파싱 결과
+      - name: dimension_data
+        type: string (JSON)
+        required: false
+        description: Dimension 파싱 결과
+      - name: customer_id
+        type: string
+        required: false
+        default: DSE
+        description: 고객 ID
+      - name: generate_quote
+        type: boolean
+        required: false
+        default: false
+        description: 견적 자동 생성 여부
+    outputs:
+      - name: matched_items
+        type: BOMEntry[]
+        description: 매칭된 BOM 항목
+      - name: match_confidence
+        type: number
+        description: 매칭 신뢰도
+      - name: quote
+        type: Quote
+        description: 생성된 견적 (generate_quote=true)
+
+  # ----- Quote Generator -----
+  - path: /quotegenerator
+    method: POST
+    description: 부품 목록으로 견적서 생성
+    contentType: application/json
+    inputs:
+      - name: customer_id
+        type: string
+        required: false
+        default: DSE
+        description: 고객 ID (할인율 적용)
+      - name: parts
+        type: QuotePart[]
+        required: true
+        description: 부품 목록 (no, description, material, qty, weight)
+    outputs:
+      - name: quote_number
+        type: string
+        description: 견적번호
+      - name: items
+        type: QuoteLineItem[]
+        description: 견적 항목
+      - name: subtotal
+        type: number
+        description: 소계
+      - name: discount
+        type: number
+        description: 할인 금액
+      - name: tax
+        type: number
+        description: 세금
+      - name: total
+        type: number
+        description: 총액
+
+  # ----- Quote Export (Excel) -----
+  - path: /quote/export/excel
+    method: POST
+    description: 견적서 Excel 파일 다운로드
+    contentType: multipart/form-data
+    inputs:
+      - name: quote_data
+        type: string (JSON)
+        required: true
+        description: 견적 데이터 JSON
+      - name: customer_id
+        type: string
+        required: false
+        description: 고객 ID (고객 정보 포함)
+    outputs:
+      - type: file
+        mimeType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+        description: Excel 파일 (.xlsx)
+
+  # ----- Quote Export (PDF) -----
+  - path: /quote/export/pdf
+    method: POST
+    description: 견적서 PDF 파일 다운로드
+    contentType: multipart/form-data
+    inputs:
+      - name: quote_data
+        type: string (JSON)
+        required: true
+        description: 견적 데이터 JSON
+      - name: customer_id
+        type: string
+        required: false
+        description: 고객 ID
+    outputs:
+      - type: file
+        mimeType: application/pdf
+        description: PDF 파일 (.pdf)
+
+  # ----- Price Database -----
+  - path: /prices/materials
+    method: GET
+    description: 재질별 단가 목록
+    outputs:
+      - name: materials
+        type: Material[]
+        description: 재질 목록 (code, name, price_per_kg)
+
+  - path: /prices/labor
+    method: GET
+    description: 가공비 목록
+    outputs:
+      - name: labor_costs
+        type: LaborCost[]
+        description: 가공비 목록 (type, base_cost)
+
+  - path: /prices/discounts
+    method: GET
+    description: 수량 할인율 목록
+    outputs:
+      - name: discounts
+        type: QuantityDiscount[]
+        description: 수량별 할인율
+
+  # ----- Customer Config -----
+  - path: /customers
+    method: GET
+    description: 고객 목록
+    outputs:
+      - name: customers
+        type: Customer[]
+        description: 등록된 고객 목록
+
+  - path: /customers/{customer_id}
+    method: GET
+    description: 고객 상세 정보
+    outputs:
+      - name: customer
+        type: CustomerDetail
+        description: 고객 상세 정보
+
+  - path: /customers/{customer_id}/full
+    method: GET
+    description: 고객 전체 설정 (프로파일, 템플릿 포함)
+    outputs:
+      - name: customer
+        type: CustomerDetail
+      - name: parsing_profile
+        type: ParsingProfile
+      - name: quote_template
+        type: QuoteTemplate
+
+# ===== Data Types =====
+
+types:
+  PartsListItem:
+    properties:
+      no: { type: string, description: "부품 번호" }
+      description: { type: string, description: "부품 설명" }
+      material: { type: string, description: "재질" }
+      qty: { type: number, description: "수량" }
+      weight: { type: number, description: "중량 (kg)" }
+      remarks: { type: string, description: "비고" }
+
+  Dimension:
+    properties:
+      raw_text: { type: string, description: "원본 텍스트" }
+      type: { type: string, description: "치수 타입 (diameter, length, tolerance)" }
+      value: { type: number, description: "수치" }
+      unit: { type: string, description: "단위" }
+      confidence: { type: number, description: "신뢰도" }
+
+  BOMEntry:
+    properties:
+      item_no: { type: number, description: "항목 번호" }
+      part_no: { type: string, description: "부품 번호" }
+      part_name: { type: string, description: "부품명" }
+      material: { type: string, description: "재질" }
+      quantity: { type: number, description: "수량" }
+      unit_price: { type: number, description: "단가" }
+      total_price: { type: number, description: "금액" }
+
+  QuotePart:
+    properties:
+      no: { type: string, description: "부품 번호" }
+      description: { type: string, description: "부품 설명" }
+      material: { type: string, description: "재질 코드 (SF45A, ASTM B23 등)" }
+      qty: { type: number, description: "수량" }
+      weight: { type: number, description: "중량 (kg)" }
+
+  Material:
+    properties:
+      code: { type: string, description: "재질 코드" }
+      name: { type: string, description: "재질명" }
+      price_per_kg: { type: number, description: "kg당 단가 (KRW)" }
+
+  Customer:
+    properties:
+      customer_id: { type: string, description: "고객 ID" }
+      customer_name: { type: string, description: "고객명" }
+      material_discount: { type: number, description: "재료비 할인율" }
+      labor_discount: { type: number, description: "가공비 할인율" }
+      payment_terms: { type: number, description: "결제 조건 (일)" }
+
+# ===== Examples =====
+
+examples:
+  titleblock:
+    request:
+      curl: |
+        curl -X POST http://localhost:8000/api/v1/dsebearing/titleblock \
+          -F "file=@drawing.png" \
+          -F "profile=bearing"
+    response:
+      json: |
+        {
+          "drawing_number": "TD0062016",
+          "revision": "A",
+          "part_name": "RING ASSY. T1",
+          "material": "SF45A",
+          "confidence": 0.92
+        }
+
+  partslist:
+    request:
+      curl: |
+        curl -X POST http://localhost:8000/api/v1/dsebearing/partslist \
+          -F "file=@drawing.png" \
+          -F "profile=bearing"
+    response:
+      json: |
+        {
+          "items": [
+            {"no": "1", "description": "RING UPPER", "material": "SF45A", "qty": 1},
+            {"no": "2", "description": "RING LOWER", "material": "SF45A", "qty": 1},
+            {"no": "3", "description": "PAD ASSY", "material": "ASTM B23 GR.2", "qty": 8}
+          ],
+          "confidence": 0.88
+        }
+
+  quotegenerator:
+    request:
+      curl: |
+        curl -X POST http://localhost:8000/api/v1/dsebearing/quotegenerator \
+          -H "Content-Type: application/json" \
+          -d '{
+            "customer_id": "DSE",
+            "parts": [
+              {"no": "1", "description": "RING UPPER", "material": "SF45A", "qty": 1, "weight": 25},
+              {"no": "2", "description": "PAD ASSY", "material": "ASTM B23 GR.2", "qty": 8, "weight": 5}
+            ]
+          }'
+    response:
+      json: |
+        {
+          "quote_number": "Q-2026-0122-001",
+          "items": [
+            {"no": "1", "description": "RING UPPER", "material": "SF45A", "qty": 1, "unit_price": 162500, "total_price": 162500},
+            {"no": "2", "description": "PAD ASSY", "material": "ASTM B23 GR.2", "qty": 8, "unit_price": 342500, "total_price": 2740000}
+          ],
+          "subtotal": 2902500,
+          "discount": 145125,
+          "tax": 290250,
+          "total": 3047625,
+          "currency": "KRW"
+        }
+
+  export_excel:
+    request:
+      curl: |
+        curl -X POST http://localhost:8000/api/v1/dsebearing/quote/export/excel \
+          -F "quote_data={...견적JSON...}" \
+          -F "customer_id=DSE" \
+          --output quote.xlsx
+
+# ===== Supported Materials =====
+
+materials:
+  - code: SF45A
+    name: 탄소강
+    price_per_kg: 5000
+  - code: SF440A
+    name: 합금강
+    price_per_kg: 7500
+  - code: SM45C
+    name: 기계구조용탄소강
+    price_per_kg: 6000
+  - code: SUS304
+    name: 스테인리스강
+    price_per_kg: 12000
+  - code: ASTM B23 GR.2
+    name: 화이트메탈
+    price_per_kg: 25000
+  - code: ASTM B22 GR.4
+    name: 청동
+    price_per_kg: 18000
+
+# ===== Customers =====
+
+customers:
+  - id: DSE
+    name: DSE Bearing
+    material_discount: 5%
+    labor_discount: 3%
+    payment_terms: 30
+  - id: DOOSAN
+    name: 두산에너빌리티
+    material_discount: 8%
+    labor_discount: 5%
+    payment_terms: 45
+
+# ===== Usage Tips =====
+
+usageTips:
+  - "Title Block → Parts List → BOM Matcher → Quote Generator 순서로 파이프라인 구성"
+  - "profile=bearing 파라미터로 베어링 도면 최적화 파싱"
+  - "customer_id로 고객별 할인율 자동 적용"
+  - "generate_quote=true로 BOM Matcher에서 바로 견적 생성"
+  - "Excel/PDF Export로 고객 제출용 견적서 생성"

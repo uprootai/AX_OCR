@@ -71,10 +71,10 @@
 
 ### 새 기능 구현 시
 ```
-1. 계획 문서 작성 (.todos/에)
+1. 계획 문서 작성 (.todo/BACKLOG.md에 추가)
 2. "이 계획대로 구현해줘" → feature-implementer 자동 적용
 3. 각 Phase 완료 후 Quality Gate 검증
-4. 자동 Git 커밋
+4. 완료 시 ACTIVE.md 갱신, COMPLETED.md에 기록
 ```
 
 ### 새 API 추가 시

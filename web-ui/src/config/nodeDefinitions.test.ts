@@ -327,9 +327,9 @@ describe('nodeDefinitions', () => {
   });
 
   describe('Node count verification', () => {
-    it('should have exactly 30 node types', () => {
-      // 23 기존 + 5 신규 + 1 pidcomposer + 1 table_detector (gtcomparison, pdfexport, excelexport, pidfeatures, verificationqueue, pidcomposer, table_detector)
-      expect(Object.keys(nodeDefinitions).length).toBe(30);
+    it('should have exactly 35 node types', () => {
+      // 23 기존 + 5 신규 + 1 pidcomposer + 1 table_detector + 1 titleblock + 1 partslist + 1 dimensionparser + 1 bommatcher + 1 quotegenerator
+      expect(Object.keys(nodeDefinitions).length).toBe(35);
     });
 
     it('should have correct count per category', () => {
@@ -343,7 +343,7 @@ describe('nodeDefinitions', () => {
       expect(categoryCounts['ocr']).toBe(8);        // edocr2, paddleocr, tesseract, trocr, ocr_ensemble, suryaocr, doctr, easyocr
       expect(categoryCounts['segmentation']).toBe(2); // edgnet, linedetector
       expect(categoryCounts['preprocessing']).toBe(1); // esrgan
-      expect(categoryCounts['analysis']).toBe(9);   // skinmodel, pidanalyzer, designchecker, pidcomposer + gtcomparison, pdfexport, excelexport, pidfeatures, verificationqueue
+      expect(categoryCounts['analysis']).toBe(14);  // skinmodel, pidanalyzer, designchecker, pidcomposer, titleblock, partslist, dimensionparser, bommatcher, quotegenerator + gtcomparison, pdfexport, excelexport, pidfeatures, verificationqueue
       expect(categoryCounts['knowledge']).toBe(1);  // knowledge
       expect(categoryCounts['ai']).toBe(1);         // vl
       expect(categoryCounts['control']).toBe(3);    // if, loop, merge

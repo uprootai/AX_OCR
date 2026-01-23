@@ -6,6 +6,7 @@ SVG Generator Service
 from typing import Dict, Any, List, Tuple
 
 from .composer_service import ComposerStyle, LayerType
+from .svg_common import escape_html, create_svg_header, create_svg_footer
 
 
 def generate_svg_overlay(

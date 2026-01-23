@@ -1,0 +1,216 @@
+# Title Block Parser API Specification
+# Gateway 내부 처리 (별도 마이크로서비스 없음)
+# Table Detector + 정규식 기반 필드 파싱
+
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: titleblock
+  name: Title Block Parser
+  version: 1.0.0
+  port: 8000  # Gateway 내부 처리
+  host: gateway-api
+  description: 도면 Title Block에서 도면번호, Rev, 품명, 재질 등 구조화된 정보 추출
+  author: AX Team
+  tags:
+    - analysis
+    - title-block
+    - drawing-info
+    - ocr
+
+server:
+  endpoint: /api/v1/titleblock/parse
+  method: POST
+  contentType: multipart/form-data
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#6366f1"
+  icon: FileText
+  requiresImage: true
+
+inputs:
+  - name: image
+    type: Image
+    required: true
+    description: 도면 이미지 (Title Block 포함)
+
+outputs:
+  - name: title_block
+    type: TitleBlockData
+    description: 파싱된 Title Block 필드
+  - name: drawing_number
+    type: string
+    description: 도면번호 (예: TD0062018)
+  - name: revision
+    type: string
+    description: 리비전 (예: A, B, C)
+  - name: part_name
+    type: string
+    description: 품명 (예: BEARING CASING ASSY)
+  - name: material
+    type: string
+    description: 재질 (예: SF440A, SS400)
+  - name: weight
+    type: string
+    description: 중량 (예: 882 kg)
+  - name: scale
+    type: string
+    description: 축척 (예: 1:1, 1:2)
+  - name: raw_text
+    type: string
+    description: Title Block OCR 원본 텍스트
+  - name: confidence
+    type: number
+    description: 파싱 신뢰도 (0-1)
+
+parameters:
+  - name: detection_method
+    type: select
+    options:
+      - auto
+      - table_detector
+      - template
+    default: auto
+    description: "검출 방식: auto(자동 선택), table_detector(테이블 검출), template(좌표 기반)"
+
+  - name: title_block_position
+    type: select
+    options:
+      - bottom_right
+      - bottom_left
+      - top_right
+      - auto
+    default: bottom_right
+    description: Title Block 위치 (대부분 우하단)
+
+  - name: ocr_engine
+    type: select
+    options:
+      - tesseract
+      - paddle
+      - easyocr
+    default: paddle
+    description: OCR 엔진 선택 (paddle 권장 - 한글 지원)
+
+  - name: company_template
+    type: select
+    options:
+      - auto
+      - doosan
+      - generic
+    default: auto
+    description: 회사별 Title Block 템플릿
+
+  - name: extract_fields
+    type: checkboxGroup
+    default: ["drawing_number", "revision", "part_name", "material"]
+    options:
+      - drawing_number
+      - revision
+      - part_name
+      - material
+      - weight
+      - scale
+      - date
+      - author
+    description: 추출할 필드 선택
+
+i18n:
+  ko:
+    label: Title Block Parser
+    description: 도면 Title Block에서 도면번호, Rev, 품명, 재질 등 자동 추출
+  en:
+    label: Title Block Parser
+    description: Extract drawing number, revision, part name, material from title block
+
+profiles:
+  default: bearing
+  available:
+    - name: bearing
+      label: "베어링 도면"
+      description: "DSE Bearing 도면 최적화 (DOOSAN 템플릿)"
+      params:
+        detection_method: auto
+        title_block_position: bottom_right
+        ocr_engine: paddle
+        company_template: doosan
+        extract_fields: ["drawing_number", "revision", "part_name", "material", "weight"]
+
+    - name: generic
+      label: "일반 도면"
+      description: "범용 Title Block 파싱"
+      params:
+        detection_method: table_detector
+        title_block_position: auto
+        ocr_engine: tesseract
+        company_template: generic
+        extract_fields: ["drawing_number", "revision", "part_name", "material"]
+
+    - name: fast
+      label: "빠른 추출"
+      description: "도면번호/Rev만 빠르게 추출"
+      params:
+        detection_method: template
+        title_block_position: bottom_right
+        ocr_engine: tesseract
+        company_template: auto
+        extract_fields: ["drawing_number", "revision"]
+
+examples:
+  - "도면 이미지 → Title Block Parser → 도면번호, 품명, 재질 추출"
+  - "베어링 도면 → Title Block Parser → BOM Matcher 연결"
+
+usageTips:
+  - "⭐ DSE Bearing 도면은 'bearing' 프로파일 사용 권장"
+  - "💡 DOOSAN 도면은 company_template=doosan으로 정확도 향상"
+  - "🔗 BOM Matcher 노드와 연결하여 자동 BOM 매칭"
+  - "📊 confidence 값이 0.7 이하면 수동 확인 권장"
+
+recommendedInputs:
+  - from: imageinput
+    field: image
+    reason: "도면 이미지 입력"
+  - from: tabledetector
+    field: tables
+    reason: "Table Detector 결과로 Title Block 영역 재사용 가능"
+
+resources:
+  gpu:
+    vram: "~1GB"
+    minVram: 512
+    recommended: "CPU로 충분"
+  cpu:
+    ram: "~2GB"
+    minRam: 1024
+    cores: 2
+    note: "정규식 파싱은 CPU 부하 낮음"
+
+openapi:
+  requestExamples:
+    - name: "베어링 도면 파싱"
+      description: "DOOSAN 베어링 도면에서 Title Block 추출"
+      formData:
+        file: "TD0062018.png"
+        detection_method: "auto"
+        company_template: "doosan"
+        ocr_engine: "paddle"
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        success: true
+        title_block:
+          drawing_number: "TD0062018"
+          revision: "A"
+          part_name: "BEARING CASING ASSY(T1)"
+          material: "SF440A"
+          weight: "882 kg"
+          scale: "1:1"
+        confidence: 0.92
+        raw_text: "DWG NO. TD0062018 REV A..."
+        processing_time_ms: 1250

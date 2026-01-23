@@ -1,0 +1,274 @@
+# Quote Generator API Specification
+# Gateway 내부 처리 (별도 마이크로서비스 없음)
+# BOM → 자동 견적 생성
+
+apiVersion: v1
+kind: APISpec
+
+metadata:
+  id: quotegenerator
+  name: Quote Generator
+  version: 1.0.0
+  port: 8000  # Gateway 내부 처리
+  host: gateway-api
+  description: BOM 기반 자동 견적 생성 (재료비, 가공비, 마진 계산)
+  author: AX Team
+  tags:
+    - analysis
+    - quote
+    - bearing
+    - cost
+
+server:
+  endpoint: /api/v1/quote/generate
+  method: POST
+  contentType: application/json
+  timeout: 60
+  healthEndpoint: /health
+
+blueprintflow:
+  category: analysis
+  color: "#dc2626"
+  icon: Calculator
+  requiresImage: false
+
+inputs:
+  - name: bom
+    type: BOMEntry[]
+    required: true
+    description: BOM Matcher 출력 (부품 목록)
+  - name: drawing_info
+    type: DrawingInfo
+    required: false
+    description: 도면 메타 정보 (도면번호, 품명)
+  - name: pricing_table
+    type: PricingTable
+    required: false
+    description: 커스텀 단가 테이블 (미입력 시 기본값)
+
+outputs:
+  - name: quote
+    type: QuoteDocument
+    description: 견적서 데이터
+  - name: line_items
+    type: QuoteLineItem[]
+    description: 견적 항목 목록
+  - name: summary
+    type: QuoteSummary
+    description: 견적 요약 (총액, 세금 등)
+  - name: material_cost
+    type: number
+    description: 재료비 합계
+  - name: labor_cost
+    type: number
+    description: 가공비 합계
+  - name: total_cost
+    type: number
+    description: 총 견적 금액
+  - name: quote_number
+    type: string
+    description: 견적 번호
+
+parameters:
+  - name: currency
+    type: select
+    options:
+      - KRW
+      - USD
+      - EUR
+      - JPY
+    default: KRW
+    description: 통화 단위
+
+  - name: material_markup
+    type: number
+    min: 0
+    max: 100
+    step: 1
+    default: 15
+    description: 재료비 마진율 (%)
+
+  - name: labor_markup
+    type: number
+    min: 0
+    max: 100
+    step: 1
+    default: 20
+    description: 가공비 마진율 (%)
+
+  - name: tax_rate
+    type: number
+    min: 0
+    max: 30
+    step: 0.5
+    default: 10
+    description: 부가세율 (%)
+
+  - name: include_tax
+    type: boolean
+    default: true
+    description: 부가세 포함 여부
+
+  - name: quantity_discount
+    type: boolean
+    default: true
+    description: 수량 할인 적용
+
+  - name: validity_days
+    type: number
+    min: 7
+    max: 90
+    step: 1
+    default: 30
+    description: 견적 유효 기간 (일)
+
+  - name: output_format
+    type: select
+    options:
+      - json
+      - pdf
+      - excel
+    default: json
+    description: 출력 형식
+
+i18n:
+  ko:
+    label: Quote Generator
+    description: BOM 기반 자동 견적 생성 (재료비, 가공비, 마진 계산)
+  en:
+    label: Quote Generator
+    description: Auto-generate quotes from BOM (materials, labor, markup)
+
+profiles:
+  default: bearing
+  available:
+    - name: bearing
+      label: "베어링 견적"
+      description: "DSE Bearing 견적 최적화"
+      params:
+        currency: KRW
+        material_markup: 15
+        labor_markup: 20
+        tax_rate: 10
+        include_tax: true
+        quantity_discount: true
+        validity_days: 30
+        output_format: json
+
+    - name: standard
+      label: "표준 견적"
+      description: "일반 기계 부품 견적"
+      params:
+        currency: KRW
+        material_markup: 10
+        labor_markup: 15
+        tax_rate: 10
+        include_tax: true
+        quantity_discount: false
+        validity_days: 14
+        output_format: json
+
+    - name: export
+      label: "수출용 견적"
+      description: "해외 수출용 (USD)"
+      params:
+        currency: USD
+        material_markup: 20
+        labor_markup: 25
+        tax_rate: 0
+        include_tax: false
+        quantity_discount: true
+        validity_days: 60
+        output_format: json
+
+examples:
+  - "BOM Matcher → Quote Generator → 견적서 JSON"
+  - "도면 분석 → BOM → 견적서 PDF 생성"
+  - "부품 10개, 재료비 500만원 → 견적 700만원 (마진 포함)"
+
+usageTips:
+  - "⭐ BOM Matcher 출력을 입력으로 연결"
+  - "💰 material_markup/labor_markup으로 마진율 조정"
+  - "📊 수량 할인은 10개 이상 5%, 50개 이상 10%"
+  - "📄 PDF/Excel 출력으로 고객 제출용 견적서 생성"
+  - "🔧 pricing_table로 커스텀 단가 적용 가능"
+
+recommendedInputs:
+  - from: bommatcher
+    field: bom
+    reason: "⭐ BOM Matcher 출력 (부품 목록)"
+  - from: bommatcher
+    field: drawing_info
+    reason: "도면 메타 정보 (도면번호)"
+
+resources:
+  gpu:
+    vram: "0"
+    recommended: "CPU로 충분 (계산 로직)"
+  cpu:
+    ram: "~256MB"
+    minRam: 128
+    cores: 1
+    note: "경량 계산 작업"
+
+openapi:
+  requestExamples:
+    - name: "베어링 견적 생성"
+      description: "BOM 기반 견적서 생성"
+      jsonBody:
+        bom:
+          - item_no: 1
+            part_no: "1"
+            part_name: "UPPER THRUST PAD"
+            material: "ASTM B23 GR.2"
+            quantity: 8
+          - item_no: 2
+            part_no: "2"
+            part_name: "LOWER THRUST PAD"
+            material: "ASTM B23 GR.2"
+            quantity: 8
+        drawing_info:
+          drawing_number: "BRG-2024-001"
+          title: "THRUST BEARING ASSEMBLY"
+        currency: "KRW"
+        material_markup: 15
+        labor_markup: 20
+
+  responseExamples:
+    - name: "성공 응답"
+      statusCode: 200
+      response:
+        success: true
+        quote:
+          quote_number: "Q-2024-0122-001"
+          date: "2024-01-22"
+          validity_date: "2024-02-21"
+          customer: ""
+          drawing_number: "BRG-2024-001"
+          title: "THRUST BEARING ASSEMBLY"
+        line_items:
+          - item_no: 1
+            part_name: "UPPER THRUST PAD"
+            material: "ASTM B23 GR.2"
+            quantity: 8
+            unit_price: 150000
+            material_cost: 1200000
+            labor_cost: 400000
+            subtotal: 1600000
+          - item_no: 2
+            part_name: "LOWER THRUST PAD"
+            material: "ASTM B23 GR.2"
+            quantity: 8
+            unit_price: 150000
+            material_cost: 1200000
+            labor_cost: 400000
+            subtotal: 1600000
+        summary:
+          material_cost: 2400000
+          labor_cost: 800000
+          subtotal: 3200000
+          markup: 640000
+          tax: 384000
+          total: 4224000
+          currency: "KRW"
+        processing_time_ms: 50

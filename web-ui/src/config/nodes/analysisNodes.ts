@@ -940,6 +940,942 @@ export const analysisNodes: Record<string, NodeDefinition> = {
    * PID Composer Node
    * P&ID 레이어 합성 및 시각화
    */
+  /**
+   * Title Block Parser Node
+   * 도면 Title Block에서 도면번호, Rev, 품명, 재질 등 추출
+   */
+  titleblock: {
+    type: 'titleblock',
+    label: 'Title Block Parser',
+    category: 'analysis',
+    color: '#6366f1',
+    icon: 'FileText',
+    description:
+      '도면 Title Block에서 도면번호, Rev, 품명, 재질 등 구조화된 정보를 자동 추출합니다. DSE Bearing 도면에 최적화되어 있습니다.',
+    profiles: {
+      default: 'bearing',
+      available: [
+        {
+          name: 'bearing',
+          label: '베어링 도면',
+          description: 'DSE Bearing 도면 최적화 (DOOSAN 템플릿)',
+          params: {
+            detection_method: 'auto',
+            title_block_position: 'bottom_right',
+            ocr_engine: 'paddle',
+            company_template: 'doosan',
+          },
+        },
+        {
+          name: 'generic',
+          label: '일반 도면',
+          description: '범용 Title Block 파싱',
+          params: {
+            detection_method: 'table_detector',
+            title_block_position: 'auto',
+            ocr_engine: 'tesseract',
+            company_template: 'generic',
+          },
+        },
+        {
+          name: 'fast',
+          label: '빠른 추출',
+          description: '도면번호/Rev만 빠르게 추출',
+          params: {
+            detection_method: 'template',
+            title_block_position: 'bottom_right',
+            ocr_engine: 'tesseract',
+            company_template: 'auto',
+          },
+        },
+      ],
+    },
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 도면 이미지 (Title Block 포함)',
+      },
+      {
+        name: 'tables',
+        type: 'Table[]',
+        description: '📊 Table Detector 결과 (Title Block 영역 재사용)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'title_block',
+        type: 'TitleBlockData',
+        description: '📋 파싱된 Title Block 필드 딕셔너리',
+      },
+      {
+        name: 'drawing_number',
+        type: 'string',
+        description: '🔢 도면번호 (예: TD0062018)',
+      },
+      {
+        name: 'revision',
+        type: 'string',
+        description: '🔄 리비전 (예: A, B, C)',
+      },
+      {
+        name: 'part_name',
+        type: 'string',
+        description: '🏷️ 품명 (예: BEARING CASING ASSY)',
+      },
+      {
+        name: 'material',
+        type: 'string',
+        description: '🔩 재질 (예: SF440A, SS400)',
+      },
+      {
+        name: 'weight',
+        type: 'string',
+        description: '⚖️ 중량 (예: 882 kg)',
+      },
+      {
+        name: 'scale',
+        type: 'string',
+        description: '📐 축척 (예: 1:1, 1:2)',
+      },
+      {
+        name: 'confidence',
+        type: 'number',
+        description: '📊 파싱 신뢰도 (0-1)',
+      },
+      {
+        name: 'raw_text',
+        type: 'string',
+        description: '📝 OCR 원본 텍스트',
+      },
+    ],
+    parameters: [
+      {
+        name: 'detection_method',
+        type: 'select',
+        default: 'auto',
+        options: [
+          { value: 'auto', label: '자동 선택', description: '상황에 맞게 자동 선택' },
+          { value: 'table_detector', label: 'Table Detector', description: '테이블 구조 검출 후 파싱' },
+          { value: 'template', label: '템플릿 기반', description: '좌표 기반 영역 추출' },
+        ],
+        description: 'Title Block 검출 방식',
+      },
+      {
+        name: 'title_block_position',
+        type: 'select',
+        default: 'bottom_right',
+        options: [
+          { value: 'bottom_right', label: '우하단', description: '대부분의 도면 (기본값)' },
+          { value: 'bottom_left', label: '좌하단', description: '일부 도면' },
+          { value: 'top_right', label: '우상단', description: '특수 도면' },
+          { value: 'auto', label: '자동 검출', description: '위치 자동 탐색' },
+        ],
+        description: 'Title Block 위치 (대부분 우하단)',
+      },
+      {
+        name: 'ocr_engine',
+        type: 'select',
+        default: 'paddle',
+        options: [
+          { value: 'paddle', label: 'PaddleOCR', description: '한글 지원, 권장' },
+          { value: 'tesseract', label: 'Tesseract', description: '영문 기본' },
+          { value: 'easyocr', label: 'EasyOCR', description: '다국어 지원' },
+        ],
+        description: 'OCR 엔진 (paddle 권장 - 한글 지원)',
+      },
+      {
+        name: 'company_template',
+        type: 'select',
+        default: 'auto',
+        options: [
+          { value: 'auto', label: '자동', description: '자동 템플릿 선택' },
+          { value: 'doosan', label: 'DOOSAN', description: 'DSE Bearing 도면' },
+          { value: 'generic', label: '범용', description: '일반 Title Block' },
+        ],
+        description: '회사별 Title Block 템플릿',
+      },
+      {
+        name: 'extract_fields',
+        type: 'checkboxGroup',
+        default: ['drawing_number', 'revision', 'part_name', 'material'],
+        options: [
+          { value: 'drawing_number', label: '도면번호', description: '도면 고유 번호' },
+          { value: 'revision', label: '리비전', description: '도면 버전' },
+          { value: 'part_name', label: '품명', description: '부품 이름' },
+          { value: 'material', label: '재질', description: '재질 코드' },
+          { value: 'weight', label: '중량', description: '부품 무게' },
+          { value: 'scale', label: '축척', description: '도면 축척' },
+          { value: 'date', label: '작성일', description: '도면 작성 날짜' },
+          { value: 'author', label: '작성자', description: '도면 작성자' },
+        ],
+        description: '추출할 필드 선택',
+      },
+    ],
+    examples: [
+      '도면 이미지 → Title Block Parser → 도면번호, 품명, 재질 추출',
+      '베어링 도면 → Title Block Parser → BOM Matcher 연결',
+    ],
+    usageTips: [
+      '⭐ DSE Bearing 도면은 "bearing" 프로파일 사용 권장',
+      '💡 DOOSAN 도면은 company_template=doosan으로 정확도 향상',
+      '🔗 BOM Matcher 노드와 연결하여 자동 BOM 매칭',
+      '📊 confidence 값이 0.7 이하면 수동 확인 권장',
+      '🔍 raw_text 출력으로 OCR 결과 직접 확인 가능',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '⭐ 도면 이미지 입력 (Title Block 포함)',
+      },
+      {
+        from: 'tabledetector',
+        field: 'tables',
+        reason: 'Table Detector 결과로 Title Block 영역 재사용 가능',
+      },
+    ],
+  },
+
+  /**
+   * Parts List Parser Node
+   * 도면 Parts List에서 부품번호, 품명, 재질, 수량 등 추출
+   */
+  partslist: {
+    type: 'partslist',
+    label: 'Parts List Parser',
+    category: 'analysis',
+    color: '#10b981',
+    icon: 'Table',
+    description:
+      '도면 Parts List 테이블에서 부품번호, 품명, 재질, 수량 등 구조화된 정보를 자동 추출합니다. DSE Bearing 도면에 최적화되어 있습니다.',
+    profiles: {
+      default: 'bearing',
+      available: [
+        {
+          name: 'bearing',
+          label: '베어링 도면',
+          description: 'DSE Bearing 도면 Parts List 최적화',
+          params: {
+            table_position: 'auto',
+            ocr_engine: 'paddle',
+            normalize_material: true,
+            normalize_headers: true,
+          },
+        },
+        {
+          name: 'generic',
+          label: '일반 도면',
+          description: '범용 Parts List 파싱',
+          params: {
+            table_position: 'auto',
+            ocr_engine: 'tesseract',
+            normalize_material: true,
+            normalize_headers: true,
+          },
+        },
+        {
+          name: 'korean',
+          label: '한글 도면',
+          description: '한글 헤더 Parts List',
+          params: {
+            table_position: 'auto',
+            ocr_engine: 'paddle',
+            normalize_material: true,
+            normalize_headers: true,
+          },
+        },
+      ],
+    },
+    inputs: [
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 도면 이미지 (Parts List 포함)',
+      },
+      {
+        name: 'tables',
+        type: 'Table[]',
+        description: '📊 Table Detector 결과 (재사용)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'parts_list',
+        type: 'PartsListData',
+        description: '📋 파싱된 Parts List 데이터',
+      },
+      {
+        name: 'parts',
+        type: 'Part[]',
+        description: '🔧 부품 목록 배열',
+      },
+      {
+        name: 'parts_count',
+        type: 'number',
+        description: '📊 추출된 부품 개수',
+      },
+      {
+        name: 'headers',
+        type: 'string[]',
+        description: '📝 정규화된 헤더 목록',
+      },
+      {
+        name: 'confidence',
+        type: 'number',
+        description: '📊 추출 신뢰도 (0-1)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'table_position',
+        type: 'select',
+        default: 'auto',
+        options: [
+          { value: 'auto', label: '자동 검출', description: 'Parts List 위치 자동 탐색' },
+          { value: 'top_left', label: '좌상단', description: '좌측 상단 영역' },
+          { value: 'top_right', label: '우상단', description: '우측 상단 영역' },
+          { value: 'bottom_left', label: '좌하단', description: '좌측 하단 영역' },
+          { value: 'bottom_right', label: '우하단', description: '우측 하단 영역' },
+        ],
+        description: 'Parts List 위치 (auto=자동 검출)',
+      },
+      {
+        name: 'ocr_engine',
+        type: 'select',
+        default: 'paddle',
+        options: [
+          { value: 'paddle', label: 'PaddleOCR', description: '한글 지원, 권장' },
+          { value: 'tesseract', label: 'Tesseract', description: '영문 기본' },
+          { value: 'easyocr', label: 'EasyOCR', description: '다국어 지원' },
+        ],
+        description: 'OCR 엔진 (paddle 권장 - 한글 지원)',
+      },
+      {
+        name: 'normalize_material',
+        type: 'boolean',
+        default: true,
+        description: '재질 코드 자동 정규화 (SF440 → SF440A)',
+      },
+      {
+        name: 'normalize_headers',
+        type: 'boolean',
+        default: true,
+        description: '헤더 자동 정규화 (MAT\'L → material)',
+      },
+      {
+        name: 'expected_headers',
+        type: 'checkboxGroup',
+        default: ['no', 'part_name', 'material', 'quantity'],
+        options: [
+          { value: 'no', label: '번호', description: '부품 번호' },
+          { value: 'part_name', label: '품명', description: '부품 이름' },
+          { value: 'material', label: '재질', description: '재질 코드' },
+          { value: 'quantity', label: '수량', description: '부품 수량' },
+          { value: 'remarks', label: '비고', description: '비고 사항' },
+          { value: 'drawing_no', label: '도면번호', description: '관련 도면 번호' },
+          { value: 'weight', label: '중량', description: '부품 무게' },
+          { value: 'specification', label: '규격', description: '부품 규격' },
+        ],
+        description: '예상되는 헤더 필드',
+      },
+    ],
+    examples: [
+      '도면 이미지 → Parts List Parser → 부품 목록 추출',
+      'Parts List Parser → BOM Matcher → 자동 BOM 매칭',
+    ],
+    usageTips: [
+      '⭐ DSE Bearing 도면은 "bearing" 프로파일 사용 권장',
+      '💡 normalize_material=true로 재질 코드 자동 통일 (SF440→SF440A)',
+      '🔗 Title Block Parser와 함께 사용하여 완전한 도면 정보 추출',
+      '📊 parts_count로 추출된 부품 개수 확인',
+      '🔍 Table Detector 결과를 입력으로 받으면 처리 속도 향상',
+    ],
+    recommendedInputs: [
+      {
+        from: 'imageinput',
+        field: 'image',
+        reason: '⭐ 도면 이미지 입력 (Parts List 포함)',
+      },
+      {
+        from: 'tabledetector',
+        field: 'tables',
+        reason: 'Table Detector 결과 재사용으로 처리 속도 향상',
+      },
+      {
+        from: 'titleblock',
+        field: 'title_block',
+        reason: 'Title Block 정보와 함께 완전한 도면 데이터 구성',
+      },
+    ],
+  },
+
+  /**
+   * Dimension Parser Node
+   * 베어링 도면 치수를 구조화된 형태로 파싱
+   */
+  dimensionparser: {
+    type: 'dimensionparser',
+    label: 'Dimension Parser',
+    category: 'analysis',
+    color: '#f59e0b',
+    icon: 'Ruler',
+    description:
+      '베어링 도면 치수를 구조화된 형태로 파싱합니다. OD/ID, 공차, GD&T 기호를 자동 인식합니다.',
+    profiles: {
+      default: 'bearing',
+      available: [
+        {
+          name: 'bearing',
+          label: '베어링 치수',
+          description: 'DSE Bearing 도면 치수 최적화',
+          params: {
+            dimension_type: 'bearing',
+            parse_tolerance: true,
+            parse_gdt: true,
+            extract_od_id: true,
+          },
+        },
+        {
+          name: 'general',
+          label: '일반 치수',
+          description: '범용 치수 파싱',
+          params: {
+            dimension_type: 'general',
+            parse_tolerance: true,
+            parse_gdt: true,
+            extract_od_id: false,
+          },
+        },
+        {
+          name: 'precision',
+          label: '정밀 치수',
+          description: '정밀 공차 중심 파싱',
+          params: {
+            dimension_type: 'general',
+            parse_tolerance: true,
+            parse_gdt: true,
+            extract_od_id: false,
+          },
+        },
+      ],
+    },
+    inputs: [
+      {
+        name: 'text_results',
+        type: 'TextResult[]',
+        description: '📝 eDOCr2 OCR 결과 (텍스트 + bbox)',
+        optional: true,
+      },
+      {
+        name: 'dimensions',
+        type: 'string[]',
+        description: '📐 치수 텍스트 목록 (직접 입력)',
+        optional: true,
+      },
+      {
+        name: 'image',
+        type: 'Image',
+        description: '📄 도면 이미지 (패스스루)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'parsed_dimensions',
+        type: 'BearingDimension[]',
+        description: '📊 구조화된 베어링 치수 목록',
+      },
+      {
+        name: 'bearing_specs',
+        type: 'BearingSpec',
+        description: '⚙️ 종합 베어링 사양 (OD, ID, Length)',
+      },
+      {
+        name: 'tolerances',
+        type: 'Tolerance[]',
+        description: '📏 추출된 공차 목록',
+      },
+      {
+        name: 'gdt_symbols',
+        type: 'GDTSymbol[]',
+        description: '🔣 추출된 GD&T 기호',
+      },
+      {
+        name: 'dimensions_count',
+        type: 'number',
+        description: '📊 파싱된 치수 개수',
+      },
+      {
+        name: 'confidence',
+        type: 'number',
+        description: '📊 파싱 신뢰도 (0-1)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'dimension_type',
+        type: 'select',
+        default: 'bearing',
+        options: [
+          { value: 'bearing', label: '베어링', description: 'OD/ID 자동 분류' },
+          { value: 'general', label: '일반', description: '범용 치수' },
+          { value: 'shaft', label: '축', description: '축 관련 치수' },
+          { value: 'housing', label: '하우징', description: '하우징 치수' },
+        ],
+        description: '치수 유형 (bearing=OD/ID 자동 분류)',
+      },
+      {
+        name: 'parse_tolerance',
+        type: 'boolean',
+        default: true,
+        description: '공차 파싱 (H7, ±0.1 등)',
+      },
+      {
+        name: 'parse_gdt',
+        type: 'boolean',
+        default: true,
+        description: 'GD&T 기호 파싱 (⌀, ⊥, // 등)',
+      },
+      {
+        name: 'extract_od_id',
+        type: 'boolean',
+        default: true,
+        description: 'OD/ID 자동 분류 (베어링 전용)',
+      },
+      {
+        name: 'unit',
+        type: 'select',
+        default: 'mm',
+        options: [
+          { value: 'mm', label: 'mm', description: '밀리미터' },
+          { value: 'inch', label: 'inch', description: '인치' },
+          { value: 'auto', label: '자동', description: '자동 감지' },
+        ],
+        description: '치수 단위',
+      },
+    ],
+    examples: [
+      'eDOCr2 → Dimension Parser → 구조화된 베어링 치수',
+      'OD670×ID440 → {outer_diameter: 670, inner_diameter: 440}',
+      'Ø25H7 → {diameter: 25, tolerance: "H7"}',
+    ],
+    usageTips: [
+      '⭐ eDOCr2 출력을 입력으로 연결하면 자동으로 치수 파싱',
+      '💡 extract_od_id=true로 외경/내경 자동 분류',
+      '📐 GD&T 기호 (⌀, ⊥, //) 자동 인식',
+      '🔗 SkinModel과 연결하여 공차 분석 가능',
+      '📊 bearing_specs로 종합 베어링 사양 확인',
+    ],
+    recommendedInputs: [
+      {
+        from: 'edocr2',
+        field: 'text_results',
+        reason: '⭐ eDOCr2 치수 인식 결과를 구조화',
+      },
+      {
+        from: 'paddleocr',
+        field: 'text_results',
+        reason: 'PaddleOCR 결과도 활용 가능',
+      },
+    ],
+  },
+
+  /**
+   * BOM Matcher Node
+   * Title Block + Parts List + Dimension → 통합 BOM 생성
+   */
+  bommatcher: {
+    type: 'bommatcher',
+    label: 'BOM Matcher',
+    category: 'analysis',
+    color: '#059669',
+    icon: 'Package',
+    description:
+      '도면 분석 결과(Title Block, Parts List, Dimension)를 통합하여 완전한 BOM(Bill of Materials)을 자동 생성합니다.',
+    profiles: {
+      default: 'bearing',
+      available: [
+        {
+          name: 'bearing',
+          label: '베어링 BOM',
+          description: 'DSE Bearing 도면 BOM 최적화',
+          params: {
+            match_strategy: 'hybrid',
+            confidence_threshold: 0.7,
+            include_dimensions: true,
+            include_tolerances: true,
+            validate_material: true,
+          },
+        },
+        {
+          name: 'general',
+          label: '일반 BOM',
+          description: '범용 BOM 생성',
+          params: {
+            match_strategy: 'fuzzy',
+            confidence_threshold: 0.6,
+            include_dimensions: false,
+            include_tolerances: false,
+            validate_material: false,
+          },
+        },
+        {
+          name: 'strict',
+          label: '정밀 BOM',
+          description: '높은 신뢰도 매칭',
+          params: {
+            match_strategy: 'strict',
+            confidence_threshold: 0.9,
+            include_dimensions: true,
+            include_tolerances: true,
+            validate_material: true,
+          },
+        },
+      ],
+    },
+    inputs: [
+      {
+        name: 'titleblock_data',
+        type: 'TitleBlockData',
+        description: '📋 Title Block Parser 출력 (도면번호, Rev, 품명)',
+        optional: true,
+      },
+      {
+        name: 'partslist_data',
+        type: 'PartsListData',
+        description: '🔧 Parts List Parser 출력 (부품 목록)',
+        optional: true,
+      },
+      {
+        name: 'dimension_data',
+        type: 'BearingSpec',
+        description: '📐 Dimension Parser 출력 (치수 정보)',
+        optional: true,
+      },
+      {
+        name: 'yolo_detections',
+        type: 'Detection[]',
+        description: '🎯 YOLO 검출 결과 (심볼, 영역)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'bom',
+        type: 'BOMEntry[]',
+        description: '📋 통합 BOM 목록',
+      },
+      {
+        name: 'drawing_info',
+        type: 'DrawingInfo',
+        description: '📄 도면 메타 정보',
+      },
+      {
+        name: 'match_confidence',
+        type: 'number',
+        description: '📊 매칭 신뢰도 (0-1)',
+      },
+      {
+        name: 'unmatched_items',
+        type: 'string[]',
+        description: '⚠️ 미매칭 항목 목록',
+      },
+      {
+        name: 'warnings',
+        type: 'string[]',
+        description: '💬 처리 중 경고 메시지',
+      },
+    ],
+    parameters: [
+      {
+        name: 'match_strategy',
+        type: 'select',
+        default: 'hybrid',
+        options: [
+          { value: 'strict', label: '정확 매칭', description: '정확한 필드 일치만 매칭' },
+          { value: 'fuzzy', label: '유사 매칭', description: '유사도 기반 매칭' },
+          { value: 'hybrid', label: '복합 매칭', description: '정확 매칭 우선, 실패 시 유사 매칭' },
+        ],
+        description: '매칭 전략',
+      },
+      {
+        name: 'confidence_threshold',
+        type: 'number',
+        default: 0.7,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        description: '매칭 최소 신뢰도',
+      },
+      {
+        name: 'include_dimensions',
+        type: 'boolean',
+        default: true,
+        description: '치수 정보 포함 (OD/ID/Length)',
+      },
+      {
+        name: 'include_tolerances',
+        type: 'boolean',
+        default: true,
+        description: '공차 정보 포함',
+      },
+      {
+        name: 'validate_material',
+        type: 'boolean',
+        default: true,
+        description: '재질 코드 검증 및 정규화',
+      },
+      {
+        name: 'output_format',
+        type: 'select',
+        default: 'json',
+        options: [
+          { value: 'json', label: 'JSON', description: '구조화된 JSON 형식' },
+          { value: 'excel', label: 'Excel', description: 'Excel 파일 다운로드' },
+          { value: 'csv', label: 'CSV', description: 'CSV 파일 다운로드' },
+        ],
+        description: '출력 형식',
+      },
+    ],
+    examples: [
+      'Title Block + Parts List + Dimension → BOM Matcher → 통합 BOM',
+      '도면 이미지 → 전체 파이프라인 → 완전한 BOM JSON',
+    ],
+    usageTips: [
+      '⭐ Title Block → Parts List → Dimension → BOM Matcher 순서 연결',
+      '💡 match_strategy=hybrid로 최적 매칭 (정확 우선, 유사 보완)',
+      '📋 validate_material=true로 재질 코드 자동 정규화',
+      '🔗 Excel Export와 연결하여 고객 제출용 BOM 생성',
+      '📊 unmatched_items로 수동 확인 필요 항목 파악',
+    ],
+    recommendedInputs: [
+      {
+        from: 'titleblock',
+        field: 'title_block',
+        reason: '⭐ 도면 메타 정보 (도면번호, Rev)',
+      },
+      {
+        from: 'partslist',
+        field: 'parts_list',
+        reason: '⭐ 부품 목록 (품번, 품명, 재질)',
+      },
+      {
+        from: 'dimensionparser',
+        field: 'bearing_specs',
+        reason: '치수 정보 (OD/ID, 공차)',
+      },
+      {
+        from: 'yolo',
+        field: 'detections',
+        reason: 'YOLO 검출 결과로 추가 매칭',
+      },
+    ],
+  },
+
+  /**
+   * Quote Generator Node
+   * BOM → 자동 견적 생성 (재료비, 가공비, 마진 계산)
+   */
+  quotegenerator: {
+    type: 'quotegenerator',
+    label: 'Quote Generator',
+    category: 'analysis',
+    color: '#dc2626',
+    icon: 'Calculator',
+    description:
+      'BOM 기반 자동 견적 생성. 재료비, 가공비, 마진율을 적용하여 견적서를 생성합니다.',
+    profiles: {
+      default: 'bearing',
+      available: [
+        {
+          name: 'bearing',
+          label: '베어링 견적',
+          description: 'DSE Bearing 견적 최적화',
+          params: {
+            currency: 'KRW',
+            material_markup: 15,
+            labor_markup: 20,
+            tax_rate: 10,
+            include_tax: true,
+            quantity_discount: true,
+          },
+        },
+        {
+          name: 'standard',
+          label: '표준 견적',
+          description: '일반 기계 부품 견적',
+          params: {
+            currency: 'KRW',
+            material_markup: 10,
+            labor_markup: 15,
+            tax_rate: 10,
+            include_tax: true,
+            quantity_discount: false,
+          },
+        },
+        {
+          name: 'export',
+          label: '수출용 견적',
+          description: '해외 수출용 (USD)',
+          params: {
+            currency: 'USD',
+            material_markup: 20,
+            labor_markup: 25,
+            tax_rate: 0,
+            include_tax: false,
+            quantity_discount: true,
+          },
+        },
+      ],
+    },
+    inputs: [
+      {
+        name: 'bom',
+        type: 'BOMEntry[]',
+        description: '📋 BOM Matcher 출력 (부품 목록)',
+      },
+      {
+        name: 'drawing_info',
+        type: 'DrawingInfo',
+        description: '📄 도면 메타 정보 (도면번호, 품명)',
+        optional: true,
+      },
+      {
+        name: 'pricing_table',
+        type: 'PricingTable',
+        description: '💰 커스텀 단가 테이블 (미입력 시 기본값)',
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        name: 'quote',
+        type: 'QuoteDocument',
+        description: '📜 견적서 문서',
+      },
+      {
+        name: 'line_items',
+        type: 'QuoteLineItem[]',
+        description: '📝 견적 항목 목록',
+      },
+      {
+        name: 'summary',
+        type: 'QuoteSummary',
+        description: '📊 견적 요약 (총액, 세금 등)',
+      },
+      {
+        name: 'total_cost',
+        type: 'number',
+        description: '💵 총 견적 금액',
+      },
+      {
+        name: 'quote_number',
+        type: 'string',
+        description: '🔢 견적 번호',
+      },
+    ],
+    parameters: [
+      {
+        name: 'currency',
+        type: 'select',
+        default: 'KRW',
+        options: [
+          { value: 'KRW', label: '원화 (₩)', description: '한국 원' },
+          { value: 'USD', label: '달러 ($)', description: '미국 달러' },
+          { value: 'EUR', label: '유로 (€)', description: '유럽 유로' },
+          { value: 'JPY', label: '엔화 (¥)', description: '일본 엔' },
+        ],
+        description: '통화 단위',
+      },
+      {
+        name: 'material_markup',
+        type: 'number',
+        default: 15,
+        min: 0,
+        max: 100,
+        step: 1,
+        description: '재료비 마진율 (%)',
+      },
+      {
+        name: 'labor_markup',
+        type: 'number',
+        default: 20,
+        min: 0,
+        max: 100,
+        step: 1,
+        description: '가공비 마진율 (%)',
+      },
+      {
+        name: 'tax_rate',
+        type: 'number',
+        default: 10,
+        min: 0,
+        max: 30,
+        step: 0.5,
+        description: '부가세율 (%)',
+      },
+      {
+        name: 'include_tax',
+        type: 'boolean',
+        default: true,
+        description: '부가세 포함 여부',
+      },
+      {
+        name: 'quantity_discount',
+        type: 'boolean',
+        default: true,
+        description: '수량 할인 적용 (10개↑ 5%, 50개↑ 10%)',
+      },
+      {
+        name: 'validity_days',
+        type: 'number',
+        default: 30,
+        min: 7,
+        max: 90,
+        step: 1,
+        description: '견적 유효 기간 (일)',
+      },
+      {
+        name: 'output_format',
+        type: 'select',
+        default: 'json',
+        options: [
+          { value: 'json', label: 'JSON', description: '구조화된 데이터' },
+          { value: 'pdf', label: 'PDF', description: '견적서 PDF' },
+          { value: 'excel', label: 'Excel', description: '견적서 Excel' },
+        ],
+        description: '출력 형식',
+      },
+    ],
+    examples: [
+      'BOM Matcher → Quote Generator → 견적서 JSON',
+      '도면 분석 → BOM → 견적서 PDF 생성',
+      '부품 10개, 재료비 500만원 → 견적 700만원 (마진 포함)',
+    ],
+    usageTips: [
+      '⭐ BOM Matcher 출력을 입력으로 연결',
+      '💰 material_markup/labor_markup으로 마진율 조정',
+      '📊 수량 할인: 10개↑ 5%, 20개↑ 7%, 50개↑ 10%, 100개↑ 15%',
+      '📄 PDF/Excel 출력으로 고객 제출용 견적서 생성',
+      '🔧 pricing_table로 커스텀 단가 적용 가능',
+    ],
+    recommendedInputs: [
+      {
+        from: 'bommatcher',
+        field: 'bom',
+        reason: '⭐ BOM Matcher 출력 (부품 목록)',
+      },
+      {
+        from: 'bommatcher',
+        field: 'drawing_info',
+        reason: '도면 메타 정보 (도면번호)',
+      },
+    ],
+  },
+
   pidcomposer: {
     type: 'pidcomposer',
     label: 'PID Composer',

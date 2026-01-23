@@ -5,6 +5,7 @@ OCR 결과를 인터랙티브 SVG 오버레이로 변환
 텍스트 카테고리별 색상 구분, 호버/클릭 이벤트 지원
 """
 
+from .svg_common import escape_html, create_svg_header, create_svg_footer
 from typing import List, Dict, Any, Tuple, Optional
 
 
@@ -172,7 +173,7 @@ def _render_dimension(dim: Dict[str, Any], idx: int, stroke_width: int,
     )
 
     # 박스 테두리
-    escaped_value = _escape_html(str(value))
+    escaped_value = escape_html(str(value))
     parts.append(
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
         f'class="ocr-box" stroke="{color}" stroke-width="{stroke_width}" '
@@ -204,7 +205,7 @@ def _render_dimension(dim: Dict[str, Any], idx: int, stroke_width: int,
             )
             parts.append(
                 f'<text x="{x + 4}" y="{label_y + 12}" class="ocr-label">'
-                f'{_escape_html(label_text)}</text>'
+                f'{escape_html(label_text)}</text>'
             )
 
     return '\n'.join(parts)
@@ -237,13 +238,13 @@ def _render_gdt(gdt: Dict[str, Any], idx: int, stroke_width: int,
     )
 
     # 박스 테두리 (GD&T는 점선)
-    escaped_value = _escape_html(str(value))
+    escaped_value = escape_html(str(value))
     parts.append(
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
         f'class="ocr-box" stroke="{color}" stroke-width="{stroke_width}" '
         f'stroke-dasharray="4 2" '
         f'data-id="{idx}" data-type="gdt" data-category="{gdt_type}" '
-        f'data-value="{escaped_value}" data-datum="{_escape_html(str(datum))}"/>'
+        f'data-value="{escaped_value}" data-datum="{escape_html(str(datum))}"/>'
     )
 
     # 라벨
@@ -264,7 +265,7 @@ def _render_gdt(gdt: Dict[str, Any], idx: int, stroke_width: int,
         )
         parts.append(
             f'<text x="{x + 4}" y="{label_y + 12}" class="ocr-label">'
-            f'{_escape_html(label_text)}</text>'
+            f'{escape_html(label_text)}</text>'
         )
 
     return '\n'.join(parts)
@@ -296,7 +297,7 @@ def _render_text_annotation(text: Dict[str, Any], idx: int, stroke_width: int,
     )
 
     # 박스 테두리
-    escaped_text = _escape_html(str(text_value))
+    escaped_text = escape_html(str(text_value))
     parts.append(
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
         f'class="ocr-box" stroke="{color}" stroke-width="{stroke_width}" '
@@ -319,7 +320,7 @@ def _render_text_annotation(text: Dict[str, Any], idx: int, stroke_width: int,
         )
         parts.append(
             f'<text x="{x + 4}" y="{label_y + 12}" class="ocr-label">'
-            f'{_escape_html(display_text)}</text>'
+            f'{escape_html(display_text)}</text>'
         )
 
     return '\n'.join(parts)
@@ -415,12 +416,3 @@ def ocr_to_svg_data(
     }
 
 
-def _escape_html(text: str) -> str:
-    """HTML 특수문자 이스케이프"""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#039;")
-    )

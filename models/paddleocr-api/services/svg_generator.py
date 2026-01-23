@@ -5,6 +5,7 @@ OCR 결과를 인터랙티브 SVG 오버레이로 변환
 텍스트 검출 박스 시각화, 호버/클릭 이벤트 지원
 """
 
+from .svg_common import escape_html, create_svg_header, create_svg_footer
 from typing import List, Dict, Any, Tuple, Optional
 
 
@@ -137,7 +138,7 @@ def generate_ocr_svg(
         )
 
         # 박스 테두리
-        escaped_text = _escape_html(str(text))
+        escaped_text = escape_html(str(text))
         svg_parts.append(
             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
             f'class="text-box" stroke="{color}" stroke-width="{stroke_width}" '
@@ -170,7 +171,7 @@ def generate_ocr_svg(
                 )
                 svg_parts.append(
                     f'<text x="{x + 4}" y="{label_y + 12}" class="text-label">'
-                    f'{_escape_html(label_text)}</text>'
+                    f'{escape_html(label_text)}</text>'
                 )
 
     svg_parts.append('</g>')
@@ -287,12 +288,3 @@ def ocr_to_svg_data(
     }
 
 
-def _escape_html(text: str) -> str:
-    """HTML 특수문자 이스케이프"""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#039;")
-    )

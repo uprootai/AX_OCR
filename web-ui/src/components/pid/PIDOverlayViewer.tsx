@@ -16,10 +16,11 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   Eye, EyeOff, Upload, Loader2, Download,
-  Layers, GitBranch, Type, Square, ZoomIn, ZoomOut, RotateCcw
+  ZoomIn, ZoomOut, RotateCcw, Type
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { useLayerToggle, PID_LAYER_CONFIG } from '../../hooks/useLayerToggle';
 
 // Types
 interface BBox {
@@ -73,20 +74,8 @@ interface OverlayData {
   };
 }
 
-interface LayerVisibility {
-  symbols: boolean;
-  lines: boolean;
-  texts: boolean;
-  regions: boolean;
-}
-
-// Constants
-const LAYER_CONFIG = {
-  symbols: { label: '심볼', color: '#ff7800', icon: Layers },
-  lines: { label: '라인', color: '#3b82f6', icon: GitBranch },
-  texts: { label: '텍스트', color: '#ffa500', icon: Type },
-  regions: { label: '영역', color: '#00ffff', icon: Square },
-} as const;
+// PID Layer 타입 (useLayerToggle에서 사용)
+type PIDLayerKey = 'symbols' | 'lines' | 'texts' | 'regions';
 
 const LINE_TYPE_COLORS: Record<string, string> = {
   pipe: '#ff0000',
@@ -113,16 +102,20 @@ export function PIDOverlayViewer({
   const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<LayerVisibility>({
-    symbols: true,
-    lines: true,
-    texts: true,
-    regions: true,
-  });
-  const [showLabels, setShowLabels] = useState(true);
   const [viewMode, setViewMode] = useState<'svg' | 'image'>('svg');
   const [zoom, setZoom] = useState(1);
   const [hoveredItem, setHoveredItem] = useState<{ type: string; data: unknown } | null>(null);
+
+  // useLayerToggle 훅으로 레이어 가시성 관리
+  const {
+    visibility,
+    toggleLayer,
+    showLabels,
+    toggleLabels,
+    layerConfigs,
+  } = useLayerToggle<PIDLayerKey>({
+    layers: PID_LAYER_CONFIG,
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -209,11 +202,6 @@ export function PIDOverlayViewer({
       setIsLoading(false);
     }
   }, [apiUrl, onOverlayGenerated]);
-
-  // Toggle layer visibility
-  const toggleLayer = useCallback((layer: keyof LayerVisibility) => {
-    setVisibility(prev => ({ ...prev, [layer]: !prev[layer] }));
-  }, []);
 
   // Zoom controls
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
@@ -401,37 +389,35 @@ export function PIDOverlayViewer({
           </div>
         </div>
 
-        {/* Layer toggles */}
+        {/* Layer toggles - useLayerToggle 훅 사용 */}
         {overlayData && (
           <div className="flex flex-wrap gap-2 mt-3">
-            {(Object.entries(LAYER_CONFIG) as [keyof LayerVisibility, typeof LAYER_CONFIG.symbols][]).map(
-              ([key, config]) => {
-                const Icon = config.icon;
-                const countKey = `${key}_count` as 'symbols_count' | 'lines_count' | 'texts_count' | 'regions_count';
-                const count = overlayData.statistics[countKey] || 0;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => toggleLayer(key)}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
-                      visibility[key]
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                    }`}
-                    style={{ borderLeft: visibility[key] ? `3px solid ${config.color}` : '3px solid transparent' }}
-                  >
-                    <Icon className="w-3 h-3" />
-                    <span>{config.label}</span>
-                    <span className="text-gray-500">({count})</span>
-                    {visibility[key] ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  </button>
-                );
-              }
-            )}
+            {layerConfigs.map(({ key, config, visible }) => {
+              const Icon = config.icon || Eye;
+              const countKey = `${key}_count` as 'symbols_count' | 'lines_count' | 'texts_count' | 'regions_count';
+              const count = overlayData.statistics[countKey] || 0;
+              return (
+                <button
+                  key={key}
+                  onClick={() => toggleLayer(key)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
+                    visible
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  }`}
+                  style={{ borderLeft: visible ? `3px solid ${config.color}` : '3px solid transparent' }}
+                >
+                  <Icon className="w-3 h-3" />
+                  <span>{config.label}</span>
+                  <span className="text-gray-500">({count})</span>
+                  {visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                </button>
+              );
+            })}
 
-            {/* Labels toggle */}
+            {/* Labels toggle - useLayerToggle 훅 사용 */}
             <button
-              onClick={() => setShowLabels(!showLabels)}
+              onClick={toggleLabels}
               className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
                 showLabels ? 'bg-gray-100 dark:bg-gray-700' : 'text-gray-400'
               }`}

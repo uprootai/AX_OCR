@@ -145,6 +145,17 @@ profiles:
         min_confidence: 60
         output_format: json
 
+    - name: bearing_parts_list
+      label: "베어링 Parts List"
+      description: "DSE Bearing 도면 Parts List 최적화 (한글/영문 혼합)"
+      params:
+        mode: analyze
+        ocr_engine: paddle
+        borderless: false
+        confidence_threshold: 0.6
+        min_confidence: 60
+        output_format: json
+
 resources:
   gpu:
     vram: "~2GB"

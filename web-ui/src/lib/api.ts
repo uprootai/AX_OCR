@@ -914,3 +914,143 @@ export const checkAllServicesIncludingCustom = async (): Promise<Record<string, 
     ...customResultsObj,
   };
 };
+
+// =====================
+// DSE Bearing APIs
+// =====================
+
+export interface DSEQuoteData {
+  success: boolean;
+  quote_number: string;
+  date: string;
+  items: {
+    no: string;
+    description: string;
+    material: string;
+    material_cost: number;
+    labor_cost: number;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }[];
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  currency: string;
+}
+
+export const dseBearing = {
+  /**
+   * Title Block 파싱
+   */
+  parseTitleBlock: async (file: File, profile = 'bearing') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('profile', profile);
+    const response = await gatewayAPI.post('/api/v1/dsebearing/titleblock', formData);
+    return response.data;
+  },
+
+  /**
+   * Parts List 파싱
+   */
+  parsePartsList: async (file: File, profile = 'bearing') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('profile', profile);
+    const response = await gatewayAPI.post('/api/v1/dsebearing/partslist', formData);
+    return response.data;
+  },
+
+  /**
+   * Dimension 파싱
+   */
+  parseDimensions: async (file: File, profile = 'bearing') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('profile', profile);
+    const response = await gatewayAPI.post('/api/v1/dsebearing/dimensionparser', formData);
+    return response.data;
+  },
+
+  /**
+   * 견적 생성
+   */
+  generateQuote: async (
+    bomData: Record<string, unknown>,
+    customerId?: string,
+    options?: {
+      materialMarkup?: number;
+      laborMarkup?: number;
+      taxRate?: number;
+    }
+  ): Promise<DSEQuoteData> => {
+    const formData = new FormData();
+    formData.append('bom_data', JSON.stringify(bomData));
+    if (customerId) formData.append('customer_id', customerId);
+    if (options?.materialMarkup) formData.append('material_markup', options.materialMarkup.toString());
+    if (options?.laborMarkup) formData.append('labor_markup', options.laborMarkup.toString());
+    if (options?.taxRate) formData.append('tax_rate', options.taxRate.toString());
+    const response = await gatewayAPI.post('/api/v1/dsebearing/quotegenerator', formData);
+    return response.data;
+  },
+
+  /**
+   * 견적서 Excel 내보내기
+   */
+  exportToExcel: async (quoteData: DSEQuoteData, customerId?: string): Promise<Blob> => {
+    const formData = new FormData();
+    formData.append('quote_data', JSON.stringify(quoteData));
+    if (customerId) formData.append('customer_id', customerId);
+    const response = await gatewayAPI.post('/api/v1/dsebearing/quote/export/excel', formData, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  /**
+   * 견적서 PDF 내보내기
+   */
+  exportToPdf: async (quoteData: DSEQuoteData, customerId?: string): Promise<Blob> => {
+    const formData = new FormData();
+    formData.append('quote_data', JSON.stringify(quoteData));
+    if (customerId) formData.append('customer_id', customerId);
+    const response = await gatewayAPI.post('/api/v1/dsebearing/quote/export/pdf', formData, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  /**
+   * 재질 가격 목록 조회
+   */
+  getMaterialPrices: async () => {
+    const response = await gatewayAPI.get('/api/v1/dsebearing/prices/materials');
+    return response.data;
+  },
+
+  /**
+   * 가공비 목록 조회
+   */
+  getLaborCosts: async () => {
+    const response = await gatewayAPI.get('/api/v1/dsebearing/prices/labor');
+    return response.data;
+  },
+
+  /**
+   * 고객 목록 조회
+   */
+  getCustomers: async () => {
+    const response = await gatewayAPI.get('/api/v1/dsebearing/customers');
+    return response.data;
+  },
+
+  /**
+   * 고객 상세 정보 조회
+   */
+  getCustomerDetails: async (customerId: string) => {
+    const response = await gatewayAPI.get(`/api/v1/dsebearing/customers/${customerId}/full`);
+    return response.data;
+  },
+};

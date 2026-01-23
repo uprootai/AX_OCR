@@ -319,7 +319,10 @@
     "dseBearingYoloPartsListExtractUseCase": "YOLO detects text_block regions (Parts List tables) in drawings first, then Table Detector processes only those regions for accurate table structure extraction. Effectively handles mechanical drawing Parts Lists that TATR cannot detect directly. Test results: Accurate extraction of 15 rows × 3 columns of parts (RING UPPER, HEX SOCKET, etc.).",
     "dseBearingPrecision": "DSE Bearing 3-1: Precision Analysis",
     "dseBearingPrecisionDesc": "GPU upscaling + high-precision pipeline for complex asymmetric tolerances (+0.15/-0.00), special font drawing numbers, and welding symbols",
-    "dseBearingPrecisionUseCase": "Use for drawings difficult for standard OCR: ① Asymmetric tolerances (+0.15/-0.00) → cluster_threshold=15 for separation, ② Special font drawing numbers → 4-engine OCR ensemble weighted voting, ③ Welding symbols → YOLO + VL model detailed parsing. Parallel 3-OCR processing for fast execution."
+    "dseBearingPrecisionUseCase": "Use for drawings difficult for standard OCR: ① Asymmetric tolerances (+0.15/-0.00) → cluster_threshold=15 for separation, ② Special font drawing numbers → 4-engine OCR ensemble weighted voting, ③ Welding symbols → YOLO + VL model detailed parsing. Parallel 3-OCR processing for fast execution.",
+    "dseBearingFullQuote": "DSE Bearing 3-2: Fully Automated Quote",
+    "dseBearingFullQuoteDesc": "Title Block → Parts List → Dimension → BOM Matcher → Quote Generator → Excel quotation auto-generation",
+    "dseBearingFullQuoteUseCase": "Fully automated pipeline from drawing to quotation. Extracts title block info (drawing number, revision, part name, material), parts list (part number, description, quantity), dimensions (OD/ID, tolerances, GD&T), matches BOM, calculates quote with material and labor costs, and exports to Excel quotation format."
   },
   "nodeDetail": {
     "selectNode": "Select a node to",
@@ -540,5 +543,27 @@
       "portInvalid": "Port must be between 1024 and 65535",
       "descriptionRequired": "Description is required"
     }
+  },
+  "quote": {
+    "title": "Quotation",
+    "titleWithEnglish": "Quotation",
+    "issueDate": "Issue Date",
+    "customer": "Customer",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "itemName": "Item",
+    "material": "Material",
+    "materialCost": "Material Cost",
+    "laborCost": "Labor Cost",
+    "quantity": "Qty",
+    "unitPrice": "Unit Price",
+    "amount": "Amount",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax (10%)",
+    "total": "Total",
+    "validityNote": "* This quotation is valid for 30 days from the issue date.",
+    "deliveryNote": "* Delivery: 4-6 weeks after order (subject to negotiation)"
   }
 }

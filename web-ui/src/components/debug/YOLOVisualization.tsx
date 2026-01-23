@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { ZoomIn, Layers, Image as ImageIcon } from 'lucide-react';
+import { ZoomIn, Layers, Image as ImageIcon, Eye, EyeOff, Square, Hash, Settings } from 'lucide-react';
 import { ConfidenceDistributionChart } from '../charts/ConfidenceDistributionChart';
+import { useLayerToggle, type LayerConfig } from '../../hooks/useLayerToggle';
 
 export interface SVGOverlayData {
   svg: string;
@@ -29,9 +30,13 @@ interface YOLOVisualizationProps {
   /** 기본 렌더링 모드 */
   defaultMode?: 'canvas' | 'svg';
   onZoomClick?: (imageDataUrl: string) => void;
+  /** 심볼 선택 콜백 */
+  onSymbolSelect?: (detection: BoundingBox | null, index: number | null) => void;
+  /** 외부에서 선택된 인덱스 (제어 컴포넌트) */
+  selectedIndex?: number | null;
 }
 
-interface BoundingBox {
+export interface BoundingBox {
   x: number;
   y: number;
   width: number;
@@ -109,6 +114,13 @@ const CLASS_CATEGORIES = {
   other: ['surface_roughness', 'text_block'],
 };
 
+// 레이어 토글 설정
+const YOLO_LAYER_CONFIG: Record<string, LayerConfig> = {
+  dimensions: { label: '치수', color: '#3b82f6', icon: Hash, defaultVisible: true },
+  gdt: { label: 'GD&T', color: '#10b981', icon: Square, defaultVisible: true },
+  other: { label: '기타', color: '#f59e0b', icon: Settings, defaultVisible: true },
+};
+
 // Parse bbox from various formats to {x, y, width, height}
 function parseBbox(bbox: unknown): { x: number; y: number; width: number; height: number } | null {
   if (!bbox) return null;
@@ -156,7 +168,15 @@ function parseBbox(bbox: unknown): { x: number; y: number; width: number; height
   return null;
 }
 
-export default function YOLOVisualization({ imageFile, detections, svgOverlay, defaultMode = 'canvas', onZoomClick }: YOLOVisualizationProps) {
+export default function YOLOVisualization({
+  imageFile,
+  detections,
+  svgOverlay,
+  defaultMode = 'canvas',
+  onZoomClick,
+  onSymbolSelect,
+  selectedIndex: externalSelectedIndex,
+}: YOLOVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -164,6 +184,50 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
   const [renderMode, setRenderMode] = useState<'canvas' | 'svg'>(svgOverlay ? defaultMode : 'canvas');
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [hoveredDetection, setHoveredDetection] = useState<number | null>(null);
+  const [internalSelectedIndex, setInternalSelectedIndex] = useState<number | null>(null);
+
+  // 선택 상태: 외부 제어 또는 내부 상태
+  const selectedDetection = externalSelectedIndex !== undefined ? externalSelectedIndex : internalSelectedIndex;
+
+  // 레이어 토글 훅
+  const {
+    visibility,
+    toggleLayer,
+    showLabels,
+    toggleLabels,
+    layerConfigs,
+    visibleCount,
+    totalCount,
+  } = useLayerToggle({
+    layers: YOLO_LAYER_CONFIG,
+    initialShowLabels: true,
+  });
+
+  // 카테고리별 클래스 맵
+  const getClassCategory = (className: string): keyof typeof YOLO_LAYER_CONFIG => {
+    if (CLASS_CATEGORIES.dimensions.includes(className)) return 'dimensions';
+    if (CLASS_CATEGORIES.gdt.includes(className)) return 'gdt';
+    return 'other';
+  };
+
+  // 필터링된 바운딩 박스 (레이어 visibility 기반)
+  const filteredBoundingBoxes = useMemo(() => {
+    return boundingBoxes.filter(box => {
+      const category = getClassCategory(box.className);
+      return visibility[category];
+    });
+  }, [boundingBoxes, visibility]);
+
+  // 심볼 클릭 핸들러
+  const handleSymbolClick = (index: number) => {
+    const newIndex = selectedDetection === index ? null : index;
+    if (externalSelectedIndex === undefined) {
+      setInternalSelectedIndex(newIndex);
+    }
+    if (onSymbolSelect) {
+      onSymbolSelect(newIndex !== null ? filteredBoundingBoxes[newIndex] : null, newIndex);
+    }
+  };
 
   const handleCanvasClick = () => {
     if (canvasRef.current && onZoomClick) {
@@ -286,8 +350,8 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
         );
       };
 
-      // Draw bounding boxes
-      boundingBoxes.forEach((box) => {
+      // Draw bounding boxes (filtered by visibility)
+      filteredBoundingBoxes.forEach((box) => {
         const x = box.x;
         const y = box.y;
         const boxWidth = box.width;
@@ -339,20 +403,23 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
         if (labelX + labelWidth > canvas.width) labelX = canvas.width - labelWidth - gap;
         if (labelY + labelHeight > canvas.height) labelY = canvas.height - labelHeight - gap;
 
-        // Draw label background
-        ctx.fillStyle = color;
-        ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+        // Draw label (if showLabels is true)
+        if (showLabels) {
+          // Draw label background
+          ctx.fillStyle = color;
+          ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
 
-        // Draw label text with shadow for better readability
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = scaleFactor;
-        ctx.fillStyle = '#ffffff';
-        ctx.textBaseline = 'top';
-        ctx.fillText(box.label, labelX + padding, labelY + gap);
-        ctx.shadowBlur = 0;
+          // Draw label text with shadow for better readability
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = scaleFactor;
+          ctx.fillStyle = '#ffffff';
+          ctx.textBaseline = 'top';
+          ctx.fillText(box.label, labelX + padding, labelY + gap);
+          ctx.shadowBlur = 0;
 
-        // Record this label position to prevent future overlaps
-        usedLabelPositions.push({x: labelX, y: labelY, width: labelWidth, height: labelHeight});
+          // Record this label position to prevent future overlaps
+          usedLabelPositions.push({x: labelX, y: labelY, width: labelWidth, height: labelHeight});
+        }
       });
 
       setImageLoaded(true);
@@ -365,15 +432,16 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
     };
 
     img.src = url;
-  }, [imageFile, boundingBoxes, renderMode]);
+  }, [imageFile, filteredBoundingBoxes, renderMode, showLabels]);
 
-  // 클래스별 카운트
-  const classCounts = boundingBoxes.reduce((acc, box) => {
+  // 필터링된 클래스별 카운트
+  const filteredClassCounts = filteredBoundingBoxes.reduce((acc, box) => {
     acc[box.className] = (acc[box.className] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   const totalDetections = boundingBoxes.length;
+  const filteredDetections = filteredBoundingBoxes.length;
 
   return (
     <Card>
@@ -382,7 +450,9 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
           <h3 className="text-lg font-semibold">YOLOv11 검출 결과 시각화</h3>
           <div className="flex gap-2">
             <Badge variant="default">
-              총 {totalDetections}개 검출
+              {filteredDetections === totalDetections
+                ? `총 ${totalDetections}개 검출`
+                : `${filteredDetections}/${totalDetections}개 표시`}
             </Badge>
             {/* 렌더링 모드 토글 (SVG 오버레이가 있는 경우만) */}
             {svgOverlay && (
@@ -418,6 +488,44 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
           </div>
         </div>
 
+        {/* 레이어 토글 컨트롤 */}
+        <div className="flex flex-wrap items-center gap-2 p-2 bg-accent/20 rounded-lg">
+          <span className="text-sm font-medium text-muted-foreground">레이어:</span>
+          {layerConfigs.map(({ key, config, visible }) => {
+            const Icon = config.icon || Layers;
+            return (
+              <Button
+                key={key}
+                variant={visible ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleLayer(key as keyof typeof YOLO_LAYER_CONFIG)}
+                className="gap-1.5"
+                style={{
+                  backgroundColor: visible ? config.color : undefined,
+                  borderColor: config.color,
+                }}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {config.label}
+                {visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              </Button>
+            );
+          })}
+          <div className="h-4 border-l border-border mx-1" />
+          <Button
+            variant={showLabels ? 'default' : 'outline'}
+            size="sm"
+            onClick={toggleLabels}
+            className="gap-1.5"
+          >
+            라벨
+            {showLabels ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          </Button>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {visibleCount}/{totalCount} 레이어
+          </span>
+        </div>
+
         {/* SVG 오버레이 모드 */}
         {renderMode === 'svg' && svgOverlay && (
           <div className="border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-900">
@@ -444,12 +552,12 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
               />
             </div>
             {/* 호버된 검출 정보 */}
-            {hoveredDetection !== null && boundingBoxes[hoveredDetection] && (
+            {hoveredDetection !== null && filteredBoundingBoxes[hoveredDetection] && (
               <div className="p-2 bg-accent/90 text-sm border-t">
-                <span className="font-medium">{boundingBoxes[hoveredDetection].label}</span>
-                {boundingBoxes[hoveredDetection].extractedText && (
+                <span className="font-medium">{filteredBoundingBoxes[hoveredDetection].label}</span>
+                {filteredBoundingBoxes[hoveredDetection].extractedText && (
                   <span className="ml-2 text-muted-foreground">
-                    텍스트: "{boundingBoxes[hoveredDetection].extractedText}"
+                    텍스트: "{filteredBoundingBoxes[hoveredDetection].extractedText}"
                   </span>
                 )}
               </div>
@@ -480,17 +588,17 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
         )}
 
         {/* Comprehensive Legend */}
-        {Object.keys(classCounts).length > 0 && (
+        {Object.keys(filteredClassCounts).length > 0 && (
           <div className="space-y-3 p-4 bg-accent/30 rounded-lg border">
             <h4 className="font-semibold text-sm">검출 클래스 범례</h4>
 
             {/* Dimensions Category */}
-            {CLASS_CATEGORIES.dimensions.some(cls => classCounts[cls]) && (
+            {CLASS_CATEGORIES.dimensions.some(cls => filteredClassCounts[cls]) && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">📏 치수 (Dimensions)</p>
                 <div className="grid grid-cols-2 gap-2">
                   {CLASS_CATEGORIES.dimensions.map((className) => {
-                    const count = classCounts[className];
+                    const count = filteredClassCounts[className];
                     if (!count) return null;
                     const details = CLASS_DETAILS[className];
                     return (
@@ -512,12 +620,12 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
             )}
 
             {/* GD&T Category */}
-            {CLASS_CATEGORIES.gdt.some(cls => classCounts[cls]) && (
+            {CLASS_CATEGORIES.gdt.some(cls => filteredClassCounts[cls]) && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">🎯 GD&T (Geometric Dimensioning & Tolerancing)</p>
                 <div className="grid grid-cols-2 gap-2">
                   {CLASS_CATEGORIES.gdt.map((className) => {
-                    const count = classCounts[className];
+                    const count = filteredClassCounts[className];
                     if (!count) return null;
                     const details = CLASS_DETAILS[className];
                     return (
@@ -539,12 +647,12 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
             )}
 
             {/* Other Category */}
-            {CLASS_CATEGORIES.other.some(cls => classCounts[cls]) && (
+            {CLASS_CATEGORIES.other.some(cls => filteredClassCounts[cls]) && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">🔧 기타 (Other)</p>
                 <div className="grid grid-cols-2 gap-2">
                   {CLASS_CATEGORIES.other.map((className) => {
-                    const count = classCounts[className];
+                    const count = filteredClassCounts[className];
                     if (!count) return null;
                     const details = CLASS_DETAILS[className];
                     return (
@@ -568,10 +676,10 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
         )}
 
         {/* Confidence Distribution Chart */}
-        {boundingBoxes.length > 0 && (
+        {filteredBoundingBoxes.length > 0 && (
           <div className="mt-4">
             <ConfidenceDistributionChart
-              detections={boundingBoxes.map(box => ({
+              detections={filteredBoundingBoxes.map(box => ({
                 confidence: box.confidence,
                 class_name: box.className,
               }))}
@@ -582,14 +690,80 @@ export default function YOLOVisualization({ imageFile, detections, svgOverlay, d
           </div>
         )}
 
+        {/* Selected Detection Panel */}
+        {selectedDetection !== null && filteredBoundingBoxes[selectedDetection] && (
+          <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-primary">선택된 객체</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSymbolClick(selectedDetection)}
+                className="h-6 px-2"
+              >
+                선택 해제
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">클래스:</span>
+                <span className="ml-2 font-medium">
+                  {CLASS_DETAILS[filteredBoundingBoxes[selectedDetection].className]?.korean ||
+                    filteredBoundingBoxes[selectedDetection].className}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">신뢰도:</span>
+                <span className="ml-2 font-medium">
+                  {(filteredBoundingBoxes[selectedDetection].confidence * 100).toFixed(1)}%
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">위치:</span>
+                <span className="ml-2 font-mono text-xs">
+                  ({Math.round(filteredBoundingBoxes[selectedDetection].x)},
+                  {Math.round(filteredBoundingBoxes[selectedDetection].y)})
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">크기:</span>
+                <span className="ml-2 font-mono text-xs">
+                  {Math.round(filteredBoundingBoxes[selectedDetection].width)}×
+                  {Math.round(filteredBoundingBoxes[selectedDetection].height)}
+                </span>
+              </div>
+              {filteredBoundingBoxes[selectedDetection].extractedText && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">추출 텍스트:</span>
+                  <span className="ml-2 font-mono bg-accent/50 px-2 py-0.5 rounded">
+                    {filteredBoundingBoxes[selectedDetection].extractedText}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Details List */}
         <div className="space-y-2">
-          <h4 className="font-medium">검출된 객체 상세 ({totalDetections}개)</h4>
+          <h4 className="font-medium">
+            검출된 객체 상세 ({filteredDetections === totalDetections
+              ? `${totalDetections}개`
+              : `${filteredDetections}/${totalDetections}개`})
+            {onSymbolSelect && (
+              <span className="text-xs text-muted-foreground ml-2">(클릭하여 선택)</span>
+            )}
+          </h4>
           <div className="max-h-64 overflow-y-auto space-y-1 text-sm">
-            {boundingBoxes.map((box, index) => (
+            {filteredBoundingBoxes.map((box, index) => (
               <div
                 key={index}
-                className="flex items-center gap-2 p-2 rounded bg-accent/50 hover:bg-accent transition-colors"
+                onClick={() => handleSymbolClick(index)}
+                className={`flex items-center gap-2 p-2 rounded transition-colors cursor-pointer ${
+                  selectedDetection === index
+                    ? 'bg-primary/20 border-2 border-primary'
+                    : 'bg-accent/50 hover:bg-accent border-2 border-transparent'
+                }`}
               >
                 <div
                   className="w-3 h-3 rounded flex-shrink-0"
