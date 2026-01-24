@@ -69,3 +69,4 @@ export { ActiveFeaturesSection } from './sections/ActiveFeaturesSection';
 export { VLMClassificationSection } from './sections/VLMClassificationSection';
 export { PIDFeaturesSection, BWMSSection } from './sections/PIDFeaturesSection';
 export { GTComparisonSection } from './sections/GTComparisonSection';
+export { ImageReviewSection } from './sections/ImageReviewSection';

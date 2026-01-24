@@ -21,11 +21,121 @@ class SessionStatus(str, Enum):
     ERROR = "error"
 
 
+# =============================================================================
+# Phase 2C: 이미지별 Human-in-the-Loop
+# =============================================================================
+
+class ImageReviewStatus(str, Enum):
+    """이미지별 검토 상태"""
+    PENDING = "pending"           # 검토 대기
+    PROCESSED = "processed"       # 분석 완료, 검토 대기
+    APPROVED = "approved"         # 승인됨
+    REJECTED = "rejected"         # 거부됨
+    MODIFIED = "modified"         # 수정됨 (검출 결과 편집)
+    MANUAL_LABELED = "manual_labeled"  # 수동 라벨링됨
+
+
+class SessionImage(BaseModel):
+    """세션 내 개별 이미지"""
+    model_config = ConfigDict(from_attributes=True)
+
+    image_id: str = Field(..., description="이미지 고유 ID")
+    filename: str = Field(..., description="원본 파일명")
+    file_path: str = Field(..., description="저장 경로")
+
+    # 검토 상태
+    review_status: ImageReviewStatus = Field(
+        default=ImageReviewStatus.PENDING,
+        description="이미지 검토 상태"
+    )
+
+    # 검출 정보
+    detections: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="해당 이미지의 검출 결과"
+    )
+    detection_count: int = Field(default=0, description="검출 수")
+    verified_count: int = Field(default=0, description="검증 완료 수")
+    approved_count: int = Field(default=0, description="승인된 수")
+    rejected_count: int = Field(default=0, description="거부된 수")
+
+    # 이미지 메타데이터
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+    thumbnail_base64: Optional[str] = Field(
+        None,
+        description="썸네일 이미지 (base64)"
+    )
+
+    # 검토 기록
+    reviewed_at: Optional[datetime] = Field(None, description="검토 완료 시간")
+    reviewed_by: Optional[str] = Field(None, description="검토자")
+    review_notes: Optional[str] = Field(None, description="검토 메모")
+
+    # 정렬용
+    order_index: int = Field(default=0, description="표시 순서")
+
+
+class ImageReviewUpdate(BaseModel):
+    """이미지 검토 상태 업데이트"""
+    review_status: ImageReviewStatus
+    reviewed_by: Optional[str] = None
+    review_notes: Optional[str] = None
+
+
+class BulkReviewRequest(BaseModel):
+    """일괄 검토 요청"""
+    image_ids: List[str] = Field(..., description="검토할 이미지 ID 목록")
+    review_status: ImageReviewStatus = Field(..., description="적용할 검토 상태")
+    reviewed_by: Optional[str] = Field(None, description="검토자")
+
+
+class SessionImageProgress(BaseModel):
+    """세션 이미지 진행률"""
+    total_images: int = 0
+    pending_count: int = 0
+    processed_count: int = 0
+    approved_count: int = 0
+    rejected_count: int = 0
+    modified_count: int = 0
+    manual_labeled_count: int = 0
+
+    # 진행률 (0-100)
+    progress_percent: float = 0.0
+
+    # 완료 여부 (모든 이미지가 approved/modified/manual_labeled)
+    all_reviewed: bool = False
+    export_ready: bool = False
+
+
 class SessionCreate(BaseModel):
     """세션 생성 요청"""
     filename: str
     file_path: str
     drawing_type: DrawingType = DrawingType.AUTO  # 빌더에서 설정한 도면 타입
+
+    # Phase 2: 프로젝트/템플릿 연결
+    project_id: Optional[str] = Field(None, description="프로젝트 ID")
+    template_id: Optional[str] = Field(None, description="템플릿 ID")
+
+    # Phase 2G: 워크플로우 잠금 시스템 (BlueprintFlow → 고객 배포)
+    workflow_locked: bool = Field(default=False, description="워크플로우 잠금 여부")
+    workflow_definition: Optional[Dict[str, Any]] = Field(
+        None, description="워크플로우 정의 (nodes, edges, name)"
+    )
+    lock_level: str = Field(
+        default="none",
+        description="잠금 수준: 'full' | 'parameters' | 'none'"
+    )
+    allowed_parameters: List[str] = Field(
+        default_factory=list,
+        description="수정 가능한 파라미터 목록"
+    )
+
+    # 고객 접근
+    customer_name: Optional[str] = Field(None, description="고객명")
+    access_token: Optional[str] = Field(None, description="접근 토큰")
+    expires_at: Optional[datetime] = Field(None, description="만료 시간")
 
 
 class SessionResponse(BaseModel):
@@ -55,6 +165,26 @@ class SessionResponse(BaseModel):
     # 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
     features: List[str] = Field(default_factory=list)
 
+    # Phase 2: 프로젝트/템플릿 연결
+    project_id: Optional[str] = Field(None, description="프로젝트 ID")
+    project_name: Optional[str] = Field(None, description="프로젝트명 (조인)")
+    template_id: Optional[str] = Field(None, description="템플릿 ID")
+    template_name: Optional[str] = Field(None, description="템플릿명 (조인)")
+    model_type: Optional[str] = Field(None, description="YOLO 모델 타입")
+
+    # Phase 2C: 다중 이미지 지원
+    image_count: int = Field(default=0, description="이미지 수")
+    images_approved: int = Field(default=0, description="승인된 이미지 수")
+    images_rejected: int = Field(default=0, description="거부된 이미지 수")
+    images_modified: int = Field(default=0, description="수정된 이미지 수")
+    images_pending: int = Field(default=0, description="대기 중인 이미지 수")
+    export_ready: bool = Field(default=False, description="Export 가능 여부")
+
+    # Phase 2G: 워크플로우 잠금 시스템
+    workflow_locked: bool = Field(default=False, description="워크플로우 잠금 여부")
+    lock_level: str = Field(default="none", description="잠금 수준")
+    customer_name: Optional[str] = Field(None, description="고객명")
+
 
 class SessionDetail(BaseModel):
     """세션 상세 정보"""
@@ -76,6 +206,13 @@ class SessionDetail(BaseModel):
     # 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
     features: List[str] = Field(default_factory=list)
 
+    # Phase 2: 프로젝트/템플릿 연결
+    project_id: Optional[str] = Field(None, description="프로젝트 ID")
+    project_name: Optional[str] = Field(None, description="프로젝트명 (조인)")
+    template_id: Optional[str] = Field(None, description="템플릿 ID")
+    template_name: Optional[str] = Field(None, description="템플릿명 (조인)")
+    model_type: Optional[str] = Field(None, description="YOLO 모델 타입")
+
     # 검출 정보
     detections: List[Dict[str, Any]] = []
     detection_count: int = 0
@@ -90,7 +227,29 @@ class SessionDetail(BaseModel):
     bom_data: Optional[Dict[str, Any]] = None
     bom_generated: bool = False
 
+    # Phase 2C: 다중 이미지 지원
+    images: List[SessionImage] = Field(default_factory=list)
+    image_count: int = Field(default=0, description="이미지 수")
+    images_approved: int = Field(default=0, description="승인된 이미지 수")
+    images_rejected: int = Field(default=0, description="거부된 이미지 수")
+    images_modified: int = Field(default=0, description="수정된 이미지 수")
+    images_pending: int = Field(default=0, description="대기 중인 이미지 수")
+    export_ready: bool = Field(default=False, description="Export 가능 여부")
+
     # 이미지 정보
     image_width: Optional[int] = None
     image_height: Optional[int] = None
     image_base64: Optional[str] = None
+
+    # Phase 2G: 워크플로우 잠금 시스템
+    workflow_locked: bool = Field(default=False, description="워크플로우 잠금 여부")
+    workflow_definition: Optional[Dict[str, Any]] = Field(
+        None, description="워크플로우 정의 (nodes, edges, name)"
+    )
+    lock_level: str = Field(default="none", description="잠금 수준")
+    allowed_parameters: List[str] = Field(
+        default_factory=list, description="수정 가능한 파라미터 목록"
+    )
+    customer_name: Optional[str] = Field(None, description="고객명")
+    access_token: Optional[str] = Field(None, description="접근 토큰")
+    expires_at: Optional[datetime] = Field(None, description="만료 시간")

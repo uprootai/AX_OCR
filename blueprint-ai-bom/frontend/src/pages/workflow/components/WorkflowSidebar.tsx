@@ -3,6 +3,7 @@
  * 워크플로우 사이드바 - 세션 관리, 설정, 캐시 관리
  */
 
+import React, { useRef, useState, useCallback } from 'react';
 import {
   Settings,
   Loader2,
@@ -16,7 +17,13 @@ import {
   Cpu,
   RefreshCw,
   Ruler,
+  Download,
+  Upload,
+  ImagePlus,
+  Images,
+  FileArchive,
 } from 'lucide-react';
+import { sessionApi } from '../../../lib/api';
 import { AnalysisOptions } from '../../../components/AnalysisOptions';
 import type { GPUStatus } from '../../../lib/api';
 import type { DetectionConfig } from '../../../types';
@@ -45,6 +52,9 @@ interface WorkflowSidebarProps {
   currentSession: { session_id: string; filename: string; features?: string[] } | null;
   sessions: Session[];
   detectionCount: number;
+  // Image management (Phase 2C)
+  sessionImageCount?: number;
+  onImagesAdded?: () => void;
   // Handlers
   onNewSession: () => void;
   onLoadSession: (sessionId: string) => void;
@@ -53,6 +63,7 @@ interface WorkflowSidebarProps {
   onClearCache: (type: 'all' | 'memory') => void;
   onAnalysisOptionsChange?: (options: AnalysisOptionsData) => void;
   onRunAnalysis?: () => void;
+  onSessionImported?: (sessionId: string) => void;
   // Loading states
   isLoading: boolean;
   isClearingCache: boolean;
@@ -73,6 +84,8 @@ export function WorkflowSidebar({
   currentSession,
   sessions,
   detectionCount,
+  sessionImageCount = 0,
+  onImagesAdded,
   onNewSession,
   onLoadSession,
   onDeleteSession,
@@ -80,11 +93,125 @@ export function WorkflowSidebar({
   onClearCache,
   onAnalysisOptionsChange,
   onRunAnalysis,
+  onSessionImported,
   isLoading,
   isClearingCache,
 }: WorkflowSidebarProps) {
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const imageUploadRef = useRef<HTMLInputElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // 이미지 업로드 핸들러 (일반 이미지 + ZIP 지원)
+  const handleImageUpload = useCallback(async (files: FileList | File[]) => {
+    if (!currentSession || files.length === 0) return;
+
+    setIsUploadingImages(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5020'}/sessions/${currentSession.session_id}/images/bulk-upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+      console.log('Images uploaded:', result);
+      onImagesAdded?.();
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      alert('이미지 업로드에 실패했습니다.');
+    } finally {
+      setIsUploadingImages(false);
+      if (imageUploadRef.current) {
+        imageUploadRef.current.value = '';
+      }
+    }
+  }, [currentSession, onImagesAdded]);
+
+  // 파일 선택 핸들러
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      handleImageUpload(files);
+    }
+  }, [handleImageUpload]);
+
+  // 드래그 앤 드롭 핸들러
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageUpload(files);
+    }
+  }, [handleImageUpload]);
+
   const handleLoadSession = (sessionId: string) => {
     onLoadSession(sessionId);
+  };
+
+  // Export 핸들러
+  const handleExportSession = async () => {
+    if (!currentSession) return;
+    setIsExporting(true);
+    try {
+      await sessionApi.exportJson(currentSession.session_id, true, true);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('세션 Export에 실패했습니다.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Import 핸들러
+  const handleImportSession = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const response = await sessionApi.importJson(file);
+      onSessionImported?.(response.session_id);
+      onLoadSession(response.session_id);
+      alert('세션을 성공적으로 Import했습니다.');
+    } catch (error) {
+      console.error('Import failed:', error);
+      alert('세션 Import에 실패했습니다. 유효한 JSON 파일인지 확인해주세요.');
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (importFileRef.current) {
+        importFileRef.current.value = '';
+      }
+    }
   };
 
   return (
@@ -151,6 +278,89 @@ export function WorkflowSidebar({
               </div>
             ) : (
               <p className="text-sm text-gray-500">세션 없음</p>
+            )}
+
+            {/* Export/Import 버튼 */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                onClick={handleExportSession}
+                disabled={!currentSession || isExporting}
+                className="flex items-center justify-center space-x-1 px-2 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                <span>Export</span>
+              </button>
+              <button
+                onClick={() => importFileRef.current?.click()}
+                disabled={isImporting}
+                className="flex items-center justify-center space-x-1 px-2 py-1.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                <span>Import</span>
+              </button>
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportSession}
+                className="hidden"
+              />
+            </div>
+
+            {/* 이미지 관리 섹션 (Phase 2C) */}
+            {currentSession && (
+              <div
+                className={`mt-3 p-3 rounded-lg border-2 border-dashed transition-colors ${
+                  isDragging
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="flex items-center space-x-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <Images className="w-4 h-4" />
+                    <span>세션 이미지</span>
+                  </span>
+                  <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
+                    {sessionImageCount}장
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => imageUploadRef.current?.click()}
+                  disabled={isUploadingImages}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isUploadingImages ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>업로드 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="w-4 h-4" />
+                      <span>이미지 추가</span>
+                    </>
+                  )}
+                </button>
+
+                <p className="mt-2 text-[10px] text-center text-gray-500 dark:text-gray-400">
+                  <FileArchive className="w-3 h-3 inline mr-1" />
+                  이미지 또는 ZIP 파일 드래그 앤 드롭
+                </p>
+
+                <input
+                  ref={imageUploadRef}
+                  type="file"
+                  accept="image/*,.zip"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
             )}
           </div>
 

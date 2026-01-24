@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { Sparkles, Download, GitBranch, Clock, Target, Star, Zap, Brain, Layers, Lightbulb, FlaskConical, Ship, Cog } from 'lucide-react';
+import { Sparkles, Download, GitBranch, Clock, Target, Star, Zap, Brain, Layers, Lightbulb, FlaskConical, Ship, Cog, Factory, Rocket } from 'lucide-react';
 import { useWorkflowStore } from '../../store/workflowStore';
 import type { WorkflowDefinition } from '../../lib/api';
+import { DeployTemplateModal } from './components/DeployTemplateModal';
 
-type TemplateCategory = 'all' | 'featured' | 'techcross' | 'dsebearing' | 'basic' | 'advanced' | 'pid' | 'ai' | 'benchmark';
+type TemplateCategory = 'all' | 'featured' | 'panasia' | 'techcross' | 'dsebearing' | 'basic' | 'advanced' | 'pid' | 'ai' | 'benchmark';
 
 interface TemplateInfo {
   nameKey: string;
@@ -17,7 +18,7 @@ interface TemplateInfo {
   workflow: WorkflowDefinition;
   estimatedTime: string;
   accuracy: string;
-  category: 'basic' | 'advanced' | 'pid' | 'ai' | 'benchmark' | 'techcross' | 'dsebearing';
+  category: 'basic' | 'advanced' | 'pid' | 'ai' | 'benchmark' | 'panasia' | 'techcross' | 'dsebearing';
   featured?: boolean;
 }
 
@@ -26,6 +27,8 @@ export default function BlueprintFlowTemplates() {
   const navigate = useNavigate();
   const { loadWorkflow } = useWorkflowStore();
   const [activeTab, setActiveTab] = useState<TemplateCategory>('all');
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateInfo | null>(null);
 
   const templates: TemplateInfo[] = [
     // ============ FEATURED TEMPLATES ============
@@ -655,6 +658,32 @@ export default function BlueprintFlowTemplates() {
       },
     },
 
+    // ============ PANASIA TEMPLATES (전력 설비 심볼 검출 + GT 비교) ============
+    // 핵심 워크플로우: 심볼 검출 → GT 비교 → 승인/거부/수정 → 미검출 수동 추가 → 내보내기
+    {
+      nameKey: 'panasiaMcpPanelBom',
+      descKey: 'panasiaMcpPanelBomDesc',
+      useCaseKey: 'panasiaMcpPanelBomUseCase',
+      estimatedTime: '10-15s',
+      accuracy: '95%',
+      category: 'panasia',
+      featured: true,
+      workflow: {
+        name: 'PANASIA: MCP Panel 심볼 검출 + GT 비교',
+        description: 'MCP Panel 도면에서 27종 전력 설비 심볼 검출 → GT와 비교 → Human-in-the-Loop 검증 → BOM 내보내기. 라인 연결성 분석 없이 심볼만 집중.',
+        nodes: [
+          { id: 'imageinput_1', type: 'imageinput', label: 'MCP Panel 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'yolo_1', type: 'yolo', label: '파나시아 심볼 검출 (27종)', parameters: { model_type: 'panasia', confidence: 0.25, iou: 0.50, imgsz: 1280 }, position: { x: 400, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'GT 비교 + 검증 (AI BOM)', parameters: { features: ['symbol_detection', 'gt_comparison', 'human_verification'], drawing_type: 'electrical_panel' }, position: { x: 700, y: 200 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
+          { id: 'e2', source: 'imageinput_1', target: 'aibom_1' },
+          { id: 'e3', source: 'yolo_1', target: 'aibom_1' },
+        ],
+      },
+    },
+
     // ============ BASIC TEMPLATES ============
     {
       nameKey: 'speedPipeline',
@@ -1154,10 +1183,16 @@ export default function BlueprintFlowTemplates() {
     navigate('/blueprintflow/builder');
   };
 
+  const handleDeployTemplate = (template: TemplateInfo) => {
+    setSelectedTemplate(template);
+    setDeployModalOpen(true);
+  };
+
 
   const categoryInfo: Record<TemplateCategory, { icon: typeof Star; color: string; label: string; shortLabel: string }> = {
     all: { icon: Sparkles, color: 'from-gray-500 to-gray-600', label: t('blueprintflow.allTemplates', '전체'), shortLabel: t('blueprintflow.all', '전체') },
     featured: { icon: Star, color: 'from-amber-500 to-orange-500', label: t('blueprintflow.featuredTemplates'), shortLabel: '⭐ Featured' },
+    panasia: { icon: Factory, color: 'from-emerald-500 to-green-600', label: t('blueprintflow.panasiaTemplates'), shortLabel: '🏭 PANASIA' },
     techcross: { icon: Ship, color: 'from-sky-500 to-blue-600', label: t('blueprintflow.techcrossTemplates'), shortLabel: '🚢 TECHCROSS' },
     dsebearing: { icon: Cog, color: 'from-amber-500 to-orange-600', label: t('blueprintflow.dsebearingTemplates'), shortLabel: '⚙️ DSE Bearing' },
     basic: { icon: Zap, color: 'from-green-500 to-emerald-500', label: t('blueprintflow.basicTemplates'), shortLabel: '⚡ Basic' },
@@ -1183,7 +1218,7 @@ export default function BlueprintFlowTemplates() {
     return templates.filter(t => t.category === category).length;
   };
 
-  const tabCategories: TemplateCategory[] = ['all', 'featured', 'techcross', 'dsebearing', 'basic', 'advanced', 'pid', 'ai', 'benchmark'];
+  const tabCategories: TemplateCategory[] = ['all', 'featured', 'panasia', 'techcross', 'dsebearing', 'basic', 'advanced', 'pid', 'ai', 'benchmark'];
 
 
   return (
@@ -1343,13 +1378,24 @@ export default function BlueprintFlowTemplates() {
                   </div>
                 </div>
 
-                <Button
-                  onClick={() => handleLoadTemplate(template)}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
-                >
-                  <Download className="w-4 h-4" />
-                  {t('blueprintflow.useTemplate')}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleLoadTemplate(template)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
+                  >
+                    <Download className="w-4 h-4" />
+                    {t('blueprintflow.useTemplate')}
+                  </Button>
+                  <Button
+                    onClick={() => handleDeployTemplate(template)}
+                    variant="outline"
+                    className="flex items-center gap-1 border-purple-300 hover:bg-purple-50 hover:border-purple-500 dark:border-purple-600 dark:hover:bg-purple-900/20"
+                    title="고객용 세션으로 배포"
+                  >
+                    <Rocket className="w-4 h-4 text-purple-500" />
+                    <span className="hidden sm:inline text-purple-600 dark:text-purple-400">Deploy</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
@@ -1392,6 +1438,18 @@ export default function BlueprintFlowTemplates() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Deploy Template Modal */}
+      {selectedTemplate && (
+        <DeployTemplateModal
+          isOpen={deployModalOpen}
+          onClose={() => {
+            setDeployModalOpen(false);
+            setSelectedTemplate(null);
+          }}
+          template={selectedTemplate}
+        />
+      )}
     </div>
   );
 }

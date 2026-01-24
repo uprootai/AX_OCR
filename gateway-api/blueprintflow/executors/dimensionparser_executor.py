@@ -33,6 +33,7 @@ class BearingDimension:
     tolerance_upper: Optional[float] = None
     tolerance_lower: Optional[float] = None
     fit_class: Optional[str] = None
+    thread_pitch: Optional[float] = None  # 나사 피치 (M10×1.5의 1.5)
     unit: str = "mm"
     confidence: float = 1.0
     bbox: Optional[List[float]] = None
@@ -100,6 +101,46 @@ class DimensionParserExecutor(BaseNodeExecutor):
                 "dimension_type": "bearing"
             }
         ),
+        # ========== 복합 치수 패턴 (신규) ==========
+        # Φ50±0.05 (직경 + 대칭 공차)
+        (
+            r"[ØφΦ⌀]\s*(\d+\.?\d*)\s*[±]\s*(\d+\.?\d*)",
+            "diameter_symmetric_tolerance",
+            lambda m: {
+                "diameter": float(m.group(1)),
+                "value": float(m.group(1)),
+                "tolerance": f"±{m.group(2)}",
+                "tolerance_upper": float(m.group(2)),
+                "tolerance_lower": -float(m.group(2)),
+                "dimension_type": "diameter"
+            }
+        ),
+        # Φ50+0.05/-0.02 (직경 + 비대칭 공차)
+        (
+            r"[ØφΦ⌀]\s*(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)\s*/\s*-\s*(\d+\.?\d*)",
+            "diameter_asymmetric_tolerance",
+            lambda m: {
+                "diameter": float(m.group(1)),
+                "value": float(m.group(1)),
+                "tolerance": f"+{m.group(2)}/-{m.group(3)}",
+                "tolerance_upper": float(m.group(2)),
+                "tolerance_lower": -float(m.group(3)),
+                "dimension_type": "diameter"
+            }
+        ),
+        # Φ50-0.02+0.05 (직경 + 역순 비대칭 공차)
+        (
+            r"[ØφΦ⌀]\s*(\d+\.?\d*)\s*-\s*(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)",
+            "diameter_asymmetric_reverse",
+            lambda m: {
+                "diameter": float(m.group(1)),
+                "value": float(m.group(1)),
+                "tolerance": f"+{m.group(3)}/-{m.group(2)}",
+                "tolerance_upper": float(m.group(3)),
+                "tolerance_lower": -float(m.group(2)),
+                "dimension_type": "diameter"
+            }
+        ),
         # Ø25H7 또는 ⌀25H7 (직경 + 공차등급)
         (
             r"[ØφΦ⌀]\s*(\d+\.?\d*)\s*([A-Z][a-z]?\d+)?",
@@ -111,7 +152,7 @@ class DimensionParserExecutor(BaseNodeExecutor):
                 "dimension_type": "diameter"
             }
         ),
-        # 50.0±0.1 또는 50.0+0.1/-0.05 (양공차)
+        # 50.0±0.1 (대칭 공차)
         (
             r"(\d+\.?\d*)\s*[±]\s*(\d+\.?\d*)",
             "symmetric_tolerance",
@@ -123,7 +164,7 @@ class DimensionParserExecutor(BaseNodeExecutor):
                 "dimension_type": "linear"
             }
         ),
-        # 50.0 +0.1/-0.05 (비대칭 공차)
+        # 50.0 +0.1/-0.05 (비대칭 공차 - 슬래시 구분)
         (
             r"(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)\s*/\s*-\s*(\d+\.?\d*)",
             "asymmetric_tolerance",
@@ -133,6 +174,73 @@ class DimensionParserExecutor(BaseNodeExecutor):
                 "tolerance_upper": float(m.group(2)),
                 "tolerance_lower": -float(m.group(3)),
                 "dimension_type": "linear"
+            }
+        ),
+        # 50.0-0.02+0.05 (역순 비대칭 공차)
+        (
+            r"(\d+\.?\d*)\s*-\s*(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)",
+            "asymmetric_reverse",
+            lambda m: {
+                "value": float(m.group(1)),
+                "tolerance": f"+{m.group(3)}/-{m.group(2)}",
+                "tolerance_upper": float(m.group(3)),
+                "tolerance_lower": -float(m.group(2)),
+                "dimension_type": "linear"
+            }
+        ),
+        # 50 +0.05/0 (단방향 공차 - 위만)
+        (
+            r"(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)\s*/\s*0(?!\d)",
+            "unilateral_upper",
+            lambda m: {
+                "value": float(m.group(1)),
+                "tolerance": f"+{m.group(2)}/0",
+                "tolerance_upper": float(m.group(2)),
+                "tolerance_lower": 0.0,
+                "dimension_type": "linear"
+            }
+        ),
+        # 50 0/-0.05 (단방향 공차 - 아래만)
+        (
+            r"(\d+\.?\d*)\s*0\s*/\s*-\s*(\d+\.?\d*)",
+            "unilateral_lower",
+            lambda m: {
+                "value": float(m.group(1)),
+                "tolerance": f"0/-{m.group(2)}",
+                "tolerance_upper": 0.0,
+                "tolerance_lower": -float(m.group(2)),
+                "dimension_type": "linear"
+            }
+        ),
+        # ========== 신규 패턴 ==========
+        # M10×1.5 (나사 치수)
+        (
+            r"M\s*(\d+\.?\d*)(?:\s*[×xX]\s*(\d+\.?\d*))?",
+            "thread",
+            lambda m: {
+                "value": float(m.group(1)),
+                "thread_pitch": float(m.group(2)) if m.group(2) else None,
+                "dimension_type": "thread"
+            }
+        ),
+        # 45° (각도)
+        (
+            r"(\d+\.?\d*)\s*°",
+            "angle",
+            lambda m: {
+                "value": float(m.group(1)),
+                "unit": "degree",
+                "dimension_type": "angle"
+            }
+        ),
+        # Ra 3.2, Ra3.2 (표면 거칠기)
+        (
+            r"Ra\s*(\d+\.?\d*)",
+            "surface_roughness",
+            lambda m: {
+                "value": float(m.group(1)),
+                "unit": "um",
+                "dimension_type": "surface_roughness"
             }
         ),
         # H7, h6, g6 등 (공차 등급만)

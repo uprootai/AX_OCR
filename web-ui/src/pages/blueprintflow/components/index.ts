@@ -5,3 +5,5 @@
 
 export { ContainerWarningModal } from './ContainerWarningModal';
 export { ExecutionStatusPanel } from './ExecutionStatusPanel';
+export { SaveTemplateModal } from './SaveTemplateModal';
+export { LoadTemplateModal } from './LoadTemplateModal';

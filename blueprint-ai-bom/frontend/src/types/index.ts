@@ -225,6 +225,53 @@ export interface RelationExtractionResult {
   processing_time_ms: number;
 }
 
+// Phase 2C: 이미지별 Human-in-the-Loop
+export type ImageReviewStatus =
+  | 'pending'
+  | 'processed'
+  | 'approved'
+  | 'rejected'
+  | 'modified'
+  | 'manual_labeled';
+
+export interface SessionImage {
+  image_id: string;
+  filename: string;
+  file_path: string;
+  review_status: ImageReviewStatus;
+  detections: Detection[];
+  detection_count: number;
+  verified_count: number;
+  approved_count: number;
+  rejected_count: number;
+  image_width?: number;
+  image_height?: number;
+  thumbnail_base64?: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  review_notes?: string;
+  order_index: number;
+}
+
+export interface SessionImageProgress {
+  total_images: number;
+  pending_count: number;
+  processed_count: number;
+  approved_count: number;
+  rejected_count: number;
+  modified_count: number;
+  manual_labeled_count: number;
+  progress_percent: number;
+  all_reviewed: boolean;
+  export_ready: boolean;
+}
+
+export interface ImageReviewUpdate {
+  review_status: ImageReviewStatus;
+  reviewed_by?: string;
+  review_notes?: string;
+}
+
 // UI Types
 export interface ClassInfo {
   id: number;

@@ -21,8 +21,8 @@ import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
-import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle } from 'lucide-react';
-import { workflowApi } from '../../lib/api';
+import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle, FolderOpen, FileDown } from 'lucide-react';
+import { workflowApi, type TemplateDetail } from '../../lib/api';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
 
 // Toast 알림 타입
@@ -35,7 +35,7 @@ interface ToastState {
 // Local imports
 import { baseNodeTypes, getId, BLUEPRINT_SAMPLES, getNodeColor } from './constants';
 import { useContainerStatus, useImageUpload } from './hooks';
-import { ContainerWarningModal, ExecutionStatusPanel } from './components';
+import { ContainerWarningModal, ExecutionStatusPanel, SaveTemplateModal, LoadTemplateModal } from './components';
 
 function WorkflowBuilderCanvas() {
   const { t } = useTranslation();
@@ -64,6 +64,7 @@ function WorkflowBuilderCanvas() {
     onConnect,
     addNode,
     clearWorkflow,
+    loadWorkflow,
     isExecuting,
     executionResult,
     executionError,
@@ -92,6 +93,10 @@ function WorkflowBuilderCanvas() {
   const [reactFlowInstance, setReactFlowInstance] = React.useState<ReactFlowInstance | null>(null);
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
   const [isDebugPanelOpen, setIsDebugPanelOpen] = React.useState(false);
+
+  // Template modal state
+  const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = React.useState(false);
+  const [isLoadTemplateModalOpen, setIsLoadTemplateModalOpen] = React.useState(false);
 
   // Toast 알림 상태
   const [toast, setToast] = React.useState<ToastState>({ show: false, message: '', type: 'info' });
@@ -281,6 +286,34 @@ function WorkflowBuilderCanvas() {
     }
   };
 
+  // Load template into workflow
+  const handleLoadTemplate = useCallback((template: TemplateDetail) => {
+    loadWorkflow({
+      name: template.name,
+      description: template.description,
+      nodes: template.nodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        label: n.label,
+        position: n.position,
+        parameters: n.parameters,
+      })),
+      edges: template.edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+      })),
+    });
+    showToast(`✓ 템플릿 '${template.name}' 불러오기 완료`, 'success');
+  }, [loadWorkflow, showToast]);
+
+  // Handle template save success
+  const handleTemplateSaveSuccess = useCallback((templateId: string) => {
+    showToast(`✓ 템플릿 저장 완료 (ID: ${templateId.slice(0, 8)}...)`, 'success');
+  }, [showToast]);
+
   // Execute workflow
   const handleExecute = () => {
     executeWithContainerCheck(nodes, uploadedImage);
@@ -386,6 +419,30 @@ function WorkflowBuilderCanvas() {
 
             {/* Action Buttons */}
             <div className="flex gap-2 ml-auto">
+              {/* Template Buttons */}
+              <Button
+                onClick={() => setIsLoadTemplateModalOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+                title={t('blueprintflow.loadTemplateTooltip', 'Load template')}
+              >
+                <FolderOpen className="w-4 h-4" />
+                {t('blueprintflow.loadTemplate', 'Load Template')}
+              </Button>
+
+              <Button
+                onClick={() => setIsSaveTemplateModalOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={nodes.length === 0}
+                title={t('blueprintflow.saveAsTemplateTooltip', 'Save current workflow as reusable template')}
+              >
+                <FileDown className="w-4 h-4" />
+                {t('blueprintflow.saveAsTemplate', 'Save as Template')}
+              </Button>
+
+              <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1" />
+
               <Button
                 onClick={handleSave}
                 variant="outline"
@@ -548,6 +605,22 @@ function WorkflowBuilderCanvas() {
           onClose={() => setToast(prev => ({ ...prev, show: false }))}
         />
       )}
+
+      {/* Template Modals */}
+      <SaveTemplateModal
+        isOpen={isSaveTemplateModalOpen}
+        onClose={() => setIsSaveTemplateModalOpen(false)}
+        workflowName={workflowName}
+        nodes={nodes}
+        edges={edges}
+        onSuccess={handleTemplateSaveSuccess}
+      />
+
+      <LoadTemplateModal
+        isOpen={isLoadTemplateModalOpen}
+        onClose={() => setIsLoadTemplateModalOpen(false)}
+        onLoad={handleLoadTemplate}
+      />
     </div>
   );
 }

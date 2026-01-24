@@ -116,7 +116,8 @@ export function GTComparisonSection({
     }
   };
 
-  const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
+  // 백엔드에서 이미 퍼센트 값(0-100)으로 반환하므로 그대로 표시
+  const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
   return (
     <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">

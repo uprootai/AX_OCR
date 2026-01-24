@@ -1054,3 +1054,231 @@ export const dseBearing = {
     return response.data;
   },
 };
+
+// =====================
+// Template API (Phase 2B)
+// =====================
+
+// Blueprint AI BOM API Base
+const BLUEPRINT_AI_BOM_API = axios.create({ baseURL: BLUEPRINT_AI_BOM_BASE });
+
+export interface TemplateNode {
+  id: string;
+  type: string;
+  label?: string;
+  position: { x: number; y: number };
+  parameters: Record<string, unknown>;
+}
+
+export interface TemplateEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
+
+export interface TemplateCreate {
+  name: string;
+  description?: string;
+  model_type: string;
+  features: string[];
+  drawing_type?: string;
+  detection_params?: Record<string, unknown>;
+  nodes: TemplateNode[];
+  edges: TemplateEdge[];
+}
+
+export interface TemplateResponse {
+  template_id: string;
+  name: string;
+  description?: string;
+  model_type: string;
+  features: string[];
+  drawing_type: string;
+  node_count: number;
+  edge_count: number;
+  node_types: string[];
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateDetail extends TemplateResponse {
+  nodes: TemplateNode[];
+  edges: TemplateEdge[];
+  detection_params: Record<string, unknown>;
+}
+
+export interface TemplateListResponse {
+  templates: TemplateResponse[];
+  total: number;
+}
+
+// =====================
+// Blueprint AI BOM Workflow Session API (Phase 2G)
+// =====================
+
+export interface WorkflowSessionCreate {
+  name: string;
+  description?: string;
+  nodes: Array<{
+    id: string;
+    type: string;
+    label?: string;
+    parameters: Record<string, unknown>;
+    position?: { x: number; y: number };
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+  }>;
+  lock_level: 'full' | 'parameters' | 'none';
+  allowed_parameters?: string[];
+  customer_name?: string;
+  expires_in_days?: number;
+}
+
+export interface WorkflowSessionResponse {
+  session_id: string;
+  share_url: string;
+  access_token: string;
+  expires_at: string;
+  workflow_name: string;
+}
+
+export interface WorkflowSessionDetail {
+  session_id: string;
+  workflow_definition?: {
+    name: string;
+    description?: string;
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  };
+  workflow_locked: boolean;
+  lock_level: 'full' | 'parameters' | 'none';
+  allowed_parameters: string[];
+  customer_name?: string;
+  access_token?: string;
+  expires_at?: string;
+}
+
+export const workflowSessionApi = {
+  /**
+   * BlueprintFlow 워크플로우로부터 잠긴 세션 생성
+   */
+  createFromWorkflow: async (request: WorkflowSessionCreate): Promise<WorkflowSessionResponse> => {
+    const response = await BLUEPRINT_AI_BOM_API.post('/sessions/from-workflow', request);
+    return response.data;
+  },
+
+  /**
+   * 세션의 워크플로우 정의 조회
+   */
+  getWorkflow: async (sessionId: string, accessToken?: string): Promise<WorkflowSessionDetail> => {
+    const params: Record<string, string> = {};
+    if (accessToken) params.access_token = accessToken;
+    const response = await BLUEPRINT_AI_BOM_API.get(`/sessions/${sessionId}/workflow`, { params });
+    return response.data;
+  },
+
+  /**
+   * 워크플로우 실행
+   */
+  execute: async (
+    sessionId: string,
+    imageIds: string[],
+    parameters?: Record<string, unknown>,
+    accessToken?: string
+  ): Promise<{ execution_id: string; status: string; message: string }> => {
+    const params: Record<string, string> = {};
+    if (accessToken) params.access_token = accessToken;
+    const response = await BLUEPRINT_AI_BOM_API.post(
+      `/sessions/${sessionId}/execute`,
+      { image_ids: imageIds, parameters },
+      { params }
+    );
+    return response.data;
+  },
+};
+
+export const templateApi = {
+  /**
+   * 템플릿 생성
+   */
+  create: async (template: TemplateCreate): Promise<TemplateResponse> => {
+    const response = await BLUEPRINT_AI_BOM_API.post('/templates', template);
+    return response.data;
+  },
+
+  /**
+   * 템플릿 목록 조회
+   */
+  list: async (modelType?: string, limit = 50): Promise<TemplateListResponse> => {
+    const params: Record<string, string | number> = { limit };
+    if (modelType) params.model_type = modelType;
+    const response = await BLUEPRINT_AI_BOM_API.get('/templates', { params });
+    return response.data;
+  },
+
+  /**
+   * 템플릿 상세 조회
+   */
+  get: async (templateId: string): Promise<TemplateDetail> => {
+    const response = await BLUEPRINT_AI_BOM_API.get(`/templates/${templateId}`);
+    return response.data;
+  },
+
+  /**
+   * 템플릿 요약 조회 (노드/엣지 제외)
+   */
+  getSummary: async (templateId: string): Promise<TemplateResponse> => {
+    const response = await BLUEPRINT_AI_BOM_API.get(`/templates/${templateId}/summary`);
+    return response.data;
+  },
+
+  /**
+   * 템플릿 수정
+   */
+  update: async (templateId: string, updates: Partial<TemplateCreate>): Promise<TemplateResponse> => {
+    const response = await BLUEPRINT_AI_BOM_API.put(`/templates/${templateId}`, updates);
+    return response.data;
+  },
+
+  /**
+   * 템플릿 삭제
+   */
+  delete: async (templateId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await BLUEPRINT_AI_BOM_API.delete(`/templates/${templateId}`);
+    return response.data;
+  },
+
+  /**
+   * 템플릿 복제
+   */
+  duplicate: async (templateId: string, newName: string): Promise<TemplateResponse> => {
+    const response = await BLUEPRINT_AI_BOM_API.post(`/templates/${templateId}/duplicate`, null, {
+      params: { new_name: newName },
+    });
+    return response.data;
+  },
+
+  /**
+   * 템플릿 미리보기
+   */
+  preview: async (templateId: string): Promise<{
+    template_id: string;
+    name: string;
+    nodes: TemplateNode[];
+    edges: TemplateEdge[];
+    node_count: number;
+    edge_count: number;
+    node_types: string[];
+  }> => {
+    const response = await BLUEPRINT_AI_BOM_API.get(`/templates/${templateId}/preview`);
+    return response.data;
+  },
+};

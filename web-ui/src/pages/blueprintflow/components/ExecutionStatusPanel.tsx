@@ -3,8 +3,8 @@
  * 워크플로우 실행 상태 및 결과 표시
  */
 
-import { useState, useCallback } from 'react';
-import { Download, RotateCcw } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { Download, RotateCcw, ExternalLink } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
 
@@ -255,8 +255,82 @@ function FinalResult({
   const parallelGroups = groups.filter(g => g.type === 'parallel').length;
   const sequentialNodes = groups.filter(g => g.type === 'sequential').length;
 
+  // BOM 세션 정보 추출 (blueprint-ai-bom 노드의 output에서)
+  const bomSessionInfo = useMemo(() => {
+    const finalOutput = executionResult.final_output as Record<string, Record<string, unknown>> | undefined;
+    if (!finalOutput) return null;
+
+    // final_output에서 BOM 노드 결과 찾기
+    for (const [nodeId, output] of Object.entries(finalOutput)) {
+      if (output?.session_id && output?.verification_url) {
+        return {
+          nodeId,
+          sessionId: output.session_id as string,
+          verificationUrl: output.verification_url as string,
+          message: output.message as string | undefined,
+          detectionCount: output.detection_count as number | undefined,
+          dimensionCount: output.dimension_count as number | undefined,
+        };
+      }
+    }
+
+    // node_statuses에서도 찾기
+    for (const ns of nodeStatuses) {
+      const output = ns.output as Record<string, unknown> | undefined;
+      if (output?.session_id && output?.verification_url) {
+        return {
+          nodeId: ns.node_id,
+          sessionId: output.session_id as string,
+          verificationUrl: output.verification_url as string,
+          message: output.message as string | undefined,
+          detectionCount: output.detection_count as number | undefined,
+          dimensionCount: output.dimension_count as number | undefined,
+        };
+      }
+    }
+
+    return null;
+  }, [executionResult, nodeStatuses]);
+
   return (
     <div className="space-y-3">
+      {/* AI BOM 세션 열기 버튼 (BOM 노드 결과가 있는 경우) */}
+      {bomSessionInfo && (
+        <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🎯</span>
+                <span className="font-semibold text-blue-900 dark:text-blue-100">
+                  AI BOM 세션 생성 완료
+                </span>
+              </div>
+              <div className="text-sm text-blue-700 dark:text-blue-300">
+                {bomSessionInfo.message || '검증 UI에서 결과를 확인하고 BOM을 생성하세요.'}
+              </div>
+              <div className="flex gap-3 mt-1 text-xs text-blue-600 dark:text-blue-400">
+                {bomSessionInfo.detectionCount !== undefined && (
+                  <span>검출: {bomSessionInfo.detectionCount}개</span>
+                )}
+                {bomSessionInfo.dimensionCount !== undefined && (
+                  <span>치수: {bomSessionInfo.dimensionCount}개</span>
+                )}
+                <span>Session: {bomSessionInfo.sessionId.slice(0, 8)}...</span>
+              </div>
+            </div>
+            <a
+              href={bomSessionInfo.verificationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+            >
+              <ExternalLink className="w-4 h-4" />
+              AI BOM 열기
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Status Header */}
       <div className="text-green-600 dark:text-green-400">
         <div className="flex items-center justify-between mb-2">

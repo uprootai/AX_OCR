@@ -403,6 +403,117 @@ class CustomerConfigService:
             quote_template=stx_quote
         )
 
+        # PANASIA (파나시아 - BWMS 전문)
+        panasia_parsing = ParsingProfile(
+            profile_id="panasia_bwms",
+            name="파나시아 BWMS Profile",
+            drawing_number_patterns=[
+                r"PA-\d{6}",        # PA-123456
+                r"PNA-\d{5}",       # PNA-12345
+                r"BWMS-\d{4}",      # BWMS-1234
+                r"PID-\d{4}",       # P&ID 도면
+            ],
+            revision_patterns=[r"REV[.\s]*([A-Z\d])", r"R(\d+)"],
+            material_patterns=[
+                r"STS\d{3}[A-Z]?",  # STS316, STS304L
+                r"SUS\d{3}[A-Z]?",  # SUS316, SUS304
+                r"AL\d{4}",         # AL5083
+                r"CPVC",            # CPVC 파이프
+                r"HDPE",            # HDPE 파이프
+                r"TITANIUM",        # 티타늄
+            ],
+            table_headers=["TAG NO", "DESCRIPTION", "MATERIAL", "SIZE", "QTY", "REMARK"],
+            column_mapping={
+                "TAG NO": "tag_no",
+                "DESCRIPTION": "description",
+                "MATERIAL": "material",
+                "SIZE": "size",
+                "QTY": "qty",
+                "REMARK": "remark"
+            },
+            ocr_engine="edocr2",
+            ocr_profile="pid",  # P&ID 특화 프로파일
+            confidence_threshold=0.75
+        )
+
+        panasia_quote = OutputTemplate(
+            template_id="panasia_quote",
+            name="파나시아 견적서",
+            type="quote",
+            include_logo=True,
+            visible_columns=["no", "tag_no", "description", "material", "size", "qty", "unit_price", "total_price"],
+            column_headers_kr={
+                "no": "No.",
+                "tag_no": "TAG NO",
+                "description": "품명/규격",
+                "material": "재질",
+                "size": "SIZE",
+                "qty": "수량",
+                "unit_price": "단가",
+                "total_price": "금액"
+            },
+            footer_text="※ 결제조건: 납품 후 30일\n※ 부가세 별도\n※ 납기: 발주 후 6-8주\n※ IMO 인증 제품"
+        )
+
+        self.customers["PANASIA"] = CustomerSettings(
+            customer_id="PANASIA",
+            customer_name="파나시아",
+            contact_name="김해양",
+            contact_email="panasia@example.com",
+            contact_phone="051-987-6543",
+            address="부산시 강서구 미음산단",
+            parsing_profile=panasia_parsing,
+            material_discount=0.06,
+            labor_discount=0.04,
+            payment_terms=30,
+            currency="KRW",
+            quote_template=panasia_quote
+        )
+
+        # HANJIN (한진중공업)
+        hanjin_parsing = ParsingProfile(
+            profile_id="hanjin_heavy",
+            name="한진중공업 Profile",
+            drawing_number_patterns=[r"HJ-\d{6}", r"HJH\d{7}"],
+            revision_patterns=[r"REV[.\s]*([A-Z])"],
+            material_patterns=[r"SF\d{2,3}[A-Z]?", r"SM\d{3}[A-Z]?", r"AH\d{2}"],
+            table_headers=["NO", "PART NAME", "MATERIAL", "SIZE", "Q'TY", "REMARK"],
+            ocr_engine="edocr2",
+            ocr_profile="bearing"
+        )
+
+        hanjin_quote = OutputTemplate(
+            template_id="hanjin_quote",
+            name="한진중공업 견적서",
+            type="quote",
+            include_logo=True,
+            visible_columns=["no", "description", "material", "qty", "unit_price", "total_price"],
+            column_headers_kr={
+                "no": "번호",
+                "description": "품명",
+                "material": "재질",
+                "qty": "수량",
+                "unit_price": "단가",
+                "total_price": "금액"
+            },
+            footer_text="※ 결제조건: 납품 후 30일\n※ 부가세 별도"
+        )
+
+        self.customers["HANJIN"] = CustomerSettings(
+            customer_id="HANJIN",
+            customer_name="한진중공업",
+            contact_name="박조선",
+            contact_email="hanjin@example.com",
+            contact_phone="051-234-5678",
+            address="부산시 영도구",
+            parsing_profile=hanjin_parsing,
+            material_discount=0.05,
+            labor_discount=0.03,
+            payment_terms=30,
+            currency="KRW",
+            quote_template=hanjin_quote
+        )
+
     def _load_configs(self):
         """외부 설정 파일 로드"""
         if not self.config_dir:

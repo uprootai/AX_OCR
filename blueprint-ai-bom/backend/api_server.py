@@ -40,6 +40,11 @@ from routers.midterm_router import router as midterm_router_api, set_session_ser
 from routers.longterm_router import router as longterm_router_api, set_session_service as set_longterm_session_service
 from routers.pid_features_router import router as pid_features_router_api, set_pid_features_service
 from routers.settings_router import router as settings_router_api
+# Phase 2: 프로젝트/템플릿 라우터
+from routers.project_router import router as project_router_api
+from routers.template_router import router as template_router_api
+# Phase 2E: Export 라우터
+from routers.export_router import router as export_router_api, set_export_services
 from schemas.session import SessionCreate, SessionResponse
 from services.session_service import SessionService
 from services.detection_service import DetectionService
@@ -50,6 +55,7 @@ from services.dimension_relation_service import DimensionRelationService
 from services.connectivity_analyzer import ConnectivityAnalyzer  # Phase 6: P&ID 연결 분석
 from services.region_segmenter import RegionSegmenter  # Phase 5: 영역 분할
 from services.gdt_parser import GDTParser  # Phase 7: GD&T 파싱
+from services.export_service import get_export_service  # Phase 2E: Export
 
 # 기본 경로 설정 (Docker에서는 /app 기준)
 BASE_DIR = Path(__file__).parent
@@ -63,6 +69,15 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
 CONFIG_DIR.mkdir(exist_ok=True)
 (UPLOAD_DIR / "gt_labels").mkdir(exist_ok=True)  # GT 라벨 업로드용
+
+# Phase 2: 프로젝트/템플릿 데이터 디렉토리
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+(DATA_DIR / "projects").mkdir(exist_ok=True)
+(DATA_DIR / "templates").mkdir(exist_ok=True)
+# Phase 2E: Export 디렉토리
+EXPORT_DIR = BASE_DIR / "exports"
+EXPORT_DIR.mkdir(exist_ok=True)
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -115,6 +130,9 @@ set_feedback_services(session_service)  # Phase 8: 피드백 루프
 set_midterm_session_service(session_service)  # 중기 로드맵: 용접, 거칠기, 수량, 벌룬
 set_longterm_session_service(session_service)  # 장기 로드맵: 영역, 노트, 리비전, VLM
 set_pid_features_service(session_service)  # P&ID 분석 기능: 밸브, 장비, 체크리스트
+# Phase 2E: Export 서비스 초기화
+export_service = get_export_service(EXPORT_DIR, UPLOAD_DIR)
+set_export_services(session_service, export_service)  # template_service, project_service는 필요시 추가
 
 # 라우터 등록 (prefix 없이 - 라우터 내부에 이미 prefix 있음)
 app.include_router(session_router_api, tags=["Session"])
@@ -134,6 +152,10 @@ app.include_router(midterm_router_api, tags=["Mid-term Features"])  # 중기 로
 app.include_router(longterm_router_api, tags=["Long-term Features"])  # 장기 로드맵: 영역, 노트, 리비전, VLM
 app.include_router(pid_features_router_api, tags=["P&ID Features"])  # P&ID 분석 기능: 밸브, 장비, 체크리스트
 app.include_router(settings_router_api, tags=["Settings"])  # API 키 설정
+# Phase 2: 프로젝트/템플릿 라우터
+app.include_router(project_router_api, tags=["Projects"])  # 프로젝트 관리
+app.include_router(template_router_api, tags=["Templates"])  # 템플릿 관리
+app.include_router(export_router_api, tags=["Export"])  # Phase 2E: Export
 
 
 @app.get("/")

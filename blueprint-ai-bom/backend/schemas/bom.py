@@ -56,7 +56,8 @@ class BOMData(BaseModel):
 
 class BOMExportRequest(BaseModel):
     """BOM 내보내기 요청"""
-    session_id: str
+    # session_id는 URL 경로에서 받으므로 Optional
+    session_id: Optional[str] = None
     format: ExportFormat = ExportFormat.EXCEL
     include_image: bool = False
     customer_name: Optional[str] = None

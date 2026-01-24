@@ -8,11 +8,12 @@
  * - 섹션 컴포넌트: UI 모듈화
  */
 
-import { useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useSessionStore } from '../store/sessionStore';
-import { detectionApi, systemApi, groundTruthApi } from '../lib/api';
+import { detectionApi, systemApi, groundTruthApi, sessionApi } from '../lib/api';
+import type { SessionImage } from '../types';
 import logger from '../lib/logger';
 import { API_BASE_URL } from '../lib/constants';
 import type { VerificationStatus } from '../types';
@@ -59,6 +60,7 @@ import {
   VLMClassificationSection,
   PIDFeaturesSection,
   GTComparisonSection,
+  ImageReviewSection,
 } from './workflow';
 
 export function WorkflowPage() {
@@ -89,6 +91,24 @@ export function WorkflowPage() {
     reset,
   } = useSessionStore();
 
+  // Multi-image session state (Phase 2C)
+  const [, setSelectedImageId] = useState<string | null>(null);
+  const [sessionImageCount, setSessionImageCount] = useState(0);
+
+  // 세션 이미지 개수 로드
+  const loadSessionImageCount = useCallback(async () => {
+    if (!currentSession) {
+      setSessionImageCount(0);
+      return;
+    }
+    try {
+      const progress = await sessionApi.getImageProgress(currentSession.session_id);
+      setSessionImageCount(progress.total_images);
+    } catch (err) {
+      logger.error('Failed to load image count:', err);
+    }
+  }, [currentSession]);
+
   // Centralized state management
   const state = useWorkflowState();
 
@@ -102,6 +122,11 @@ export function WorkflowPage() {
     loadSession,
     urlSessionId,
   });
+
+  // Load image count when session changes
+  useEffect(() => {
+    loadSessionImageCount();
+  }, [loadSessionImageCount]);
 
   // Feature hooks
   const midTermFeatures = useMidTermFeatures();
@@ -298,6 +323,26 @@ export function WorkflowPage() {
     }
   }, [currentSession, imageSize, detections, state]);
 
+  // 다중 이미지 세션에서 이미지 선택 핸들러 (Phase 2C)
+  const handleImageSelect = useCallback(async (imageId: string, _image: SessionImage) => {
+    if (!currentSession) return;
+    setSelectedImageId(imageId);
+    try {
+      // 선택된 이미지의 상세 정보 로드 (검출 결과 포함)
+      const imageDetail = await sessionApi.getImageDetail(
+        currentSession.session_id,
+        imageId,
+        true // include detections
+      );
+      logger.info('Image selected:', imageDetail.filename);
+      // TODO: 이미지 데이터를 세션 스토어에 반영
+      // 현재는 세션 전체를 다시 로드 (향후 최적화 필요)
+      await loadSession(currentSession.session_id);
+    } catch (err) {
+      logger.error('Failed to load image detail:', err);
+    }
+  }, [currentSession, loadSession]);
+
   // Section visibility
   const visibility = getSectionVisibility(effectiveDrawingType, effectiveFeatures);
 
@@ -326,6 +371,8 @@ export function WorkflowPage() {
         currentSession={currentSession}
         sessions={sessions}
         detectionCount={detections.length}
+        sessionImageCount={sessionImageCount}
+        onImagesAdded={loadSessionImageCount}
         onNewSession={handleNewSession}
         onLoadSession={handleLoadSessionWithGTReset}
         onDeleteSession={deleteSession}
@@ -392,6 +439,17 @@ export function WorkflowPage() {
               detectionCount={detections.length}
               approvedCount={stats.approved}
               onImageClick={() => state.setShowImageModal(true)}
+            />
+          )}
+
+          {/* 다중 이미지 검토 (Phase 2C) - 세션 있으면 항상 표시 */}
+          {currentSession && (
+            <ImageReviewSection
+              sessionId={currentSession.session_id}
+              onImageSelect={handleImageSelect}
+              onExportReady={() => {
+                logger.info('All images reviewed, export ready');
+              }}
             />
           )}
 

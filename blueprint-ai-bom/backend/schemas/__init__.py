@@ -15,7 +15,49 @@ Pydantic 모델 정의
 - Verification: Active Learning 검증 (Phase 8)
 """
 
-from .session import SessionStatus, SessionCreate, SessionResponse, SessionDetail
+from .session import (
+    SessionStatus,
+    SessionCreate,
+    SessionResponse,
+    SessionDetail,
+    # Phase 2C: 이미지별 Human-in-the-Loop
+    ImageReviewStatus,
+    SessionImage,
+    ImageReviewUpdate,
+    BulkReviewRequest,
+    SessionImageProgress,
+)
+# Phase 2G: 워크플로우 세션 (BlueprintFlow → 고객 배포)
+from .workflow_session import (
+    LockLevel,
+    WorkflowNodeSchema,
+    WorkflowEdgeSchema,
+    WorkflowDefinitionSchema,
+    WorkflowSessionCreate,
+    WorkflowSessionResponse,
+    WorkflowSessionDetail,
+    WorkflowExecuteRequest,
+    WorkflowExecuteResponse,
+)
+# Phase 2: 프로젝트/템플릿 스키마
+from .project import (
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+    ProjectDetail,
+    ProjectListResponse,
+    ProjectBatchUploadRequest,
+    ProjectBatchUploadResponse,
+)
+from .template import (
+    TemplateNode,
+    TemplateEdge,
+    TemplateCreate,
+    TemplateUpdate,
+    TemplateResponse,
+    TemplateDetail,
+    TemplateListResponse,
+)
 from .detection import (
     VerificationStatus,
     DetectionConfig,
@@ -215,6 +257,15 @@ from .longterm import (
     ExtractedNoteUpdate,
     LongtermFeatureResponse,
 )
+# Phase 2E: Export 스키마
+from .export import (
+    ExportManifest,
+    ExportPreview,
+    ExportRequest,
+    ExportResponse,
+    ExportHistoryItem,
+    ExportHistoryResponse,
+)
 from .pid_features import (
     # P&ID 분석 기능
     PIDFeature,
@@ -256,6 +307,38 @@ __all__ = [
     "SessionCreate",
     "SessionResponse",
     "SessionDetail",
+    # Phase 2C: 이미지별 Human-in-the-Loop
+    "ImageReviewStatus",
+    "SessionImage",
+    "ImageReviewUpdate",
+    "BulkReviewRequest",
+    "SessionImageProgress",
+    # Phase 2G: 워크플로우 세션
+    "LockLevel",
+    "WorkflowNodeSchema",
+    "WorkflowEdgeSchema",
+    "WorkflowDefinitionSchema",
+    "WorkflowSessionCreate",
+    "WorkflowSessionResponse",
+    "WorkflowSessionDetail",
+    "WorkflowExecuteRequest",
+    "WorkflowExecuteResponse",
+    # Project (Phase 2)
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectResponse",
+    "ProjectDetail",
+    "ProjectListResponse",
+    "ProjectBatchUploadRequest",
+    "ProjectBatchUploadResponse",
+    # Template (Phase 2)
+    "TemplateNode",
+    "TemplateEdge",
+    "TemplateCreate",
+    "TemplateUpdate",
+    "TemplateResponse",
+    "TemplateDetail",
+    "TemplateListResponse",
     # Detection
     "VerificationStatus",
     "DetectionConfig",
@@ -459,4 +542,11 @@ __all__ = [
     "PIDVerificationQueue",
     "PIDExportRequest",
     "PIDExportResponse",
+    # Phase 2E: Export
+    "ExportManifest",
+    "ExportPreview",
+    "ExportRequest",
+    "ExportResponse",
+    "ExportHistoryItem",
+    "ExportHistoryResponse",
 ]

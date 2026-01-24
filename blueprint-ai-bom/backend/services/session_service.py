@@ -6,9 +6,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-from schemas.session import SessionStatus, SessionResponse, SessionDetail
+from schemas.session import (
+    SessionStatus,
+    SessionResponse,
+    SessionDetail,
+    ImageReviewStatus,
+    SessionImageProgress,
+)
 from schemas.classification import DrawingType
 from schemas.typed_dicts import SessionData, DetectionDict, BBoxDict
+
+
+import secrets
 
 
 class SessionService:
@@ -27,7 +36,11 @@ class SessionService:
         drawing_type: str = "auto",  # 빌더에서 설정한 도면 타입
         image_width: int = None,
         image_height: int = None,
-        features: List[str] = None  # 활성화된 기능 목록 (2025-12-24)
+        features: List[str] = None,  # 활성화된 기능 목록 (2025-12-24)
+        # Phase 2: 프로젝트/템플릿 연결
+        project_id: str = None,
+        template_id: str = None,
+        model_type: str = None,
     ) -> Dict[str, Any]:
         """새 세션 생성"""
         now = datetime.now()
@@ -63,12 +76,169 @@ class SessionService:
             "vlm_classification_result": None,
             # 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
             "features": features or [],
+            # Phase 2: 프로젝트/템플릿 연결
+            "project_id": project_id,
+            "project_name": None,  # 조인 시 채움
+            "template_id": template_id,
+            "template_name": None,  # 조인 시 채움
+            "model_type": model_type,
         }
 
         self.sessions[session_id] = session
         self._save_session(session_id)
 
         return session
+
+    def create_locked_session(
+        self,
+        workflow_name: str,
+        workflow_definition: Dict[str, Any],
+        lock_level: str = "full",
+        allowed_parameters: List[str] = None,
+        customer_name: str = None,
+        expires_in_days: int = 30,
+    ) -> Dict[str, Any]:
+        """BlueprintFlow 워크플로우로부터 잠긴 세션 생성
+
+        Args:
+            workflow_name: 워크플로우 이름
+            workflow_definition: 워크플로우 정의 (nodes, edges)
+            lock_level: 잠금 수준 ('full', 'parameters', 'none')
+            allowed_parameters: 수정 가능한 파라미터 목록
+            customer_name: 고객명
+            expires_in_days: 만료 기간 (일)
+
+        Returns:
+            생성된 세션 정보 (session_id, access_token, expires_at 포함)
+        """
+        from datetime import timedelta
+
+        session_id = str(uuid.uuid4())
+        access_token = secrets.token_urlsafe(32)
+        now = datetime.now()
+        expires_at = now + timedelta(days=expires_in_days)
+
+        session = {
+            "session_id": session_id,
+            "filename": f"workflow_{workflow_name}",
+            "file_path": "",  # 이미지는 나중에 업로드
+            "status": SessionStatus.CREATED,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat(),
+            "detections": [],
+            "detection_count": 0,
+            "verification_status": {},
+            "verified_count": 0,
+            "approved_count": 0,
+            "rejected_count": 0,
+            "bom_data": None,
+            "bom_generated": False,
+            "image_width": None,
+            "image_height": None,
+            "error_message": None,
+            # 도면 분류 정보
+            "drawing_type": "auto",
+            "drawing_type_source": "workflow",
+            "drawing_type_confidence": None,
+            "vlm_classification_result": None,
+            # 활성화된 기능 목록
+            "features": [],
+            # 프로젝트/템플릿 연결
+            "project_id": None,
+            "project_name": None,
+            "template_id": None,
+            "template_name": None,
+            "model_type": None,
+            # Phase 2G: 워크플로우 잠금 시스템
+            "workflow_locked": True,
+            "workflow_definition": workflow_definition,
+            "lock_level": lock_level,
+            "allowed_parameters": allowed_parameters or [],
+            "customer_name": customer_name,
+            "access_token": access_token,
+            "expires_at": expires_at.isoformat(),
+            # 이미지 목록 초기화
+            "images": [],
+            "image_count": 0,
+            "images_approved": 0,
+            "images_rejected": 0,
+            "images_modified": 0,
+            "images_pending": 0,
+            "export_ready": False,
+        }
+
+        self.sessions[session_id] = session
+        self._save_session(session_id)
+
+        return session
+
+    def validate_session_access(
+        self,
+        session_id: str,
+        access_token: str = None,
+    ) -> bool:
+        """세션 접근 권한 검증
+
+        Args:
+            session_id: 세션 ID
+            access_token: 접근 토큰 (선택)
+
+        Returns:
+            접근 가능 여부
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+
+        # 워크플로우 잠금 세션인 경우 토큰 검증
+        if session.get("workflow_locked"):
+            stored_token = session.get("access_token")
+            if stored_token and access_token != stored_token:
+                return False
+
+            # 만료 시간 확인
+            expires_at = session.get("expires_at")
+            if expires_at:
+                from datetime import datetime as dt
+                try:
+                    expire_time = dt.fromisoformat(expires_at.replace("Z", "+00:00"))
+                    if dt.now() > expire_time:
+                        return False
+                except (ValueError, AttributeError):
+                    pass
+
+        return True
+
+    def validate_parameter_modification(
+        self,
+        session_id: str,
+        parameters: Dict[str, Any],
+    ) -> tuple[bool, str]:
+        """파라미터 수정 권한 검증
+
+        Args:
+            session_id: 세션 ID
+            parameters: 수정할 파라미터
+
+        Returns:
+            (허용 여부, 에러 메시지)
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False, "세션을 찾을 수 없습니다"
+
+        lock_level = session.get("lock_level", "none")
+
+        if lock_level == "full":
+            return False, "이 세션은 파라미터 수정이 허용되지 않습니다"
+
+        if lock_level == "parameters":
+            allowed = session.get("allowed_parameters", [])
+            for param in parameters.keys():
+                if param not in allowed:
+                    return False, f"파라미터 '{param}' 수정이 허용되지 않습니다"
+
+        return True, ""
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """세션 조회"""
@@ -202,6 +372,22 @@ class SessionService:
 
         return sessions[:limit]
 
+    def list_sessions_by_project(
+        self,
+        project_id: str,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """프로젝트별 세션 목록 조회 (Phase 2)"""
+        all_sessions = self.list_sessions(limit=1000)  # 전체 조회
+
+        # 프로젝트 ID로 필터
+        project_sessions = [
+            s for s in all_sessions
+            if s.get("project_id") == project_id
+        ]
+
+        return project_sessions[:limit]
+
     def delete_session(self, session_id: str) -> bool:
         """세션 삭제"""
         import shutil
@@ -235,6 +421,244 @@ class SessionService:
         self.sessions.clear()
 
         return deleted_count
+
+    # =========================================================================
+    # Phase 2C: 다중 이미지 세션 관리
+    # =========================================================================
+
+    def add_image(
+        self,
+        session_id: str,
+        image_id: str,
+        filename: str,
+        file_path: str,
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
+        thumbnail_base64: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """세션에 이미지 추가"""
+        session = self.get_session(session_id)
+        if not session:
+            return None
+
+        # images 리스트 초기화
+        if "images" not in session:
+            session["images"] = []
+
+        # 새 이미지 생성
+        new_image = {
+            "image_id": image_id,
+            "filename": filename,
+            "file_path": file_path,
+            "review_status": ImageReviewStatus.PENDING.value,
+            "detections": [],
+            "detection_count": 0,
+            "verified_count": 0,
+            "approved_count": 0,
+            "rejected_count": 0,
+            "image_width": image_width,
+            "image_height": image_height,
+            "thumbnail_base64": thumbnail_base64,
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "review_notes": None,
+            "order_index": len(session["images"]),
+        }
+
+        session["images"].append(new_image)
+        self._update_image_counts(session)
+        self._save_session(session_id)
+
+        return new_image
+
+    def get_images(self, session_id: str) -> List[Dict[str, Any]]:
+        """세션의 이미지 목록 조회"""
+        session = self.get_session(session_id)
+        if not session:
+            return []
+        return session.get("images", [])
+
+    def get_image(
+        self,
+        session_id: str,
+        image_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """세션의 특정 이미지 조회"""
+        images = self.get_images(session_id)
+        for img in images:
+            if img.get("image_id") == image_id:
+                return img
+        return None
+
+    def update_image(
+        self,
+        session_id: str,
+        image_id: str,
+        updates: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """이미지 정보 업데이트"""
+        session = self.get_session(session_id)
+        if not session:
+            return None
+
+        images = session.get("images", [])
+        for img in images:
+            if img.get("image_id") == image_id:
+                img.update(updates)
+                img["updated_at"] = datetime.now().isoformat()
+                self._update_image_counts(session)
+                self._save_session(session_id)
+                return img
+        return None
+
+    def update_image_review(
+        self,
+        session_id: str,
+        image_id: str,
+        review_status: str,
+        reviewed_by: Optional[str] = None,
+        review_notes: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """이미지 검토 상태 업데이트"""
+        updates = {
+            "review_status": review_status,
+            "reviewed_at": datetime.now().isoformat(),
+        }
+        if reviewed_by:
+            updates["reviewed_by"] = reviewed_by
+        if review_notes:
+            updates["review_notes"] = review_notes
+
+        return self.update_image(session_id, image_id, updates)
+
+    def set_image_detections(
+        self,
+        session_id: str,
+        image_id: str,
+        detections: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        """이미지 검출 결과 저장"""
+        updates = {
+            "detections": detections,
+            "detection_count": len(detections),
+            "review_status": ImageReviewStatus.PROCESSED.value,
+            "verification_status": {d["id"]: "pending" for d in detections},
+        }
+        return self.update_image(session_id, image_id, updates)
+
+    def delete_image(
+        self,
+        session_id: str,
+        image_id: str
+    ) -> bool:
+        """이미지 삭제"""
+        import shutil
+
+        session = self.get_session(session_id)
+        if not session:
+            return False
+
+        images = session.get("images", [])
+        original_count = len(images)
+
+        # 이미지 찾기 및 파일 삭제
+        for img in images:
+            if img.get("image_id") == image_id:
+                file_path = Path(img.get("file_path", ""))
+                if file_path.exists():
+                    file_path.unlink()
+                break
+
+        # 목록에서 제거
+        session["images"] = [
+            img for img in images
+            if img.get("image_id") != image_id
+        ]
+
+        # 순서 재정렬
+        for i, img in enumerate(session["images"]):
+            img["order_index"] = i
+
+        self._update_image_counts(session)
+        self._save_session(session_id)
+
+        return len(session["images"]) < original_count
+
+    def get_image_progress(self, session_id: str) -> SessionImageProgress:
+        """세션 이미지 진행률 조회"""
+        session = self.get_session(session_id)
+        if not session:
+            return SessionImageProgress()
+
+        images = session.get("images", [])
+        total = len(images)
+
+        if total == 0:
+            return SessionImageProgress()
+
+        counts = {
+            "pending": 0,
+            "processed": 0,
+            "approved": 0,
+            "rejected": 0,
+            "modified": 0,
+            "manual_labeled": 0,
+        }
+
+        for img in images:
+            status = img.get("review_status", "pending")
+            if status in counts:
+                counts[status] += 1
+
+        # 완료 항목 (approved, modified, manual_labeled)
+        completed = counts["approved"] + counts["modified"] + counts["manual_labeled"]
+        progress = (completed / total) * 100 if total > 0 else 0
+
+        # Export 가능 여부 (pending, processed가 없고, rejected만 있지 않을 때)
+        all_reviewed = counts["pending"] == 0 and counts["processed"] == 0
+        export_ready = all_reviewed and completed > 0
+
+        return SessionImageProgress(
+            total_images=total,
+            pending_count=counts["pending"],
+            processed_count=counts["processed"],
+            approved_count=counts["approved"],
+            rejected_count=counts["rejected"],
+            modified_count=counts["modified"],
+            manual_labeled_count=counts["manual_labeled"],
+            progress_percent=round(progress, 1),
+            all_reviewed=all_reviewed,
+            export_ready=export_ready,
+        )
+
+    def _update_image_counts(self, session: Dict[str, Any]):
+        """세션의 이미지 카운트 업데이트"""
+        images = session.get("images", [])
+
+        counts = {
+            "pending": 0,
+            "processed": 0,
+            "approved": 0,
+            "rejected": 0,
+            "modified": 0,
+            "manual_labeled": 0,
+        }
+
+        for img in images:
+            status = img.get("review_status", "pending")
+            if status in counts:
+                counts[status] += 1
+
+        session["image_count"] = len(images)
+        session["images_approved"] = counts["approved"]
+        session["images_rejected"] = counts["rejected"]
+        session["images_modified"] = counts["modified"]
+        session["images_pending"] = counts["pending"] + counts["processed"]
+
+        # Export 가능 여부
+        completed = counts["approved"] + counts["modified"] + counts["manual_labeled"]
+        all_reviewed = counts["pending"] == 0 and counts["processed"] == 0
+        session["export_ready"] = all_reviewed and completed > 0
 
     def _save_session(self, session_id: str):
         """세션 파일 저장"""

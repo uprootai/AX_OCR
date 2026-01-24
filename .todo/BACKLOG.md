@@ -1,6 +1,6 @@
 # 백로그 (향후 작업)
 
-> 마지막 업데이트: 2026-01-22
+> 마지막 업데이트: 2026-01-24
 > 미래 작업 및 참조 문서
 
 ---
@@ -9,38 +9,70 @@
 
 | 항목 | 값 |
 |------|-----|
-| **테스트** | 668개 (web-ui 304, gateway 364) |
-| **빌드** | ✅ 15.00s |
+| **테스트** | 693개 (web-ui 304, gateway 389) |
+| **빌드** | ✅ 15.30s |
 | **ESLint** | 0 errors, 1 warning |
-| **노드 정의** | 30개 |
-| **API 서비스** | 20개 |
+| **노드 정의** | 31개 |
+| **API 서비스** | 21개 |
 
 ---
 
-## 📋 향후 작업 목록
+## ✅ 완료: Self-contained Export 프론트엔드 추가
 
-### 0. DSE Bearing 100점 달성 ✅ 완료
+> **완료일**: 2026-01-24
+> **담당 파일**: `blueprint-ai-bom/backend/services/self_contained_export_service.py`
 
-**우선순위**: P1 (고객 프로젝트)
-**진행 상태**: ✅ **전체 완료** (2026-01-22)
+### 구현 완료 내역
 
-| Phase | 작업 | 상태 |
-|-------|------|------|
-| Phase 1 | Title Block Parser | ✅ 완료 |
-| Phase 2 | Parts List 강화 | ✅ 완료 |
-| Phase 3 | 복합 치수 파서 | ✅ 완료 |
-| Phase 4 | BOM 자동 매칭 | ✅ 완료 |
-| Phase 5 | 견적 자동화 | ✅ 완료 |
-| Phase 6 | 통합 파이프라인 | ✅ 완료 |
+| # | 작업 | 상태 |
+|---|------|------|
+| 1 | `SERVICE_PORT_MAP`에 프론트엔드 3000 추가 | ✅ |
+| 2 | `BACKEND_TO_FRONTEND_MAP` 추가 (자동 포함) | ✅ |
+| 3 | `FRONTEND_SERVICES` 집합 추가 | ✅ |
+| 4 | `detect_required_services()` 프론트엔드 자동 포함 | ✅ |
+| 5 | `generate_docker_compose()` 프론트엔드 처리 (포트 80) | ✅ |
+| 6 | Import 스크립트 UI URL 강조 | ✅ |
+| 7 | README.md Quick Start 섹션 추가 | ✅ |
+| 8 | 로직 테스트 검증 | ✅ |
 
-**완료 내역**:
-- 전체 API 파이프라인 구현
-- 25개 단위 테스트 통과
-- E2E 테스트 통과
-- Excel/PDF 견적서 출력
-- API 문서화 완료
+### 결과
+
+- 백엔드 포함 시 프론트엔드 **자동 포함**
+- Import 후 `http://localhost:13000` (offset=10000) 으로 UI 접속 가능
+- Import 스크립트에서 UI URL 강조 표시
 
 ---
+
+## 📋 P1: web-ui (BlueprintFlow) Export 검토
+
+**우선순위**: P1
+**예상 작업량**: 4시간
+
+### 검토 필요 사항
+
+| 질문 | 현재 | 결정 필요 |
+|------|------|----------|
+| web-ui도 Export 필요? | ❌ 미포함 | 검토 필요 |
+| 고객이 워크플로우 편집 필요? | N/A | 요구사항 확인 |
+| web-ui 없이 BOM만 사용 가능? | ✅ 가능 | - |
+
+### 선택지
+
+1. **web-ui 미포함 (현재)**
+   - 장점: 패키지 크기 작음
+   - 단점: 고객이 워크플로우 수정 불가
+
+2. **web-ui 포함**
+   - 장점: 고객이 워크플로우 수정 가능
+   - 단점: 패키지 크기 증가, 복잡도 증가
+
+3. **옵션으로 제공**
+   - `include_web_ui: bool` 파라미터 추가
+   - 고객 요구에 따라 선택
+
+---
+
+## 📋 P2: 기타 향후 작업
 
 ### 1. 시각화 기능 확장
 
@@ -49,48 +81,37 @@
 
 | 기능 | 상태 |
 |------|------|
-| ConfidenceDistributionChart | ✅ 완료 (2026-01-22) |
+| ConfidenceDistributionChart | ✅ 완료 |
 | 인터랙티브 심볼 선택 | ⏳ 계획됨 |
-| 레이어 토글 (심볼/텍스트/라인) | ⏳ 계획됨 |
-| 애니메이션 효과 | ⏳ 계획됨 |
-| 줌/팬 개선 | ⏳ 계획됨 |
+| 레이어 토글 | ⏳ 계획됨 |
 
-**상세**: `archive/02_VISUALIZATION_EXTENSION.md`
-
----
-
-### 2. 테스트 커버리지 추가 확대
+### 2. 테스트 커버리지 확대
 
 **우선순위**: P2
-**진행 상태**: 목표 달성, 추가 개선 가능
 
-| 영역 | 현재 | 목표 | 상태 |
-|------|------|------|------|
-| Gateway API | 364개 | 400개+ | ⏳ 진행 중 |
-| Web-UI | 304개 | 350개+ | ✅ 초과 달성 |
-| E2E | ~50개 | 100개+ | ⏳ 계획됨 |
+| 영역 | 현재 | 목표 |
+|------|------|------|
+| Gateway API | 389개 | 400개+ |
+| Web-UI | 304개 | 350개+ |
+| E2E | ~50개 | 100개+ |
 
-**추가 개선 영역**:
-- 에러 핸들링 케이스
-- 엣지 케이스 (빈 입력, 대용량 등)
-- 통합 테스트 (API 간 연동)
+### 3. Dimension Parser 강화
 
----
+**우선순위**: P2
 
-### 3. Gateway 서비스 추가 분리
+- 복합 치수 (예: `Φ50±0.05`)
+- 공차 범위 파싱
+- 단위 변환 (mm ↔ inch)
 
-**우선순위**: P3
-**진행 상태**: 계획됨
+### 4. 고객 프로파일 확장
 
-| 서비스 | 현재 위치 | 분리 대상 |
-|--------|----------|----------|
-| VL Service | gateway-api | 별도 API 후보 |
-| Batch Processing | gateway-api | 별도 워커 후보 |
+**우선순위**: P2
 
-**분리 기준**:
-- 독립적인 스케일링 필요
-- 리소스 사용량이 큰 서비스
-- 재사용 가능한 기능
+| 고객 | 현재 | 추가 필요 |
+|------|------|----------|
+| DSE Bearing | ✅ 완료 | - |
+| DOOSAN | 기본 | 상세 설정 |
+| PANASIA | 기본 | 상세 설정 |
 
 ---
 
@@ -98,25 +119,12 @@
 
 | 작업 | 완료일 | 상세 |
 |------|--------|------|
+| **Self-contained Export 프론트엔드** | 2026-01-24 | Phase 2I 완료, UI URL 자동 포함 |
+| DSE Bearing 100점 | 2026-01-22 | 6 Phase 전체 완료 |
+| Blueprint AI BOM Phase 2 | 2026-01-24 | 2A~2I 완료 |
+| Self-contained Export (백엔드) | 2026-01-24 | 포트 오프셋 기능 포함 |
 | MODEL_DEFAULTS 패턴 확장 | 2026-01-19 | 19개 API 적용 |
-| 프론트엔드 프로파일 동기화 | 2026-01-19 | 14 노드 profiles 필드 |
 | Toast 마이그레이션 | 2026-01-16 | 12개 파일 완료 |
-
----
-
-## 📚 참조 문서
-
-### 새 API 추가 체크리스트
-
-**위치**: `.claude/skills/api-creation-guide.md`
-
-새 API 추가 시 스캐폴딩 스크립트 및 체크리스트:
-
-```bash
-python scripts/create_api.py {api-name} --port {port} --category {category}
-```
-
-**상세 가이드**: `.claude/skills/api-creation-guide.md` 참조
 
 ---
 
@@ -124,12 +132,23 @@ python scripts/create_api.py {api-name} --port {port} --category {category}
 
 | 분기 | 작업 | 우선순위 | 상태 |
 |------|------|----------|------|
-| Q1 2026 | Toast 마이그레이션 | P1 | ✅ 완료 |
-| Q1 2026 | 테스트 커버리지 80%+ | P2 | ✅ 목표 달성 |
-| **Q1 2026** | **DSE Bearing 100점** | **P1** | ⏳ 계획 완료 |
-| Q2 2026 | 시각화 기능 확장 | P3 | ⏳ 진행 중 |
+| Q1 2026 | DSE Bearing 100점 | P1 | ✅ 완료 |
+| Q1 2026 | Blueprint AI BOM Phase 2 | P1 | ✅ 완료 |
+| Q1 2026 | Self-contained 프론트엔드 | P0 | ✅ 완료 |
+| Q2 2026 | 시각화 기능 확장 | P3 | ⏳ 계획됨 |
 | Q2 2026 | Gateway 서비스 분리 | P3 | ⏳ 계획됨 |
 
 ---
 
-*마지막 업데이트: 2026-01-22*
+## 📚 참조 문서
+
+| 문서 | 위치 |
+|------|------|
+| 새 API 추가 가이드 | `.claude/skills/api-creation-guide.md` |
+| 모듈화 가이드 | `.claude/skills/modularization-guide.md` |
+| Phase 2 아키텍처 | `.todo/archive/BLUEPRINT_ARCHITECTURE_V2.md` |
+| DSE Bearing 계획 | `.todo/archive/DSE_BEARING_100_PLAN.md` |
+
+---
+
+*마지막 업데이트: 2026-01-24*
