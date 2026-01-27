@@ -64,6 +64,17 @@ export function DocsSection({ sectionRef }: DocsSectionProps) {
                 <li>* Synthetic Data Strategy</li>
               </ul>
             </div>
+            <div className="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-lg md:col-span-2">
+              <h3 className="font-semibold text-rose-900 dark:text-rose-100 mb-2 flex items-center">
+                <span className="mr-2">[BOM]</span> Blueprint AI BOM v10.5
+              </h3>
+              <ul className="text-sm space-y-1 text-rose-800 dark:text-rose-200">
+                <li>* Template → Project → Session workflow architecture</li>
+                <li>* Self-contained Export (Docker images + port offset)</li>
+                <li>* Human-in-the-Loop image review system</li>
+                <li>* Customer-model mapping (8 customers, auto YOLO model selection)</li>
+              </ul>
+            </div>
           </div>
 
           <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">

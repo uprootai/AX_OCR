@@ -45,6 +45,8 @@ from routers.project_router import router as project_router_api
 from routers.template_router import router as template_router_api
 # Phase 2E: Export 라우터
 from routers.export_router import router as export_router_api, set_export_services
+# Reference Sets (커스텀 참조 도면) 라우터
+from routers.reference_router import router as reference_router_api
 from schemas.session import SessionCreate, SessionResponse
 from services.session_service import SessionService
 from services.detection_service import DetectionService
@@ -78,6 +80,9 @@ DATA_DIR.mkdir(exist_ok=True)
 # Phase 2E: Export 디렉토리
 EXPORT_DIR = BASE_DIR / "exports"
 EXPORT_DIR.mkdir(exist_ok=True)
+# Reference Sets (커스텀 참조 도면) 디렉토리
+REFERENCE_SETS_DIR = DATA_DIR / "reference_sets"
+REFERENCE_SETS_DIR.mkdir(exist_ok=True)
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -156,6 +161,7 @@ app.include_router(settings_router_api, tags=["Settings"])  # API 키 설정
 app.include_router(project_router_api, tags=["Projects"])  # 프로젝트 관리
 app.include_router(template_router_api, tags=["Templates"])  # 템플릿 관리
 app.include_router(export_router_api, tags=["Export"])  # Phase 2E: Export
+app.include_router(reference_router_api, tags=["Reference Sets"])  # 커스텀 참조 도면
 
 
 @app.get("/")

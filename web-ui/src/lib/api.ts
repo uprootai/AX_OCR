@@ -9,32 +9,33 @@ import type {
   GenericAPIResponse,
 } from '../types/api';
 
-// API Base URLs (환경변수로 설정 가능)
-const API_BASE = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8000';
-const EDOCR2_BASE = import.meta.env.VITE_EDOCR2_URL || 'http://localhost:5001';
-const EDOCR2_V2_BASE = import.meta.env.VITE_EDOCR2_V2_URL || 'http://localhost:5002';
-const EDGNET_BASE = import.meta.env.VITE_EDGNET_URL || 'http://localhost:5012';
-const SKINMODEL_BASE = import.meta.env.VITE_SKINMODEL_URL || 'http://localhost:5003';
-const YOLO_BASE = import.meta.env.VITE_YOLO_URL || 'http://localhost:5005';
-const PADDLEOCR_BASE = import.meta.env.VITE_PADDLEOCR_URL || 'http://localhost:5006';
-const VL_BASE = import.meta.env.VITE_VL_URL || 'http://localhost:5004';
+// API Base URLs (환경변수로 설정 가능) - 다른 파일에서도 사용 가능하도록 export
+export const API_BASE = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8000';
+export const GATEWAY_URL = API_BASE; // alias
+export const EDOCR2_BASE = import.meta.env.VITE_EDOCR2_URL || 'http://localhost:5001';
+export const EDOCR2_V2_BASE = import.meta.env.VITE_EDOCR2_V2_URL || 'http://localhost:5002';
+export const EDGNET_BASE = import.meta.env.VITE_EDGNET_URL || 'http://localhost:5012';
+export const SKINMODEL_BASE = import.meta.env.VITE_SKINMODEL_URL || 'http://localhost:5003';
+export const YOLO_BASE = import.meta.env.VITE_YOLO_URL || 'http://localhost:5005';
+export const PADDLEOCR_BASE = import.meta.env.VITE_PADDLEOCR_URL || 'http://localhost:5006';
+export const VL_BASE = import.meta.env.VITE_VL_URL || 'http://localhost:5004';
 
 // Additional OCR Services
-const TESSERACT_BASE = import.meta.env.VITE_TESSERACT_URL || 'http://localhost:5008';
-const TROCR_BASE = import.meta.env.VITE_TROCR_URL || 'http://localhost:5009';
-const ESRGAN_BASE = import.meta.env.VITE_ESRGAN_URL || 'http://localhost:5010';
-const OCR_ENSEMBLE_BASE = import.meta.env.VITE_OCR_ENSEMBLE_URL || 'http://localhost:5011';
-const SURYA_OCR_BASE = import.meta.env.VITE_SURYA_OCR_URL || 'http://localhost:5013';
-const DOCTR_BASE = import.meta.env.VITE_DOCTR_URL || 'http://localhost:5014';
-const EASYOCR_BASE = import.meta.env.VITE_EASYOCR_URL || 'http://localhost:5015';
+export const TESSERACT_BASE = import.meta.env.VITE_TESSERACT_URL || 'http://localhost:5008';
+export const TROCR_BASE = import.meta.env.VITE_TROCR_URL || 'http://localhost:5009';
+export const ESRGAN_BASE = import.meta.env.VITE_ESRGAN_URL || 'http://localhost:5010';
+export const OCR_ENSEMBLE_BASE = import.meta.env.VITE_OCR_ENSEMBLE_URL || 'http://localhost:5011';
+export const SURYA_OCR_BASE = import.meta.env.VITE_SURYA_OCR_URL || 'http://localhost:5013';
+export const DOCTR_BASE = import.meta.env.VITE_DOCTR_URL || 'http://localhost:5014';
+export const EASYOCR_BASE = import.meta.env.VITE_EASYOCR_URL || 'http://localhost:5015';
 
 // Knowledge & P&ID Services
-const KNOWLEDGE_BASE = import.meta.env.VITE_KNOWLEDGE_URL || 'http://localhost:5007';
-const LINE_DETECTOR_BASE = import.meta.env.VITE_LINE_DETECTOR_URL || 'http://localhost:5016';
-const PID_ANALYZER_BASE = import.meta.env.VITE_PID_ANALYZER_URL || 'http://localhost:5018';
-const DESIGN_CHECKER_BASE = import.meta.env.VITE_DESIGN_CHECKER_URL || 'http://localhost:5019';
-const BLUEPRINT_AI_BOM_BASE = import.meta.env.VITE_BLUEPRINT_AI_BOM_URL || 'http://localhost:5020';
-const PID_COMPOSER_BASE = import.meta.env.VITE_PID_COMPOSER_URL || 'http://localhost:5021';
+export const KNOWLEDGE_BASE = import.meta.env.VITE_KNOWLEDGE_URL || 'http://localhost:5007';
+export const LINE_DETECTOR_BASE = import.meta.env.VITE_LINE_DETECTOR_URL || 'http://localhost:5016';
+export const PID_ANALYZER_BASE = import.meta.env.VITE_PID_ANALYZER_URL || 'http://localhost:5018';
+export const DESIGN_CHECKER_BASE = import.meta.env.VITE_DESIGN_CHECKER_URL || 'http://localhost:5019';
+export const BLUEPRINT_AI_BOM_BASE = import.meta.env.VITE_BLUEPRINT_AI_BOM_URL || 'http://localhost:5020';
+export const PID_COMPOSER_BASE = import.meta.env.VITE_PID_COMPOSER_URL || 'http://localhost:5021';
 
 // Axios 인스턴스 생성
 const gatewayAPI = axios.create({ baseURL: API_BASE });
@@ -46,22 +47,23 @@ const yoloAPI = axios.create({ baseURL: YOLO_BASE });
 const paddleocrAPI = axios.create({ baseURL: PADDLEOCR_BASE });
 const vlAPI = axios.create({ baseURL: VL_BASE });
 
-// Additional OCR Services
-const tesseractAPI = axios.create({ baseURL: TESSERACT_BASE });
-const trocrAPI = axios.create({ baseURL: TROCR_BASE });
-const esrganAPI = axios.create({ baseURL: ESRGAN_BASE });
-const ocrEnsembleAPI = axios.create({ baseURL: OCR_ENSEMBLE_BASE });
+// Additional OCR Services (used for health checks via individual API calls)
+// Note: Health checks now use silentHealthCheck() with URL constants directly
 const suryaOcrAPI = axios.create({ baseURL: SURYA_OCR_BASE });
 const doctrAPI = axios.create({ baseURL: DOCTR_BASE });
 const easyocrAPI = axios.create({ baseURL: EASYOCR_BASE });
 
-// Knowledge & P&ID Services
-const knowledgeAPI = axios.create({ baseURL: KNOWLEDGE_BASE });
-const lineDetectorAPI = axios.create({ baseURL: LINE_DETECTOR_BASE });
-const pidAnalyzerAPI = axios.create({ baseURL: PID_ANALYZER_BASE });
-const designCheckerAPI = axios.create({ baseURL: DESIGN_CHECKER_BASE });
-const blueprintAiBomAPI = axios.create({ baseURL: BLUEPRINT_AI_BOM_BASE });
-const pidComposerAPI = axios.create({ baseURL: PID_COMPOSER_BASE });
+// Unused axios instances (health checks use fetch API now)
+// const tesseractAPI = axios.create({ baseURL: TESSERACT_BASE });
+// const trocrAPI = axios.create({ baseURL: TROCR_BASE });
+// const esrganAPI = axios.create({ baseURL: ESRGAN_BASE });
+// const ocrEnsembleAPI = axios.create({ baseURL: OCR_ENSEMBLE_BASE });
+// const knowledgeAPI = axios.create({ baseURL: KNOWLEDGE_BASE });
+// const lineDetectorAPI = axios.create({ baseURL: LINE_DETECTOR_BASE });
+// const pidAnalyzerAPI = axios.create({ baseURL: PID_ANALYZER_BASE });
+// const designCheckerAPI = axios.create({ baseURL: DESIGN_CHECKER_BASE });
+// const blueprintAiBomAPI = axios.create({ baseURL: BLUEPRINT_AI_BOM_BASE });
+// const pidComposerAPI = axios.create({ baseURL: PID_COMPOSER_BASE });
 
 // 진행률 콜백 타입
 export type ProgressCallback = (progress: number) => void;
@@ -562,36 +564,134 @@ export const easyocrApi = {
 
 // ==================== 유틸리티 함수 ====================
 
-// 모든 서비스 헬스체크 (19개 API - 실제 Docker 컨테이너 기준)
+// Silent health check using fetch (no console errors for failed requests)
+const silentHealthCheck = async (url: string, timeout = 3000): Promise<boolean> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    clearTimeout(timeoutId);
+    return false;
+  }
+};
+
+// API ID -> Health Check URL 매핑
+const API_HEALTH_URLS: Record<string, string> = {
+  gateway: `${API_BASE}/api/v1/health`,
+  yolo: `${YOLO_BASE}/api/v1/health`,
+  edocr2: `${EDOCR2_V2_BASE}/api/v1/health`,
+  paddleocr: `${PADDLEOCR_BASE}/health`,
+  tesseract: `${TESSERACT_BASE}/health`,
+  trocr: `${TROCR_BASE}/health`,
+  ocr_ensemble: `${OCR_ENSEMBLE_BASE}/health`,
+  surya_ocr: `${SURYA_OCR_BASE}/health`,
+  doctr: `${DOCTR_BASE}/health`,
+  easyocr: `${EASYOCR_BASE}/health`,
+  edgnet: `${EDGNET_BASE}/health`,
+  line_detector: `${LINE_DETECTOR_BASE}/health`,
+  esrgan: `${ESRGAN_BASE}/health`,
+  skinmodel: `${SKINMODEL_BASE}/health`,
+  pid_analyzer: `${PID_ANALYZER_BASE}/health`,
+  design_checker: `${DESIGN_CHECKER_BASE}/health`,
+  knowledge: `${KNOWLEDGE_BASE}/health`,
+  vl: `${VL_BASE}/health`,
+  blueprint_ai_bom: `${BLUEPRINT_AI_BOM_BASE}/health`,
+  pid_composer: `${PID_COMPOSER_BASE}/health`,
+};
+
+// Container name -> API ID 매핑
+const CONTAINER_TO_API: Record<string, string> = {
+  'gateway-api': 'gateway',
+  'yolo-api': 'yolo',
+  'edocr2-v2-api': 'edocr2',
+  'paddleocr-api': 'paddleocr',
+  'tesseract-api': 'tesseract',
+  'trocr-api': 'trocr',
+  'ocr-ensemble-api': 'ocr_ensemble',
+  'surya-ocr-api': 'surya_ocr',
+  'doctr-api': 'doctr',
+  'easyocr-api': 'easyocr',
+  'edgnet-api': 'edgnet',
+  'line-detector-api': 'line_detector',
+  'esrgan-api': 'esrgan',
+  'skinmodel-api': 'skinmodel',
+  'pid-analyzer-api': 'pid_analyzer',
+  'design-checker-api': 'design_checker',
+  'knowledge-api': 'knowledge',
+  'vl-api': 'vl',
+  'blueprint-ai-bom-backend': 'blueprint_ai_bom',
+  'pid-composer-api': 'pid_composer',
+};
+
+// 모든 서비스 헬스체크 (실행 중인 컨테이너만 체크 - 콘솔 에러 방지)
 export const checkAllServices = async () => {
-  // 각 서비스의 헬스체크를 개별적으로 수행 (일부 실패해도 나머지 확인 가능)
-  const healthChecks: Record<string, Promise<boolean>> = {
-    gateway: gatewayAPI.get('/api/v1/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    yolo: yoloAPI.get('/api/v1/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    edocr2: edocr2V2API.get('/api/v1/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    paddleocr: paddleocrAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    tesseract: tesseractAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    trocr: trocrAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    ocr_ensemble: ocrEnsembleAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    surya_ocr: suryaOcrAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    doctr: doctrAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    easyocr: easyocrAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    edgnet: edgnetAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    line_detector: lineDetectorAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    esrgan: esrganAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    skinmodel: skinmodelAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    pid_analyzer: pidAnalyzerAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    design_checker: designCheckerAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    knowledge: knowledgeAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    vl: vlAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    blueprint_ai_bom: blueprintAiBomAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-    pid_composer: pidComposerAPI.get('/health', { timeout: 3000 }).then(() => true).catch(() => false),
-  };
+  const results: Record<string, boolean> = {};
 
-  const entries = Object.entries(healthChecks);
-  const results = await Promise.all(entries.map(async ([key, promise]) => [key, await promise]));
+  // 모든 API를 기본적으로 false로 초기화
+  Object.keys(API_HEALTH_URLS).forEach(apiId => {
+    results[apiId] = false;
+  });
 
-  return Object.fromEntries(results) as Record<string, boolean>;
+  try {
+    // 1. Gateway에서 실행 중인 컨테이너 목록 가져오기
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(`${API_BASE}/api/v1/containers`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // Gateway 실패 시 모든 API를 false로 반환
+      return results;
+    }
+
+    const data = await response.json();
+    const containers = data.containers || [];
+
+    // 2. 실행 중인 컨테이너만 필터링
+    const runningContainers = containers
+      .filter((c: { status: string }) => c.status === 'running')
+      .map((c: { name: string }) => c.name);
+
+    // 3. 실행 중인 컨테이너에 대해서만 health check
+    const runningApiIds = runningContainers
+      .map((name: string) => CONTAINER_TO_API[name])
+      .filter((id: string | undefined): id is string => !!id);
+
+    // Gateway는 항상 체크 (위 요청이 성공했으면 running)
+    results['gateway'] = true;
+
+    // 4. 실행 중인 API들만 health check
+    const healthPromises = runningApiIds
+      .filter((id: string) => id !== 'gateway') // gateway는 이미 체크됨
+      .map(async (apiId: string) => {
+        const url = API_HEALTH_URLS[apiId];
+        if (url) {
+          const healthy = await silentHealthCheck(url);
+          return { apiId, healthy };
+        }
+        return { apiId, healthy: false };
+      });
+
+    const healthResults = await Promise.all(healthPromises);
+    healthResults.forEach(({ apiId, healthy }) => {
+      results[apiId] = healthy;
+    });
+
+  } catch {
+    // Gateway 연결 실패 시 모든 API를 false로 유지
+  }
+
+  return results;
 };
 
 // ==================== BlueprintFlow Workflow API ====================
@@ -888,31 +988,41 @@ export const checkAllServicesIncludingCustom = async (): Promise<Record<string, 
   // 기본 서비스 체크 (returns Record<string, boolean>)
   const baseResults = await checkAllServices();
 
-  // 커스텀 API 클라이언트 가져오기
-  const customClients = getAllDynamicAPIClients();
+  // 커스텀 API URL 정보 가져오기
+  const customAPIsJSON = localStorage.getItem('custom-apis-storage');
+  if (!customAPIsJSON) {
+    return baseResults;
+  }
 
-  // 커스텀 API 헬스체크
-  const customHealthChecks = Object.entries(customClients).map(async ([id, client]) => {
-    try {
-      await client.healthCheck();
-      return { id, healthy: true };
-    } catch {
-      return { id, healthy: false };
-    }
-  });
+  try {
+    const storage = JSON.parse(customAPIsJSON);
+    const customAPIs: Array<{ id: string; enabled: boolean; baseUrl: string }> = storage.state?.customAPIs || [];
 
-  const customResults = await Promise.all(customHealthChecks);
+    // 커스텀 API 헬스체크 (silentHealthCheck 사용 - 콘솔 에러 방지)
+    const customHealthChecks = customAPIs
+      .filter(api => api.enabled)
+      .map(async (api) => {
+        // 각 custom API의 health endpoint URL 추정
+        const healthUrl = `${api.baseUrl}/api/v1/health`;
+        const healthy = await silentHealthCheck(healthUrl);
+        return { id: api.id, healthy };
+      });
 
-  // 커스텀 결과를 객체로 변환
-  const customResultsObj: Record<string, boolean> = {};
-  customResults.forEach(({ id, healthy }) => {
-    customResultsObj[id] = healthy;
-  });
+    const customResults = await Promise.all(customHealthChecks);
 
-  return {
-    ...baseResults,
-    ...customResultsObj,
-  };
+    // 커스텀 결과를 객체로 변환
+    const customResultsObj: Record<string, boolean> = {};
+    customResults.forEach(({ id, healthy }) => {
+      customResultsObj[id] = healthy;
+    });
+
+    return {
+      ...baseResults,
+      ...customResultsObj,
+    };
+  } catch {
+    return baseResults;
+  }
 };
 
 // =====================

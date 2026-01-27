@@ -1,0 +1,38 @@
+{
+  "export_version": "3.0",
+  "export_timestamp": "2026-01-26T10:08:15.442639",
+  "export_type": "self-contained",
+  "session_id": "341a95dd-467e-4e01-a763-00603e7f52bd",
+  "session_filename": "workflow_PANASIA: MCP Panel \uc2ec\ubcfc \uac80\ucd9c + GT \ube44\uad50",
+  "drawing_type": "auto",
+  "image_count": 0,
+  "detection_count": 0,
+  "included_services": [
+    "blueprint-ai-bom-backend",
+    "blueprint-ai-bom-frontend",
+    "gateway-api",
+    "yolo-api"
+  ],
+  "port_offset": 10000,
+  "container_prefix": "panasia",
+  "port_mapping": {
+    "blueprint-ai-bom-backend": {
+      "original": 5020,
+      "mapped": 15020
+    },
+    "blueprint-ai-bom-frontend": {
+      "original": 3000,
+      "mapped": 13000
+    },
+    "gateway-api": {
+      "original": 8000,
+      "mapped": 18000
+    },
+    "yolo-api": {
+      "original": 5005,
+      "mapped": 15005
+    }
+  },
+  "exported_by": "Claude",
+  "notes": "PANASIA MCP Panel \uc2ec\ubcfc \uac80\ucd9c + GT \ube44\uad50 \ud15c\ud50c\ub9bf"
+}

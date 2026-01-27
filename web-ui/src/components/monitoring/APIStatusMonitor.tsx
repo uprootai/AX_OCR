@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { checkAllServicesIncludingCustom } from '../../lib/api';
+import { checkAllServicesIncludingCustom, GATEWAY_URL } from '../../lib/api';
 import { useAPIConfigStore } from '../../store/apiConfigStore';
 import { API_TO_CONTAINER, API_TO_SPEC_ID } from '../../config/apiRegistry';
 
@@ -123,7 +123,7 @@ export default function APIStatusMonitor() {
 
     try {
       const response = await axios.post(
-        `http://localhost:8000/api/v1/containers/${containerName}/${action}`,
+        `${GATEWAY_URL}/api/v1/containers/${containerName}/${action}`,
         {},
         { timeout: 30000 }
       );
@@ -187,7 +187,7 @@ export default function APIStatusMonitor() {
     if (action === 'start') {
       for (const depContainer of dependentContainers) {
         try {
-          await axios.post(`http://localhost:8000/api/v1/containers/${depContainer}/${action}`, {}, { timeout: 30000 });
+          await axios.post(`${GATEWAY_URL}/api/v1/containers/${depContainer}/${action}`, {}, { timeout: 30000 });
         } catch (error) {
           console.warn(`Failed to ${action} dependent container ${depContainer}:`, error);
         }
@@ -214,7 +214,7 @@ export default function APIStatusMonitor() {
       }
 
       try {
-        const response = await axios.post(`http://localhost:8000/api/v1/containers/${containerName}/${action}`, {}, { timeout: 30000 });
+        const response = await axios.post(`${GATEWAY_URL}/api/v1/containers/${containerName}/${action}`, {}, { timeout: 30000 });
         if (response.data?.success === true) {
           successCount++;
         } else {
@@ -241,7 +241,7 @@ export default function APIStatusMonitor() {
     if (action === 'stop') {
       for (const depContainer of dependentContainers) {
         try {
-          await axios.post(`http://localhost:8000/api/v1/containers/${depContainer}/${action}`, {}, { timeout: 30000 });
+          await axios.post(`${GATEWAY_URL}/api/v1/containers/${depContainer}/${action}`, {}, { timeout: 30000 });
         } catch (error) {
           console.warn(`Failed to ${action} dependent container ${depContainer}:`, error);
         }
@@ -270,10 +270,19 @@ export default function APIStatusMonitor() {
       const healthResults = await checkAllServicesIncludingCustom();
 
       let registryApis: APIInfo[] = [];
+      // Silent fetch for registry API (no console errors)
       try {
-        const registryResponse = await axios.get('http://localhost:8000/api/v1/registry/list', { timeout: 3000 });
-        if (registryResponse.data.apis) {
-          registryApis = registryResponse.data.apis as APIInfo[];
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const registryResponse = await fetch(`${GATEWAY_URL}/api/v1/registry/list`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (registryResponse.ok) {
+          const data = await registryResponse.json();
+          if (data.apis) {
+            registryApis = data.apis as APIInfo[];
+          }
         }
       } catch {
         // Gateway 실패해도 계속 진행
@@ -339,8 +348,15 @@ export default function APIStatusMonitor() {
 
   const triggerHealthCheck = async () => {
     setIsRefreshing(true);
+    // Silent fetch for health-check trigger (no console errors)
     try {
-      await axios.post('http://localhost:8000/api/v1/registry/health-check', {}, { timeout: 10000 });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      await fetch(`${GATEWAY_URL}/api/v1/registry/health-check`, {
+        method: 'POST',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
     } catch {
       // 무시
     }

@@ -33,12 +33,14 @@ interface SessionState {
   // 이미지
   imageData: string | null;
   imageSize: { width: number; height: number } | null;
+  currentImageId: string | null;  // 현재 선택된 이미지 ID (다중 이미지 세션용)
 
   // Actions
   uploadImage: (file: File) => Promise<string>;
   loadSession: (sessionId: string) => Promise<void>;
   loadSessions: (limit?: number) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
+  loadImage: (sessionId: string, imageId: string) => Promise<void>;  // 특정 이미지 로드
 
   // Detection actions
   runDetection: (config?: Partial<DetectionConfig>) => Promise<void>;
@@ -69,6 +71,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   bomData: null,
   imageData: null,
   imageSize: null,
+  currentImageId: null,
 
   // Upload image
   uploadImage: async (file: File) => {
@@ -99,10 +102,36 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         imageSize: session.image_width && session.image_height
           ? { width: session.image_width, height: session.image_height }
           : null,
+        currentImageId: null,  // 세션 로드 시 이미지 선택 초기화
         isLoading: false,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : '세션 로드 실패';
+      set({ error: message, isLoading: false });
+      throw error;
+    }
+  },
+
+  // Load specific image (다중 이미지 세션용)
+  loadImage: async (sessionId: string, imageId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      // 이미지 상세 정보 (검출 결과 포함)
+      const imageDetail = await sessionApi.getImageDetail(sessionId, imageId, true);
+      // 이미지 데이터 (base64)
+      const imageData = await sessionApi.getImageData(sessionId, imageId);
+
+      set({
+        detections: imageDetail.detections || [],
+        imageData: `data:${imageData.mime_type};base64,${imageData.image_base64}`,
+        imageSize: imageData.image_width && imageData.image_height
+          ? { width: imageData.image_width, height: imageData.image_height }
+          : null,
+        currentImageId: imageId,
+        isLoading: false,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '이미지 로드 실패';
       set({ error: message, isLoading: false });
       throw error;
     }
@@ -338,6 +367,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       bomData: null,
       imageData: null,
       imageSize: null,
+      currentImageId: null,
       error: null,
     }),
 }));

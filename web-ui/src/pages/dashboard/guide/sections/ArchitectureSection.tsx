@@ -12,25 +12,30 @@ export function ArchitectureSection({ sectionRef }: ArchitectureSectionProps) {
   const { t } = useTranslation();
 
   const architectureChart = `flowchart TB
-    subgraph Frontend["Frontend :5173"]
+    subgraph Frontend["Frontend :5173 + :3000"]
         UI[Web UI + BlueprintFlow]
+        BF[BOM Frontend :3000]
     end
 
     subgraph Gateway["Gateway :8000"]
-        GW[Orchestrator]
+        GW[Orchestrator + Templates]
     end
 
     subgraph Detection["Detection"]
         YOLO[YOLO :5005]
+        TD[TableDetector :5022]
     end
 
-    subgraph OCR["OCR"]
+    subgraph OCR["OCR x8"]
         direction LR
         ED[eDOCr2 :5002]
         PD[PaddleOCR :5006]
         TE[Tesseract :5008]
         TR[TrOCR :5009]
         EN[Ensemble :5011]
+        SU[SuryaOCR :5013]
+        DT[DocTR :5014]
+        EO[EasyOCR :5015]
     end
 
     subgraph Segmentation["Segmentation"]
@@ -46,10 +51,12 @@ export function ArchitectureSection({ sectionRef }: ArchitectureSectionProps) {
         SK[SkinModel :5003]
         PA[PID-Analyzer :5018]
         DC[DesignChecker :5019]
+        BOM[Blueprint AI BOM :5020]
     end
 
-    subgraph AI["AI"]
+    subgraph AI["AI + Visualization"]
         VL[VL :5004]
+        PC[PID Composer :5021]
     end
 
     subgraph Knowledge["Knowledge"]
@@ -57,6 +64,7 @@ export function ArchitectureSection({ sectionRef }: ArchitectureSectionProps) {
     end
 
     UI --> GW
+    BF --> BOM
     GW --> Detection
     GW --> OCR
     GW --> Segmentation

@@ -21,6 +21,8 @@ services:
       # Feedback Loop Pipeline v8.0
       - ./feedback:/data/feedback
       - ./yolo_training:/data/yolo_training
+      # Docker socket for Self-contained Export
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONUNBUFFERED=1
     restart: unless-stopped

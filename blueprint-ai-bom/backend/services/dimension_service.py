@@ -219,14 +219,70 @@ class DimensionService:
 
         Returns:
             (DimensionType, parsed_value, tolerance)
+
+        지원 패턴 (gateway dimensionparser_executor.py와 동기화):
+        - 직경: Ø50, ⌀50, φ50, Φ50
+        - 직경+공차: Φ50±0.05, Φ50+0.05/-0.02, Φ50H7
+        - 나사: M10, M10×1.5
+        - 반경: R50
+        - 챔퍼: C2, C2×45°
+        - 각도: 45°
+        - 표면거칠기: Ra 3.2
+        - 대칭공차: 50±0.1
+        - 비대칭공차: 50 +0.1/-0.05, 50-0.02+0.05
+        - 단방향공차: 50 +0.05/0, 50 0/-0.05
         """
         text = text.strip()
         tolerance = None
         dim_type = DimensionType.UNKNOWN
         parsed_value = text
 
-        # 직경 패턴: Ø50, ⌀50, φ50
-        if re.match(r'^[Ø⌀φ]\s*\d+', text):
+        # ========== 복합 패턴 (먼저 검사 - 더 구체적인 패턴) ==========
+
+        # 직경 + 대칭 공차: Φ50±0.05
+        match = re.match(r'^[ØφΦ⌀]\s*(\d+\.?\d*)\s*[±]\s*(\d+\.?\d*)', text)
+        if match:
+            dim_type = DimensionType.DIAMETER
+            tolerance = f"±{match.group(2)}"
+            return dim_type, parsed_value, tolerance
+
+        # 직경 + 비대칭 공차: Φ50+0.05/-0.02
+        match = re.match(r'^[ØφΦ⌀]\s*(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)\s*/\s*-\s*(\d+\.?\d*)', text)
+        if match:
+            dim_type = DimensionType.DIAMETER
+            tolerance = f"+{match.group(2)}/-{match.group(3)}"
+            return dim_type, parsed_value, tolerance
+
+        # 직경 + 역순 비대칭 공차: Φ50-0.02+0.05
+        match = re.match(r'^[ØφΦ⌀]\s*(\d+\.?\d*)\s*-\s*(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)', text)
+        if match:
+            dim_type = DimensionType.DIAMETER
+            tolerance = f"+{match.group(3)}/-{match.group(2)}"
+            return dim_type, parsed_value, tolerance
+
+        # 직경 + 공차등급: Ø50H7, ⌀50h6
+        match = re.match(r'^[ØφΦ⌀]\s*(\d+\.?\d*)\s*([A-Za-z]\d+)', text)
+        if match:
+            dim_type = DimensionType.DIAMETER
+            tolerance = match.group(2)
+            return dim_type, parsed_value, tolerance
+
+        # 나사 치수: M10×1.5, M10
+        match = re.match(r'^M\s*(\d+\.?\d*)(?:\s*[×xX]\s*(\d+\.?\d*))?', text)
+        if match:
+            dim_type = DimensionType.THREAD
+            return dim_type, parsed_value, tolerance
+
+        # 챔퍼: C2×45°, C2
+        match = re.match(r'^C\s*(\d+\.?\d*)(?:\s*[×xX]\s*(\d+\.?\d*)\s*°)?', text, re.IGNORECASE)
+        if match:
+            dim_type = DimensionType.CHAMFER
+            return dim_type, parsed_value, tolerance
+
+        # ========== 단일 패턴 ==========
+
+        # 직경 패턴: Ø50, ⌀50, φ50, Φ50
+        if re.match(r'^[ØφΦ⌀]\s*\d+', text):
             dim_type = DimensionType.DIAMETER
 
         # 반경 패턴: R50, R 50
@@ -245,17 +301,47 @@ class DimensionService:
         elif re.match(r'^\d+\.?\d*', text):
             dim_type = DimensionType.LENGTH
 
-        # 공차 추출: H7, h6, ±0.1, +0.05/-0.02
+        # ========== 공차 추출 (확장됨) ==========
+        # 순서 중요: 더 구체적인 패턴 먼저
+        # 특수 치수 타입(반경, 챔퍼, 나사, 각도, 표면거칠기)은 IT 공차 검사 제외
+        skip_it_tolerance = dim_type in (
+            DimensionType.RADIUS,
+            DimensionType.CHAMFER,
+            DimensionType.THREAD,
+            DimensionType.ANGLE,
+            DimensionType.SURFACE_FINISH,
+        )
+
         tolerance_patterns = [
-            r'[HhGgFfEeDdCcBbAa]\d+',  # IT 공차
-            r'[±]\s*\d+\.?\d*',  # 대칭 공차
-            r'[+\-]\d+\.?\d*\s*/\s*[+\-]?\d+\.?\d*',  # 비대칭 공차
+            # 역순 비대칭 공차: 50-0.02+0.05
+            (r'(\d+\.?\d*)\s*-\s*(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)',
+             lambda m: f"+{m.group(3)}/-{m.group(2)}", False),
+            # 단방향 공차 (상한): 50 +0.05/0
+            (r'(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)\s*/\s*0(?!\d)',
+             lambda m: f"+{m.group(2)}/0", False),
+            # 단방향 공차 (하한): 50 0/-0.05
+            (r'(\d+\.?\d*)\s*0\s*/\s*-\s*(\d+\.?\d*)',
+             lambda m: f"0/-{m.group(2)}", False),
+            # 비대칭 공차: +0.05/-0.02
+            (r'\+\s*(\d+\.?\d*)\s*/\s*-\s*(\d+\.?\d*)',
+             lambda m: f"+{m.group(1)}/-{m.group(2)}", False),
+            # 대칭 공차: ±0.1
+            (r'[±]\s*(\d+\.?\d*)',
+             lambda m: f"±{m.group(1)}", False),
+            # IT 공차: H7, h6, G6 등 (R, C, M 등 특수 기호 제외)
+            (r'(?<![RrCcMm])([HhGgFfEeDdBbAaJjKkNnPpSsTtUuVvXxYyZz])(\d+)',
+             lambda m: f"{m.group(1)}{m.group(2)}", True),  # is_it_tolerance=True
         ]
-        for pattern in tolerance_patterns:
-            match = re.search(pattern, text)
-            if match:
-                tolerance = match.group()
-                break
+
+        if tolerance is None:
+            for pattern, formatter, is_it_tolerance in tolerance_patterns:
+                # IT 공차이고 특수 치수 타입이면 건너뛰기
+                if is_it_tolerance and skip_it_tolerance:
+                    continue
+                match = re.search(pattern, text)
+                if match:
+                    tolerance = formatter(match)
+                    break
 
         return dim_type, parsed_value, tolerance
 

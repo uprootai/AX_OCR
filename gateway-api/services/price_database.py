@@ -137,6 +137,79 @@ class PriceDatabase:
             price_per_kg=5200,
             category="cast"
         ),
+        # ========== PANASIA BWMS 재질 ==========
+        "STS316L": MaterialPrice(
+            code="STS316L",
+            name_kr="스테인리스강 STS316L",
+            name_en="Stainless Steel STS316L",
+            price_per_kg=16000,
+            category="stainless",
+            description="해수 내식성 우수, BWMS 핵심 재질"
+        ),
+        "STS304L": MaterialPrice(
+            code="STS304L",
+            name_kr="스테인리스강 STS304L",
+            name_en="Stainless Steel STS304L",
+            price_per_kg=13000,
+            category="stainless",
+            description="저탄소 스테인리스, 용접성 우수"
+        ),
+        "TITANIUM_GR2": MaterialPrice(
+            code="TITANIUM GR2",
+            name_kr="티타늄 Grade 2",
+            name_en="Titanium Grade 2",
+            price_per_kg=85000,
+            category="titanium",
+            description="해수 완전 내식, BWMS 고급 사양"
+        ),
+        "AL5083": MaterialPrice(
+            code="AL5083",
+            name_kr="알루미늄 합금 AL5083",
+            name_en="Aluminum Alloy AL5083",
+            price_per_kg=8500,
+            category="aluminum",
+            description="해양용 알루미늄, 내식성 우수"
+        ),
+        "CPVC": MaterialPrice(
+            code="CPVC",
+            name_kr="CPVC (염화폴리염화비닐)",
+            name_en="Chlorinated PVC",
+            price_per_kg=4500,
+            category="plastic",
+            description="내화학성 파이프 재질"
+        ),
+        "HDPE": MaterialPrice(
+            code="HDPE",
+            name_kr="HDPE (고밀도폴리에틸렌)",
+            name_en="High-Density Polyethylene",
+            price_per_kg=3000,
+            category="plastic",
+            description="해양용 파이프, 경량 내식"
+        ),
+        "SUPER_DUPLEX": MaterialPrice(
+            code="SUPER DUPLEX",
+            name_kr="슈퍼 듀플렉스강",
+            name_en="Super Duplex Stainless Steel",
+            price_per_kg=35000,
+            category="stainless",
+            description="고강도 해수 내식 특수강"
+        ),
+        "BRONZE_ALBZ": MaterialPrice(
+            code="BRONZE ALBZ",
+            name_kr="알루미늄 청동",
+            name_en="Aluminum Bronze",
+            price_per_kg=28000,
+            category="bronze",
+            description="해양 밸브/펌프용 청동"
+        ),
+        "INCONEL_625": MaterialPrice(
+            code="INCONEL 625",
+            name_kr="인코넬 625",
+            name_en="Inconel 625",
+            price_per_kg=120000,
+            category="superalloy",
+            description="극한 내식성, BWMS 특수 부품"
+        ),
     }
 
     # 기본 가공비 (KRW)
@@ -219,6 +292,79 @@ class PriceDatabase:
             complexity_factor=0.7,
             description="커버류"
         ),
+        # ========== PANASIA BWMS 가공비 ==========
+        "VALVE": LaborCost(
+            part_type="VALVE",
+            base_cost=180000,
+            complexity_factor=1.5,
+            description="BWMS 밸브류 (버터플라이, 글로브, 체크)"
+        ),
+        "PUMP": LaborCost(
+            part_type="PUMP",
+            base_cost=350000,
+            complexity_factor=2.0,
+            description="BWMS 펌프류 (원심, 자흡식)"
+        ),
+        "FILTER": LaborCost(
+            part_type="FILTER",
+            base_cost=250000,
+            complexity_factor=1.8,
+            description="BWMS 필터류 (자동역세척, 디스크)"
+        ),
+        "PIPE": LaborCost(
+            part_type="PIPE",
+            base_cost=45000,
+            complexity_factor=0.6,
+            description="BWMS 배관류"
+        ),
+        "FLANGE": LaborCost(
+            part_type="FLANGE",
+            base_cost=35000,
+            complexity_factor=0.5,
+            description="플랜지류"
+        ),
+        "UV_REACTOR": LaborCost(
+            part_type="UV_REACTOR",
+            base_cost=800000,
+            complexity_factor=3.0,
+            description="UV 반응기 (살균 장치)"
+        ),
+        "ELECTROLYZER": LaborCost(
+            part_type="ELECTROLYZER",
+            base_cost=650000,
+            complexity_factor=2.8,
+            description="전기분해조 (전해질 처리)"
+        ),
+        "TANK": LaborCost(
+            part_type="TANK",
+            base_cost=280000,
+            complexity_factor=1.6,
+            description="저장탱크류"
+        ),
+        "SENSOR": LaborCost(
+            part_type="SENSOR",
+            base_cost=120000,
+            complexity_factor=1.2,
+            description="센서류 (유량, 압력, 염도)"
+        ),
+        "CONTROL_PANEL": LaborCost(
+            part_type="CONTROL_PANEL",
+            base_cost=450000,
+            complexity_factor=2.2,
+            description="제어반/컨트롤 패널"
+        ),
+        "STRAINER": LaborCost(
+            part_type="STRAINER",
+            base_cost=85000,
+            complexity_factor=0.9,
+            description="스트레이너류"
+        ),
+        "HEAT_EXCHANGER": LaborCost(
+            part_type="HEAT_EXCHANGER",
+            base_cost=380000,
+            complexity_factor=2.0,
+            description="열교환기"
+        ),
     }
 
     # 수량 할인 테이블
@@ -229,7 +375,7 @@ class PriceDatabase:
         (10, 0.05),   # 10개 이상: 5%
     ]
 
-    # 고객별 설정
+    # 고객별 설정 (customer_config.py와 동기화)
     DEFAULT_CUSTOMERS: Dict[str, CustomerConfig] = {
         "DSE": CustomerConfig(
             customer_id="DSE",
@@ -244,6 +390,49 @@ class PriceDatabase:
             material_discount=0.08,  # 8% 재질 할인
             labor_discount=0.05,     # 5% 가공비 할인
             payment_terms=45
+        ),
+        "KEPCO": CustomerConfig(
+            customer_id="KEPCO",
+            customer_name="한국전력공사",
+            material_discount=0.10,  # 10% 대량구매 할인
+            labor_discount=0.07,
+            payment_terms=60
+        ),
+        "HYUNDAI": CustomerConfig(
+            customer_id="HYUNDAI",
+            customer_name="현대중공업",
+            material_discount=0.07,
+            labor_discount=0.05,
+            payment_terms=30
+        ),
+        "SAMSUNG": CustomerConfig(
+            customer_id="SAMSUNG",
+            customer_name="삼성물산",
+            material_discount=0.06,
+            labor_discount=0.04,
+            payment_terms=30,
+            currency="USD"  # 해외 프로젝트
+        ),
+        "STX": CustomerConfig(
+            customer_id="STX",
+            customer_name="STX조선해양",
+            material_discount=0.05,
+            labor_discount=0.03,
+            payment_terms=45
+        ),
+        "PANASIA": CustomerConfig(
+            customer_id="PANASIA",
+            customer_name="파나시아",
+            material_discount=0.06,  # 6% BWMS 전문
+            labor_discount=0.04,
+            payment_terms=30
+        ),
+        "HANJIN": CustomerConfig(
+            customer_id="HANJIN",
+            customer_name="한진중공업",
+            material_discount=0.05,
+            labor_discount=0.03,
+            payment_terms=30
         ),
     }
 

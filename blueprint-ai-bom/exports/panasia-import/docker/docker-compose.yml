@@ -1,0 +1,56 @@
+version: '3.8'
+services:
+  blueprint-ai-bom-backend:
+    image: blueprint-ai-bom-backend:latest
+    container_name: panasia-blueprint-ai-bom-backend
+    ports:
+    - 15020:5020
+    environment:
+    - PYTHONUNBUFFERED=1
+    - BOM_PORT=5020
+    - YOLO_API_URL=http://panasia-yolo-api:5005
+    networks:
+    - imported_network
+    restart: unless-stopped
+  blueprint-ai-bom-frontend:
+    image: blueprint-ai-bom-frontend:latest
+    container_name: panasia-blueprint-ai-bom-frontend
+    ports:
+    - 13000:80
+    environment:
+    - BACKEND_URL=http://panasia-blueprint-ai-bom-backend:5020
+    depends_on:
+    - blueprint-ai-bom-backend
+    networks:
+    - imported_network
+    restart: unless-stopped
+  gateway-api:
+    image: gateway-api:latest
+    container_name: panasia-gateway-api
+    ports:
+    - 18000:8000
+    environment:
+    - PYTHONUNBUFFERED=1
+    - GATEWAY_PORT=8000
+    - GATEWAY_WORKERS=1
+    - BLUEPRINT_AI_BOM_BACKEND_URL=http://panasia-blueprint-ai-bom-backend:5020
+    - BLUEPRINT_AI_BOM_FRONTEND_URL=http://panasia-blueprint-ai-bom-frontend:3000
+    - YOLO_API_URL=http://panasia-yolo-api:5005
+    networks:
+    - imported_network
+    restart: unless-stopped
+  yolo-api:
+    image: yolo-api:latest
+    container_name: panasia-yolo-api
+    ports:
+    - 15005:5005
+    environment:
+    - PYTHONUNBUFFERED=1
+    - YOLO_API_PORT=5005
+    networks:
+    - imported_network
+    restart: unless-stopped
+networks:
+  imported_network:
+    name: panasia_network
+    driver: bridge

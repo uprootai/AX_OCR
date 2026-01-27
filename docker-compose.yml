@@ -276,10 +276,34 @@ services:
       - ./web-ui/tsconfig.json:/app/tsconfig.json
       - ./web-ui/tailwind.config.js:/app/tailwind.config.js
     environment:
-      - VITE_GATEWAY_URL=http://localhost:8000
-      - VITE_EDOCR2_URL=http://localhost:5001
-      - VITE_EDGNET_URL=http://localhost:5012
-      - VITE_SKINMODEL_URL=http://localhost:5003
+      # WSL2 Docker 포트가 Windows localhost로 자동 포워딩되지 않음
+      # 브라우저에서 접근 시 WSL IP 사용 필요 (wslrelay 제한)
+      # 시작 전: export WSL_HOST="http://$(hostname -I | awk '{print $1}')"
+      # Core APIs
+      - VITE_GATEWAY_URL=${WSL_HOST:-http://localhost}:8000
+      - VITE_EDOCR2_URL=${WSL_HOST:-http://localhost}:5001
+      - VITE_EDOCR2_V2_URL=${WSL_HOST:-http://localhost}:5002
+      - VITE_EDGNET_URL=${WSL_HOST:-http://localhost}:5012
+      - VITE_SKINMODEL_URL=${WSL_HOST:-http://localhost}:5003
+      - VITE_VL_URL=${WSL_HOST:-http://localhost}:5004
+      - VITE_YOLO_URL=${WSL_HOST:-http://localhost}:5005
+      - VITE_PADDLEOCR_URL=${WSL_HOST:-http://localhost}:5006
+      - VITE_KNOWLEDGE_URL=${WSL_HOST:-http://localhost}:5007
+      # OCR Services
+      - VITE_TESSERACT_URL=${WSL_HOST:-http://localhost}:5008
+      - VITE_TROCR_URL=${WSL_HOST:-http://localhost}:5009
+      - VITE_ESRGAN_URL=${WSL_HOST:-http://localhost}:5010
+      - VITE_OCR_ENSEMBLE_URL=${WSL_HOST:-http://localhost}:5011
+      - VITE_SURYA_OCR_URL=${WSL_HOST:-http://localhost}:5013
+      - VITE_DOCTR_URL=${WSL_HOST:-http://localhost}:5014
+      - VITE_EASYOCR_URL=${WSL_HOST:-http://localhost}:5015
+      # P&ID Services
+      - VITE_LINE_DETECTOR_URL=${WSL_HOST:-http://localhost}:5016
+      - VITE_PID_ANALYZER_URL=${WSL_HOST:-http://localhost}:5018
+      - VITE_DESIGN_CHECKER_URL=${WSL_HOST:-http://localhost}:5019
+      - VITE_BLUEPRINT_AI_BOM_URL=${WSL_HOST:-http://localhost}:5020
+      - VITE_PID_COMPOSER_URL=${WSL_HOST:-http://localhost}:5021
+      - VITE_TABLE_DETECTOR_URL=${WSL_HOST:-http://localhost}:5022
     networks:
       - ax_poc_network
     restart: unless-stopped
@@ -677,6 +701,9 @@ services:
       - ./blueprint-ai-bom/classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
       - ./blueprint-ai-bom/test_drawings:/app/test_drawings:ro
       - ./blueprint-ai-bom/class_examples:/app/class_examples:ro
+      - ./blueprint-ai-bom/exports:/app/exports
+      # Docker socket for Self-contained Export
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONUNBUFFERED=1
       - BOM_PORT=5020

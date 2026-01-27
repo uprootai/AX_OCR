@@ -1,4 +1,4 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, Zap, PlayCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, PlayCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNodeDefinitions } from '../../hooks/useNodeDefinitions';
@@ -12,6 +12,8 @@ import {
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useWorkflowStore } from '../../store/workflowStore';
+import { ProfileManager } from './ProfileManager';
+import type { ProfileParams } from '../../store/profileStore';
 import type { Node } from 'reactflow';
 import type { SelectOption, CheckboxOption } from '../../config/nodes/types';
 
@@ -451,57 +453,33 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
             </CardHeader>
             {showParameters && (
               <CardContent className="space-y-3">
-                {/* Profile Selector */}
+                {/* Profile Manager */}
                 {definition.profiles && definition.profiles.available.length > 0 && (
-                  <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-4 h-4 text-purple-500" />
-                      <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">
-                        프로파일 (기본값 프리셋)
-                      </span>
-                    </div>
-                    <select
-                      value={selectedNode.data?.parameters?._profile || definition.profiles.default}
-                      onChange={(e) => {
-                        const profileName = e.target.value;
-                        const profile = definition.profiles?.available.find(p => p.name === profileName);
-                        if (profile) {
-                          // 프로파일 선택 시 해당 프로파일의 모든 파라미터 값 적용
-                          const currentData = selectedNode.data || {};
-                          const currentParams = currentData.parameters || {};
-                          onUpdateNode(selectedNode.id, {
-                            ...currentData,
-                            parameters: {
-                              ...currentParams,
-                              ...profile.params,
-                              _profile: profileName, // 선택된 프로파일 기록
-                            },
-                          });
-                        }
-                      }}
-                      className="w-full px-3 py-2 text-sm border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    >
-                      {definition.profiles.available.map((profile) => (
-                        <option key={profile.name} value={profile.name}>
-                          {profile.label}
-                        </option>
-                      ))}
-                    </select>
-                    {/* 선택된 프로파일 설명 */}
-                    {(() => {
-                      const currentProfile = selectedNode.data?.parameters?._profile || definition.profiles?.default;
-                      const profile = definition.profiles?.available.find(p => p.name === currentProfile);
-                      if (profile) {
-                        return (
-                          <div className="mt-2 text-xs text-purple-600 dark:text-purple-400 flex items-start gap-1.5">
-                            <HelpCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                            <span>{profile.description}</span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
+                  <ProfileManager
+                    nodeType={nodeType}
+                    definition={definition}
+                    currentParams={selectedNode.data?.parameters || {}}
+                    selectedProfile={selectedNode.data?.parameters?._profile}
+                    onProfileSelect={(profileName: string, params: ProfileParams) => {
+                      const currentData = selectedNode.data || {};
+                      const currentParams = currentData.parameters || {};
+                      onUpdateNode(selectedNode.id, {
+                        ...currentData,
+                        parameters: {
+                          ...currentParams,
+                          ...params,
+                          _profile: profileName,
+                        },
+                      });
+                    }}
+                    onParamsChange={(params) => {
+                      const currentData = selectedNode.data || {};
+                      onUpdateNode(selectedNode.id, {
+                        ...currentData,
+                        parameters: params,
+                      });
+                    }}
+                  />
                 )}
 
                 {definition.parameters.map((param) => {

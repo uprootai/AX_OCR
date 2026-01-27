@@ -12,13 +12,15 @@ from .detection import VerificationStatus, BoundingBox
 
 
 class DimensionType(str, Enum):
-    """치수 유형"""
+    """치수 유형 (gateway dimensionparser_executor.py와 동기화)"""
     LENGTH = "length"           # 길이 (100mm)
     DIAMETER = "diameter"       # 직경 (Ø50)
     RADIUS = "radius"           # 반경 (R25)
     ANGLE = "angle"             # 각도 (45°)
     TOLERANCE = "tolerance"     # 공차 (H7, ±0.1)
     SURFACE_FINISH = "surface_finish"  # 표면 거칠기 (Ra 1.6)
+    THREAD = "thread"           # 나사 (M10, M10×1.5)
+    CHAMFER = "chamfer"         # 챔퍼 (C2, C2×45°)
     UNKNOWN = "unknown"
 
 

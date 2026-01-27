@@ -16,6 +16,11 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
+# Docker CLI 설치 (Self-contained Export를 위해 필요)
+RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-24.0.7.tgz | \
+    tar -xzf - --strip-components=1 -C /usr/local/bin docker/docker && \
+    chmod +x /usr/local/bin/docker
+
 # Python 의존성 설치 (detectron2 제외)
 COPY requirements.txt .
 RUN grep -v -E '^#|^$|detectron2' requirements.txt > /tmp/reqs.txt && \

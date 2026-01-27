@@ -1,19 +1,20 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-01-25
+> **마지막 업데이트**: 2026-01-27
 > **현재 활성화된 작업 목록**
 
 ---
 
-## 📊 프로젝트 상태 (2026-01-24 검증)
+## 📊 프로젝트 상태 (2026-01-26 검증)
 
 | 항목 | 결과 | 상세 |
 |------|------|------|
 | **테스트** | ✅ **729개** | web-ui 304, gateway **425** |
-| **빌드** | ✅ 15.30s | TypeScript 오류 0개 |
+| **빌드** | ✅ 15.27s | TypeScript 오류 0개 |
 | **ESLint** | ✅ 0 errors | 1 warning (minor) |
 | **노드 정의** | ✅ **31개** | DSE Bearing 노드 포함 |
 | **API 스펙** | ✅ **27개** | dsebearing.yaml 추가 |
+| **API 서비스** | ✅ **21개** | 전체 서비스 정상 |
 
 ---
 
@@ -223,24 +224,182 @@ gateway-api:  8000 → 18000
 
 ---
 
-## 🔴 다음 작업: 패턴 동기화
+## ✅ 완료: Dimension Parser 동기화
 
+> **완료일**: 2026-01-26
 > **상세 문서**: `.todo/SYNC_PATTERNS.md`
-
-### P0: Dimension Parser 동기화 (즉시)
 
 | 소스 | 대상 | 상태 |
 |------|------|------|
-| `dimensionparser_executor.py` (21개 패턴) | `dimension_service.py` (3개) | ❌ 불일치 |
+| `dimensionparser_executor.py` (21개) | `dimension_service.py` (21개) | ✅ **동기화 완료** |
 
-**누락 패턴**: 직경+공차, 역순 비대칭, 단방향 공차, 나사, 각도, 표면거칠기
+**추가된 패턴**:
+- 직경+공차 복합: Φ50±0.05, Φ50+0.05/-0.02, Φ50-0.02+0.05, Ø50H7
+- 특수 치수: M10×1.5 (나사), C2×45° (챔퍼)
+- 공차 확장: 역순 비대칭, 단방향 공차
+- DimensionType: THREAD, CHAMFER 추가
+
+**테스트**: 20/20 통과
+
+---
+
+## ✅ 완료: P1 고객-모델 연동
+
+> **완료일**: 2026-01-26
+> **상세 문서**: `.todo/SYNC_PATTERNS.md`
 
 ### P1: 고객-모델 연동
 
 | 작업 | 상태 |
 |------|------|
-| PANASIA 가격 데이터 추가 | ⏳ |
-| 고객별 YOLO 모델 자동 선택 | ⏳ |
+| PANASIA 가격 데이터 추가 | ✅ **완료** |
+| 고객별 YOLO 모델 자동 선택 | ✅ **완료** |
+
+**추가된 내용**:
+
+1. **price_database.py**:
+   - BWMS 재질 9종 (STS316L, TITANIUM GR2, CPVC 등)
+   - BWMS 가공비 12종 (VALVE, PUMP, FILTER 등)
+   - 고객 8개 설정 (PANASIA 6% 할인 적용)
+
+2. **customer_config.py**:
+   - `CUSTOMER_TO_MODEL_MAP`: 8개 고객 → YOLO 모델 매핑
+   - `DRAWING_TYPE_TO_MODEL_MAP`: 8개 도면타입 매핑
+   - `get_model_for_customer()`: 자동 모델 선택 함수
+
+---
+
+## ✅ 완료: P2 작업 (2026-01-26)
+
+### P2-1: web-ui Export 옵션 추가
+
+| 작업 | 상태 |
+|------|------|
+| `SelfContainedExportRequest`에 `include_web_ui` 필드 추가 | ✅ 완료 |
+| `SERVICE_PORT_MAP`에 `web-ui: 5173` 추가 | ✅ 완료 |
+| `FRONTEND_SERVICES`에 "web-ui" 추가 | ✅ 완료 |
+| `OPTIONAL_SERVICES` 딕셔너리 추가 | ✅ 완료 |
+| `detect_required_services()`에 `include_web_ui` 파라미터 | ✅ 완료 |
+| `get_preview()`에 `include_web_ui` 파라미터 | ✅ 완료 |
+| `create_package()`에서 `include_web_ui` 처리 | ✅ 완료 |
+| UI URL 정보에 web-ui URL 표시 추가 | ✅ 완료 |
+
+**사용 예시**:
+```python
+# Self-contained Export에 web-ui 포함
+POST /export/sessions/{id}/self-contained
+{
+    "include_web_ui": true,  # BlueprintFlow 편집기 포함
+    "port_offset": 10000
+}
+# → web-ui:5173 → 15173
+```
+
+### P2-2: Gateway Template 기반 실행
+
+| 작업 | 상태 |
+|------|------|
+| `workflow_router.py`에 `httpx`, `BOM_API_URL` 추가 | ✅ 완료 |
+| `GET /templates` - 템플릿 목록 조회 (BOM API 프록시) | ✅ 완료 |
+| `GET /templates/{id}` - 템플릿 상세 조회 | ✅ 완료 |
+| `POST /execute-template/{id}` - 템플릿 기반 실행 | ✅ 완료 |
+| `POST /execute-template-stream/{id}` - 템플릿 기반 SSE 실행 | ✅ 완료 |
+| 내장 템플릿 폴백 (`_get_builtin_templates`) | ✅ 완료 |
+| 테스트 425개 통과 | ✅ 완료 |
+
+**새로운 엔드포인트**:
+```bash
+# 템플릿 목록 조회
+GET /api/v1/workflow/templates?category=detection
+
+# 템플릿 상세 조회
+GET /api/v1/workflow/templates/yolo-detection
+
+# 템플릿 기반 실행
+POST /api/v1/workflow/execute-template/yolo-detection
+{
+    "inputs": {"image": "data:image/png;base64,..."},
+    "config": {}
+}
+
+# 템플릿 기반 SSE 스트리밍 실행
+POST /api/v1/workflow/execute-template-stream/yolo-detection
+```
+
+**내장 템플릿 (BOM API 연결 실패 시 폴백)**:
+- `yolo-detection`: YOLO 객체 검출
+- `ocr-extraction`: eDOCr2 텍스트 추출
+- `full-analysis`: YOLO + OCR + 공차 분석
+
+---
+
+## ✅ 완료: Guide 문서 최신화 (2026-01-26)
+
+| 섹션 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| **BlueprintFlowSection** | 17 노드, 15 API | **31 노드, 21 API, 729 테스트, 27 스펙** |
+| **ServicesSection** | 5 OCR 엔진 | **8 OCR 엔진** + Table Detector, Blueprint AI BOM, PID Composer |
+| **ArchitectureSection** | 기본 다이어그램 | 전체 21개 서비스 반영 |
+| **DocsSection** | 기본 문서 | Blueprint AI BOM v10.5 섹션 추가 |
+| **Gateway 엔드포인트** | 기본 | 템플릿 기반 실행 추가 |
+
+---
+
+## ✅ 완료: GT 비교 시각화 및 confidence 수정 (2026-01-27)
+
+### 1. GT 비교 시각화 (TP/FP/FN 통합 오버레이)
+
+**파일**: `blueprint-ai-bom/frontend/src/pages/workflow/sections/DetectionResultsSection.tsx`
+
+| 기능 | 설명 |
+|------|------|
+| 통합 뷰 모드 | TP/FP/FN을 단일 이미지에 색상별 오버레이 |
+| 필터 토글 | TP(녹색), FP(빨간), FN(노란 점선) 개별 표시/숨김 |
+| 색상 범례 | 화면 하단에 색상 코드 설명 |
+
+### 2. confidence_threshold 수정 (0.5 → 0.4)
+
+**파일**: `blueprint-ai-bom/backend/schemas/analysis_options.py`
+
+| 항목 | 이전 | 이후 |
+|------|------|------|
+| 기본값 | 0.5 | **0.4** |
+| 효과 | Recall 32.7% | **Recall 96.2%** |
+
+**이유**: drawing-bom-extractor와 동일한 파라미터 사용
+
+### 3. 미커밋 변경사항 문서화
+
+**파일**: `.todo/PENDING_SYNC.md` (신규 생성)
+
+- 37개 변경 파일 분석
+- 동기화 필요 항목 정리
+- 향후 작업 목록
+
+---
+
+## 🟡 미커밋 상태
+
+**상세**: `.todo/PENDING_SYNC.md`
+
+| 카테고리 | 변경 파일 | 라인 |
+|----------|----------|------|
+| Blueprint AI BOM Backend | 11개 | +700 |
+| Blueprint AI BOM Frontend | 6개 | +1,500 |
+| Gateway API | 3개 | +725 |
+| Web-UI | 14개 | +500 |
+| 신규 파일 | 4개 | - |
+
+---
+
+## 🟢 다음 작업: P3 옵션 (필수 아님)
+
+| 우선순위 | 작업 | 설명 | 필요성 |
+|----------|------|------|--------|
+| P3 | 시각화 기능 확장 | 공차 히트맵, BOM 연결선 등 | ❓ 낮음 |
+| P3 | 템플릿 버전 관리 | 템플릿 히스토리 및 롤백 | ❓ 낮음 |
+| P3 | confidence 일관성 전파 | 모든 YOLO 호출 0.4 기본값 | ⏳ 검토 필요 |
+| P3 | 고객-모델 매핑 UI | 고객 선택 → 모델 자동 선택 | ⏳ 검토 필요 |
 
 ---
 
@@ -258,4 +417,4 @@ gateway-api:  8000 → 18000
 
 ---
 
-*마지막 업데이트: 2026-01-24*
+*마지막 업데이트: 2026-01-26*

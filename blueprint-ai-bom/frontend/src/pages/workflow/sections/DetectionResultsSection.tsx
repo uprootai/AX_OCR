@@ -62,16 +62,22 @@ export function DetectionResultsSection({
   const gtCanvasRef = useRef<HTMLCanvasElement>(null);
   const detCanvasRef = useRef<HTMLCanvasElement>(null);
   const simpleCanvasRef = useRef<HTMLCanvasElement>(null);
+  const unifiedCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Detectron2 polygon/mask 데이터 존재 여부 확인
   const hasPolygonData = detections.some(d => d.polygons && d.polygons.length > 0);
   const hasMaskData = detections.some(d => d.mask && d.mask.counts && d.mask.counts.length > 0);
   const hasDetectron2Data = hasPolygonData || hasMaskData;
 
-  // 뷰 모드: 'overlay' (IntegratedOverlay) or 'canvas' (기존 Canvas)
-  const [viewMode, setViewMode] = useState<'overlay' | 'canvas'>(
+  // 뷰 모드: 'overlay' (IntegratedOverlay) or 'canvas' (기존 Canvas) or 'unified' (TP/FP/FN 통합)
+  const [viewMode, setViewMode] = useState<'overlay' | 'canvas' | 'unified'>(
     hasDetectron2Data ? 'overlay' : 'canvas'
   );
+
+  // TP/FP/FN 필터 상태
+  const [showTP, setShowTP] = useState(true);
+  const [showFP, setShowFP] = useState(true);
+  const [showFN, setShowFN] = useState(true);
 
   // Draw GT canvas
   useEffect(() => {
@@ -151,6 +157,101 @@ export function DetectionResultsSection({
     };
     img.src = imageData;
   }, [imageData, imageSize, detections, gtCompareResult]);
+
+  // Draw unified TP/FP/FN canvas
+  useEffect(() => {
+    const canvas = unifiedCanvasRef.current;
+    if (!canvas || !imageData || !imageSize || !gtCompareResult || viewMode !== 'unified') return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const parentWidth = canvas.parentElement?.clientWidth || 800;
+      const scale = Math.min(parentWidth / img.width, 600 / img.height);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      ctx.lineWidth = 3;
+      ctx.font = 'bold 11px sans-serif';
+
+      // TP matches에서 매칭된 detection 인덱스 수집
+      const tpDetectionIndices = new Set(gtCompareResult.tp_matches.map(m => m.detection_idx));
+
+      // 1. Draw FN (Yellow) - 미검출 GT
+      if (showFN) {
+        gtCompareResult.fn_labels.forEach((fn) => {
+          const x1 = fn.bbox.x1 * scale;
+          const y1 = fn.bbox.y1 * scale;
+          const w = (fn.bbox.x2 - fn.bbox.x1) * scale;
+          const h = (fn.bbox.y2 - fn.bbox.y1) * scale;
+
+          // 점선 스타일
+          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = '#eab308';
+          ctx.strokeRect(x1, y1, w, h);
+          ctx.setLineDash([]);
+
+          // 라벨 배경
+          const label = `FN: ${fn.class_name}`;
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillStyle = 'rgba(234, 179, 8, 0.9)';
+          ctx.fillRect(x1, y1 - 18, textWidth + 8, 18);
+          ctx.fillStyle = '#000';
+          ctx.fillText(label, x1 + 4, y1 - 5);
+        });
+      }
+
+      // 2. Draw FP (Red) - 오검출
+      if (showFP) {
+        detections.forEach((det, idx) => {
+          if (tpDetectionIndices.has(idx)) return; // TP는 건너뛰기
+
+          const x1 = det.bbox.x1 * scale;
+          const y1 = det.bbox.y1 * scale;
+          const w = (det.bbox.x2 - det.bbox.x1) * scale;
+          const h = (det.bbox.y2 - det.bbox.y1) * scale;
+
+          ctx.strokeStyle = '#ef4444';
+          ctx.strokeRect(x1, y1, w, h);
+
+          const label = `FP: ${det.class_name}`;
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+          ctx.fillRect(x1, y1 - 18, textWidth + 8, 18);
+          ctx.fillStyle = '#fff';
+          ctx.fillText(label, x1 + 4, y1 - 5);
+        });
+      }
+
+      // 3. Draw TP (Green) - 정답
+      if (showTP) {
+        gtCompareResult.tp_matches.forEach((match) => {
+          const det = detections[match.detection_idx];
+          if (!det) return;
+
+          const x1 = det.bbox.x1 * scale;
+          const y1 = det.bbox.y1 * scale;
+          const w = (det.bbox.x2 - det.bbox.x1) * scale;
+          const h = (det.bbox.y2 - det.bbox.y1) * scale;
+
+          ctx.strokeStyle = '#22c55e';
+          ctx.strokeRect(x1, y1, w, h);
+
+          const iouText = `${(match.iou * 100).toFixed(0)}%`;
+          const label = `TP: ${det.class_name} (IoU ${iouText})`;
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillStyle = 'rgba(34, 197, 94, 0.9)';
+          ctx.fillRect(x1, y1 - 18, textWidth + 8, 18);
+          ctx.fillStyle = '#fff';
+          ctx.fillText(label, x1 + 4, y1 - 5);
+        });
+      }
+    };
+    img.src = imageData;
+  }, [imageData, imageSize, gtCompareResult, detections, viewMode, showTP, showFP, showFN]);
 
   // Draw simple canvas (no GT comparison)
   useEffect(() => {
@@ -284,8 +385,101 @@ export function DetectionResultsSection({
         </div>
       )}
 
-      {/* GT vs Prediction Side by Side */}
+      {/* GT 비교 뷰 모드 선택 */}
       {imageData && imageSize && gtCompareResult && (
+        <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">GT 비교 뷰:</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setViewMode('unified')}
+              className={`px-3 py-1.5 text-sm rounded-l-lg border transition-colors ${
+                viewMode === 'unified'
+                  ? 'bg-purple-600 text-white border-purple-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              🎯 통합 (TP/FP/FN)
+            </button>
+            <button
+              onClick={() => setViewMode('canvas')}
+              className={`px-3 py-1.5 text-sm rounded-r-lg border-t border-r border-b transition-colors ${
+                viewMode === 'canvas'
+                  ? 'bg-purple-600 text-white border-purple-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              📊 병렬 비교
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Unified TP/FP/FN 오버레이 뷰 */}
+      {imageData && imageSize && gtCompareResult && viewMode === 'unified' && (
+        <div className="mb-4">
+          {/* 필터 버튼 */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm text-gray-600 dark:text-gray-400">표시:</span>
+            <button
+              onClick={() => setShowTP(!showTP)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                showTP
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border border-green-300 dark:border-green-700'
+                  : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 border border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <span className={`w-3 h-3 rounded ${showTP ? 'bg-green-500' : 'bg-gray-300'}`} />
+              TP ({gtCompareResult.metrics.tp})
+            </button>
+            <button
+              onClick={() => setShowFP(!showFP)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                showFP
+                  ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-300 dark:border-red-700'
+                  : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 border border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <span className={`w-3 h-3 rounded ${showFP ? 'bg-red-500' : 'bg-gray-300'}`} />
+              FP ({gtCompareResult.metrics.fp})
+            </button>
+            <button
+              onClick={() => setShowFN(!showFN)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                showFN
+                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
+                  : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 border border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <span className={`w-3 h-3 rounded ${showFN ? 'bg-yellow-500' : 'bg-gray-300'}`} />
+              FN ({gtCompareResult.metrics.fn})
+            </button>
+          </div>
+
+          {/* 통합 캔버스 */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <canvas ref={unifiedCanvasRef} className="w-full" />
+            <div className="flex items-center justify-between px-4 py-2 bg-purple-50 dark:bg-purple-900/30">
+              <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                TP/FP/FN 통합 오버레이
+              </p>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-green-500 rounded" /> TP (정답)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-red-500 rounded" /> FP (오검출)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 bg-yellow-500 rounded border border-dashed border-yellow-600" /> FN (미검출)
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GT vs Prediction Side by Side */}
+      {imageData && imageSize && gtCompareResult && viewMode === 'canvas' && (
         <div className="grid grid-cols-2 gap-4 mb-4">
           {/* Left: Ground Truth (Green boxes) */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">

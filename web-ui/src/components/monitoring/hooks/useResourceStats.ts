@@ -1,12 +1,31 @@
 /**
  * useResourceStats Hook
  * 컨테이너 및 GPU 리소스 통계 관리
+ * fetch API 사용으로 콘솔 에러 없음
  */
 
 import { useState, useCallback } from 'react';
-import axios from 'axios';
 import { API_TO_CONTAINER } from '../../../config/apiRegistry';
+import { GATEWAY_URL } from '../../../lib/api';
 import type { ContainerStats, GPUStats, APIResourceSpec } from '../types';
+
+// Silent fetch helper (no console errors)
+const silentFetch = async <T>(url: string, timeout = 5000): Promise<T | null> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  } catch {
+    clearTimeout(timeoutId);
+    return null;
+  }
+};
 
 export function useResourceStats() {
   const [containerStats, setContainerStats] = useState<Record<string, ContainerStats>>({});
@@ -15,51 +34,44 @@ export function useResourceStats() {
   const [apiResources, setApiResources] = useState<Record<string, APIResourceSpec>>({});
 
   const fetchResourceStats = useCallback(async () => {
-    try {
-      // Fetch container stats (includes memory and CPU)
-      const containerResponse = await axios.get('http://localhost:8000/api/v1/containers', { timeout: 10000 });
-      if (containerResponse.data?.containers) {
-        const stats: Record<string, ContainerStats> = {};
-        for (const container of containerResponse.data.containers) {
-          // Map container name to API ID
-          const apiId = Object.entries(API_TO_CONTAINER).find(([, containerName]) => containerName === container.name)?.[0];
-          if (apiId) {
-            stats[apiId] = {
-              name: container.name,
-              memory_usage: container.memory_usage,
-              cpu_percent: container.cpu_percent,
-            };
-          }
+    // Fetch container stats (includes memory and CPU)
+    const containerData = await silentFetch<{ containers: Array<{ name: string; memory_usage: string | null; cpu_percent: number | null }> }>(
+      `${GATEWAY_URL}/api/v1/containers`,
+      10000
+    );
+    if (containerData?.containers) {
+      const stats: Record<string, ContainerStats> = {};
+      for (const container of containerData.containers) {
+        const apiId = Object.entries(API_TO_CONTAINER).find(([, containerName]) => containerName === container.name)?.[0];
+        if (apiId) {
+          stats[apiId] = {
+            name: container.name,
+            memory_usage: container.memory_usage,
+            cpu_percent: container.cpu_percent,
+          };
         }
-        setContainerStats(stats);
       }
-    } catch (error) {
-      console.warn('Failed to fetch container stats:', error);
+      setContainerStats(stats);
     }
 
-    try {
-      // Fetch GPU stats
-      const gpuResponse = await axios.get('http://localhost:8000/api/v1/containers/gpu/stats', { timeout: 5000 });
-      if (gpuResponse.data?.available) {
-        setGpuAvailable(true);
-        setGpuStats(gpuResponse.data.gpus || []);
-      } else {
-        setGpuAvailable(false);
-        setGpuStats([]);
-      }
-    } catch (error) {
-      console.warn('Failed to fetch GPU stats:', error);
+    // Fetch GPU stats
+    const gpuData = await silentFetch<{ available: boolean; gpus: GPUStats[] }>(
+      `${GATEWAY_URL}/api/v1/containers/gpu/stats`
+    );
+    if (gpuData?.available) {
+      setGpuAvailable(true);
+      setGpuStats(gpuData.gpus || []);
+    } else {
       setGpuAvailable(false);
+      setGpuStats([]);
     }
 
-    try {
-      // Fetch API resource specs (동적 로드)
-      const resourcesResponse = await axios.get('http://localhost:8000/api/v1/specs/resources', { timeout: 5000 });
-      if (resourcesResponse.data?.resources) {
-        setApiResources(resourcesResponse.data.resources);
-      }
-    } catch (error) {
-      console.warn('Failed to fetch API resources:', error);
+    // Fetch API resource specs
+    const resourcesData = await silentFetch<{ resources: Record<string, APIResourceSpec> }>(
+      `${GATEWAY_URL}/api/v1/specs/resources`
+    );
+    if (resourcesData?.resources) {
+      setApiResources(resourcesData.resources);
     }
   }, []);
 

@@ -2,12 +2,12 @@
  * BOM Nodes
  * Bill of Materials 생성 노드 정의
  *
- * 2025-12-22: 역할 재정의 - 세션 생성 + 기능 선택 용도
- * 2025-12-26: SSOT 리팩토링 - features 정의를 config/features에서 import
+ * 2025-12-22: 역할 재정의 - 세션 생성 용도
+ * 2025-12-26: SSOT 리팩토링
+ * 2026-01-26: features 파라미터 제거 (ImageInput에서만 설정, 중복 제거)
  */
 
 import type { NodeDefinition } from './types';
-import { toBOMNodeOptions } from '../features';
 
 export const bomNodes: Record<string, NodeDefinition> = {
   'blueprint-ai-bom': {
@@ -62,25 +62,15 @@ export const bomNodes: Record<string, NodeDefinition> = {
         description: '🔗 검증 UI URL',
       },
     ],
-    parameters: [
-      {
-        name: 'features',
-        type: 'checkboxGroup',
-        default: ['symbol_detection', 'title_block_ocr', 'vlm_auto_classification'],
-        // SSOT에서 자동 생성된 옵션 사용
-        options: toBOMNodeOptions(),
-        description: '🛠️ 워크플로우에서 활성화할 기능 선택',
-        tooltip:
-          '선택한 기능만 워크플로우 페이지(localhost:3000)에 표시됩니다. 도면 타입에 따라 적절한 기능을 선택하세요.',
-      },
-    ],
+    // features는 ImageInput 노드에서만 설정 (중복 제거)
+    parameters: [],
     examples: [
       '기계 부품도: ImageInput → YOLO → AI BOM → 검증 UI',
       'P&ID 도면: ImageInput → YOLO (P&ID 모델) → AI BOM → 검증 UI',
     ],
     usageTips: [
       '⭐ 검출 노드 연결 필수 (YOLO)',
-      '📐 도면 타입은 ImageInput에서 먼저 선택하세요',
+      '📐 도면 타입과 기능(features)은 ImageInput에서 설정',
       '💡 세션 생성 후 검증 UI(localhost:3000)에서 BOM 생성',
     ],
     recommendedInputs: [

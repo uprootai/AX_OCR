@@ -60,7 +60,6 @@ import {
   VLMClassificationSection,
   PIDFeaturesSection,
   GTComparisonSection,
-  ImageReviewSection,
 } from './workflow';
 
 export function WorkflowPage() {
@@ -80,8 +79,8 @@ export function WorkflowPage() {
     error,
     loadSessions,
     loadSession,
+    loadImage,
     deleteSession,
-    runDetection,
     verifyDetection,
     deleteDetection,
     approveAll,
@@ -94,6 +93,9 @@ export function WorkflowPage() {
   // Multi-image session state (Phase 2C)
   const [, setSelectedImageId] = useState<string | null>(null);
   const [sessionImageCount, setSessionImageCount] = useState(0);
+
+  // 참조 도면 유형 (사용자 오버라이드)
+  const [userDrawingType, setUserDrawingType] = useState<string | null>(null);
 
   // 세션 이미지 개수 로드
   const loadSessionImageCount = useCallback(async () => {
@@ -191,14 +193,20 @@ export function WorkflowPage() {
   }, [detections]);
 
   const effectiveDrawingType = useMemo(() => {
+    // 1. 사용자가 사이드바에서 수동 선택한 경우 우선
+    if (userDrawingType && userDrawingType !== 'auto') {
+      return userDrawingType;
+    }
+    // 2. 세션에 지정된 경우
     if (currentSession?.drawing_type && currentSession.drawing_type !== 'auto') {
       return currentSession.drawing_type;
     }
+    // 3. VLM 분류 결과
     if (state.classification?.drawing_type) {
       return state.classification.drawing_type;
     }
     return 'auto';
-  }, [currentSession?.drawing_type, state.classification?.drawing_type]);
+  }, [userDrawingType, currentSession?.drawing_type, state.classification?.drawing_type]);
 
   const effectiveFeatures = useMemo(() => {
     if (currentSession?.features && currentSession.features.length > 0) {
@@ -324,24 +332,43 @@ export function WorkflowPage() {
   }, [currentSession, imageSize, detections, state]);
 
   // 다중 이미지 세션에서 이미지 선택 핸들러 (Phase 2C)
-  const handleImageSelect = useCallback(async (imageId: string, _image: SessionImage) => {
+  const handleImageSelect = useCallback(async (imageId: string, image: SessionImage) => {
     if (!currentSession) return;
     setSelectedImageId(imageId);
     try {
-      // 선택된 이미지의 상세 정보 로드 (검출 결과 포함)
-      const imageDetail = await sessionApi.getImageDetail(
-        currentSession.session_id,
-        imageId,
-        true // include detections
-      );
-      logger.info('Image selected:', imageDetail.filename);
-      // TODO: 이미지 데이터를 세션 스토어에 반영
-      // 현재는 세션 전체를 다시 로드 (향후 최적화 필요)
-      await loadSession(currentSession.session_id);
+      if (imageId === 'main') {
+        // 'main'은 세션 생성 시 업로드된 메인 이미지
+        await loadSession(currentSession.session_id);
+        logger.info('Main session image loaded');
+      } else {
+        // 추가 업로드된 이미지
+        await loadImage(currentSession.session_id, imageId);
+        logger.info('Image loaded:', image.filename);
+      }
     } catch (err) {
-      logger.error('Failed to load image detail:', err);
+      logger.error('Failed to load image:', err);
     }
-  }, [currentSession, loadSession]);
+  }, [currentSession, loadSession, loadImage]);
+
+  // 이미지별 GT 파일 업로드 핸들러
+  const handleUploadGTForImage = useCallback(async (imageId: string, file: File) => {
+    if (!currentSession || !imageSize) return;
+    try {
+      // GT 파일을 이미지 파일명과 연결하여 업로드
+      const imageName = imageId === 'main' ? currentSession.filename : `image_${imageId}`;
+      await groundTruthApi.upload(file, imageName, imageSize.width, imageSize.height);
+      logger.info('GT uploaded for image:', imageId, file.name);
+    } catch (err) {
+      logger.error('GT upload failed:', err);
+      throw err;
+    }
+  }, [currentSession, imageSize]);
+
+  // 참조 도면 유형 변경 핸들러
+  const handleDrawingTypeChange = useCallback((newType: string) => {
+    setUserDrawingType(newType === 'auto' ? null : newType);
+    logger.info('Drawing type changed to:', newType);
+  }, []);
 
   // Section visibility
   const visibility = getSectionVisibility(effectiveDrawingType, effectiveFeatures);
@@ -362,24 +389,21 @@ export function WorkflowPage() {
         darkMode={state.darkMode}
         setDarkMode={state.setDarkMode}
         gpuStatus={state.gpuStatus}
-        config={state.config}
-        setConfig={state.setConfig}
-        showSettings={state.showSettings}
-        setShowSettings={state.setShowSettings}
-        showAnalysisOptions={state.showAnalysisOptions}
-        setShowAnalysisOptions={state.setShowAnalysisOptions}
         currentSession={currentSession}
         sessions={sessions}
         detectionCount={detections.length}
         sessionImageCount={sessionImageCount}
         onImagesAdded={loadSessionImageCount}
+        onImageSelect={handleImageSelect}
+        onExportReady={() => logger.info('All images reviewed, export ready')}
         onNewSession={handleNewSession}
         onLoadSession={handleLoadSessionWithGTReset}
         onDeleteSession={deleteSession}
-        onRunDetection={runDetection}
         onClearCache={handleClearCache}
-        onAnalysisOptionsChange={analysisHandlers.handleAnalysisOptionsChange}
         onRunAnalysis={analysisHandlers.handleRunAnalysis}
+        drawingType={effectiveDrawingType}
+        onDrawingTypeChange={handleDrawingTypeChange}
+        onUploadGT={handleUploadGTForImage}
         isLoading={isLoading}
         isClearingCache={state.isClearingCache}
       />
@@ -442,16 +466,7 @@ export function WorkflowPage() {
             />
           )}
 
-          {/* 다중 이미지 검토 (Phase 2C) - 세션 있으면 항상 표시 */}
-          {currentSession && (
-            <ImageReviewSection
-              sessionId={currentSession.session_id}
-              onImageSelect={handleImageSelect}
-              onExportReady={() => {
-                logger.info('All images reviewed, export ready');
-              }}
-            />
-          )}
+          {/* 다중 이미지 검토 (Phase 2C) - 사이드바로 이동됨 */}
 
           {/* 도면 정보 (빌더에서 설정한 경우) */}
           {currentSession?.drawing_type && currentSession.drawing_type !== 'auto' && (

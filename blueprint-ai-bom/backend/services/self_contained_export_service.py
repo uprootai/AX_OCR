@@ -6,7 +6,9 @@ Phase 2F: Self-contained Export 패키지 생성
 - Import 스크립트 생성
 """
 
+import base64
 import json
+import mimetypes
 import os
 import subprocess
 import tempfile
@@ -78,9 +80,10 @@ class SelfContainedExportService:
         "pid-analyzer-api": 5018,
         "design-checker-api": 5019,
         "blueprint-ai-bom-backend": 5020,
-        "blueprint-ai-bom-frontend": 3000,  # 프론트엔드 추가
+        "blueprint-ai-bom-frontend": 3000,  # BOM 프론트엔드
         "pid-composer-api": 5021,
         "table-detector-api": 5022,
+        "web-ui": 5173,  # BlueprintFlow 편집기 (옵션)
     }
 
     # 백엔드 → 프론트엔드 자동 포함 매핑
@@ -90,7 +93,34 @@ class SelfContainedExportService:
     }
 
     # 프론트엔드 서비스 목록 (docker-compose 생성 시 특별 처리)
-    FRONTEND_SERVICES = {"blueprint-ai-bom-frontend"}
+    FRONTEND_SERVICES = {"blueprint-ai-bom-frontend", "web-ui"}
+
+    # 옵션 서비스 (기본적으로 포함되지 않음, 요청 시에만 포함)
+    OPTIONAL_SERVICES = {
+        "web-ui": {
+            "description": "BlueprintFlow 편집기 (워크플로우 편집 필요 시)",
+            "port": 5173,
+            "depends_on": ["gateway-api"],
+        }
+    }
+
+    # 세션 features → Docker 서비스 매핑
+    # Blueprint AI BOM 세션에서 사용되는 feature 이름을 서비스로 변환
+    # 주의: dimension_ocr는 YOLO 후처리로 별도 OCR 서비스 불필요
+    FEATURE_TO_SERVICE_MAP = {
+        "symbol_detection": ["yolo-api"],
+        # dimension_ocr: YOLO 검출 결과에서 텍스트 추출 (별도 서비스 불필요)
+        "text_ocr": ["paddleocr-api", "tesseract-api"],
+        "general_ocr": ["paddleocr-api"],
+        "table_extraction": ["table-detector-api"],
+        "pid_analysis": ["pid-analyzer-api", "line-detector-api"],
+        "design_check": ["design-checker-api"],
+        "tolerance_analysis": ["skinmodel-api"],
+        "knowledge_graph": ["knowledge-api"],
+        "vl_classification": ["vl-api"],
+        "edge_detection": ["edgnet-api"],
+        "image_enhancement": ["esrgan-api"],
+    }
 
     def __init__(self, export_dir: Path, upload_dir: Path):
         self.export_dir = export_dir
@@ -104,14 +134,22 @@ class SelfContainedExportService:
 
     def detect_required_services(
         self,
-        workflow_definition: Dict[str, Any]
+        workflow_definition: Dict[str, Any],
+        include_web_ui: bool = False,
+        session_features: Optional[List[str]] = None
     ) -> List[str]:
         """워크플로우에서 필요한 Docker 서비스 추출
+
+        Args:
+            workflow_definition: 워크플로우 정의
+            include_web_ui: web-ui (BlueprintFlow 편집기) 포함 여부
+            session_features: 세션의 features 배열 (Blueprint AI BOM 용)
 
         백엔드 서비스가 포함되면 해당 프론트엔드도 자동으로 포함됩니다.
         """
         services = {"gateway-api"}  # Gateway는 항상 필요
 
+        # 1. 워크플로우 노드에서 서비스 추출
         nodes = workflow_definition.get("nodes", [])
         for node in nodes:
             node_type = node.get("type", "").lower().replace("_", "-")
@@ -125,12 +163,27 @@ class SelfContainedExportService:
             elif node_type in ("bom", "ai-bom"):
                 services.add("blueprint-ai-bom-backend")
 
+        # 2. 세션 features에서 서비스 추출 (Blueprint AI BOM 세션용)
+        if session_features:
+            # Blueprint AI BOM에서 Export하는 경우 항상 BOM 백엔드 포함
+            services.add("blueprint-ai-bom-backend")
+
+            for feature in session_features:
+                feature_key = feature.lower().replace("-", "_")
+                if feature_key in self.FEATURE_TO_SERVICE_MAP:
+                    # 첫 번째 서비스만 추가 (기본 서비스)
+                    services.add(self.FEATURE_TO_SERVICE_MAP[feature_key][0])
+
         # 백엔드가 포함되면 프론트엔드도 자동 포함
         frontends_to_add = set()
         for service in services:
             if service in self.BACKEND_TO_FRONTEND_MAP:
                 frontends_to_add.add(self.BACKEND_TO_FRONTEND_MAP[service])
         services.update(frontends_to_add)
+
+        # 옵션: web-ui (BlueprintFlow 편집기) 포함
+        if include_web_ui:
+            services.add("web-ui")
 
         return sorted(list(services))
 
@@ -147,19 +200,34 @@ class SelfContainedExportService:
                 node_types.add(node_type)
         return sorted(list(node_types))
 
-    def get_docker_image_size(self, service_name: str) -> float:
-        """Docker 이미지 크기 조회 (MB)"""
-        try:
-            result = subprocess.run(
-                ["docker", "image", "inspect", f"{service_name}:latest",
-                 "--format", "{{.Size}}"],
-                capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                size_bytes = int(result.stdout.strip())
-                return round(size_bytes / (1024 * 1024), 2)
-        except Exception as e:
-            logger.warning(f"Failed to get image size for {service_name}: {e}")
+    def get_docker_image_size(self, service_name: str, source_prefix: str = "") -> float:
+        """Docker 이미지 크기 조회 (MB)
+
+        Args:
+            service_name: 서비스 이름 (예: yolo-api)
+            source_prefix: 소스 이미지 접두사 (예: poc_, poc-)
+        """
+        # 여러 이미지 이름 형식 시도 (prefix 있는 것, 없는 것)
+        image_names_to_try = [
+            f"{source_prefix}{service_name}:latest",
+            f"{service_name}:latest",
+        ]
+
+        for image_name in image_names_to_try:
+            try:
+                result = subprocess.run(
+                    ["docker", "image", "inspect", image_name,
+                     "--format", "{{.Size}}"],
+                    capture_output=True, text=True, timeout=10
+                )
+                if result.returncode == 0:
+                    size_bytes = int(result.stdout.strip())
+                    return round(size_bytes / (1024 * 1024), 2)
+            except Exception as e:
+                logger.debug(f"Image not found: {image_name}")
+                continue
+
+        logger.warning(f"Failed to get image size for {service_name}")
         return 0.0
 
     def export_docker_images(
@@ -167,24 +235,64 @@ class SelfContainedExportService:
         services: List[str],
         output_dir: Path,
         compress: bool,
-        port_offset: int
+        port_offset: int,
+        source_prefix: str = ""
     ) -> Dict[str, DockerImageInfo]:
-        """Docker 이미지를 tar 파일로 저장"""
+        """Docker 이미지를 tar 파일로 저장
+
+        Args:
+            services: 서비스 목록
+            output_dir: 출력 디렉토리
+            compress: gzip 압축 여부
+            port_offset: 포트 오프셋
+            source_prefix: 소스 이미지 접두사 (예: poc_, poc-)
+        """
         results = {}
         output_dir.mkdir(parents=True, exist_ok=True)
 
         for service in services:
-            image_name = f"{service}:latest"
+            # 여러 이미지 이름 형식 시도
+            image_names_to_try = [
+                f"{source_prefix}{service}:latest",
+                f"{service}:latest",
+            ]
+
+            found_image = None
+            for img_name in image_names_to_try:
+                # 이미지 존재 확인
+                check_result = subprocess.run(
+                    ["docker", "image", "inspect", img_name],
+                    capture_output=True, text=True
+                )
+                if check_result.returncode == 0:
+                    found_image = img_name
+                    break
+
+            if not found_image:
+                logger.warning(f"Docker image not found for {service}, skipping...")
+                continue
+
+            # 출력 파일은 항상 표준 이름 사용 (prefix 없이)
+            target_image_name = f"{service}:latest"
             file_ext = ".tar.gz" if compress else ".tar"
             output_file = output_dir / f"{service}{file_ext}"
 
             try:
+                # 소스 이미지를 표준 이름으로 태그 (import 시 일관성 위해)
+                if found_image != target_image_name:
+                    subprocess.run(
+                        ["docker", "tag", found_image, target_image_name],
+                        check=True, timeout=30
+                    )
+                    logger.info(f"[Export] Tagged {found_image} as {target_image_name}")
+
+                # 이미지 저장
                 if compress:
-                    cmd = f"docker save {image_name} | gzip > {output_file}"
+                    cmd = f"docker save {target_image_name} | gzip > {output_file}"
                     subprocess.run(cmd, shell=True, check=True, timeout=600)
                 else:
                     subprocess.run(
-                        ["docker", "save", image_name, "-o", str(output_file)],
+                        ["docker", "save", target_image_name, "-o", str(output_file)],
                         check=True, timeout=600
                     )
 
@@ -194,7 +302,7 @@ class SelfContainedExportService:
 
                 results[service] = DockerImageInfo(
                     service_name=service,
-                    image_name=image_name,
+                    image_name=target_image_name,
                     file_name=output_file.name,
                     size_mb=size_mb,
                     original_port=original_port,
@@ -322,6 +430,13 @@ class SelfContainedExportService:
         """Import 스크립트 생성"""
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Nginx 설정 파일 생성 (Frontend용)
+        if "blueprint-ai-bom-frontend" in services:
+            self._generate_nginx_config(output_dir, container_prefix)
+
+        # BOM Backend 포트 계산
+        bom_backend_port = self.SERVICE_PORT_MAP.get("blueprint-ai-bom-backend", 5020) + port_offset
+
         # Linux/macOS import.sh
         sh_script = f'''#!/bin/bash
 set -e
@@ -335,8 +450,8 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-# [1/3] Docker 이미지 로드
-echo "[1/3] Loading Docker images..."
+# [1/5] Docker 이미지 로드
+echo "[1/5] Loading Docker images..."
 for img in docker/images/*.tar.gz; do
     if [ -f "$img" ]; then
         echo "  Loading: $(basename "$img")"
@@ -351,16 +466,56 @@ for img in docker/images/*.tar; do
     fi
 done
 
-# [2/3] Docker 네트워크 생성
+# [2/5] Docker 네트워크 생성
 echo ""
-echo "[2/3] Creating Docker network..."
+echo "[2/5] Creating Docker network..."
 docker network create {container_prefix}_network 2>/dev/null || echo "  Network already exists"
 
-# [3/3] 서비스 시작
+# [3/5] 서비스 시작
 echo ""
-echo "[3/3] Starting services..."
+echo "[3/5] Starting services..."
 cd docker
 docker-compose up -d
+
+# [4/5] Frontend Nginx 설정 업데이트
+FRONTEND_CONTAINER="{container_prefix}-blueprint-ai-bom-frontend"
+if docker ps --format "{{{{.Names}}}}" | grep -q "$FRONTEND_CONTAINER"; then
+    echo ""
+    echo "[4/5] Updating frontend nginx configuration..."
+    docker cp ../scripts/nginx.conf "$FRONTEND_CONTAINER":/etc/nginx/conf.d/default.conf
+    docker exec "$FRONTEND_CONTAINER" nginx -s reload 2>/dev/null || true
+    echo "  Nginx configuration updated"
+fi
+
+# [5/5] 세션 데이터 자동 복원
+cd "$SCRIPT_DIR/.."
+if [ -f "session_import.json" ]; then
+    echo ""
+    echo "[5/5] Restoring session data..."
+
+    # 백엔드가 준비될 때까지 대기 (최대 30초)
+    for i in {{1..30}}; do
+        if curl -s "http://localhost:{bom_backend_port}/health" | grep -q "healthy"; then
+            break
+        fi
+        echo "  Waiting for backend to be ready... ($i/30)"
+        sleep 1
+    done
+
+    # 세션 Import
+    IMPORT_RESULT=$(curl -s -X POST "http://localhost:{bom_backend_port}/sessions/import" \\
+        -F "file=@session_import.json" 2>/dev/null || echo "failed")
+
+    if echo "$IMPORT_RESULT" | grep -q "session_id"; then
+        SESSION_ID=$(echo "$IMPORT_RESULT" | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
+        echo "  ✅ Session restored: $SESSION_ID"
+    else
+        echo "  ⚠️  Session restore failed (you can manually import session_import.json)"
+    fi
+else
+    echo ""
+    echo "[5/5] No session data to restore (session_import.json not found)"
+fi
 
 echo ""
 echo "=========================================="
@@ -419,9 +574,10 @@ Write-Host ""
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location "$ScriptDir\\.."
+$RootDir = Get-Location
 
-# [1/3] Docker 이미지 로드
-Write-Host "[1/3] Loading Docker images..." -ForegroundColor Yellow
+# [1/5] Docker 이미지 로드
+Write-Host "[1/5] Loading Docker images..." -ForegroundColor Yellow
 
 $gzFiles = Get-ChildItem -Path "docker\\images\\*.tar.gz" -ErrorAction SilentlyContinue
 foreach ($file in $gzFiles) {{
@@ -435,17 +591,62 @@ foreach ($file in $tarFiles) {{
     docker load -i $file.FullName
 }}
 
-# [2/3] Docker 네트워크 생성
+# [2/5] Docker 네트워크 생성
 Write-Host ""
-Write-Host "[2/3] Creating Docker network..." -ForegroundColor Yellow
+Write-Host "[2/5] Creating Docker network..." -ForegroundColor Yellow
 docker network create {container_prefix}_network 2>$null
 if ($LASTEXITCODE -ne 0) {{ Write-Host "  Network already exists" }}
 
-# [3/3] 서비스 시작
+# [3/5] 서비스 시작
 Write-Host ""
-Write-Host "[3/3] Starting services..." -ForegroundColor Yellow
+Write-Host "[3/5] Starting services..." -ForegroundColor Yellow
 Set-Location docker
 docker-compose up -d
+
+# [4/5] Frontend Nginx 설정 업데이트
+$FrontendContainer = "{container_prefix}-blueprint-ai-bom-frontend"
+$RunningContainers = docker ps --format "{{{{.Names}}}}"
+if ($RunningContainers -match $FrontendContainer) {{
+    Write-Host ""
+    Write-Host "[4/5] Updating frontend nginx configuration..." -ForegroundColor Yellow
+    docker cp "..\\scripts\\nginx.conf" "${{FrontendContainer}}:/etc/nginx/conf.d/default.conf"
+    docker exec $FrontendContainer nginx -s reload 2>$null
+    Write-Host "  Nginx configuration updated"
+}}
+
+# [5/5] 세션 데이터 자동 복원
+Set-Location $RootDir
+if (Test-Path "session_import.json") {{
+    Write-Host ""
+    Write-Host "[5/5] Restoring session data..." -ForegroundColor Yellow
+
+    # 백엔드가 준비될 때까지 대기 (최대 30초)
+    for ($i = 1; $i -le 30; $i++) {{
+        try {{
+            $health = Invoke-RestMethod -Uri "http://localhost:{bom_backend_port}/health" -Method Get -ErrorAction SilentlyContinue
+            if ($health.status -eq "healthy") {{ break }}
+        }} catch {{}}
+        Write-Host "  Waiting for backend to be ready... ($i/30)"
+        Start-Sleep -Seconds 1
+    }}
+
+    # 세션 Import
+    try {{
+        $importResult = Invoke-RestMethod -Uri "http://localhost:{bom_backend_port}/sessions/import" `
+            -Method Post `
+            -Form @{{ file = Get-Item "session_import.json" }} `
+            -ErrorAction SilentlyContinue
+
+        if ($importResult.session_id) {{
+            Write-Host "  Session restored: $($importResult.session_id)" -ForegroundColor Green
+        }}
+    }} catch {{
+        Write-Host "  Session restore failed (you can manually import session_import.json)" -ForegroundColor Yellow
+    }}
+}} else {{
+    Write-Host ""
+    Write-Host "[5/5] No session data to restore (session_import.json not found)" -ForegroundColor Yellow
+}}
 
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Green
@@ -485,13 +686,254 @@ Write-Host "Stop services: cd docker; docker-compose down"
 
         logger.info(f"[Export] Import scripts generated in {output_dir}")
 
+    def _generate_nginx_config(
+        self,
+        output_dir: Path,
+        container_prefix: str
+    ) -> None:
+        """Frontend용 Nginx 설정 파일 생성"""
+        backend_container = f"{container_prefix}-blueprint-ai-bom-backend"
+
+        nginx_config = f'''server {{
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    location / {{
+        try_files $uri $uri/ /index.html;
+    }}
+
+    location /api {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }}
+
+    location /sessions {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /detection {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /bom {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /health {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /export {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /customer {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /analysis {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /verification {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /feedback {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /projects {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /config {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /openapi.json {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location /docs {{
+        proxy_pass http://{backend_container}:5020;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg)$ {{
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }}
+}}
+'''
+        nginx_path = output_dir / "nginx.conf"
+        with open(nginx_path, "w") as f:
+            f.write(nginx_config)
+
+        logger.info(f"[Export] Nginx config generated: {nginx_path}")
+
+    def _encode_image_file(self, img_path: Path, filename: str) -> Optional[Dict[str, Any]]:
+        """이미지 파일을 base64로 인코딩"""
+        try:
+            with open(img_path, "rb") as f:
+                image_bytes = f.read()
+
+            mime_type, _ = mimetypes.guess_type(str(img_path))
+            if not mime_type:
+                mime_type = "image/png"
+
+            result = {
+                "filename": filename,
+                "image_base64": base64.b64encode(image_bytes).decode("utf-8"),
+                "mime_type": mime_type,
+                "file_size": len(image_bytes)
+            }
+            logger.info(f"[Export] Image encoded: {img_path.name} ({len(image_bytes)} bytes)")
+            return result
+        except Exception as e:
+            logger.warning(f"[Export] Failed to encode image {img_path}: {e}")
+            return None
+
+    def generate_importable_session(
+        self,
+        session: Dict[str, Any],
+        output_path: Path,
+        upload_dir: Path
+    ) -> bool:
+        """Import 엔드포인트와 호환되는 세션 JSON 생성
+
+        Args:
+            session: 세션 데이터
+            output_path: 출력 파일 경로
+            upload_dir: 업로드 디렉토리 (이미지 파일 위치)
+
+        Returns:
+            bool: 성공 여부
+        """
+        session_id = session.get("session_id", "")
+        filename = session.get("filename", "")
+
+        # 이미지 파일 찾기 및 base64 인코딩
+        image_data = None
+        session_dir = upload_dir / session_id
+        logger.info(f"[Export] Looking for session image in: {session_dir}, filename: {filename}")
+
+        if session_dir.exists():
+            # 1. 세션의 filename으로 먼저 찾기
+            if filename:
+                img_path = session_dir / filename
+                if img_path.exists():
+                    image_data = self._encode_image_file(img_path, filename)
+
+            # 2. filename으로 못 찾으면 이미지 확장자로 찾기
+            if not image_data:
+                for ext in [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".gif"]:
+                    for pattern in [f"original{ext}", f"*{ext}"]:
+                        if pattern.startswith("*"):
+                            # glob 패턴으로 찾기
+                            matches = list(session_dir.glob(pattern))
+                            if matches:
+                                img_path = matches[0]
+                                image_data = self._encode_image_file(img_path, filename or img_path.name)
+                                break
+                        else:
+                            img_path = session_dir / pattern
+                            if img_path.exists():
+                                image_data = self._encode_image_file(img_path, filename or img_path.name)
+                                break
+                    if image_data:
+                        break
+        else:
+            logger.warning(f"[Export] Session directory not found: {session_dir}")
+
+        if not image_data:
+            logger.warning(f"[Export] No image found for session {session_id}, session_import.json will not have image data")
+
+        # Import 엔드포인트 호환 형식 생성
+        importable_data = {
+            "export_version": "1.0",
+            "session_metadata": {
+                "session_id": session_id,
+                "filename": session.get("filename", ""),
+                "status": session.get("status", "uploaded"),
+                "drawing_type": session.get("drawing_type", "auto"),
+                "image_width": session.get("image_width"),
+                "image_height": session.get("image_height"),
+                "features": session.get("features", []),
+                "created_at": session.get("created_at"),
+                "template_id": session.get("template_id"),
+                "template_name": session.get("template_name"),
+            },
+            "image_data": image_data,
+            "detections": session.get("detections", []),
+            "verification_status": {
+                d.get("id"): d.get("verification_status", "pending")
+                for d in session.get("detections", [])
+            },
+            "bom_data": session.get("bom_data"),
+            "ocr_texts": session.get("ocr_texts", []),
+        }
+
+        try:
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(importable_data, f, indent=2, ensure_ascii=False, default=str)
+            logger.info(f"[Export] Importable session JSON created: {output_path}")
+            return True
+        except Exception as e:
+            logger.error(f"[Export] Failed to create importable session: {e}")
+            return False
+
     def get_preview(
         self,
         session: Dict[str, Any],
         template: Optional[Dict[str, Any]] = None,
         port_offset: int = 10000,
+        include_web_ui: bool = False,
+        source_prefix: str = "poc_",
     ) -> SelfContainedPreview:
-        """Self-contained Export 미리보기"""
+        """Self-contained Export 미리보기
+
+        Args:
+            session: 세션 데이터
+            template: 템플릿 데이터 (옵션)
+            port_offset: 포트 오프셋
+            include_web_ui: web-ui (BlueprintFlow 편집기) 포함 여부
+            source_prefix: 소스 이미지 접두사 (예: poc_, poc-)
+        """
         session_id = session.get("session_id", "")
 
         workflow_def = (
@@ -499,7 +941,12 @@ Write-Host "Stop services: cd docker; docker-compose down"
             if template
             else session.get("workflow_definition", {})
         )
-        required_services = self.detect_required_services(workflow_def)
+        session_features = session.get("features", [])
+        required_services = self.detect_required_services(
+            workflow_def,
+            include_web_ui=include_web_ui,
+            session_features=session_features
+        )
         node_types = self.get_workflow_node_types(workflow_def)
 
         # 크기 및 포트 매핑 조회
@@ -508,7 +955,7 @@ Write-Host "Stop services: cd docker; docker-compose down"
         total_size = 0.0
 
         for service in required_services:
-            size = self.get_docker_image_size(service)
+            size = self.get_docker_image_size(service, source_prefix=source_prefix)
             estimated_sizes[service] = size
             total_size += size
 
@@ -545,13 +992,20 @@ Write-Host "Stop services: cd docker; docker-compose down"
         export_id = str(uuid.uuid4())[:8]
         port_offset = request.port_offset
         container_prefix = request.container_prefix
+        include_web_ui = getattr(request, 'include_web_ui', False)
+        source_prefix = getattr(request, 'source_image_prefix', 'poc_')
 
         workflow_def = (
             template.get("workflow_definition", {})
             if template
             else session.get("workflow_definition", {})
         )
-        required_services = self.detect_required_services(workflow_def)
+        session_features = session.get("features", [])
+        required_services = self.detect_required_services(
+            workflow_def,
+            include_web_ui=include_web_ui,
+            session_features=session_features
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -592,6 +1046,13 @@ Write-Host "Stop services: cd docker; docker-compose down"
             with open(temp_path / "session.json", "w") as f:
                 json.dump(session_data, f, indent=2, default=str)
 
+            # Import 엔드포인트 호환 세션 파일 생성 (자동 복원용)
+            self.generate_importable_session(
+                session=session,
+                output_path=temp_path / "session_import.json",
+                upload_dir=self.upload_dir
+            )
+
             docker_images_info = {}
             docker_total_size = 0.0
 
@@ -614,7 +1075,8 @@ Write-Host "Stop services: cd docker; docker-compose down"
                 docker_images_info = self.export_docker_images(
                     required_services, images_out_dir,
                     compress=request.compress_images,
-                    port_offset=port_offset
+                    port_offset=port_offset,
+                    source_prefix=source_prefix
                 )
 
                 for info in docker_images_info.values():
@@ -659,11 +1121,18 @@ Write-Host "Stop services: cd docker; docker-compose down"
 
         # 프론트엔드 URL 포함
         frontend_url_info = ""
+        ui_urls = []
         if "blueprint-ai-bom-frontend" in required_services:
             frontend_port = 3000 + port_offset
+            ui_urls.append(f"   ★ Blueprint AI BOM: http://localhost:{frontend_port}")
+        if "web-ui" in required_services:
+            webui_port = 5173 + port_offset
+            ui_urls.append(f"   ★ BlueprintFlow 편집기: http://localhost:{webui_port}")
+
+        if ui_urls:
             frontend_url_info = f"""
 5. UI 접속:
-   브라우저에서 http://localhost:{frontend_port} 접속
+{chr(10).join(ui_urls)}
 """
 
         import_instructions = f"""

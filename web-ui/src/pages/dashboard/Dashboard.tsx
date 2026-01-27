@@ -10,6 +10,7 @@ import Toast from '../../components/ui/Toast';
 import { Link } from 'react-router-dom';
 import { TestTube, Activity, FileText, TrendingUp, Plus, RefreshCw, Download, Trash2, ToggleLeft, ToggleRight, ClipboardList, ExternalLink } from 'lucide-react';
 import { useAPIConfigStore, type APIConfig } from '../../store/apiConfigStore';
+import { GATEWAY_URL, BLUEPRINT_AI_BOM_BASE } from '../../lib/api';
 
 // Toast 알림 타입
 interface ToastState {
@@ -57,7 +58,7 @@ export default function Dashboard() {
     setBomLoading(true);
     setBomError(null);
     try {
-      const response = await fetch('http://localhost:5020/sessions');
+      const response = await fetch(`${BLUEPRINT_AI_BOM_BASE}/sessions`);
       if (response.ok) {
         const sessions = await response.json();
         setBomSessions(sessions);
@@ -75,7 +76,7 @@ export default function Dashboard() {
   const deleteBomSession = useCallback(async (sessionId: string) => {
     setDeletingSessionId(sessionId);
     try {
-      const response = await fetch(`http://localhost:5020/sessions/${sessionId}`, {
+      const response = await fetch(`${BLUEPRINT_AI_BOM_BASE}/sessions/${sessionId}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -101,7 +102,7 @@ export default function Dashboard() {
 
     setIsDeletingAll(true);
     try {
-      const response = await fetch('http://localhost:5020/sessions', {
+      const response = await fetch(`${BLUEPRINT_AI_BOM_BASE}/sessions`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -152,7 +153,7 @@ export default function Dashboard() {
   const handleAutoDiscover = async () => {
     setIsAutoDiscovering(true);
     try {
-      const response = await fetch('http://localhost:8000/api/v1/registry/list');
+      const response = await fetch(`${GATEWAY_URL}/api/v1/registry/list`);
       if (response.ok) {
         const data = await response.json();
         const apis = data.apis || [];

@@ -24,14 +24,16 @@ export function ServicesSection({ sectionRef }: ServicesSectionProps) {
             {/* Gateway */}
             <div>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded text-sm">Gateway</span>
+                <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-sm">Gateway</span>
               </h3>
-              <div className="p-4 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20">
-                <h4 className="font-bold text-orange-900 dark:text-orange-100 mb-2">Gateway API (Port 8000)</h4>
-                <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">Orchestrator integrating all backend APIs</p>
-                <ul className="text-xs space-y-1 text-orange-700 dark:text-orange-300">
-                  <li><strong>* Endpoints:</strong> GET /api/v1/health, POST /api/v1/process, POST /api/v1/quote</li>
-                  <li><strong>* Features:</strong> Merge multiple API results, single endpoint</li>
+              <div className="p-4 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20">
+                <h4 className="font-bold text-amber-900 dark:text-amber-100 mb-2">Gateway API (Port 8000)</h4>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">Orchestrator integrating all backend APIs with BlueprintFlow</p>
+                <ul className="text-xs space-y-1 text-amber-700 dark:text-amber-300">
+                  <li><strong>* Core:</strong> GET /health, POST /api/v1/process, POST /api/v1/quote</li>
+                  <li><strong>* Workflow:</strong> POST /api/v1/workflow/execute, /execute-stream</li>
+                  <li><strong>* Templates:</strong> GET /api/v1/workflow/templates, POST /execute-template/{'{id}'}</li>
+                  <li><strong>* Features:</strong> DAG validation, parallel execution, template-based workflow</li>
                 </ul>
               </div>
             </div>
@@ -40,7 +42,7 @@ export function ServicesSection({ sectionRef }: ServicesSectionProps) {
             <div>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm">Detection</span>
-                <span className="text-sm text-muted-foreground">(2 engines)</span>
+                <span className="text-sm text-muted-foreground">(3 engines)</span>
               </h3>
               <div className="grid md:grid-cols-2 gap-3">
                 <div className="p-4 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
@@ -62,6 +64,17 @@ export function ServicesSection({ sectionRef }: ServicesSectionProps) {
                     <li><strong>* Config:</strong> model_type: pid_class_aware/pid_class_agnostic</li>
                   </ul>
                 </div>
+                <div className="p-4 border-l-4 border-sky-500 bg-sky-50 dark:bg-sky-900/20 md:col-span-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-sky-900 dark:text-sky-100">Table Detector (Port 5022)</h4>
+                    <Badge className="bg-sky-600 text-xs">NEW</Badge>
+                  </div>
+                  <p className="text-sm text-sky-800 dark:text-sky-200 mb-2">Table detection and cell extraction from drawings</p>
+                  <ul className="text-xs space-y-1 text-sky-700 dark:text-sky-300">
+                    <li><strong>* Features:</strong> Borderless table support, cell OCR integration</li>
+                    <li><strong>* Output:</strong> Structured table data (JSON/Excel)</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -69,7 +82,7 @@ export function ServicesSection({ sectionRef }: ServicesSectionProps) {
             <div>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-sm">OCR</span>
-                <span className="text-sm text-muted-foreground">(5 engines)</span>
+                <span className="text-sm text-muted-foreground">(8 engines)</span>
               </h3>
               <div className="grid md:grid-cols-2 gap-3">
                 <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
@@ -88,7 +101,19 @@ export function ServicesSection({ sectionRef }: ServicesSectionProps) {
                   <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">TrOCR (5009)</h4>
                   <p className="text-xs text-green-700 dark:text-green-300">Transformer OCR, handwriting recognition</p>
                 </div>
-                <div className="p-3 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 md:col-span-2">
+                <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                  <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">Surya OCR (5013)</h4>
+                  <p className="text-xs text-green-700 dark:text-green-300">90+ languages, multilingual support</p>
+                </div>
+                <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                  <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">DocTR (5014)</h4>
+                  <p className="text-xs text-green-700 dark:text-green-300">2-stage pipeline (detection + recognition)</p>
+                </div>
+                <div className="p-3 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20">
+                  <h4 className="font-bold text-green-900 dark:text-green-100 text-sm">EasyOCR (5015)</h4>
+                  <p className="text-xs text-green-700 dark:text-green-300">80+ languages, easy integration</p>
+                </div>
+                <div className="p-3 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20">
                   <div className="flex items-center justify-between">
                     <h4 className="font-bold text-amber-900 dark:text-amber-100 text-sm">OCR Ensemble (5011)</h4>
                     <Badge className="bg-amber-600 text-xs">Ensemble</Badge>
@@ -153,7 +178,24 @@ export function ServicesSection({ sectionRef }: ServicesSectionProps) {
               </div>
             </div>
 
-            {/* Other Services (collapsed) */}
+            {/* Blueprint AI BOM */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded text-sm">BOM & Workflow</span>
+                <Badge className="bg-orange-600 text-xs">v10.5</Badge>
+              </h3>
+              <div className="p-4 border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20">
+                <h4 className="font-bold text-orange-900 dark:text-orange-100 mb-2">Blueprint AI BOM (Port 5020)</h4>
+                <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">Human-in-the-Loop BOM generation with workflow templates</p>
+                <ul className="text-xs space-y-1 text-orange-700 dark:text-orange-300">
+                  <li><strong>* Features:</strong> Template → Project → Session workflow</li>
+                  <li><strong>* Export:</strong> Self-contained Docker packages with port offset</li>
+                  <li><strong>* Review:</strong> Image-level approval/rejection/modification</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Other Services */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="p-4 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
                 <h4 className="font-bold text-yellow-900 dark:text-yellow-100 mb-1">ESRGAN (5010)</h4>
@@ -176,6 +218,13 @@ export function ServicesSection({ sectionRef }: ServicesSectionProps) {
                   <Badge className="bg-violet-600 text-xs">GraphRAG</Badge>
                 </div>
                 <p className="text-xs text-violet-700 dark:text-violet-300">Neo4j + GraphRAG domain knowledge engine</p>
+              </div>
+              <div className="p-4 border-l-4 border-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-900/20 md:col-span-2">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="font-bold text-fuchsia-900 dark:text-fuchsia-100">PID Composer (5021)</h4>
+                  <Badge className="bg-fuchsia-600 text-xs">Visualization</Badge>
+                </div>
+                <p className="text-xs text-fuchsia-700 dark:text-fuchsia-300">SVG overlay generation for P&ID analysis results</p>
               </div>
             </div>
           </div>

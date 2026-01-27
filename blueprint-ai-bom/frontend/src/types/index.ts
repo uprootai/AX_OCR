@@ -50,6 +50,12 @@ export interface Session {
 
   // 활성화된 기능 목록 (2025-12-24: 기능 기반 재설계)
   features?: string[];
+
+  // BlueprintFlow Builder 정보
+  template_id?: string;
+  template_name?: string;
+  workflow_definition?: { nodes?: unknown[] };
+  workflow_locked?: boolean;
 }
 
 export interface SessionDetail extends Session {

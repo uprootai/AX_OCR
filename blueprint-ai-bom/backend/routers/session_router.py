@@ -810,6 +810,62 @@ async def get_session_image_detail(
     return SessionImage(**image)
 
 
+@router.get("/{session_id}/images/{image_id}/data")
+async def get_session_image_data(
+    session_id: str,
+    image_id: str,
+):
+    """세션의 특정 이미지 데이터 조회 (base64)
+
+    다중 이미지 세션에서 특정 이미지의 전체 데이터를 반환합니다.
+
+    Args:
+        session_id: 세션 ID
+        image_id: 이미지 ID
+
+    Returns:
+        이미지 데이터 (base64)
+    """
+    service = get_session_service()
+    session = service.get_session(session_id)
+
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    image = service.get_image(session_id, image_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="이미지를 찾을 수 없습니다")
+
+    file_path = Path(image.get("file_path", ""))
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="이미지 파일을 찾을 수 없습니다")
+
+    with open(file_path, "rb") as f:
+        image_data = f.read()
+
+    # MIME 타입 결정
+    ext = file_path.suffix.lower()
+    mime_types = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".bmp": "image/bmp",
+        ".tiff": "image/tiff",
+        ".tif": "image/tiff",
+    }
+    mime_type = mime_types.get(ext, "application/octet-stream")
+
+    return {
+        "session_id": session_id,
+        "image_id": image_id,
+        "filename": image.get("filename"),
+        "mime_type": mime_type,
+        "image_base64": base64.b64encode(image_data).decode("utf-8"),
+        "image_width": image.get("image_width"),
+        "image_height": image.get("image_height"),
+    }
+
+
 @router.patch("/{session_id}/images/{image_id}/review")
 async def update_image_review_status(
     session_id: str,

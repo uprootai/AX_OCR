@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import Toast from '../ui/Toast';
 import { Play, Square, RefreshCw, Server, Cpu, HardDrive } from 'lucide-react';
+import { GATEWAY_URL } from '../../lib/api';
 
 // Toast 알림 타입
 interface ToastState {
@@ -46,7 +47,7 @@ export default function ContainerManager() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:8000/api/v1/containers');
+      const response = await fetch(`${GATEWAY_URL}/api/v1/containers`);
       const data: ContainerListResponse = await response.json();
       if (data.success) {
         setContainers(data.containers);
@@ -71,7 +72,7 @@ export default function ContainerManager() {
     setActionLoading(containerName);
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v1/containers/${containerName}/${action}`,
+        `${GATEWAY_URL}/api/v1/containers/${containerName}/${action}`,
         { method: 'POST' }
       );
       const data = await response.json();

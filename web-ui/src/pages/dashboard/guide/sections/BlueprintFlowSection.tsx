@@ -14,7 +14,7 @@ export function BlueprintFlowSection({ sectionRef }: BlueprintFlowSectionProps) 
   const workflowBuilderChart = `flowchart LR
     subgraph Left["Left Sidebar"]
         NP[Node Palette]
-        API[API Nodes x10]
+        API[API Nodes x21]
         CTL[Control Nodes x3]
     end
 
@@ -77,63 +77,81 @@ export function BlueprintFlowSection({ sectionRef }: BlueprintFlowSectionProps) 
             {/* Implementation Status */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded text-center">
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">17</div>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">31</div>
                 <div className="text-sm text-green-800 dark:text-green-200">Node Types</div>
               </div>
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded text-center">
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">15</div>
-                <div className="text-sm text-blue-800 dark:text-blue-200">API Executors</div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">21</div>
+                <div className="text-sm text-blue-800 dark:text-blue-200">API Services</div>
               </div>
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 rounded text-center">
-                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">60%</div>
-                <div className="text-sm text-purple-800 dark:text-purple-200">Speed Improvement</div>
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">729</div>
+                <div className="text-sm text-purple-800 dark:text-purple-200">Tests Passing</div>
               </div>
               <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-500 rounded text-center">
-                <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">4</div>
-                <div className="text-sm text-cyan-800 dark:text-cyan-200">Templates</div>
+                <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">27</div>
+                <div className="text-sm text-cyan-800 dark:text-cyan-200">API Specs</div>
               </div>
             </div>
 
             {/* Node Types */}
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Supported Node Types (17)</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Supported Node Types (31)</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
-                  <strong>Input Nodes</strong>
+                  <strong>Input (2)</strong>
                   <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                    <li>* ImageInput</li>
-                    <li>* TextInput</li>
+                    <li>* ImageInput, TextInput</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded">
+                  <strong>Detection (2)</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>* YOLO, Table Detector</li>
                   </ul>
                 </div>
                 <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded">
-                  <strong>Core APIs</strong>
+                  <strong>OCR (8)</strong>
                   <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                    <li>* YOLO, eDOCr2</li>
-                    <li>* PaddleOCR, EDGNet</li>
-                    <li>* SkinModel, VL</li>
-                  </ul>
-                </div>
-                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded">
-                  <strong>Extended APIs</strong>
-                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                    <li>* TrOCR, ESRGAN</li>
-                    <li>* OCR Ensemble</li>
-                    <li>* Knowledge</li>
-                  </ul>
-                </div>
-                <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded">
-                  <strong>P&ID Analysis</strong>
-                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                    <li>* YOLO (P&ID mode), LineDetector</li>
-                    <li>* PID Analyzer</li>
-                    <li>* Design Checker</li>
+                    <li>* eDOCr2, PaddleOCR</li>
+                    <li>* Tesseract, TrOCR</li>
+                    <li>* OCR Ensemble, SuryaOCR</li>
+                    <li>* DocTR, EasyOCR</li>
                   </ul>
                 </div>
                 <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded">
-                  <strong>Control Nodes</strong>
+                  <strong>Segmentation (2)</strong>
                   <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                    <li>* IF (Conditional branch)</li>
-                    <li>* Loop, Merge</li>
+                    <li>* EDGNet, Line Detector</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded">
+                  <strong>Preprocessing (1)</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>* ESRGAN (4x upscale)</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded">
+                  <strong>Analysis (8)</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>* SkinModel, PID Analyzer</li>
+                    <li>* Design Checker, Blueprint AI BOM</li>
+                    <li>* GT Comparison, PDF/Excel Export</li>
+                    <li>* PID Features, Verification Queue</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded">
+                  <strong>AI/Knowledge (3)</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>* VL (Vision-Language)</li>
+                    <li>* Knowledge (GraphRAG)</li>
+                    <li>* PID Composer</li>
+                  </ul>
+                </div>
+                <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded">
+                  <strong>Control (3)</strong>
+                  <ul className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                    <li>* IF, Loop, Merge</li>
                   </ul>
                 </div>
               </div>

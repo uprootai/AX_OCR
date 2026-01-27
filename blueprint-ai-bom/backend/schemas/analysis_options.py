@@ -39,7 +39,7 @@ class AnalysisOptions(BaseModel):
 
     # 검출 설정
     confidence_threshold: float = Field(
-        default=0.5,
+        default=0.4,  # drawing-bom-extractor와 동일 (0.5 → 0.4)
         ge=0.0,
         le=1.0,
         description="신뢰도 임계값"

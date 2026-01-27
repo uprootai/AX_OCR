@@ -315,10 +315,11 @@ class ExportService:
         session: Dict[str, Any],
         template: Optional[Dict[str, Any]] = None,
         port_offset: int = 10000,
+        source_prefix: str = "poc_",
     ) -> SelfContainedPreview:
         """Self-contained Export 미리보기 (위임)"""
         return self._self_contained_service.get_preview(
-            session, template, port_offset
+            session, template, port_offset, source_prefix=source_prefix
         )
 
     def create_self_contained_package(

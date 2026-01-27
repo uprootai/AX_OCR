@@ -144,6 +144,10 @@ class SelfContainedExportRequest(BaseModel):
         default=True,
         description="Docker 이미지 gzip 압축 여부"
     )
+    include_web_ui: bool = Field(
+        default=False,
+        description="web-ui (BlueprintFlow 편집기) 포함 여부. 워크플로우 편집이 필요한 경우 True"
+    )
     port_offset: int = Field(
         default=10000,
         description="포트 오프셋 (기존 서비스와 충돌 방지, 예: 5005 → 15005)"
@@ -151,6 +155,10 @@ class SelfContainedExportRequest(BaseModel):
     container_prefix: str = Field(
         default="imported",
         description="컨테이너 이름 접두사 (예: imported-yolo-api)"
+    )
+    source_image_prefix: str = Field(
+        default="poc_",
+        description="소스 Docker 이미지 접두사 (예: poc_, poc-). 실제 Docker 이미지 이름이 poc_yolo-api 형식인 경우 'poc_' 사용"
     )
     exported_by: Optional[str] = Field(
         None,

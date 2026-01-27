@@ -65,6 +65,7 @@ def get_services():
 async def get_self_contained_preview(
     session_id: str,
     port_offset: int = 10000,
+    source_prefix: str = "poc_",
 ):
     """Self-contained Export 미리보기
 
@@ -73,6 +74,7 @@ async def get_self_contained_preview(
     Args:
         session_id: 세션 ID
         port_offset: 포트 오프셋 (기본값: 10000, 예: 5005 → 15005)
+        source_prefix: 소스 Docker 이미지 접두사 (기본값: poc_, 예: poc_yolo-api)
 
     Returns:
         SelfContainedPreview: Self-contained Export 미리보기 정보
@@ -89,7 +91,7 @@ async def get_self_contained_preview(
         template = services["template"].get_template(session["template_id"])
 
     preview = services["export"].get_self_contained_preview(
-        session, template, port_offset
+        session, template, port_offset, source_prefix=source_prefix
     )
     return preview
 

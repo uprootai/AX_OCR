@@ -47,7 +47,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'imageinput_1', type: 'imageinput', label: 'Drawing Input', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'esrgan_1', type: 'esrgan', label: 'Image Enhancement', parameters: { scale: 2 }, position: { x: 300, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'Symbol Detection', parameters: { confidence: 0.35, imgsz: 1280 }, position: { x: 500, y: 100 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Symbol Verification (AI BOM)', parameters: { features: ['symbol_detection', 'vlm_auto_classification', 'human_verification'] }, position: { x: 700, y: 100 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Symbol Verification (AI BOM)', parameters: {}, position: { x: 700, y: 100 } },
           { id: 'edgnet_1', type: 'edgnet', label: 'Segmentation', parameters: { threshold: 0.5 }, position: { x: 500, y: 300 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'Dimension OCR', parameters: {}, position: { x: 750, y: 300 } },
           { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'OCR Ensemble', parameters: {}, position: { x: 900, y: 100 } },
@@ -84,7 +84,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'P&ID Image Input', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO P&ID Symbol Detection', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 350, y: 100 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Symbol Verification (AI BOM)', parameters: { features: ['symbol_detection', 'vlm_auto_classification', 'human_verification'] }, position: { x: 600, y: 100 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Symbol Verification (AI BOM)', parameters: {}, position: { x: 600, y: 100 } },
           { id: 'linedetector_1', type: 'linedetector', label: 'Line Detector', parameters: { method: 'lsd', min_length: 50, merge_lines: true, classify_types: true }, position: { x: 350, y: 300 } },
           { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'P&ID Analyzer', parameters: { generate_bom: true, generate_valve_list: true, generate_equipment_list: true }, position: { x: 850, y: 200 } },
           { id: 'designchecker_1', type: 'designchecker', label: 'Design Checker', parameters: { severity_threshold: 'warning' }, position: { x: 1100, y: 200 } },
@@ -116,7 +116,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'P&ID 심볼 검출', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 350, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '심볼 검증 (AI BOM)', parameters: { features: ['symbol_detection', 'vlm_auto_classification', 'human_verification'] }, position: { x: 600, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '심볼 검증 (AI BOM)', parameters: {}, position: { x: 600, y: 200 } },
           { id: 'linedetector_1', type: 'linedetector', label: '라인 검출', parameters: { method: 'lsd', min_length: 50, classify_types: true, classify_colors: true }, position: { x: 600, y: 350 } },
           { id: 'pidanalyzer_1', type: 'pidanalyzer', label: '연결성 분석', parameters: { generate_bom: false, generate_valve_list: false, generate_equipment_list: false }, position: { x: 850, y: 350 } },
           { id: 'designchecker_1', type: 'designchecker', label: 'BWMS 체크리스트', parameters: { rule_profile: 'bwms', product_type: 'ECS', severity_threshold: 'warning' }, position: { x: 1100, y: 200 } },
@@ -146,9 +146,9 @@ export default function BlueprintFlowTemplates() {
         name: 'TECHCROSS 1-2: Valve Signal List',
         description: '밸브 신호 목록 생성 - AI BOM Human-in-the-Loop, Control/Isolation/Safety/Check/Relief 분류',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: { features: ['symbol_detection'] }, position: { x: 100, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'P&ID 심볼 검출', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 350, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '밸브 검증 (AI BOM)', parameters: { features: ['symbol_detection', 'valve_classification', 'human_verification'] }, position: { x: 600, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '밸브 검증 (AI BOM)', parameters: {}, position: { x: 600, y: 200 } },
           { id: 'pidfeatures_1', type: 'pidfeatures', label: '밸브 신호 분석', parameters: { detect_valves: true, detect_equipment: false, classify_valve_types: true }, position: { x: 850, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: 'Valve Signal Excel', parameters: { template: 'techcross_valve_signal' }, position: { x: 1100, y: 200 } },
         ],
@@ -174,7 +174,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'P&ID 심볼 검출', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 400, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'AI BOM 검증', parameters: { features: ['symbol_detection', 'vlm_auto_classification'] }, position: { x: 700, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'AI BOM 검증', parameters: {}, position: { x: 700, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: 'Equipment List Excel', parameters: { template: 'techcross_equipment' }, position: { x: 1000, y: 200 } },
         ],
         edges: [
@@ -201,7 +201,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'linedetector_1', type: 'linedetector', label: '라인 검출', parameters: { method: 'lsd', min_length: 50, classify_types: true, detect_intersections: true }, position: { x: 350, y: 300 } },
           { id: 'pidanalyzer_1', type: 'pidanalyzer', label: '연결성 분석', parameters: { generate_bom: false, generate_valve_list: false, generate_equipment_list: false }, position: { x: 600, y: 200 } },
           { id: 'pidfeatures_1', type: 'pidfeatures', label: '편차 분석', parameters: { analyze_deviation: true, standards: ['ISO_10628', 'ISA_5.1', 'BWMS'], analysis_types: ['connectivity', 'symbol_validation'] }, position: { x: 850, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '편차 검증 (AI BOM)', parameters: { features: ['symbol_detection', 'deviation_review'] }, position: { x: 1050, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '편차 검증 (AI BOM)', parameters: {}, position: { x: 1050, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: 'Deviation List Excel', parameters: { template: 'techcross_deviation' }, position: { x: 1250, y: 200 } },
         ],
         edges: [
@@ -233,7 +233,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'imageinput_1', type: 'imageinput', label: '부품도 입력', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 350, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: '치수/텍스트 OCR', parameters: { extract_dimensions: true, extract_gdt: true, language: 'ko+en' }, position: { x: 350, y: 300 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: { features: ['table_extraction', 'dimension_extraction', 'human_verification'], drawing_type: 'mechanical' }, position: { x: 600, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: {}, position: { x: 600, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '공차 분석', parameters: { task: 'tolerance', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 850, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: 'BOM Excel 내보내기', parameters: { export_type: 'all', project_name: 'DSE Bearing BOM' }, position: { x: 1100, y: 200 } },
         ],
@@ -263,7 +263,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'vl_1', type: 'vl', label: 'VLM 도면 분류', parameters: { prompt: '이 기계도면의 부품 종류, 재질, 주요 치수를 분석해주세요' }, position: { x: 350, y: 50 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 350, y: 200 } },
           { id: 'edocr2_1', type: 'edocr2', label: '치수/텍스트 OCR', parameters: { extract_dimensions: true, extract_gdt: true }, position: { x: 350, y: 350 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: { features: ['table_extraction', 'vlm_auto_classification', 'dimension_extraction', 'human_verification'], drawing_type: 'mechanical' }, position: { x: 600, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: {}, position: { x: 600, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '공차 분석', parameters: { task: 'manufacturability', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 850, y: 200 } },
           { id: 'merge_1', type: 'merge', label: '분석 결과 통합', parameters: {}, position: { x: 1050, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: '견적서 Excel', parameters: { export_type: 'all', project_name: 'DSE Bearing Quote' }, position: { x: 1250, y: 200 } },
@@ -295,7 +295,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: '부품도 입력', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'edocr2_1', type: 'edocr2', label: '도면번호/품명 OCR', parameters: { extract_text: true, extract_tables: true, language: 'ko+en' }, position: { x: 350, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'BOM 매칭 (AI BOM)', parameters: { features: ['part_number_extraction', 'bom_matching', 'human_verification'], drawing_type: 'mechanical' }, position: { x: 600, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'BOM 매칭 (AI BOM)', parameters: {}, position: { x: 600, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: 'BOM 매칭 결과', parameters: { export_type: 'all', project_name: 'DSE Bearing BOM Match' }, position: { x: 850, y: 200 } },
         ],
         edges: [
@@ -322,7 +322,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'esrgan_1', type: 'esrgan', label: '이미지 향상', parameters: { scale: 2 }, position: { x: 300, y: 200 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 500, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: '치수/공차 OCR', parameters: { extract_dimensions: true, extract_gdt: true, extract_tables: true }, position: { x: 500, y: 300 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'BOM 검증 (AI BOM)', parameters: { features: ['table_extraction', 'part_list', 'human_verification'], drawing_type: 'bearing_ring' }, position: { x: 750, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'BOM 검증 (AI BOM)', parameters: {}, position: { x: 750, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '틈새 공차 분석', parameters: { task: 'tolerance', material_type: 'steel', correlation_length: 2.0 }, position: { x: 1000, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: 'Ring ASSY BOM', parameters: { export_type: 'all', project_name: 'DSE Bearing Ring ASSY' }, position: { x: 1250, y: 200 } },
         ],
@@ -354,7 +354,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'esrgan_1', type: 'esrgan', label: '이미지 향상', parameters: { scale: 2 }, position: { x: 300, y: 200 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 500, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: '나사/포트 OCR', parameters: { extract_dimensions: true, extract_text: true, language: 'ko+en' }, position: { x: 500, y: 300 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Casing 검증', parameters: { features: ['table_extraction', 'machining_specs', 'human_verification'], drawing_type: 'bearing_casing' }, position: { x: 750, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Casing 검증', parameters: {}, position: { x: 750, y: 200 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: '가공 난이도 분석', parameters: { task: 'manufacturability', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 1000, y: 200 } },
           { id: 'excelexport_1', type: 'excelexport', label: 'Casing 가공 명세', parameters: { export_type: 'all', project_name: 'DSE Bearing Casing' }, position: { x: 1250, y: 200 } },
         ],
@@ -555,7 +555,7 @@ export default function BlueprintFlowTemplates() {
           // Table Detector: YOLO가 검출한 영역에서 테이블 구조 추출
           { id: 'table_detector_1', type: 'table_detector', label: '테이블 구조 추출', parameters: { mode: 'analyze', ocr_engine: 'paddle', borderless: true, confidence_threshold: 0.5, min_confidence: 60 }, position: { x: 600, y: 200 } },
           // AI BOM: Human-in-the-Loop 검증
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Parts List 검증 (AI BOM)', parameters: { features: ['table_verification', 'human_verification'] }, position: { x: 850, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Parts List 검증 (AI BOM)', parameters: {}, position: { x: 850, y: 200 } },
           // Excel 출력
           { id: 'excelexport_1', type: 'excelexport', label: 'Parts List Excel', parameters: { export_type: 'all', project_name: 'DSE Parts List' }, position: { x: 1100, y: 200 } },
         ],
@@ -672,9 +672,9 @@ export default function BlueprintFlowTemplates() {
         name: 'PANASIA: MCP Panel 심볼 검출 + GT 비교',
         description: 'MCP Panel 도면에서 27종 전력 설비 심볼 검출 → GT와 비교 → Human-in-the-Loop 검증 → BOM 내보내기. 라인 연결성 분석 없이 심볼만 집중.',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'MCP Panel 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'MCP Panel 도면 입력', parameters: { features: ['symbol_detection'] }, position: { x: 100, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: '파나시아 심볼 검출 (27종)', parameters: { model_type: 'panasia', confidence: 0.25, iou: 0.50, imgsz: 1280 }, position: { x: 400, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'GT 비교 + 검증 (AI BOM)', parameters: { features: ['symbol_detection', 'gt_comparison', 'human_verification'], drawing_type: 'electrical_panel' }, position: { x: 700, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'GT 비교 + 검증 (AI BOM)', parameters: { drawing_type: 'electrical_panel' }, position: { x: 700, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
@@ -698,7 +698,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 100, y: 100 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.5, imgsz: 640 }, position: { x: 350, y: 100 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'human_verification'] }, position: { x: 600, y: 100 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 600, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'Korean OCR', parameters: {}, position: { x: 850, y: 100 } },
         ],
         edges: [
@@ -722,7 +722,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 100, y: 100 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.5 }, position: { x: 350, y: 100 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'human_verification'] }, position: { x: 600, y: 100 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 600, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'Korean OCR', parameters: {}, position: { x: 850, y: 100 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: 'Tolerance Analysis', parameters: {}, position: { x: 1100, y: 100 } },
         ],
@@ -750,7 +750,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 100, y: 100 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.35, imgsz: 1280 }, position: { x: 300, y: 100 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'vlm_auto_classification', 'human_verification'] }, position: { x: 500, y: 100 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 500, y: 100 } },
           { id: 'edgnet_1', type: 'edgnet', label: 'Edge Segmentation', parameters: { threshold: 0.5 }, position: { x: 700, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'Korean OCR', parameters: {}, position: { x: 900, y: 50 } },
           { id: 'paddleocr_1', type: 'paddleocr', label: 'PaddleOCR', parameters: { lang: 'en' }, position: { x: 900, y: 150 } },
@@ -782,7 +782,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 100, y: 150 } },
           { id: 'esrgan_1', type: 'esrgan', label: 'ESRGAN Upscale', parameters: { scale: 2 }, position: { x: 300, y: 150 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.3, imgsz: 1280 }, position: { x: 500, y: 150 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'vlm_auto_classification', 'human_verification'] }, position: { x: 700, y: 150 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 700, y: 150 } },
           { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'OCR Ensemble (4-way)', parameters: {}, position: { x: 950, y: 50 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'Dimension OCR', parameters: {}, position: { x: 950, y: 250 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: 'Tolerance Analysis', parameters: {}, position: { x: 1200, y: 250 } },
@@ -811,7 +811,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 100, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.4 }, position: { x: 300, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'human_verification'] }, position: { x: 500, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 500, y: 200 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'eDOCr2', parameters: {}, position: { x: 750, y: 80 } },
           { id: 'paddleocr_1', type: 'paddleocr', label: 'PaddleOCR', parameters: {}, position: { x: 750, y: 160 } },
           { id: 'tesseract_1', type: 'tesseract', label: 'Tesseract', parameters: {}, position: { x: 750, y: 240 } },
@@ -1073,7 +1073,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'textinput_1', type: 'textinput', label: 'Analysis Prompt', parameters: { text: 'Analyze this engineering drawing and extract all dimensions' }, position: { x: 100, y: 300 } },
           { id: 'vl_1', type: 'vl', label: 'VL Model Analysis', parameters: {}, position: { x: 400, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.4 }, position: { x: 650, y: 200 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'vlm_auto_classification', 'human_verification'] }, position: { x: 900, y: 200 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 900, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'vl_1' },
@@ -1098,7 +1098,7 @@ export default function BlueprintFlowTemplates() {
           { id: 'imageinput_1', type: 'imageinput', label: 'Drawing Input', parameters: {}, position: { x: 100, y: 150 } },
           { id: 'textinput_1', type: 'textinput', label: 'Query', parameters: { text: 'Explain the GD&T symbols and tolerances in this drawing' }, position: { x: 100, y: 300 } },
           { id: 'yolo_1', type: 'yolo', label: 'Symbol Detection', parameters: { confidence: 0.4 }, position: { x: 350, y: 150 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'human_verification'] }, position: { x: 550, y: 150 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 550, y: 150 } },
           { id: 'vl_1', type: 'vl', label: 'VL Context Analysis', parameters: {}, position: { x: 350, y: 300 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'OCR', parameters: {}, position: { x: 750, y: 150 } },
           { id: 'merge_1', type: 'merge', label: 'Contextualized Results', parameters: {}, position: { x: 1000, y: 200 } },
@@ -1130,7 +1130,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 100, y: 150 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.5 }, position: { x: 300, y: 150 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'human_verification'] }, position: { x: 500, y: 150 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 500, y: 150 } },
           { id: 'if_1', type: 'if', label: 'Check Confidence', parameters: { condition: 'confidence > 0.8' }, position: { x: 700, y: 150 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'eDOCr2 (High Conf)', parameters: {}, position: { x: 900, y: 80 } },
           { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'OCR Ensemble (Low Conf)', parameters: {}, position: { x: 900, y: 220 } },
@@ -1161,7 +1161,7 @@ export default function BlueprintFlowTemplates() {
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'Image Input', parameters: {}, position: { x: 100, y: 150 } },
           { id: 'yolo_1', type: 'yolo', label: 'YOLO Detection', parameters: { confidence: 0.35 }, position: { x: 300, y: 150 } },
-          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: { features: ['symbol_detection', 'human_verification'] }, position: { x: 500, y: 150 } },
+          { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Verification (AI BOM)', parameters: {}, position: { x: 500, y: 150 } },
           { id: 'loop_1', type: 'loop', label: 'For Each Detection', parameters: { iterator: 'detections' }, position: { x: 700, y: 150 } },
           { id: 'edocr2_1', type: 'edocr2', label: 'OCR Each Box', parameters: {}, position: { x: 900, y: 150 } },
           { id: 'skinmodel_1', type: 'skinmodel', label: 'Tolerance Analysis', parameters: {}, position: { x: 1100, y: 150 } },

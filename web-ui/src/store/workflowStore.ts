@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
 import type { Node, Edge, Connection, NodeChange, EdgeChange } from 'reactflow';
 import { getNodeDefinition } from '../config/nodeDefinitions';
+import { GATEWAY_URL } from '../lib/api';
 
 // Type definitions
 type ParameterValue = string | number | boolean | string[] | null | undefined;
@@ -393,7 +394,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       console.log('📋 Workflow definition:', workflowDefinition);
 
       // Call Gateway API
-      const response = await fetch('http://localhost:8000/api/v1/workflow/execute', {
+      const response = await fetch(`${GATEWAY_URL}/api/v1/workflow/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -511,7 +512,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       console.log('⚙️ [SSE] Execution mode:', executionMode);
 
       // Use EventSource for SSE
-      const response = await fetch('http://localhost:8000/api/v1/workflow/execute-stream', {
+      const response = await fetch(`${GATEWAY_URL}/api/v1/workflow/execute-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -683,7 +684,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       // 2. 백엔드에 취소 요청 (executionId가 있는 경우)
       if (executionId) {
         try {
-          const response = await fetch(`http://localhost:8000/api/v1/workflow/cancel/${executionId}`, {
+          const response = await fetch(`${GATEWAY_URL}/api/v1/workflow/cancel/${executionId}`, {
             method: 'POST',
           });
           if (response.ok) {
