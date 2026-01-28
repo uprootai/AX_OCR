@@ -1,0 +1,74 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git branch*)",
+      "Bash(git checkout*)",
+      "Bash(git push*)",
+      "Bash(git pull*)",
+      "Bash(npm run*)",
+      "Bash(npm install*)",
+      "Bash(npm test*)",
+      "Bash(npx *)",
+      "Bash(pytest*)",
+      "Bash(python*)",
+      "Bash(docker-compose*)",
+      "Bash(docker ps*)",
+      "Bash(docker logs*)",
+      "Bash(docker build*)",
+      "Bash(docker stop*)",
+      "Bash(docker rm*)",
+      "Bash(curl -s*)",
+      "Bash(curl -X*)",
+      "Bash(ls*)",
+      "Bash(cat*)",
+      "Bash(grep*)",
+      "Bash(find*)",
+      "Bash(wc*)",
+      "Bash(head*)",
+      "Bash(tail*)",
+      "Bash(mkdir*)",
+      "Bash(cp*)",
+      "Bash(mv*)",
+      "Bash(rm -f*)",
+      "Bash(chmod*)",
+      "Bash(cd*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(sudo rm*)",
+      "Bash(*password*)",
+      "Bash(*secret*)",
+      "Bash(*token*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [".claude/hooks/pre-edit-check.sh"]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [".claude/hooks/post-bash-log.sh"]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [".claude/hooks/post-edit-format.sh"]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [".claude/hooks/on-stop.sh"]
+      }
+    ]
+  }
+}

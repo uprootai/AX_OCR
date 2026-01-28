@@ -367,4 +367,97 @@ pytest tests/test_specific.py -v
 
 ---
 
+## 자주 하는 실수 (금지 목록)
+
+> 보리스 체니 전략 #4: 실수를 CLAUDE.md에 기록하여 반복 방지
+
+### 절대 금지
+
+| 실수 | 이유 | 대안 |
+|------|------|------|
+| base64 이미지 전송 | 쉘 인자 제한 초과, +33% 용량 | multipart/form-data 사용 |
+| `curl`로 ML API 직접 호출 | 응답 시간 예측 불가, 블로킹 | Playwright HTTP 사용 |
+| 1000줄 이상 파일 생성 | 유지보수 불가 | 즉시 분리 |
+| 존재하지 않는 파라미터 사용 | API 에러 | `api_specs/*.yaml` 확인 |
+| 기능 추가 시 과도한 추상화 | 복잡성 증가 | 최소한의 코드만 작성 |
+| 커밋 전 빌드 미확인 | CI 실패 | `/verify` 실행 |
+
+### 주의 사항
+
+- **confidence_threshold**: 기본값 0.4 사용 (0.5 아님)
+- **Docker 서비스명**: `blueprint-ai-bom-backend` (backend 아님)
+- **Gateway 헬스체크**: `/api/v1/health` (루트 아님)
+
+---
+
+## 자가 검증 방법
+
+> 보리스 체니 전략 #13: 자가 검증 방법 제공
+
+### 코드 변경 후 필수 검증
+
+```bash
+# 1. TypeScript 빌드
+cd web-ui && npm run build
+cd blueprint-ai-bom/frontend && npm run build
+
+# 2. Python 문법
+python -m py_compile gateway-api/api_server.py
+
+# 3. API 헬스체크
+curl -s http://localhost:5020/health
+curl -s http://localhost:8000/api/v1/health
+```
+
+### Playwright E2E 검증
+
+```javascript
+// 브라우저 테스트
+playwright_navigate({ url: "http://localhost:3000/workflow" })
+playwright_screenshot({ name: "verification" })
+```
+
+### 자동 검증 커맨드
+
+```
+/verify   # 빌드 + 린트 + 타입체크 + 헬스체크
+```
+
+---
+
+## 슬래시 커맨드
+
+| 커맨드 | 용도 |
+|--------|------|
+| `/verify` | 자가 검증 (빌드+린트+헬스체크) |
+| `/simplify` | 코드 정리 (중복 제거, 단순화) |
+| `/handoff` | 세션 핸드오프 (컨텍스트 60% 초과 시) |
+| `/add-feature` | 새 기능 추가 가이드 |
+| `/debug-issue` | 이슈 디버깅 워크플로우 |
+| `/rebuild-service` | Docker 서비스 재빌드 |
+| `/test-api` | API 엔드포인트 테스트 |
+| `/track-issue` | 이슈 추적 (KNOWN_ISSUES.md) |
+
+---
+
+## Hooks 설정
+
+> 보리스 체니 전략 #9: Post-tool Hooks로 포매팅
+
+### 활성화된 Hooks
+
+| Hook | 시점 | 기능 |
+|------|------|------|
+| `pre-edit-check.sh` | Edit/Write 전 | 1000줄 이상 파일 경고 |
+| `post-edit-format.sh` | Edit/Write 후 | 자동 포매팅 (prettier, eslint, ruff) |
+| `post-bash-log.sh` | Bash 후 | 실패 명령 로깅 |
+| `on-stop.sh` | 응답 완료 | 작업 완료 알림 |
+
+### 설정 파일
+
+- `.claude/settings.json` - 팀 공유 권한 설정
+- `.claude/settings.local.json` - 로컬 전용 설정
+
+---
+
 **Managed By**: Claude Code (Opus 4.5)
