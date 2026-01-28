@@ -115,7 +115,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_text_extraction": True,
         "enable_relation_extraction": True,
         "ocr_engine": "edocr2",
-        "confidence_threshold": 0.5
+        "confidence_threshold": 0.4  # 0.5 → 0.4 통일
     },
     "electrical": {
         "name": "전력 설비 단선도",
@@ -140,7 +140,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_text_extraction": True,
         "enable_relation_extraction": False,  # 치수 없음
         "ocr_engine": "paddleocr",
-        "confidence_threshold": 0.5,
+        "confidence_threshold": 0.4,  # 0.5 → 0.4 통일
         "symbol_model_type": "pid"
     },
     "assembly": {
@@ -153,7 +153,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_text_extraction": True,
         "enable_relation_extraction": True,
         "ocr_engine": "paddleocr",
-        "confidence_threshold": 0.5
+        "confidence_threshold": 0.4  # 0.5 → 0.4 통일
     }
 }
 
