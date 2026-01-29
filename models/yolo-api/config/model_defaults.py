@@ -64,11 +64,11 @@ MODEL_DEFAULTS: Dict[str, Dict[str, Any]] = {
     },
     "panasia": {
         "name": "파나시아 MCP Panel (27종)",
-        "confidence": 0.25,  # TTA(augment) 사용 시 최적값 (50/52 검출, F1 98%)
+        "confidence": 0.40,  # bom_detector.pt 최적값
         "iou": 0.50,
-        "imgsz": 3520,  # drawing-bom-extractor 기준: 원본 해상도 유지 (3508→3520, stride 32 배수)
+        "imgsz": 1024,  # bom_detector.pt는 1024 최적
         "use_sahi": False,
-        "augment": True,  # TTA(Test Time Augmentation) 필수 - F1 37→50 검출로 증가
+        "augment": False,  # bom_detector.pt는 TTA 불필요
         "description": "파나시아 MCP Panel 전기 제어반 27종 심볼 검출 (F1 98%)",
     },
 }

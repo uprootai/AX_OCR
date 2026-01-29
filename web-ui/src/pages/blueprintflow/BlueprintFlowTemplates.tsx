@@ -677,7 +677,7 @@ export default function BlueprintFlowTemplates() {
         description: 'MCP Panel 도면에서 27종 전력 설비 심볼 검출 → GT와 비교 → Human-in-the-Loop 검증 → BOM 내보내기. 라인 연결성 분석 없이 심볼만 집중.',
         nodes: [
           { id: 'imageinput_1', type: 'imageinput', label: 'MCP Panel 도면 입력', parameters: { features: ['symbol_detection', 'symbol_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
-          { id: 'yolo_1', type: 'yolo', label: '파나시아 심볼 검출 (27종)', parameters: { model_type: 'bom_detector', confidence: 0.40, iou: 0.5, imgsz: 1024 }, position: { x: 400, y: 200 } },
+          { id: 'yolo_1', type: 'yolo', label: '파나시아 심볼 검출 (27종)', parameters: { model_type: 'panasia', confidence: 0.40, iou: 0.5, imgsz: 1024 }, position: { x: 400, y: 200 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'GT 비교 + 검증 (AI BOM)', parameters: { drawing_type: 'electrical_panel' }, position: { x: 700, y: 200 } },
         ],
         edges: [
