@@ -20,6 +20,8 @@ interface TemplateInfo {
   accuracy: string;
   category: 'basic' | 'advanced' | 'pid' | 'ai' | 'benchmark' | 'panasia' | 'techcross' | 'dsebearing';
   featured?: boolean;
+  sampleImage?: string;  // e.g. '/samples/sample7_mcp_panel_body.jpg'
+  sampleGT?: string;     // e.g. '/samples/gt/sample7_mcp_panel_body.txt'
 }
 
 export default function BlueprintFlowTemplates() {
@@ -146,7 +148,7 @@ export default function BlueprintFlowTemplates() {
         name: 'TECHCROSS 1-2: Valve Signal List',
         description: '밸브 신호 목록 생성 - AI BOM Human-in-the-Loop, Control/Isolation/Safety/Check/Relief 분류',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: { features: ['symbol_detection'] }, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: { features: ['symbol_detection', 'symbol_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
           { id: 'yolo_1', type: 'yolo', label: 'P&ID 심볼 검출', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 350, y: 200 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: '밸브 검증 (AI BOM)', parameters: {}, position: { x: 600, y: 200 } },
           { id: 'pidfeatures_1', type: 'pidfeatures', label: '밸브 신호 분석', parameters: { detect_valves: true, detect_equipment: false, classify_valve_types: true }, position: { x: 850, y: 200 } },
@@ -318,7 +320,7 @@ export default function BlueprintFlowTemplates() {
         name: 'DSE Bearing 2-1: Bearing Ring ASSY',
         description: 'Tilting Pad(T1-T3)/Elliptical(T4-T8) 베어링 링 조립체 - Table Detector로 BOM 추출 + Babbitt 라이닝 틈새 분석',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'Ring ASSY 도면', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'Ring ASSY 도면', parameters: { features: ['dimension_ocr', 'dimension_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
           { id: 'esrgan_1', type: 'esrgan', label: '이미지 향상', parameters: { scale: 2 }, position: { x: 300, y: 200 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 500, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: '치수/공차 OCR', parameters: { extract_dimensions: true, extract_gdt: true, extract_tables: true }, position: { x: 500, y: 300 } },
@@ -350,7 +352,7 @@ export default function BlueprintFlowTemplates() {
         name: 'DSE Bearing 2-2: Bearing Casing ASSY',
         description: '베어링 케이싱 조립체 - Table Detector + VLM으로 상하부 Split 구조, 오일 포트/나사 가공 추출',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'Casing ASSY 도면', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'Casing ASSY 도면', parameters: { features: ['dimension_ocr', 'dimension_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
           { id: 'esrgan_1', type: 'esrgan', label: '이미지 향상', parameters: { scale: 2 }, position: { x: 300, y: 200 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 500, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: '나사/포트 OCR', parameters: { extract_dimensions: true, extract_text: true, language: 'ko+en' }, position: { x: 500, y: 300 } },
@@ -382,7 +384,7 @@ export default function BlueprintFlowTemplates() {
         name: 'DSE Bearing 2-3: Thrust Bearing',
         description: '스러스트 베어링 조립체 (TBN/GEN Side) - Table Detector + VLM으로 12개 PAD, Leveling Plate, PIVOT 분석',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'Thrust Bearing 도면', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'Thrust Bearing 도면', parameters: { features: ['dimension_ocr', 'dimension_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
           { id: 'esrgan_1', type: 'esrgan', label: '이미지 향상', parameters: { scale: 2 }, position: { x: 300, y: 100 } },
           { id: 'vl_1', type: 'vl', label: 'VLM 구조 분석', parameters: { prompt: '스러스트 베어링의 PAD 배열, 상하부 케이싱 구조, 레벨링 플레이트 배치를 분석해주세요' }, position: { x: 300, y: 300 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 550, y: 100 } },
@@ -419,7 +421,7 @@ export default function BlueprintFlowTemplates() {
         name: 'DSE Bearing 2-4: CV Cone Cover',
         description: 'CV용 콘 커버 + 천공 실린더 - VLM 용접 상세(V-groove, 35°/60° 개선), Table Detector로 BOM 추출, 전개도 분석',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'CV Cone 도면', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'CV Cone 도면', parameters: { features: ['dimension_ocr', 'dimension_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
           { id: 'esrgan_1', type: 'esrgan', label: '이미지 향상', parameters: { scale: 2 }, position: { x: 300, y: 100 } },
           { id: 'vl_1', type: 'vl', label: 'VLM 용접 해석', parameters: { prompt: '용접 상세도(SECTION A-A)의 개선 각도, 루트 간격, 패스 정보와 전개도(UNFOLDED VIEW)의 홀 패턴을 분석해주세요' }, position: { x: 300, y: 350 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { borderless: true, ocr_engine: 'tesseract', confidence_threshold: 0.5 }, position: { x: 550, y: 100 } },
@@ -635,7 +637,7 @@ export default function BlueprintFlowTemplates() {
         name: 'DSE Bearing 3-2: 완전 자동 견적',
         description: 'Title Block → Parts List → Dimension → BOM Matcher → Quote Generator → Excel 견적서 자동 생성',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: '베어링 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: '베어링 도면 입력', parameters: { features: ['dimension_ocr', 'dimension_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
           { id: 'titleblock_1', type: 'titleblock', label: 'Title Block 파싱', parameters: { detection_method: 'auto', title_block_position: 'bottom_right', ocr_engine: 'paddle', company_template: 'doosan', profile: 'bearing' }, position: { x: 350, y: 100 } },
           { id: 'partslist_1', type: 'partslist', label: 'Parts List 파싱', parameters: { table_position: 'auto', ocr_engine: 'paddle', normalize_material: true, normalize_headers: true, profile: 'bearing' }, position: { x: 350, y: 300 } },
           { id: 'edocr2_1', type: 'edocr2', label: '치수 OCR', parameters: { extract_dimensions: true, extract_gdt: true }, position: { x: 600, y: 200 } },
@@ -668,12 +670,14 @@ export default function BlueprintFlowTemplates() {
       accuracy: '95%',
       category: 'panasia',
       featured: true,
+      sampleImage: '/samples/sample7_mcp_panel_body.jpg',
+      sampleGT: '/samples/gt/sample7_mcp_panel_body.txt',
       workflow: {
         name: 'PANASIA: MCP Panel 심볼 검출 + GT 비교',
         description: 'MCP Panel 도면에서 27종 전력 설비 심볼 검출 → GT와 비교 → Human-in-the-Loop 검증 → BOM 내보내기. 라인 연결성 분석 없이 심볼만 집중.',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: 'MCP Panel 도면 입력', parameters: { features: ['symbol_detection'] }, position: { x: 100, y: 200 } },
-          { id: 'yolo_1', type: 'yolo', label: '파나시아 심볼 검출 (27종)', parameters: { model_type: 'panasia', confidence: 0.25, iou: 0.50, imgsz: 1280 }, position: { x: 400, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: 'MCP Panel 도면 입력', parameters: { features: ['symbol_detection', 'symbol_verification', 'gt_comparison'] }, position: { x: 100, y: 200 } },
+          { id: 'yolo_1', type: 'yolo', label: '파나시아 심볼 검출 (27종)', parameters: { model_type: 'bom_detector', confidence: 0.40, iou: 0.5, imgsz: 1024 }, position: { x: 400, y: 200 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'GT 비교 + 검증 (AI BOM)', parameters: { drawing_type: 'electrical_panel' }, position: { x: 700, y: 200 } },
         ],
         edges: [
@@ -1178,8 +1182,35 @@ export default function BlueprintFlowTemplates() {
     },
   ];
 
-  const handleLoadTemplate = (template: TemplateInfo) => {
+  const handleLoadTemplate = async (template: TemplateInfo) => {
     loadWorkflow(template.workflow);
+
+    // 샘플 이미지 번들 로드
+    if (template.sampleImage) {
+      try {
+        const res = await fetch(template.sampleImage);
+        const blob = await res.blob();
+        const filename = template.sampleImage.split('/').pop() || 'sample.jpg';
+        const file = new File([blob], filename, { type: 'image/jpeg' });
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          useWorkflowStore.getState().setUploadedImage(e.target?.result as string, filename);
+        };
+        reader.readAsDataURL(file);
+      } catch { /* ignore sample load failure */ }
+    }
+
+    // 샘플 GT 번들 로드
+    if (template.sampleGT) {
+      try {
+        const res = await fetch(template.sampleGT);
+        const text = await res.text();
+        const gtName = template.sampleGT.split('/').pop() || 'labels.txt';
+        const dataUrl = 'data:text/plain;base64,' + btoa(text);
+        useWorkflowStore.getState().setUploadedGTFile({ name: gtName, content: dataUrl });
+      } catch { /* ignore GT load failure */ }
+    }
+
     navigate('/blueprintflow/builder');
   };
 

@@ -14,8 +14,14 @@ export const detectionNodes: Record<string, NodeDefinition> = {
     icon: 'Target',
     description: '통합 YOLO API - 기계도면(14종) 및 P&ID(60종) 심볼을 검출합니다. 모델 선택으로 용도에 맞게 사용하세요.',
     profiles: {
-      default: 'bom_detector',
+      default: 'panasia',
       available: [
+        {
+          name: 'panasia',
+          label: '파나시아 MCP Panel',
+          description: '파나시아 MCP Panel 27종 심볼 검출 (클래스 참조와 매칭됨)',
+          params: { model_type: 'panasia', confidence: 0.4, iou: 0.5, imgsz: 1024, visualize: true },
+        },
         {
           name: 'bom_detector',
           label: 'BOM 검출기',
@@ -60,15 +66,16 @@ export const detectionNodes: Record<string, NodeDefinition> = {
       {
         name: 'model_type',
         type: 'select',
-        default: 'bom_detector',
+        default: 'panasia',
         options: [
+          'panasia',
           'bom_detector',
           'engineering',
           'pid_symbol',
           'pid_class_aware',
           'pid_class_agnostic',
         ],
-        description: '모델 선택: bom_detector(전력설비 27종), engineering(기계도면 14종), pid_symbol(P&ID 32종 SAHI), pid_class_aware(P&ID 32종 고정밀), pid_class_agnostic(P&ID 위치만)',
+        description: '모델 선택: panasia(파나시아 MCP 27종), bom_detector(전력설비 27종), engineering(기계도면 14종), pid_symbol(P&ID 32종 SAHI), pid_class_aware(P&ID 32종 고정밀), pid_class_agnostic(P&ID 위치만)',
       },
       {
         name: 'confidence',

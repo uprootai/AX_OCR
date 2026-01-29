@@ -27,7 +27,7 @@ export function DetectionPage() {
   const [config, setConfig] = useState<Partial<DetectionConfig>>({
     confidence: 0.4,  // Streamlit과 동일
     iou_threshold: 0.5,  // Streamlit과 동일
-    model_type: 'bom_detector',
+    model_type: 'panasia',  // classExamples와 매칭되는 클래스명 출력
     backend: 'yolo',
   });
 

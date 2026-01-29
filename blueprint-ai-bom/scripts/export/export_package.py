@@ -161,7 +161,7 @@ class PackageExporter:
             "yolo_api": {
                 "url": "http://yolo-api:5005",
                 "port": 5005,
-                "model_type": "bom_detector",
+                "model_type": "panasia",  # classExamples와 매칭되는 클래스명 출력
                 "confidence": 0.40,
                 "iou": 0.50
             },

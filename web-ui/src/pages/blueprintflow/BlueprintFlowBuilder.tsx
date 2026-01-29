@@ -3,7 +3,7 @@
  * 워크플로우 빌더 메인 컴포넌트
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
@@ -21,7 +21,7 @@ import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
-import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle, FolderOpen, FileDown } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle, FolderOpen, FileDown, FileText } from 'lucide-react';
 import { workflowApi, type TemplateDetail } from '../../lib/api';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
 
@@ -53,6 +53,22 @@ function WorkflowBuilderCanvas() {
   } = useImageUpload({
     onShowToast: (message, type) => setToast({ show: true, message, type }),
   });
+
+  // GT file attachment
+  const uploadedGTFile = useWorkflowStore((state) => state.uploadedGTFile);
+  const setUploadedGTFile = useWorkflowStore((state) => state.setUploadedGTFile);
+  const gtFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGTFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedGTFile({ name: file.name, content: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }, [setUploadedGTFile]);
 
   // Workflow store
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -414,6 +430,43 @@ function WorkflowBuilderCanvas() {
                 >
                   <X className="w-4 h-4" />
                 </Button>
+              )}
+
+              {/* GT 파일 첨부 (이미지 업로드 후) */}
+              {uploadedImage && (
+                <>
+                  <input
+                    ref={gtFileInputRef}
+                    type="file"
+                    accept=".txt,.json,.xml"
+                    className="hidden"
+                    onChange={handleGTFileChange}
+                  />
+                  {uploadedGTFile ? (
+                    <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded border border-amber-200 dark:border-amber-700">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span className="truncate max-w-[120px]">GT: {uploadedGTFile.name}</span>
+                      <button
+                        onClick={() => setUploadedGTFile(null)}
+                        className="ml-1 hover:text-red-500 transition-colors"
+                        title="GT 파일 제거"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => gtFileInputRef.current?.click()}
+                      className="flex items-center gap-1 text-xs"
+                      title="GT 라벨 파일 첨부 (.txt .json .xml)"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      GT 첨부
+                    </Button>
+                  )}
+                </>
               )}
             </div>
 

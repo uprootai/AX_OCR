@@ -35,9 +35,15 @@ import {
   FolderPlus,
   FolderOpen,
 } from 'lucide-react';
-import { sessionApi } from '../../../lib/api';
+import { sessionApi, testImagesApi } from '../../../lib/api';
 import { API_BASE_URL } from '../../../lib/constants';
 import type { GPUStatus } from '../../../lib/api';
+
+// 프리셋별 추천 테스트 이미지
+const PRESET_TEST_IMAGES: Record<string, string> = {
+  electrical: '-MCP_1_PANEL BODY_1-page-001.jpg',  // 52개 GT 라벨, F1 98%
+  sld: '-MCP_1_PANEL BODY_1-page-001.jpg',
+};
 import type { SessionImage } from '../../../types';
 
 interface Session {
@@ -162,6 +168,7 @@ export function WorkflowSidebar({
   const [isImporting, setIsImporting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isLoadingTestImage, setIsLoadingTestImage] = useState(false);
 
   // 이미지 목록 관련 상태
   const [images, setImages] = useState<ImageWithGT[]>([]);
@@ -515,6 +522,23 @@ export function WorkflowSidebar({
   const handleLoadSession = (sessionId: string) => {
     onLoadSession(sessionId);
   };
+
+  // 추천 테스트 이미지 로드 핸들러
+  const handleLoadTestImage = useCallback(async () => {
+    const recommendedImage = PRESET_TEST_IMAGES[effectiveDrawingType] || PRESET_TEST_IMAGES.electrical;
+
+    setIsLoadingTestImage(true);
+    try {
+      const result = await testImagesApi.load(recommendedImage);
+      // 새 세션 로드
+      onLoadSession(result.session_id);
+    } catch (error) {
+      console.error('Failed to load test image:', error);
+      alert('테스트 이미지 로드에 실패했습니다.');
+    } finally {
+      setIsLoadingTestImage(false);
+    }
+  }, [effectiveDrawingType, onLoadSession]);
 
   // Export 핸들러 (JSON)
   const handleExportSession = async () => {
@@ -1171,6 +1195,25 @@ export function WorkflowSidebar({
                         <FileArchive className="w-2.5 h-2.5 inline mr-0.5" />
                         드래그 앤 드롭 (이미지/ZIP)
                       </p>
+                      {/* 추천 테스트 이미지 버튼 */}
+                      <button
+                        onClick={handleLoadTestImage}
+                        disabled={isLoadingTestImage}
+                        className="w-full mt-2 flex items-center justify-center space-x-1 px-2 py-1 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded text-[10px] disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-orange-200 dark:border-orange-800"
+                        title="MCP Panel 테스트 이미지 (52개 GT, F1 98%)"
+                      >
+                        {isLoadingTestImage ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>로딩...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-3 h-3" />
+                            <span>추천 테스트 이미지</span>
+                          </>
+                        )}
+                      </button>
                       <input
                         ref={imageUploadRef}
                         type="file"

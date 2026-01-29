@@ -87,6 +87,10 @@ class YoloExecutor(BaseNodeExecutor):
         if inputs.get("features"):
             output["features"] = inputs["features"]
 
+        # gt_file 패스스루 (BOM 세션에서 GT 업로드에 필요)
+        if inputs.get("gt_file"):
+            output["gt_file"] = inputs["gt_file"]
+
         return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:

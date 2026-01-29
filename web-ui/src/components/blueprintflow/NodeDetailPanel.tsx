@@ -1,4 +1,5 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, PlayCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, PlayCircle, CheckCircle2, XCircle, Clock, FileText } from 'lucide-react';
+import DetectionResultCard from './DetectionResultCard';
 import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNodeDefinitions } from '../../hooks/useNodeDefinitions';
@@ -47,6 +48,9 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
   // Get uploaded image from store
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
   const uploadedFileName = useWorkflowStore((state) => state.uploadedFileName);
+
+  // GT file state (read-only display, attachment is in the toolbar)
+  const uploadedGTFile = useWorkflowStore((state) => state.uploadedGTFile);
 
   // Get node execution status from store
   const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
@@ -257,6 +261,14 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
           </Card>
         )}
 
+        {/* GT File Status - Read-only display (GT attachment is in the toolbar) */}
+        {nodeType === 'imageinput' && uploadedGTFile && (
+          <div className="flex items-center gap-2 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-700">
+            <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">GT: {uploadedGTFile.name}</span>
+          </div>
+        )}
+
         {/* Recommended Nodes - Based on selected features */}
         {nodeType === 'imageinput' && featuresRecommendation && (
           <Card className="border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
@@ -370,7 +382,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                 {currentNodeStatus.status === 'running' && <Clock className="w-4 h-4 text-blue-500 animate-spin" />}
                 {currentNodeStatus.status === 'pending' && <PlayCircle className="w-4 h-4 text-gray-400" />}
                 실행 결과
-                {currentNodeStatus.elapsedSeconds && (
+                {currentNodeStatus.elapsedSeconds && !Array.isArray(currentNodeStatus.output?.detections) && (
                   <span className="text-xs text-gray-500 ml-auto">
                     {currentNodeStatus.elapsedSeconds.toFixed(1)}초
                   </span>
@@ -384,43 +396,48 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
                 </div>
               )}
               {currentNodeStatus.status === 'completed' && currentNodeStatus.output && (
-                <div className="space-y-2">
-                  {/* 주요 결과 요약 */}
-                  {Array.isArray(currentNodeStatus.output.dimensions) && currentNodeStatus.output.dimensions.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">📏 치수:</span>
-                      <span>{currentNodeStatus.output.dimensions.length}개</span>
+                <>
+                  {/* Detection 결과가 있으면 DetectionResultCard 사용 */}
+                  {Array.isArray(currentNodeStatus.output.detections) && currentNodeStatus.output.detections.length > 0 ? (
+                    <DetectionResultCard
+                      nodeStatus={currentNodeStatus}
+                      uploadedImage={uploadedImage}
+                      uploadedFileName={uploadedFileName}
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      {/* 기존: Detection 외 결과 요약 */}
+                      {Array.isArray(currentNodeStatus.output.dimensions) && currentNodeStatus.output.dimensions.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">📏 치수:</span>
+                          <span>{currentNodeStatus.output.dimensions.length}개</span>
+                        </div>
+                      )}
+                      {Array.isArray(currentNodeStatus.output.tables) && currentNodeStatus.output.tables.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">📊 테이블:</span>
+                          <span>{currentNodeStatus.output.tables.length}개</span>
+                        </div>
+                      )}
+                      {Array.isArray(currentNodeStatus.output.texts) && currentNodeStatus.output.texts.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">📝 텍스트:</span>
+                          <span>{currentNodeStatus.output.texts.length}개</span>
+                        </div>
+                      )}
+                      {/* JSON 미리보기 (접기/펼치기) */}
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
+                          JSON 데이터 보기
+                        </summary>
+                        <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
+                          {JSON.stringify(currentNodeStatus.output, null, 2).slice(0, 2000)}
+                          {JSON.stringify(currentNodeStatus.output).length > 2000 && '...'}
+                        </pre>
+                      </details>
                     </div>
                   )}
-                  {Array.isArray(currentNodeStatus.output.tables) && currentNodeStatus.output.tables.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">📊 테이블:</span>
-                      <span>{currentNodeStatus.output.tables.length}개</span>
-                    </div>
-                  )}
-                  {Array.isArray(currentNodeStatus.output.detections) && currentNodeStatus.output.detections.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">🎯 검출:</span>
-                      <span>{currentNodeStatus.output.detections.length}개</span>
-                    </div>
-                  )}
-                  {Array.isArray(currentNodeStatus.output.texts) && currentNodeStatus.output.texts.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">📝 텍스트:</span>
-                      <span>{currentNodeStatus.output.texts.length}개</span>
-                    </div>
-                  )}
-                  {/* JSON 미리보기 (접기/펼치기) */}
-                  <details className="mt-2">
-                    <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
-                      JSON 데이터 보기
-                    </summary>
-                    <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
-                      {JSON.stringify(currentNodeStatus.output, null, 2).slice(0, 2000)}
-                      {JSON.stringify(currentNodeStatus.output).length > 2000 && '...'}
-                    </pre>
-                  </details>
-                </div>
+                </>
               )}
               {currentNodeStatus.status === 'running' && (
                 <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">

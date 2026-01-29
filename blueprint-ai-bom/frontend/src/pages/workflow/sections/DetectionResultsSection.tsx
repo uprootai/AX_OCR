@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { CheckCircle } from 'lucide-react';
 import { InfoTooltip } from '../../../components/Tooltip';
 import { FEATURE_TOOLTIPS } from '../../../components/tooltipContent';
 import { IntegratedOverlay } from '../../../components/IntegratedOverlay';
@@ -79,10 +80,11 @@ export function DetectionResultsSection({
   const [showFP, setShowFP] = useState(true);
   const [showFN, setShowFN] = useState(true);
 
-  // Draw GT canvas
+  // Draw GT canvas (병렬 비교 모드)
   useEffect(() => {
     const canvas = gtCanvasRef.current;
-    if (!canvas || !imageData || !imageSize || !gtCompareResult) return;
+    // viewMode가 'canvas'일 때만 그리기
+    if (!canvas || !imageData || !imageSize || !gtCompareResult || viewMode !== 'canvas') return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -121,12 +123,13 @@ export function DetectionResultsSection({
       });
     };
     img.src = imageData;
-  }, [imageData, imageSize, gtCompareResult]);
+  }, [imageData, imageSize, gtCompareResult, viewMode]);
 
-  // Draw Detection canvas
+  // Draw Detection canvas (병렬 비교 모드)
   useEffect(() => {
     const canvas = detCanvasRef.current;
-    if (!canvas || !imageData || !imageSize || !gtCompareResult) return;
+    // viewMode가 'canvas'일 때만 그리기
+    if (!canvas || !imageData || !imageSize || !gtCompareResult || viewMode !== 'canvas') return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -156,7 +159,7 @@ export function DetectionResultsSection({
       });
     };
     img.src = imageData;
-  }, [imageData, imageSize, detections, gtCompareResult]);
+  }, [imageData, imageSize, detections, gtCompareResult, viewMode]);
 
   // Draw unified TP/FP/FN canvas
   useEffect(() => {
@@ -318,12 +321,15 @@ export function DetectionResultsSection({
         )}
       </h2>
 
-      {/* GT 로드 상태 */}
+      {/* GT 로드 완료 상태 배지 */}
       {gtCompareResult && (
         <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
-          <p className="text-green-800 dark:text-green-200">
-            ✅ Ground Truth 로드됨: {gtCompareResult.gt_count}개 라벨
-          </p>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-500" />
+            <span className="text-green-800 dark:text-green-200 font-medium">
+              Ground Truth: {gtCompareResult.gt_count}개 라벨
+            </span>
+          </div>
         </div>
       )}
 

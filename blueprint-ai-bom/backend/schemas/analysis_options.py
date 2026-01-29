@@ -47,8 +47,8 @@ class AnalysisOptions(BaseModel):
 
     # 심볼 검출 설정
     symbol_model_type: str = Field(
-        default="bom_detector",
-        description="심볼 검출 모델 타입"
+        default="panasia",
+        description="심볼 검출 모델 타입 (panasia: classExamples 매칭, bom_detector: 일반 전력설비)"
     )
 
     # 프리셋 (선택 시 자동 설정)
@@ -119,7 +119,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "electrical": {
         "name": "전력 설비 단선도",
-        "description": "전기 심볼 검출 (기존 BOM 워크플로우)",
+        "description": "전기 심볼 검출 (파나시아 MCP Panel)",
         "icon": "⚡",
         "enable_symbol_detection": True,
         "enable_dimension_ocr": False,
@@ -128,7 +128,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_relation_extraction": False,  # 치수 없음
         "ocr_engine": "edocr2",
         "confidence_threshold": 0.4,
-        "symbol_model_type": "bom_detector"
+        "symbol_model_type": "panasia"  # classExamples 참조 이미지와 매칭
     },
     "pid": {
         "name": "P&ID 배관도",

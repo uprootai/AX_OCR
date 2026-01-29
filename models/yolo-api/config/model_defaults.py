@@ -62,6 +62,15 @@ MODEL_DEFAULTS: Dict[str, Dict[str, Any]] = {
         "augment": False,
         "description": "차단기, 변압기, CT, PT 등 27종 검출",
     },
+    "panasia": {
+        "name": "파나시아 MCP Panel (27종)",
+        "confidence": 0.25,  # TTA(augment) 사용 시 최적값 (50/52 검출, F1 98%)
+        "iou": 0.50,
+        "imgsz": 3520,  # drawing-bom-extractor 기준: 원본 해상도 유지 (3508→3520, stride 32 배수)
+        "use_sahi": False,
+        "augment": True,  # TTA(Test Time Augmentation) 필수 - F1 37→50 검출로 증가
+        "description": "파나시아 MCP Panel 전기 제어반 27종 심볼 검출 (F1 98%)",
+    },
 }
 
 # 기본 모델 (설정이 없을 때 사용)

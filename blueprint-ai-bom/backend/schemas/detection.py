@@ -26,8 +26,8 @@ class DetectionConfig(BaseModel):
     iou_threshold: float = Field(default=0.50, ge=0.1, le=0.95, description="NMS IOU 임계값")
     imgsz: int = Field(default=1024, ge=320, le=4096, description="입력 이미지 크기")
     model_type: str = Field(
-        default="bom_detector",
-        description="YOLO 모델 타입 (bom_detector, pid_symbol, pid_class_aware, pid_class_agnostic, engineering)"
+        default="panasia",
+        description="YOLO 모델 타입 (panasia, bom_detector, pid_symbol, pid_class_aware, pid_class_agnostic, engineering)"
     )
     use_sahi: bool = Field(default=False, description="P&ID용 SAHI 슬라이싱 활성화")
     device: Optional[str] = Field(default=None, description="디바이스 (cuda/cpu)")

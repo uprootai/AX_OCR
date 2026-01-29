@@ -126,7 +126,12 @@ class BOMExecutor(BaseNodeExecutor):
             else:
                 logger.info("detections 없음 - OCR 전용 모드로 세션 생성됨")
 
-            # 5. eDOCr2 치수 결과 가져오기 (있는 경우)
+            # 5. GT 파일 업로드 (Builder에서 첨부된 경우)
+            gt_file = inputs.get("gt_file")
+            if gt_file:
+                await self._upload_gt_file(session_id, gt_file, image_width, image_height)
+
+            # 6. eDOCr2 치수 결과 가져오기 (있는 경우)
             dimensions = inputs.get("dimensions", [])
             if dimensions and len(dimensions) > 0:
                 logger.info(f"eDOCr2 dimensions 가져오기: {len(dimensions)}개")
@@ -134,7 +139,7 @@ class BOMExecutor(BaseNodeExecutor):
             else:
                 logger.info("dimensions 없음 - 검증 UI에서 직접 치수 인식 필요")
 
-            # 6. 검증 UI URL 반환 (항상 Human-in-the-Loop)
+            # 7. 검증 UI URL 반환 (항상 Human-in-the-Loop)
             # WorkflowPage 사용 - GT 비교, Precision, Recall, F1 Score 표시
             # features 파라미터를 URL에 포함
             features_param = ",".join(features) if features else "verification"
@@ -371,6 +376,51 @@ class BOMExecutor(BaseNodeExecutor):
                     logger.error(f"Bulk import 실패: {response.status_code} - {response.text}")
         else:
             logger.warning("가져올 검출 결과가 없습니다")
+
+    async def _upload_gt_file(self, session_id: str, gt_file: dict, image_width: int, image_height: int):
+        """Builder에서 첨부된 GT 파일을 BOM 세션에 업로드
+
+        Args:
+            session_id: BOM 세션 ID
+            gt_file: {"name": "labels.txt", "content": "data:...;base64,..."}
+            image_width: 이미지 너비
+            image_height: 이미지 높이
+        """
+        import base64
+
+        try:
+            gt_name = gt_file.get("name", "labels.txt")
+            gt_content = gt_file.get("content", "")
+
+            if not gt_content:
+                logger.warning("GT 파일 내용이 비어있습니다")
+                return
+
+            # Data URL 디코딩
+            if "," in gt_content:
+                gt_bytes = base64.b64decode(gt_content.split(",", 1)[1])
+            else:
+                gt_bytes = gt_content.encode("utf-8")
+
+            # GT 파일 업로드 (filename은 세션의 이미지명과 매칭)
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.post(
+                    f"{self.BASE_URL}/api/ground-truth/upload",
+                    files={"file": (gt_name, gt_bytes, "text/plain")},
+                    data={
+                        "filename": "image",
+                        "image_width": str(image_width),
+                        "image_height": str(image_height),
+                    }
+                )
+
+                if response.status_code == 200:
+                    logger.info(f"GT 파일 업로드 완료: {gt_name} → 세션 {session_id}")
+                else:
+                    logger.warning(f"GT 파일 업로드 실패: {response.status_code} - {response.text}")
+
+        except Exception as e:
+            logger.error(f"GT 파일 업로드 중 오류: {e}")
 
     async def _import_dimensions(self, session_id: str, dimensions: list):
         """eDOCr2 치수 결과를 Blueprint AI BOM 세션에 가져오기

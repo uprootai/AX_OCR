@@ -59,7 +59,7 @@ import {
   ActiveFeaturesSection,
   VLMClassificationSection,
   PIDFeaturesSection,
-  GTComparisonSection,
+  // GTComparisonSection - GT 관리 기능이 DetectionResultsSection에 통합됨
 } from './workflow';
 
 export function WorkflowPage() {
@@ -115,7 +115,7 @@ export function WorkflowPage() {
   const state = useWorkflowState();
 
   // Side effects
-  useWorkflowEffects({
+  const { reloadGTComparison } = useWorkflowEffects({
     state,
     currentSession,
     detections,
@@ -288,49 +288,6 @@ export function WorkflowPage() {
     setSearchParams({ session: sessionId });
   }, [loadSession, state, setSearchParams]);
 
-  // GT 업로드 핸들러
-  const handleUploadGT = useCallback(async (file: File) => {
-    if (!currentSession || !imageSize) return;
-    try {
-      // 현재 세션의 이미지 파일명으로 GT 저장
-      const result = await groundTruthApi.upload(
-        file,
-        currentSession.filename,  // 세션 이미지와 동일한 이름으로 저장
-        imageSize.width,
-        imageSize.height
-      );
-      logger.info('GT uploaded:', result);
-    } catch (err) {
-      logger.error('GT upload failed:', err);
-    }
-  }, [currentSession, imageSize]);
-
-  // GT 비교 핸들러
-  const handleCompareGT = useCallback(async () => {
-    if (!currentSession || !imageSize || detections.length === 0) return;
-    try {
-      const detectionsForCompare = detections.map(d => ({
-        class_name: d.class_name,
-        bbox: d.bbox,
-      }));
-      const result = await groundTruthApi.compare(
-        currentSession.filename,
-        detectionsForCompare,
-        imageSize.width,
-        imageSize.height,
-        0.3,
-        { classAgnostic: true }
-      );
-      if (result.has_ground_truth) {
-        state.setGtCompareResult(result);
-      } else {
-        logger.warn('GT not found for:', currentSession.filename);
-      }
-    } catch (err) {
-      logger.error('GT compare failed:', err);
-    }
-  }, [currentSession, imageSize, detections, state]);
-
   // 다중 이미지 세션에서 이미지 선택 핸들러 (Phase 2C)
   const handleImageSelect = useCallback(async (imageId: string, image: SessionImage) => {
     if (!currentSession) return;
@@ -358,11 +315,14 @@ export function WorkflowPage() {
       const imageName = imageId === 'main' ? currentSession.filename : `image_${imageId}`;
       await groundTruthApi.upload(file, imageName, imageSize.width, imageSize.height);
       logger.info('GT uploaded for image:', imageId, file.name);
+
+      // GT 업로드 후 자동 비교 실행
+      await reloadGTComparison();
     } catch (err) {
       logger.error('GT upload failed:', err);
       throw err;
     }
-  }, [currentSession, imageSize]);
+  }, [currentSession, imageSize, reloadGTComparison]);
 
   // 참조 도면 유형 변경 핸들러
   const handleDrawingTypeChange = useCallback((newType: string) => {
@@ -498,7 +458,7 @@ export function WorkflowPage() {
             />
           )}
 
-          {/* AI 검출 결과 */}
+          {/* AI 검출 결과 (GT 관리 통합) */}
           {detections.length > 0 && (
             <DetectionResultsSection
               detections={detections}
@@ -509,18 +469,9 @@ export function WorkflowPage() {
             />
           )}
 
-          {/* GT 비교 (수동 업로드 지원) */}
-          {currentSession && visibility.gtComparison && (
-            <GTComparisonSection
-              sessionId={currentSession.session_id}
-              gtCompareResult={state.gtCompareResult}
-              detectionCount={detections.length}
-              onUploadGT={handleUploadGT}
-              onCompare={handleCompareGT}
-              isLoading={isLoading}
-              apiBaseUrl={API_BASE_URL}
-            />
-          )}
+          {/* GT 비교 섹션 - GT 미로드 상태에서만 표시 (통합으로 인해 숨김 처리)
+              Note: GT 관리 기능이 DetectionResultsSection에 통합되어 이 섹션은 더 이상 필요하지 않음
+          */}
 
           {/* 심볼 검증 */}
           {detections.length > 0 && (

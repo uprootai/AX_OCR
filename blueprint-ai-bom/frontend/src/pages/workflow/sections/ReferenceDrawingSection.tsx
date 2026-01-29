@@ -9,16 +9,14 @@ import { FEATURE_TOOLTIPS } from '../../../components/tooltipContent';
 interface ReferenceDrawingSectionProps {
   imageData: string;
   imageSize: { width: number; height: number } | null;
-  detectionCount: number;
-  approvedCount: number;
+  detectionCount?: number;
+  approvedCount?: number;
   onImageClick: () => void;
 }
 
 export function ReferenceDrawingSection({
   imageData,
   imageSize,
-  detectionCount,
-  approvedCount,
   onImageClick,
 }: ReferenceDrawingSectionProps) {
   return (
@@ -27,36 +25,20 @@ export function ReferenceDrawingSection({
         📐 원본 도면
         <InfoTooltip content={FEATURE_TOOLTIPS.referenceDrawing.description} position="right" />
       </h2>
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <img
-            src={imageData}
-            alt="도면"
-            className="w-full max-h-[400px] object-contain rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={onImageClick}
-            title="클릭하여 크게 보기"
-          />
-          <p className="text-xs text-gray-500 text-center mt-1">📌 클릭하여 크게 보기</p>
-        </div>
+      <div className="relative">
+        <img
+          src={imageData}
+          alt="도면"
+          className="w-full max-h-[600px] object-contain rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={onImageClick}
+          title="클릭하여 크게 보기"
+        />
         {imageSize && (
-          <div className="w-48 space-y-2 text-sm">
-            <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 flex items-center">
-              <span className="text-gray-500">크기:</span>
-              <span className="ml-2 font-medium">{imageSize.width} × {imageSize.height}</span>
-              <InfoTooltip content={FEATURE_TOOLTIPS.imageSize.description} position="left" iconSize={12} />
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 flex items-center">
-              <span className="text-gray-500">검출:</span>
-              <span className="ml-2 font-medium">{detectionCount}개</span>
-              <InfoTooltip content={FEATURE_TOOLTIPS.detectionCount.description} position="left" iconSize={12} />
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 flex items-center">
-              <span className="text-gray-500">승인:</span>
-              <span className="ml-2 font-medium text-green-600">{approvedCount}개</span>
-              <InfoTooltip content={FEATURE_TOOLTIPS.approvedCount.description} position="left" iconSize={12} />
-            </div>
+          <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+            {imageSize.width} × {imageSize.height}
           </div>
         )}
+        <p className="text-xs text-gray-500 text-center mt-1">📌 클릭하여 크게 보기</p>
       </div>
     </section>
   );

@@ -96,6 +96,13 @@ class DetectionService:
 
     # 모델별 기본 설정
     MODEL_CONFIGS = {
+        "panasia": {
+            "name": "파나시아 MCP Panel 심볼 (27종)",
+            "confidence": 0.40,
+            "iou": 0.50,
+            "imgsz": 1024,
+            "use_sahi": False,
+        },
         "bom_detector": {
             "name": "전력 설비 단선도 YOLOv11N",
             "confidence": 0.40,
@@ -134,12 +141,12 @@ class DetectionService:
     }
 
     # 기본 모델 설정 (하위 호환성)
-    MODEL_NAME = "전력 설비 단선도 YOLOv11N (bom_detector)"
+    MODEL_NAME = "파나시아 MCP Panel 심볼 (panasia)"
     MODEL_SETTINGS = {
         "confidence": 0.40,
         "iou": 0.50,
         "imgsz": 1024,
-        "model_type": "bom_detector"
+        "model_type": "panasia"  # classExamples와 매칭되는 클래스명 출력
     }
 
     def __init__(self, model_path: Optional[Path] = None, pricing_db_path: Optional[str] = None):

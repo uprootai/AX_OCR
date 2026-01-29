@@ -199,7 +199,7 @@ async def run_analysis(session_id: str) -> AnalysisResult:
             from schemas.detection import DetectionConfig
             config = DetectionConfig(
                 confidence=options.confidence_threshold,
-                model_id=options.symbol_model_type
+                model_type=options.symbol_model_type  # panasia 모델 사용
             )
 
             detection_result = detection_service.detect(

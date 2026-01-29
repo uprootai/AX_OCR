@@ -126,6 +126,9 @@ interface WorkflowState {
   uploadedImage: string | null;
   uploadedFileName: string | null;
 
+  // Uploaded GT file (optional, for GT comparison in pipeline)
+  uploadedGTFile: { name: string; content: string } | null;
+
   // Execution mode (default: sequential)
   executionMode: ExecutionMode;
 
@@ -151,6 +154,7 @@ interface WorkflowState {
   updateNodeStatus: (nodeId: string, status: Partial<NodeStatus>) => void;
   clearNodeStatuses: () => void;
   setUploadedImage: (image: string | null, fileName?: string | null) => void;
+  setUploadedGTFile: (file: { name: string; content: string } | null) => void;
   setExecutionMode: (mode: ExecutionMode) => void;
   cancelExecution: () => Promise<void>;
 }
@@ -201,6 +205,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   abortController: null,
   uploadedImage: persistedImage.uploadedImage,
   uploadedFileName: persistedImage.uploadedFileName,
+  uploadedGTFile: null,
   executionMode: 'sequential', // Default: sequential execution
 
   // Actions
@@ -277,6 +282,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       executionError: null,
       uploadedImage: null,
       uploadedFileName: null,
+      uploadedGTFile: null,
       nodeStatuses: {},
       isExecuting: false,
     });
@@ -381,12 +387,18 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         })),
       };
 
-      // Prepare request payload
+      // Prepare request payload (include GT file if attached)
+      const inputs: Record<string, unknown> = {
+        image: inputImage, // Base64 encoded image
+      };
+      const gtFile = get().uploadedGTFile;
+      if (gtFile) {
+        inputs.gt_file = gtFile;
+      }
+
       const requestPayload = {
         workflow: workflowDefinition,
-        inputs: {
-          image: inputImage, // Base64 encoded image
-        },
+        inputs,
         config: {},
       };
 
@@ -495,12 +507,18 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         })),
       };
 
-      // Prepare request payload
+      // Prepare request payload (include GT file if attached)
+      const streamInputs: Record<string, unknown> = {
+        image: inputImage,
+      };
+      const streamGtFile = get().uploadedGTFile;
+      if (streamGtFile) {
+        streamInputs.gt_file = streamGtFile;
+      }
+
       const requestPayload = {
         workflow: workflowDefinition,
-        inputs: {
-          image: inputImage,
-        },
+        inputs: streamInputs,
         config: {
           execution_mode: executionMode, // 'sequential' or 'parallel'
         },
@@ -725,6 +743,8 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
     set({ uploadedImage: image, uploadedFileName: fileName });
     persistImage(image, fileName);
   },
+
+  setUploadedGTFile: (file) => set({ uploadedGTFile: file }),
 
   setExecutionMode: (mode) => set({ executionMode: mode }),
 }));

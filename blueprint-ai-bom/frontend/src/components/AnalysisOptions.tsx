@@ -65,7 +65,7 @@ export function AnalysisOptions({
     enable_text_extraction: false,
     ocr_engine: 'edocr2',
     confidence_threshold: 0.5,
-    symbol_model_type: 'bom_detector',
+    symbol_model_type: 'panasia',
     preset: 'electrical',
     // Detectron2 옵션 기본값
     detection_backend: 'yolo',

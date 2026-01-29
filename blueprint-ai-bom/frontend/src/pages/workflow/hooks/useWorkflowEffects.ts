@@ -223,6 +223,35 @@ export function useWorkflowEffects({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSession?.session_id, imageSize, detections.length]);
 
+  // Reload GT comparison (callable from outside, e.g. after sidebar GT upload)
+  const reloadGTComparison = useCallback(async () => {
+    if (!currentSession || !imageSize || detections.length === 0) return;
+    setIsLoadingGT(true);
+    try {
+      const detectionsForCompare = detections.map(d => ({
+        class_name: d.class_name,
+        bbox: d.bbox,
+      }));
+      const result = await groundTruthApi.compare(
+        currentSession.filename,
+        detectionsForCompare,
+        imageSize.width,
+        imageSize.height,
+        0.3,
+        { classAgnostic: true }
+      );
+      if (result.has_ground_truth) {
+        setGtCompareResult(result);
+      } else {
+        setGtCompareResult(null);
+      }
+    } catch {
+      setGtCompareResult(null);
+    } finally {
+      setIsLoadingGT(false);
+    }
+  }, [currentSession, imageSize, detections, setGtCompareResult, setIsLoadingGT]);
+
   // Reload system status
   const reloadSystemStatus = useCallback(async () => {
     try {
@@ -235,5 +264,6 @@ export function useWorkflowEffects({
 
   return {
     reloadSystemStatus,
+    reloadGTComparison,
   };
 }

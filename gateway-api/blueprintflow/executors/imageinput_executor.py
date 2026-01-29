@@ -44,11 +44,19 @@ class ImageInputExecutor(BaseNodeExecutor):
             features = DEFAULT_FEATURES
         logger.info(f"ImageInput - features: {features}")
 
-        return {
+        output = {
             "image": image_data,
             "features": features,
             "message": f"Image loaded (size: {len(image_data)} chars, features: {len(features)})",
         }
+
+        # GT 파일 패스스루 (Builder에서 첨부된 경우)
+        gt_file = initial_inputs.get("gt_file")
+        if gt_file:
+            output["gt_file"] = gt_file
+            logger.info(f"ImageInput - GT file attached: {gt_file.get('name', 'unknown')}")
+
+        return output
 
     def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""

@@ -61,7 +61,8 @@ class YOLOInferenceService:
         conf_threshold: float = 0.35,
         iou_threshold: float = 0.45,
         imgsz: int = 1280,
-        task: str = "detect"
+        task: str = "detect",
+        augment: bool = False
     ) -> List[Detection]:
         """
         Run YOLO inference on image
@@ -72,6 +73,7 @@ class YOLOInferenceService:
             iou_threshold: NMS IoU threshold (0-1)
             imgsz: Input image size
             task: Task type (detect or segment)
+            augment: Enable Test Time Augmentation (TTA)
 
         Returns:
             List of Detection objects
@@ -95,7 +97,8 @@ class YOLOInferenceService:
             iou=iou_threshold,
             imgsz=imgsz,
             device=self.device,
-            verbose=False
+            verbose=False,
+            augment=augment
         )
 
         # Convert to Detection format

@@ -171,6 +171,8 @@ async def detect_objects(
     slice_height: int = Form(default=512, description="SAHI slice height"),
     slice_width: int = Form(default=512, description="SAHI slice width"),
     overlap_ratio: float = Form(default=0.25, description="SAHI slice overlap ratio (0-0.5)"),
+    # TTA (Test Time Augmentation) 파라미터
+    augment: bool = Form(default=False, description="Enable Test Time Augmentation (TTA) for higher recall"),
     # SVG 오버레이 파라미터
     include_svg: bool = Form(default=False, description="Include SVG overlay in response"),
 ):
@@ -212,6 +214,7 @@ async def detect_objects(
             "pid_class_agnostic": "pid_class_agnostic",
             "pid_class_aware": "pid_class_aware",
             "bom_detector": "bom_detector",
+            "panasia": "panasia",  # 파나시아 MCP Panel 27종 (classExamples 매칭)
         }
         model_id = model_id_map.get(model_type, model_type)
 
@@ -254,6 +257,11 @@ async def detect_objects(
         if imgsz == 640:  # 기본값이면 모델별 기본값 사용
             imgsz = model_config.get("imgsz", 640)
 
+        # 모델별 augment(TTA) 자동 활성화 (model_defaults 기반)
+        if not augment and model_config.get("augment", False):
+            augment = True
+            logger.info(f"모델 기본값으로 TTA 활성화: {model_id}")
+
         # 모델별 SAHI 자동 활성화 (model_defaults 기반)
         if not use_sahi and sahi_config.get("use_sahi", False):
             use_sahi = True
@@ -287,7 +295,8 @@ async def detect_objects(
                     conf_threshold=confidence,
                     iou_threshold=iou_threshold,
                     imgsz=imgsz,
-                    task=task
+                    task=task,
+                    augment=augment
                 )
         else:
             # 일반 YOLO 추론
@@ -296,7 +305,8 @@ async def detect_objects(
                 conf_threshold=confidence,
                 iou_threshold=iou_threshold,
                 imgsz=imgsz,
-                task=task
+                task=task,
+                augment=augment
             )
 
         # Post-processing: map class IDs to proper names from registry
