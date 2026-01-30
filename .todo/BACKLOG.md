@@ -1,6 +1,6 @@
 # 백로그 (향후 작업)
 
-> 마지막 업데이트: 2026-01-24
+> 마지막 업데이트: 2026-01-30
 > 미래 작업 및 참조 문서
 
 ---
@@ -9,109 +9,103 @@
 
 | 항목 | 값 |
 |------|-----|
-| **테스트** | 693개 (web-ui 304, gateway 389) |
-| **빌드** | ✅ 15.30s |
+| **테스트** | 729개 (web-ui 304, gateway 425) |
+| **빌드** | ✅ 15.04s |
 | **ESLint** | 0 errors, 1 warning |
 | **노드 정의** | 31개 |
 | **API 서비스** | 21개 |
 
 ---
 
-## ✅ 완료: Self-contained Export 프론트엔드 추가
+## P1: 단가 + UX + YOLO 확장 (2026-01-30 기준)
 
-> **완료일**: 2026-01-24
-> **담당 파일**: `blueprint-ai-bom/backend/services/self_contained_export_service.py`
+> ACTIVE.md의 확장 필요 분석 항목을 실행 가능한 작업으로 정리
 
-### 구현 완료 내역
+### P1-1. BOM 프론트엔드 세션 단가 표시 [A-1]
 
-| # | 작업 | 상태 |
+**목표**: BOM 워크플로우 UI에서 세션별 커스텀 단가 적용 상태를 인지
+
+| # | 작업 | 파일 |
 |---|------|------|
-| 1 | `SERVICE_PORT_MAP`에 프론트엔드 3000 추가 | ✅ |
-| 2 | `BACKEND_TO_FRONTEND_MAP` 추가 (자동 포함) | ✅ |
-| 3 | `FRONTEND_SERVICES` 집합 추가 | ✅ |
-| 4 | `detect_required_services()` 프론트엔드 자동 포함 | ✅ |
-| 5 | `generate_docker_compose()` 프론트엔드 처리 (포트 80) | ✅ |
-| 6 | Import 스크립트 UI URL 강조 | ✅ |
-| 7 | README.md Quick Start 섹션 추가 | ✅ |
-| 8 | 로직 테스트 검증 | ✅ |
+| 1 | 세션 조회 시 pricing.json 존재 여부 반환 | `bom_router.py` (session 응답에 `has_pricing: bool` 추가) |
+| 2 | BOM 결과 헤더에 "커스텀 단가 적용" 배지 표시 | `BOMResultsSection.tsx` |
+| 3 | BOM UI에서 단가 파일 직접 업로드/제거 | `WorkflowPage.tsx` or 새 섹션 |
 
-### 결과
+### P1-2. DetectionResultsSection 클래스 하이라이트 [B-1]
 
-- 백엔드 포함 시 프론트엔드 **자동 포함**
-- Import 후 `http://localhost:13000` (offset=10000) 으로 UI 접속 가능
-- Import 스크립트에서 UI URL 강조 표시
+**목표**: 검증 단계에서도 클래스명 클릭 → 해당 검출만 강조
 
----
+| # | 작업 | 파일 |
+|---|------|------|
+| 1 | `selectedClassName` state 추가 | `DetectionResultsSection.tsx` |
+| 2 | 클래스 목록 클릭 핸들러 | `DetectionResultsSection.tsx` |
+| 3 | Canvas 렌더링에 선택 상태 반영 (FinalResults 패턴 복제) | `DetectionResultsSection.tsx` |
 
-## 📋 P1: web-ui (BlueprintFlow) Export 검토
+### P1-3. data.yaml 방식 표준화 검토 [C-1]
 
-**우선순위**: P1
-**예상 작업량**: 4시간
+**목표**: 커스텀 모델 클래스명 관리를 data.yaml 방식으로 통일
 
-### 검토 필요 사항
+| # | 작업 | 파일 |
+|---|------|------|
+| 1 | model_registry.yaml 내 class_names 보유 모델 목록 확인 | `model_registry.yaml` |
+| 2 | 학습 data.yaml이 존재하는 모델 식별 | `models/yolo-api/models/` |
+| 3 | 해당 모델에 `data_yaml` 필드 추가 | `model_registry.yaml` |
+| 4 | 불필요한 class_names 목록 제거 또는 폴백용 유지 | `model_registry.yaml` |
 
-| 질문 | 현재 | 결정 필요 |
-|------|------|----------|
-| web-ui도 Export 필요? | ❌ 미포함 | 검토 필요 |
-| 고객이 워크플로우 편집 필요? | N/A | 요구사항 확인 |
-| web-ui 없이 BOM만 사용 가능? | ✅ 가능 | - |
+### P1-4. Docker 빌드 panasia_data.yaml 확인 [C-3]
 
-### 선택지
-
-1. **web-ui 미포함 (현재)**
-   - 장점: 패키지 크기 작음
-   - 단점: 고객이 워크플로우 수정 불가
-
-2. **web-ui 포함**
-   - 장점: 고객이 워크플로우 수정 가능
-   - 단점: 패키지 크기 증가, 복잡도 증가
-
-3. **옵션으로 제공**
-   - `include_web_ui: bool` 파라미터 추가
-   - 고객 요구에 따라 선택
+| # | 작업 |
+|---|------|
+| 1 | `models/yolo-api/Dockerfile` 확인 (COPY 범위) |
+| 2 | `.dockerignore` 에 `.yaml` 제외 패턴 없는지 확인 |
+| 3 | `docker compose build yolo-api` 후 컨테이너 내부 확인 |
 
 ---
 
-## 📋 P2: 기타 향후 작업
+## P2: 중기 작업
 
-### 1. 시각화 기능 확장
+### P2-1. 단가 API 확장 (GET/DELETE)
 
-**우선순위**: P3
-**진행 상태**: 일부 완료
+| 엔드포인트 | 동작 |
+|-----------|------|
+| `GET /bom/{session_id}/pricing` | 현재 적용된 단가 파일 내용 반환 |
+| `DELETE /bom/{session_id}/pricing` | 세션 단가 제거, 글로벌 폴백 복원 |
 
-| 기능 | 상태 |
+### P2-2. 템플릿 실행 pricing_file 전달 검증
+
+```
+gateway-api/routers/workflow_router.py
+  → execute_template(), execute_template_stream()
+  → inputs가 그대로 전달되는지 E2E 테스트
+```
+
+### P2-3. BOM 테이블 ↔ 도면 하이라이트 연동
+
+```
+BOMResultsSection.tsx → onClassSelect callback
+  → WorkflowPage.tsx → selectedClassName state lift
+  → FinalResultsSection.tsx → selectedClassName prop
+```
+
+### P2-4. SAHI 모드 data.yaml class_names 호환
+
+```
+models/yolo-api/services/inference_service.py
+  → SAHI AutoDetectionModel이 model.names를 상속하는지 확인
+  → 필요 시 SAHI 추론 후 class_name 매핑 로직 추가
+```
+
+---
+
+## P3: 장기 작업
+
+| 작업 | 설명 |
 |------|------|
-| ConfidenceDistributionChart | ✅ 완료 |
-| 인터랙티브 심볼 선택 | ⏳ 계획됨 |
-| 레이어 토글 | ⏳ 계획됨 |
-
-### 2. 테스트 커버리지 확대
-
-**우선순위**: P2
-
-| 영역 | 현재 | 목표 |
-|------|------|------|
-| Gateway API | 389개 | 400개+ |
-| Web-UI | 304개 | 350개+ |
-| E2E | ~50개 | 100개+ |
-
-### 3. Dimension Parser 강화
-
-**우선순위**: P2
-
-- 복합 치수 (예: `Φ50±0.05`)
-- 공차 범위 파싱
-- 단위 변환 (mm ↔ inch)
-
-### 4. 고객 프로파일 확장
-
-**우선순위**: P2
-
-| 고객 | 현재 | 추가 필요 |
-|------|------|----------|
-| DSE Bearing | ✅ 완료 | - |
-| DOOSAN | 기본 | 상세 설정 |
-| PANASIA | 기본 | 상세 설정 |
+| 시각화 기능 확장 | 공차 히트맵, BOM 연결선 등 |
+| 템플릿 버전 관리 | 템플릿 히스토리 및 롤백 |
+| ReferencePanel 리사이즈 → NodeDetailPanel 적용 | 동일 드래그 리사이즈 패턴 |
+| FinalResultsSection 캔버스 다운로드 | 결과 이미지 PNG 저장 |
+| 파일 첨부 상태 persist | GT/단가 파일 localStorage 저장 검토 |
 
 ---
 
@@ -119,12 +113,16 @@
 
 | 작업 | 완료일 | 상세 |
 |------|--------|------|
-| **Self-contained Export 프론트엔드** | 2026-01-24 | Phase 2I 완료, UI URL 자동 포함 |
+| **빌더 단가 파일 업로드** | 2026-01-30 | 세션별 pricing 적용, 글로벌 폴백 |
+| **첨부 파일 다운로드 버튼** | 2026-01-30 | 이미지/GT/단가 각각 다운로드 |
+| **ReferencePanel 리사이즈/접기** | 2026-01-30 | 드래그 200~800px, masonry |
+| **FinalResults 클래스 하이라이트** | 2026-01-30 | 클래스 클릭 → 파란색 강조 |
+| **YOLO data.yaml 방식 전환** | 2026-01-30 | panasia 모델 적용 |
+| **Self-contained Export 프론트엔드** | 2026-01-24 | Phase 2I 완료 |
 | DSE Bearing 100점 | 2026-01-22 | 6 Phase 전체 완료 |
 | Blueprint AI BOM Phase 2 | 2026-01-24 | 2A~2I 완료 |
 | Self-contained Export (백엔드) | 2026-01-24 | 포트 오프셋 기능 포함 |
 | MODEL_DEFAULTS 패턴 확장 | 2026-01-19 | 19개 API 적용 |
-| Toast 마이그레이션 | 2026-01-16 | 12개 파일 완료 |
 
 ---
 
@@ -134,9 +132,9 @@
 |------|------|----------|------|
 | Q1 2026 | DSE Bearing 100점 | P1 | ✅ 완료 |
 | Q1 2026 | Blueprint AI BOM Phase 2 | P1 | ✅ 완료 |
-| Q1 2026 | Self-contained 프론트엔드 | P0 | ✅ 완료 |
+| Q1 2026 | 빌더 단가 + 다운로드 + UX | P1 | ✅ 완료 |
+| Q1 2026 | 단가/하이라이트/data.yaml 확장 | P1 | ⏳ 진행 예정 |
 | Q2 2026 | 시각화 기능 확장 | P3 | ⏳ 계획됨 |
-| Q2 2026 | Gateway 서비스 분리 | P3 | ⏳ 계획됨 |
 
 ---
 
@@ -151,4 +149,4 @@
 
 ---
 
-*마지막 업데이트: 2026-01-24*
+*마지막 업데이트: 2026-01-30*

@@ -1,5 +1,6 @@
 """BOM Router - BOM 생성 및 내보내기 API 엔드포인트"""
 
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -91,6 +92,14 @@ async def generate_bom(session_id: str):
     session_service.update_status(session_id, SessionStatus.GENERATING_BOM)
 
     try:
+        # 세션 디렉토리에서 pricing.json 확인
+        session_pricing_path = None
+        file_path = session.get("file_path", "")
+        if file_path:
+            pricing_path = Path(file_path).parent / "pricing.json"
+            if pricing_path.exists():
+                session_pricing_path = str(pricing_path)
+
         # BOM 생성
         bom_data = bom_service.generate_bom(
             session_id=session_id,
@@ -98,7 +107,8 @@ async def generate_bom(session_id: str):
             dimensions=session.get("dimensions"),
             links=session.get("dimension_symbol_links"),
             filename=session.get("filename"),
-            model_id=session.get("model_id")
+            model_id=session.get("model_id"),
+            session_pricing_path=session_pricing_path,
         )
 
         # 세션에 BOM 저장
@@ -113,6 +123,38 @@ async def generate_bom(session_id: str):
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{session_id}/pricing")
+async def upload_pricing(session_id: str, file: UploadFile = File(...)):
+    """세션별 단가 파일 업로드"""
+    session_service = get_session_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # JSON 유효성 검사
+    content = await file.read()
+    try:
+        json.loads(content)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="유효한 JSON 파일이 아닙니다")
+
+    # 세션 디렉토리에 저장
+    file_path = Path(session.get("file_path", ""))
+    if file_path.exists():
+        pricing_path = file_path.parent / "pricing.json"
+    else:
+        # file_path가 없으면 세션 ID 기반 디렉토리 사용
+        sessions_dir = Path("/app/sessions") / session_id
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        pricing_path = sessions_dir / "pricing.json"
+
+    with open(pricing_path, "wb") as f:
+        f.write(content)
+
+    return {"status": "uploaded", "session_id": session_id, "pricing_path": str(pricing_path)}
 
 
 @router.get("/{session_id}")

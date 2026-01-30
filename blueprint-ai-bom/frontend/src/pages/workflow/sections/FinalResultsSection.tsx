@@ -3,7 +3,7 @@
  * 최종 검증 결과 이미지 섹션 컴포넌트
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Detection } from '../../../types';
 
 interface FinalResultsSectionProps {
@@ -25,6 +25,7 @@ export function FinalResultsSection({
   onImageClick,
 }: FinalResultsSectionProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [selectedClassName, setSelectedClassName] = useState<string | null>(null);
 
   const finalDetections = detections.filter(d =>
     d.verification_status === 'approved' ||
@@ -73,29 +74,65 @@ export function FinalResultsSection({
         const sy1 = y1 * scale;
         const sx2 = x2 * scale;
         const sy2 = y2 * scale;
+        const w = sx2 - sx1;
+        const h = sy2 - sy1;
 
-        let color = '#22c55e'; // green - approved
-        if (detection.modified_class_name && detection.modified_class_name !== detection.class_name) {
-          color = '#f97316'; // orange - modified
-        } else if (detection.verification_status === 'manual') {
-          color = '#a855f7'; // purple - manual
+        const detClassName = detection.modified_class_name || detection.class_name;
+        const isSelected = selectedClassName === detClassName;
+
+        if (selectedClassName) {
+          // 선택된 클래스가 있을 때
+          if (isSelected) {
+            // 선택된 항목: 파란색 반투명 채우기 + 굵은 테두리
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+            ctx.fillRect(sx1, sy1, w, h);
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(sx1, sy1, w, h);
+
+            // 라벨
+            const label = `${idx + 1}`;
+            ctx.font = 'bold 12px sans-serif';
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = '#2563eb';
+            ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
+            ctx.fillStyle = 'white';
+            ctx.fillText(label, sx1 + 4, sy1 - 5);
+          } else {
+            // 선택되지 않은 항목: 회색 얇은 테두리
+            ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(sx1, sy1, w, h);
+          }
+        } else {
+          // 선택 없을 때: 기존 상태별 색상
+          let color = '#22c55e'; // green - approved
+          if (detection.modified_class_name && detection.modified_class_name !== detection.class_name) {
+            color = '#f97316'; // orange - modified
+          } else if (detection.verification_status === 'manual') {
+            color = '#a855f7'; // purple - manual
+          }
+
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(sx1, sy1, w, h);
+
+          const label = `${idx + 1}`;
+          ctx.font = 'bold 12px sans-serif';
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillStyle = color;
+          ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
+          ctx.fillStyle = 'white';
+          ctx.fillText(label, sx1 + 4, sy1 - 5);
         }
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
-
-        const label = `${idx + 1}`;
-        ctx.font = 'bold 12px sans-serif';
-        const textWidth = ctx.measureText(label).width;
-        ctx.fillStyle = color;
-        ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
-        ctx.fillStyle = 'white';
-        ctx.fillText(label, sx1 + 4, sy1 - 5);
       });
     };
     img.src = imageData;
-  }, [imageData, imageSize, finalDetections]);
+  }, [imageData, imageSize, finalDetections, selectedClassName]);
+
+  const handleClassClick = (className: string) => {
+    setSelectedClassName(prev => prev === className ? null : className);
+  };
 
   return (
     <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -119,15 +156,31 @@ export function FinalResultsSection({
 
       {/* Legend */}
       <div className="flex items-center gap-4 mb-4 text-sm">
-        <span className="flex items-center gap-1">
-          <span className="w-4 h-4 bg-green-500 rounded"></span> 승인
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-4 h-4 bg-orange-500 rounded"></span> 수정
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-4 h-4 bg-purple-500 rounded"></span> 수작업
-        </span>
+        {selectedClassName ? (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-blue-600 rounded"></span> {selectedClassName}
+            </span>
+            <button
+              onClick={() => setSelectedClassName(null)}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              선택 해제
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-green-500 rounded"></span> 승인
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-orange-500 rounded"></span> 수정
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-4 h-4 bg-purple-500 rounded"></span> 수작업
+            </span>
+          </>
+        )}
       </div>
 
       {/* 2-Column Layout */}
@@ -154,23 +207,35 @@ export function FinalResultsSection({
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-full">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-3">BOM 심볼 리스트</h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {sortedClasses.map(([className, data], idx) => (
-                <div
-                  key={className}
-                  className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="w-6 h-6 flex items-center justify-center bg-primary-500 text-white text-xs rounded-full font-bold">
-                      {idx + 1}
-                    </span>
-                    <span className="font-medium text-gray-900 dark:text-white text-sm">{className}</span>
+              {sortedClasses.map(([className, data], idx) => {
+                const isActive = selectedClassName === className;
+                return (
+                  <div
+                    key={className}
+                    onClick={() => handleClassClick(className)}
+                    className={`flex items-center justify-between p-2 rounded border cursor-pointer transition-all ${
+                      isActive
+                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 ring-2 ring-blue-300'
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:border-blue-300 hover:bg-blue-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <span className={`w-6 h-6 flex items-center justify-center text-white text-xs rounded-full font-bold shrink-0 ${
+                        isActive ? 'bg-blue-600' : 'bg-primary-500'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <span className={`font-medium text-sm truncate ${
+                        isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'
+                      }`}>{className}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <span className={`text-lg font-bold ${isActive ? 'text-blue-600' : 'text-primary-600'}`}>{data.count}</span>
+                      <span className="text-xs text-gray-500">개</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg font-bold text-primary-600">{data.count}</span>
-                    <span className="text-xs text-gray-500">개</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
               <div className="flex justify-between items-center">

@@ -41,8 +41,19 @@ class BOMService:
         links: Optional[List[RelationDict]] = None,
         filename: Optional[str] = None,
         model_id: Optional[str] = None,
+        session_pricing_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         """검출 결과로부터 BOM 생성"""
+
+        # 세션별 단가 DB 로드 (있으면 세션 단가 우선, 없으면 글로벌 폴백)
+        pricing_db = self.pricing_db
+        if session_pricing_path and os.path.exists(session_pricing_path):
+            session_pricing = load_pricing_db(session_pricing_path)
+            if session_pricing:
+                pricing_db = session_pricing
+                logger.info(f"세션별 단가 사용: {session_pricing_path} ({len(session_pricing)}개)")
+            else:
+                logger.warning(f"세션 단가 파일 로드 실패, 글로벌 폴백: {session_pricing_path}")
 
         # 승인된 검출만 필터링
         approved_detections = [
@@ -80,8 +91,13 @@ class BOMService:
             quantity = len(detections_list)
             avg_confidence = sum(d["confidence"] for d in detections_list) / quantity
 
-            # 가격 정보 조회
-            pricing_info = self.get_pricing_info(class_name)
+            # 가격 정보 조회 (세션 단가 또는 글로벌 단가)
+            raw_info = dict(_get_pricing_info(pricing_db, class_name))
+            if raw_info.get("단가") == 0:
+                raw_info["단가"] = 10000
+            if raw_info.get("리드타임") == 0:
+                raw_info["리드타임"] = 14
+            pricing_info = raw_info
             unit_price = pricing_info.get("단가", 10000)
             total_price = unit_price * quantity
             model_name = pricing_info.get("모델명", "N/A")

@@ -21,7 +21,7 @@ import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
-import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle, FolderOpen, FileDown, FileText } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle, FolderOpen, FileDown, FileText, DollarSign, Download } from 'lucide-react';
 import { workflowApi, type TemplateDetail } from '../../lib/api';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
 
@@ -69,6 +69,32 @@ function WorkflowBuilderCanvas() {
     reader.readAsDataURL(file);
     e.target.value = '';
   }, [setUploadedGTFile]);
+
+  // Pricing file attachment
+  const uploadedPricingFile = useWorkflowStore((state) => state.uploadedPricingFile);
+  const setUploadedPricingFile = useWorkflowStore((state) => state.setUploadedPricingFile);
+  const pricingFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePricingFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedPricingFile({ name: file.name, content: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }, [setUploadedPricingFile]);
+
+  // File download helper
+  const handleDownloadFile = useCallback((dataUrl: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, []);
 
   // Workflow store
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -421,15 +447,24 @@ function WorkflowBuilderCanvas() {
               )}
 
               {uploadedImage && (
-                <Button
-                  onClick={handleRemoveImage}
-                  variant="outline"
-                  size="sm"
-                  className="p-2"
-                  title="Remove image"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                <>
+                  <button
+                    onClick={() => handleDownloadFile(uploadedImage, uploadedFileName || 'image.png')}
+                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                    title="이미지 다운로드"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  <Button
+                    onClick={handleRemoveImage}
+                    variant="outline"
+                    size="sm"
+                    className="p-2"
+                    title="Remove image"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </>
               )}
 
               {/* GT 파일 첨부 (이미지 업로드 후) */}
@@ -446,6 +481,13 @@ function WorkflowBuilderCanvas() {
                     <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded border border-amber-200 dark:border-amber-700">
                       <FileText className="w-3.5 h-3.5" />
                       <span className="truncate max-w-[120px]">GT: {uploadedGTFile.name}</span>
+                      <button
+                        onClick={() => handleDownloadFile(uploadedGTFile.content, uploadedGTFile.name)}
+                        className="ml-1 hover:text-amber-500 transition-colors"
+                        title="GT 파일 다운로드"
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
                       <button
                         onClick={() => setUploadedGTFile(null)}
                         className="ml-1 hover:text-red-500 transition-colors"
@@ -464,6 +506,50 @@ function WorkflowBuilderCanvas() {
                     >
                       <FileText className="w-3.5 h-3.5" />
                       GT 첨부
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* 단가 파일 첨부 (이미지 업로드 후) */}
+              {uploadedImage && (
+                <>
+                  <input
+                    ref={pricingFileInputRef}
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handlePricingFileChange}
+                  />
+                  {uploadedPricingFile ? (
+                    <div className="flex items-center gap-1 text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-700">
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span className="truncate max-w-[120px]">{uploadedPricingFile.name}</span>
+                      <button
+                        onClick={() => handleDownloadFile(uploadedPricingFile.content, uploadedPricingFile.name)}
+                        className="ml-1 hover:text-green-500 transition-colors"
+                        title="단가 파일 다운로드"
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => setUploadedPricingFile(null)}
+                        className="ml-1 hover:text-red-500 transition-colors"
+                        title="단가 파일 제거"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => pricingFileInputRef.current?.click()}
+                      className="flex items-center gap-1 text-xs"
+                      title="단가 JSON 파일 첨부 (.json)"
+                    >
+                      <DollarSign className="w-3.5 h-3.5" />
+                      단가 첨부
                     </Button>
                   )}
                 </>

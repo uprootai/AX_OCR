@@ -160,7 +160,7 @@ models:
 
   panasia:
     file: bom_detector.pt
-    override_class_names: true
+    data_yaml: panasia_data.yaml
     name: "파나시아 MCP Panel 심볼 (27종)"
     description: "파나시아 MCP Panel 전용 모델 - BUZZER, HUB, PLC, TRANSFORMER 등 27종 전기 제어반 심볼 검출. class_examples와 매칭됨."
     classes: 27

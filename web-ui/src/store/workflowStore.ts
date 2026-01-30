@@ -129,6 +129,9 @@ interface WorkflowState {
   // Uploaded GT file (optional, for GT comparison in pipeline)
   uploadedGTFile: { name: string; content: string } | null;
 
+  // Uploaded pricing file (optional, for session-specific pricing)
+  uploadedPricingFile: { name: string; content: string } | null;
+
   // Execution mode (default: sequential)
   executionMode: ExecutionMode;
 
@@ -155,6 +158,7 @@ interface WorkflowState {
   clearNodeStatuses: () => void;
   setUploadedImage: (image: string | null, fileName?: string | null) => void;
   setUploadedGTFile: (file: { name: string; content: string } | null) => void;
+  setUploadedPricingFile: (file: { name: string; content: string } | null) => void;
   setExecutionMode: (mode: ExecutionMode) => void;
   cancelExecution: () => Promise<void>;
 }
@@ -206,6 +210,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   uploadedImage: persistedImage.uploadedImage,
   uploadedFileName: persistedImage.uploadedFileName,
   uploadedGTFile: null,
+  uploadedPricingFile: null,
   executionMode: 'sequential', // Default: sequential execution
 
   // Actions
@@ -283,6 +288,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       uploadedImage: null,
       uploadedFileName: null,
       uploadedGTFile: null,
+      uploadedPricingFile: null,
       nodeStatuses: {},
       isExecuting: false,
     });
@@ -387,13 +393,17 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         })),
       };
 
-      // Prepare request payload (include GT file if attached)
+      // Prepare request payload (include GT/pricing files if attached)
       const inputs: Record<string, unknown> = {
         image: inputImage, // Base64 encoded image
       };
       const gtFile = get().uploadedGTFile;
       if (gtFile) {
         inputs.gt_file = gtFile;
+      }
+      const pricingFile = get().uploadedPricingFile;
+      if (pricingFile) {
+        inputs.pricing_file = pricingFile;
       }
 
       const requestPayload = {
@@ -507,13 +517,17 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         })),
       };
 
-      // Prepare request payload (include GT file if attached)
+      // Prepare request payload (include GT/pricing files if attached)
       const streamInputs: Record<string, unknown> = {
         image: inputImage,
       };
       const streamGtFile = get().uploadedGTFile;
       if (streamGtFile) {
         streamInputs.gt_file = streamGtFile;
+      }
+      const streamPricingFile = get().uploadedPricingFile;
+      if (streamPricingFile) {
+        streamInputs.pricing_file = streamPricingFile;
       }
 
       const requestPayload = {
@@ -745,6 +759,8 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   },
 
   setUploadedGTFile: (file) => set({ uploadedGTFile: file }),
+
+  setUploadedPricingFile: (file) => set({ uploadedPricingFile: file }),
 
   setExecutionMode: (mode) => set({ executionMode: mode }),
 }));

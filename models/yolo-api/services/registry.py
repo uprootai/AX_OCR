@@ -110,6 +110,19 @@ class ModelRegistry:
         service = YOLOInferenceService(str(model_path))
         service.load_model()
 
+        # data.yaml로 클래스명 오버라이드 (drawing-bom-extractor 방식)
+        data_yaml = model_info.get('data_yaml')
+        if data_yaml:
+            data_yaml_path = self.models_dir / data_yaml
+            if data_yaml_path.exists():
+                with open(data_yaml_path, 'r', encoding='utf-8') as f:
+                    data_config = yaml.safe_load(f)
+                names = data_config.get('names', [])
+                override_names = {i: name for i, name in enumerate(names)}
+                service.model.model.names = override_names
+                service.class_names = override_names
+                logger.info(f"data.yaml 클래스명 적용: {model_id} ({len(names)}개)")
+
         # 캐시에 저장
         self._model_cache[model_id] = service
         return service

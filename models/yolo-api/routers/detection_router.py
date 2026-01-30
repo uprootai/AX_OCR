@@ -314,10 +314,8 @@ async def detect_objects(
             model_info = model_registry.get_model(model_id)
             if model_info and 'class_names' in model_info:
                 class_names_list = model_info['class_names']
-                override = model_info.get('override_class_names', False)
                 for det in detections:
-                    # If class_name is numeric, or override_class_names is set, map to registry name
-                    if override or det.class_name.isdigit() or det.class_name.startswith('class_'):
+                    if det.class_name.isdigit() or det.class_name.startswith('class_'):
                         class_idx = det.class_id
                         if 0 <= class_idx < len(class_names_list):
                             det.class_name = class_names_list[class_idx]
