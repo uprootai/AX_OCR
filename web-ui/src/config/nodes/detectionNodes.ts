@@ -181,8 +181,14 @@ export const detectionNodes: Record<string, NodeDefinition> = {
     icon: 'TableCells',
     description: '테이블 검출 및 구조 추출 - Microsoft TATR과 img2table을 사용하여 도면/문서의 테이블을 검출하고 내용을 추출합니다.',
     profiles: {
-      default: 'engineering',
+      default: 'multi_crop_drawing',
       available: [
+        {
+          name: 'multi_crop_drawing',
+          label: '도면 멀티크롭 (권장)',
+          description: '3개 영역 동시 크롭 + 품질 필터 — BOM 최적화',
+          params: { mode: 'extract', ocr_engine: 'paddle', borderless: false, enable_quality_filter: true, max_empty_ratio: 0.7 },
+        },
         {
           name: 'engineering',
           label: '기계도면 테이블',
@@ -275,11 +281,35 @@ export const detectionNodes: Record<string, NodeDefinition> = {
         description: '출력 형식',
       },
       {
-        name: 'auto_crop',
-        type: 'select',
-        default: 'full',
-        options: ['full', 'right_upper', 'right_lower', 'right_full', 'upper_half', 'left_upper', 'left_lower'],
-        description: '자동 크롭 영역 (Parts List는 보통 우측 상단에 위치)',
+        name: 'crop_regions',
+        type: 'checkboxGroup',
+        default: ['title_block', 'revision_table', 'parts_list_right'],
+        options: [
+          { value: 'title_block', label: '타이틀 블록', icon: '📋', group: '도면 영역', description: '우하단 타이틀 블록 (55-100% × 65-100%)' },
+          { value: 'revision_table', label: '리비전 테이블', icon: '📝', group: '도면 영역', description: '우상단 리비전 테이블 (55-100% × 0-20%)' },
+          { value: 'parts_list_right', label: 'Parts List (우측)', icon: '📊', group: '도면 영역', description: '우측 부품표 (60-100% × 20-65%)' },
+          { value: 'right_upper', label: '우측 상단', icon: '↗', group: '일반 영역', description: '우측 상단 40% × 50%' },
+          { value: 'right_lower', label: '우측 하단', icon: '↘', group: '일반 영역', description: '우측 하단 40% × 50%' },
+          { value: 'right_full', label: '우측 전체', icon: '▶', group: '일반 영역', description: '우측 전체 40%' },
+          { value: 'upper_half', label: '상단 절반', icon: '⬆', group: '일반 영역', description: '상단 50%' },
+          { value: 'full', label: '전체 페이지', icon: '📄', group: '일반 영역', description: '전체 이미지 (크롭 안함)' },
+        ],
+        description: '테이블 검출 영역 (복수 선택 시 각 영역 크롭 후 결과 병합)',
+      },
+      {
+        name: 'enable_quality_filter',
+        type: 'boolean',
+        default: true,
+        description: '품질 필터 (빈 셀 70% 초과 테이블 자동 제거)',
+      },
+      {
+        name: 'max_empty_ratio',
+        type: 'number',
+        default: 0.7,
+        min: 0.1,
+        max: 1.0,
+        step: 0.1,
+        description: '최대 빈 셀 비율 (초과 시 테이블 제외)',
       },
     ],
     examples: [

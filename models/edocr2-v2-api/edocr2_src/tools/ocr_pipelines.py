@@ -1,6 +1,17 @@
 import cv2, math, os
 import numpy as np
 
+
+def _safe_to_gray(img):
+    """Safely convert image to grayscale, handling already-grayscale images."""
+    if img is None or img.size == 0:
+        return img
+    if len(img.shape) == 2:
+        return img
+    if img.shape[2] == 1:
+        return img[:, :, 0]
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
 def read_alphabet(keras_path):
     txt_path = os.path.splitext(keras_path)[0] + '.txt'
     with open(txt_path, 'r') as file:
@@ -77,7 +88,7 @@ def ocr_tables(tables, process_img, language = None):
 
 def img_not_empty(roi, color_thres = 100):
     # Convert the ROI to grayscale
-    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    gray_roi = _safe_to_gray(roi)
     
     # Check if all pixels are near black or near white
     min_val, max_val, _, _ = cv2.minMaxLoc(gray_roi)
@@ -208,7 +219,7 @@ class Pipeline:
                         symb = cv2.imread(os.path.join(folder_path, file))
                         if rotate:
                             cv2.rotate(symb,cv2.ROTATE_90_COUNTERCLOCKWISE)
-                        gray = cv2.cvtColor(symb, cv2.COLOR_BGR2GRAY)
+                        gray = _safe_to_gray(symb)
                         _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
                         contours_smb, _ = cv2.findContours(thresh,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                         x_, y_, w_, h_ = cv2.boundingRect(contours_smb[0])
@@ -294,7 +305,14 @@ class Pipeline:
                     cv2.waitKey(0)
                     cv2.destroyAllWindows() '''
         for o in old_dim:
-            dimensions.remove(o)
+            # Use index-based removal to avoid numpy array comparison issues
+            for i, d in enumerate(dimensions):
+                try:
+                    if d is o:
+                        dimensions.pop(i)
+                        break
+                except (ValueError, TypeError):
+                    continue
         
         boxes = group_polygons_by_proximity(boxes, eps = self.cluster_t)
         new_group = [box for box in boxes]
@@ -396,7 +414,7 @@ class Pipeline:
         other_info=[]
 
         def adjust_padding(img):
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            gray = _safe_to_gray(img)
             _, thresh = cv2.threshold(gray, 220, 255, cv2.THRESH_BINARY_INV)
             cnts = cv2.findContours(thresh,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0] #Get contourns
             if cnts:
@@ -410,7 +428,7 @@ class Pipeline:
             
 
             # Create an empty image to store the final result
-            img_ = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            img_ = _safe_to_gray(img)
             _, thresh = cv2.threshold(img_, 200, 255, cv2.THRESH_BINARY_INV)
             contours = cv2.findContours(thresh,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0] #Get contourns
             final_img = np.full_like(img_, 255)
@@ -646,9 +664,15 @@ def group_polygons_by_proximity(polygons, eps=20):
         return merged_polygons
 
 def check_tolerances(img):
-    img_arr = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) #Convert img to grayscale
+    if img is None or img.size == 0:
+        return [img] if img is not None else []
+    if len(img.shape) == 2 or img.shape[2] == 1:
+        img_arr = img if len(img.shape) == 2 else img[:, :, 0]
+    else:
+        img_arr = _safe_to_gray(img) #Convert img to grayscale
     flag=False
     tole = False
+    top_line = None
     ## Find top and bottom line
     for i in range(0, img_arr.shape[0] - 1): # find top line
         for j in range(0,img_arr.shape[1] - 1):
@@ -659,6 +683,8 @@ def check_tolerances(img):
         if flag == True:
             flag = False
             break
+    if top_line is None:
+        return [img]
     for i in range(img_arr.shape[0] - 1, top_line, -1): # find bottom line
         for j in range(0, img_arr.shape[1] - 1):
             if img_arr[i, j] < 200:
@@ -778,7 +804,7 @@ def postprocess_detection(img, box, w_multiplier = 1.0, h_multiplier = 1.0, angl
         return image
 
     def clean_h_lines(img_croped):
-        gray = cv2.cvtColor(img_croped, cv2.COLOR_BGR2GRAY) #Convert img to grayscale
+        gray = _safe_to_gray(img_croped) #Convert img to grayscale
         _,thresh = cv2.threshold(gray,200,255,cv2.THRESH_BINARY_INV) #Threshold to binary image
         horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (int(img_croped.shape[1]*0.8),1))
         detect_horizontal = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
@@ -830,7 +856,7 @@ def postprocess_detection(img, box, w_multiplier = 1.0, h_multiplier = 1.0, angl
     img_croped = subimage(img, rect[0], angle, w, h)
     if w > 50 and h > 30:
         img_croped,thresh=clean_h_lines(img_croped)
-    gray = cv2.cvtColor(img_croped, cv2.COLOR_BGR2GRAY)
+    gray = _safe_to_gray(img_croped)
     _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
     cnts = cv2.findContours(thresh,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0] #Get contourns
     '''cv2.imshow('boxes', img_croped)

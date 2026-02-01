@@ -46,8 +46,6 @@ from .executors import (
     gtcomparison_executor,
     # PDF Export Executor
     pdfexport_executor,
-    # Excel Export Executor
-    excelexport_executor,
     # PID Features Executor
     pidfeatures_executor,
     # Verification Queue Executor

@@ -15,8 +15,8 @@ class AnalysisOptions(BaseModel):
         description="심볼 검출 활성화 (YOLO)"
     )
     enable_dimension_ocr: bool = Field(
-        default=False,
-        description="치수 OCR 활성화 (eDOCr2)"
+        default=True,
+        description="치수 OCR 활성화 (PaddleOCR 우선, eDOCr2 fallback)"
     )
     enable_line_detection: bool = Field(
         default=False,
@@ -34,7 +34,13 @@ class AnalysisOptions(BaseModel):
     # OCR 엔진 선택
     ocr_engine: str = Field(
         default="edocr2",
-        description="OCR 엔진 (edocr2, paddleocr, ensemble)"
+        description="(deprecated) 단일 OCR 엔진 - ocr_engines 사용 권장"
+    )
+    ocr_engines: List[str] = Field(
+        default=["paddleocr_tiled", "edocr2"],
+        description="사용할 OCR 엔진 목록 (순서대로 실행, 가중 투표 병합). "
+                    "가동 중: paddleocr, paddleocr_tiled, edocr2, easyocr. "
+                    "미가동: trocr, suryaocr, doctr"
     )
 
     # 검출 설정
@@ -66,6 +72,7 @@ class AnalysisOptionsUpdate(BaseModel):
     enable_text_extraction: Optional[bool] = None
     enable_relation_extraction: Optional[bool] = None
     ocr_engine: Optional[str] = None
+    ocr_engines: Optional[List[str]] = None
     confidence_threshold: Optional[float] = None
     symbol_model_type: Optional[str] = None
     preset: Optional[str] = None
@@ -115,7 +122,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_text_extraction": True,
         "enable_relation_extraction": True,
         "ocr_engine": "edocr2",
-        "confidence_threshold": 0.4  # 0.5 → 0.4 통일
+        "ocr_engines": ["paddleocr_tiled", "edocr2"],
+        "confidence_threshold": 0.4
     },
     "electrical": {
         "name": "전력 설비 단선도",
@@ -127,6 +135,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_text_extraction": False,
         "enable_relation_extraction": False,  # 치수 없음
         "ocr_engine": "edocr2",
+        "ocr_engines": ["edocr2"],
         "confidence_threshold": 0.4,
         "symbol_model_type": "panasia"  # classExamples 참조 이미지와 매칭
     },
@@ -140,6 +149,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_text_extraction": True,
         "enable_relation_extraction": False,  # 치수 없음
         "ocr_engine": "paddleocr",
+        "ocr_engines": ["paddleocr"],
         "confidence_threshold": 0.4,  # 0.5 → 0.4 통일
         "symbol_model_type": "pid"
     },
@@ -153,7 +163,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_text_extraction": True,
         "enable_relation_extraction": True,
         "ocr_engine": "paddleocr",
-        "confidence_threshold": 0.4  # 0.5 → 0.4 통일
+        "ocr_engines": ["paddleocr_tiled", "edocr2"],
+        "confidence_threshold": 0.4
     }
 }
 

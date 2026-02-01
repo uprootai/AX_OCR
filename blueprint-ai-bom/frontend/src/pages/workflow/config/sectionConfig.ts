@@ -10,7 +10,7 @@
 import type { SectionVisibility } from '../types/workflow';
 
 // 기본 기능 (features가 비어있을 때 사용)
-const DEFAULT_FEATURES = ['symbol_detection', 'title_block_ocr', 'vlm_auto_classification'];
+const DEFAULT_FEATURES = ['symbol_detection', 'title_block_ocr', 'vlm_auto_classification', 'dimension_ocr'];
 
 // ============================================================
 // Feature Implication (자동 활성화)

@@ -27,6 +27,7 @@ export const baseNodeTypes = {
 
   // Detection nodes
   yolo: YoloNode,
+  table_detector: DynamicNode,
 
   // OCR nodes
   edocr2: Edocr2Node,
@@ -50,6 +51,18 @@ export const baseNodeTypes = {
   'pid-analyzer': DynamicNode,
   'design-checker': DynamicNode,
   'blueprint-ai-bom': DynamicNode,
+  gt_comparison: DynamicNode,
+  'pid-composer': DynamicNode,
+  'pid-features': DynamicNode,
+  'pdf-export': DynamicNode,
+  'verification-queue': DynamicNode,
+
+  // DSE Bearing analysis nodes
+  titleblock: DynamicNode,
+  partslist: DynamicNode,
+  dimensionparser: DynamicNode,
+  bommatcher: DynamicNode,
+  quotegenerator: DynamicNode,
 
   // Knowledge nodes
   knowledge: DynamicNode,
@@ -120,6 +133,35 @@ export const BLUEPRINT_SAMPLES: SampleFile[] = [
     description: 'BWMS 시스템 P&ID - SIGNAL FOR BWMS 점선 영역 검출 테스트용',
     type: 'image',
     recommended: true
+  },
+  {
+    id: 'dse-bearing-assy',
+    name: 'DSE T1 Bearing ASSY',
+    path: '/samples/dse_bearing_assy_t1.png',
+    description: 'DSE Bearing T1 조립도 (360x190) - Title Block, Parts List, 치수 포함',
+    type: 'image',
+    recommended: true
+  },
+  {
+    id: 'dse-ring-assy',
+    name: 'DSE Ring ASSY (T1)',
+    path: '/samples/dse_ring_assy_t1.png',
+    description: 'DSE Bearing Ring ASSY T1 - 링 조립 도면',
+    type: 'image'
+  },
+  {
+    id: 'dse-casing-assy',
+    name: 'DSE Casing ASSY (T1)',
+    path: '/samples/dse_casing_assy_t1.png',
+    description: 'DSE Bearing Casing ASSY T1 - 케이싱 조립 도면',
+    type: 'image'
+  },
+  {
+    id: 'dse-thrust-bearing',
+    name: 'DSE Thrust Bearing ASSY',
+    path: '/samples/dse_thrust_bearing_assy.png',
+    description: 'DSE Thrust Bearing ASSY (OD670xID440) - 스러스트 베어링 도면',
+    type: 'image'
   }
 ];
 
@@ -133,6 +175,7 @@ export const getNodeColor = (nodeType: string | undefined): string => {
 
     // Detection - blue
     case 'yolo':
+    case 'table_detector':
       return '#3b82f6';
 
     // OCR - purple
@@ -160,6 +203,16 @@ export const getNodeColor = (nodeType: string | undefined): string => {
     case 'pid-analyzer':
     case 'design-checker':
     case 'blueprint-ai-bom':
+    case 'gt_comparison':
+    case 'pid-composer':
+    case 'pid-features':
+    case 'pdf-export':
+    case 'verification-queue':
+    case 'titleblock':
+    case 'partslist':
+    case 'dimensionparser':
+    case 'bommatcher':
+    case 'quotegenerator':
       return '#f59e0b';
 
     // Knowledge - teal

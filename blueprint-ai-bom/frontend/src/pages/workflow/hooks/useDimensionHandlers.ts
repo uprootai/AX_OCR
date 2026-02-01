@@ -107,6 +107,38 @@ export function useDimensionHandlers({
     }
   }, [sessionId, setDimensions, loadDimensions]);
 
+  const handleAddManualDimension = useCallback(async (
+    value: string,
+    box: { x1: number; y1: number; x2: number; y2: number }
+  ) => {
+    if (!sessionId) return;
+    try {
+      await axios.post(
+        `${API_BASE_URL}/analysis/dimensions/${sessionId}/manual`,
+        null,
+        { params: { value, x1: box.x1, y1: box.y1, x2: box.x2, y2: box.y2 } }
+      );
+      await loadDimensions(sessionId);
+    } catch (err) {
+      logger.error('Manual dimension add failed:', err);
+    }
+  }, [sessionId, loadDimensions]);
+
+  const handleAutoApprove = useCallback(async () => {
+    if (!sessionId) return;
+    setIsLoading(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/verification/auto-approve/${sessionId}?item_type=dimension`
+      );
+      await loadDimensions(sessionId);
+    } catch (err) {
+      logger.error('Auto-approve failed:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [sessionId, loadDimensions]);
+
   const handleBulkApproveDimensions = useCallback(async (ids: string[]) => {
     if (!sessionId) return;
 
@@ -136,6 +168,8 @@ export function useDimensionHandlers({
     handleDimensionVerify,
     handleDimensionEdit,
     handleDimensionDelete,
+    handleAddManualDimension,
+    handleAutoApprove,
     handleBulkApproveDimensions,
     // States
     isLoading,

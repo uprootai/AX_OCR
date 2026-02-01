@@ -162,15 +162,6 @@ class TestExecutorValidation:
         is_valid, error = executor.validate_parameters()
         assert is_valid is False
 
-    def test_excelexport_validate_valid_params(self):
-        """Excel Export: 유효한 파라미터 검증"""
-        executor = create_executor("excelexport", {
-            "export_type": "all",
-            "include_rejected": False
-        })
-        is_valid, error = executor.validate_parameters()
-        assert is_valid is True
-
     def test_pidfeatures_validate_valid_params(self):
         """PID Features: 유효한 파라미터 검증"""
         executor = create_executor("pidfeatures", {
@@ -211,7 +202,7 @@ class TestExecutorSchemas:
     @pytest.mark.parametrize("executor_type", [
         "yolo", "edocr2", "skinmodel", "paddleocr", "tesseract",
         "trocr", "knowledge", "esrgan", "linedetector", "designchecker",
-        "pidanalyzer", "gtcomparison", "pdfexport", "excelexport",
+        "pidanalyzer", "gtcomparison", "pdfexport",
         "pidfeatures", "verificationqueue", "imageinput", "textinput",
         "if", "loop", "merge", "vl", "edgnet"
     ])
@@ -228,7 +219,7 @@ class TestExecutorSchemas:
     @pytest.mark.parametrize("executor_type", [
         "yolo", "edocr2", "skinmodel", "paddleocr", "tesseract",
         "trocr", "knowledge", "esrgan", "linedetector", "designchecker",
-        "pidanalyzer", "gtcomparison", "pdfexport", "excelexport",
+        "pidanalyzer", "gtcomparison", "pdfexport",
         "pidfeatures", "verificationqueue", "imageinput", "textinput",
         "if", "loop", "merge", "vl", "edgnet"
     ])
@@ -351,7 +342,7 @@ class TestExecutorInstantiation:
         "yolo", "edocr2", "skinmodel", "paddleocr", "tesseract",
         "trocr", "knowledge", "esrgan", "linedetector", "designchecker",
         "pidanalyzer", "imageinput", "textinput", "if", "loop", "merge",
-        "vl", "edgnet", "gtcomparison", "pdfexport", "excelexport",
+        "vl", "edgnet", "gtcomparison", "pdfexport",
         "pidfeatures", "verificationqueue"
     ])
     def test_executor_can_be_instantiated(self, executor_type):
@@ -367,7 +358,7 @@ class TestExecutorInstantiation:
         "yolo", "edocr2", "skinmodel", "paddleocr", "tesseract",
         "trocr", "knowledge", "esrgan", "linedetector", "designchecker",
         "pidanalyzer", "imageinput", "textinput", "if", "loop", "merge",
-        "vl", "edgnet", "gtcomparison", "pdfexport", "excelexport",
+        "vl", "edgnet", "gtcomparison", "pdfexport",
         "pidfeatures", "verificationqueue"
     ])
     def test_executor_has_execute_method(self, executor_type):

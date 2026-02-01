@@ -60,7 +60,7 @@ export function AnalysisOptions({
 }: AnalysisOptionsProps) {
   const [options, setOptions] = useState<AnalysisOptionsData>({
     enable_symbol_detection: true,
-    enable_dimension_ocr: false,
+    enable_dimension_ocr: true,
     enable_line_detection: false,
     enable_text_extraction: false,
     ocr_engine: 'edocr2',

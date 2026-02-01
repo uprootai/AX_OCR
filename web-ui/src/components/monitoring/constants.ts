@@ -8,12 +8,13 @@ import type { APIInfo } from './types';
 // localStorage key for deleted APIs
 export const DELETED_APIS_KEY = 'deleted-api-ids';
 
-// 기본 API 정의 (실제 Docker 컨테이너 기준 - 22개 서비스)
+// 기본 API 정의 (실제 Docker 컨테이너 기준 - 21개 서비스)
 export const DEFAULT_APIS: APIInfo[] = [
   // Orchestrator
   { id: 'gateway', name: 'gateway', display_name: 'Gateway API', base_url: 'http://localhost:8000', port: 8000, status: 'unknown', category: 'orchestrator', description: 'API Gateway & Orchestrator', icon: '🚀', color: '#6366f1', last_check: null },
   // Detection
   { id: 'yolo', name: 'yolo', display_name: 'YOLO (통합)', base_url: 'http://localhost:5005', port: 5005, status: 'unknown', category: 'detection', description: '기계도면 14종 + P&ID 60종 심볼 검출', icon: '🎯', color: '#ef4444', last_check: null },
+  { id: 'table_detector', name: 'table_detector', display_name: 'Table Detector', base_url: 'http://localhost:5022', port: 5022, status: 'unknown', category: 'detection', description: '테이블 검출 및 구조 추출', icon: '📊', color: '#ef4444', last_check: null },
   // OCR
   { id: 'edocr2', name: 'edocr2', display_name: 'eDOCr2', base_url: 'http://localhost:5002', port: 5002, status: 'unknown', category: 'ocr', description: '한국어 치수 인식', icon: '📐', color: '#3b82f6', last_check: null },
   { id: 'paddleocr', name: 'paddleocr', display_name: 'PaddleOCR', base_url: 'http://localhost:5006', port: 5006, status: 'unknown', category: 'ocr', description: '다국어 OCR', icon: '🔤', color: '#3b82f6', last_check: null },

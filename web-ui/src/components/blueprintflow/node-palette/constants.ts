@@ -169,14 +169,6 @@ export const baseNodeConfigs: NodeConfig[] = [
     category: 'analysis',
   },
   {
-    type: 'excelexport',
-    label: 'Excel Export',
-    description: 'Export to Excel file',
-    icon: FileSpreadsheet,
-    color: '#16a34a',
-    category: 'analysis',
-  },
-  {
     type: 'verificationqueue',
     label: 'Verification Queue',
     description: 'Human-in-the-Loop queue',

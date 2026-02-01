@@ -224,6 +224,39 @@ export function DrawingClassifier({
 
     setClassification(result);
 
+    // 세션에 drawing_type 저장
+    try {
+      await fetch(`${apiBaseUrl}/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          drawing_type: drawingType,
+          drawing_type_source: 'manual'
+        })
+      });
+    } catch (err) {
+      logger.error('Failed to save drawing_type to session:', err);
+    }
+
+    // 분석 프리셋 자동 적용 (심볼 검출 ON/OFF, 치수 OCR ON/OFF 등)
+    const analysisPresetMap: Record<string, string> = {
+      mechanical_part: 'mechanical_part',
+      electrical: 'electrical',
+      pid: 'pid',
+      assembly: 'assembly',
+    };
+    const analysisPreset = analysisPresetMap[drawingType];
+    if (analysisPreset) {
+      try {
+        await fetch(`${apiBaseUrl}/analysis/options/${sessionId}/preset/${analysisPreset}`, {
+          method: 'POST'
+        });
+        logger.log('Analysis preset applied:', analysisPreset);
+      } catch (err) {
+        logger.error('Failed to apply analysis preset:', err);
+      }
+    }
+
     // 수동 선택 시에도 프리셋 자동 적용 (세션의 features 설정)
     try {
       const response = await fetch(

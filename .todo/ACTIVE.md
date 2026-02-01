@@ -1,199 +1,114 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-01-30
-> **현재 활성화된 작업 목록**
+> **마지막 업데이트**: 2026-02-01
+> **기준 커밋**: ea3463f (feat: 빌더 단가 파일 업로드, BOM UX 개선, YOLO data.yaml 클래스명 방식 전환)
 
 ---
 
-## 📋 미커밋 변경 사항 (ecf6ba1 대비)
+## 미커밋 변경 요약 (ea3463f 대비)
 
-> 총 10개 파일 수정 + 1개 신규 파일 | +453줄
+> 총 35개 파일 수정/삭제 + 7개 신규 파일 | +1,523줄 / -1,123줄
 
-### 그룹 A: 빌더 단가 파일 업로드 + 첨부 파일 다운로드 (5개 파일)
+### 변경 카테고리
 
-**핵심**: 빌더에서 단가 JSON 첨부 → 세션별 단가 적용 → BOM 생성 시 세션 단가 우선, 미첨부 시 글로벌 폴백
-
-| 파일 | 변경 내용 |
-|------|----------|
-| `web-ui/src/store/workflowStore.ts` | `uploadedPricingFile` 상태/액션 추가, `executeWorkflow`·`executeWorkflowStream` 양쪽 inputs에 `pricing_file` 포함, `clearWorkflow`에 초기화 |
-| `web-ui/src/pages/blueprintflow/BlueprintFlowBuilder.tsx` | `DollarSign`, `Download` 아이콘 추가, 단가 업로드 UI (초록색, `.json`), 이미지/GT/단가 각각 다운로드 버튼 |
-| `gateway-api/blueprintflow/executors/bom_executor.py` | `_upload_pricing_file()` 메서드 (GT 패턴 복제), execute에서 GT 다음 6번 단계로 호출 |
-| `blueprint-ai-bom/backend/routers/bom_router.py` | `POST /{session_id}/pricing` 엔드포인트 (JSON 유효성 검사), `generate_bom` 호출 시 `session_pricing_path` 전달 |
-| `blueprint-ai-bom/backend/services/bom_service.py` | `generate_bom()`에 `session_pricing_path` 파라미터, `load_pricing_db()` 세션 우선 로드 |
-
-**파이프라인 흐름**:
-```
-빌더 단가 JSON 첨부
-  → workflowStore.uploadedPricingFile 저장
-  → executeWorkflow inputs.pricing_file에 포함
-  → Gateway bom_executor._upload_pricing_file() → BOM API POST /bom/{session_id}/pricing
-  → 세션 디렉토리에 pricing.json 저장
-  → generate_bom 시 세션 pricing.json 우선 로드
-  → 없으면 글로벌 classes_info_with_pricing.json 폴백
-```
-
-### 그룹 B: Blueprint AI BOM 프론트엔드 UX 개선 (2개 파일)
-
-| 파일 | 변경 내용 |
-|------|----------|
-| `blueprint-ai-bom/frontend/src/components/ReferencePanel.tsx` | 드래그 리사이즈 (200~800px), 접기/펼치기, masonry 레이아웃 (CSS columns), 모두 펼침/접기 토글, `onClose` optional 변경 |
-| `blueprint-ai-bom/frontend/src/pages/workflow/sections/FinalResultsSection.tsx` | BOM 심볼 리스트에서 클래스명 클릭 → 도면 위 해당 검출만 파란색 하이라이트 + 나머지 회색, 선택 해제 시 기존 상태별 색상 복원 |
-
-### 그룹 C: YOLO 파나시아 data.yaml 방식 전환 (3+1개 파일)
-
-**핵심**: `override_class_names: true` (라우터 후처리) → `data_yaml: panasia_data.yaml` (모델 로드 시 names 직접 교체)
-
-| 파일 | 변경 내용 |
-|------|----------|
-| `models/yolo-api/models/model_registry.yaml` | panasia 모델: `override_class_names: true` → `data_yaml: panasia_data.yaml` |
-| `models/yolo-api/routers/detection_router.py` | `override_class_names` 분기 제거 (isdigit/class_ 체크만 유지) |
-| `models/yolo-api/services/registry.py` | 모델 로드 시 `data_yaml` 있으면 YAML 파싱 → `model.names` 직접 교체 |
-| `models/yolo-api/models/panasia_data.yaml` | **(신규)** 파나시아 27종 클래스명 정의 (nc: 27) |
-
-**장점**: 모델 학습 시 사용한 data.yaml과 동일 → 클래스명 불일치 방지, 라우터 후처리 불필요
+| 영역 | 수정 | 삭제 | 신규 | 핵심 변경 |
+|------|------|------|------|----------|
+| **Gateway API** | 4개 | 2개 | 0 | BOM executor features 병합, Table Detector multi-crop, Excel Export 제거 |
+| **eDOCr2 API** | 3개 | 0 | 0 | _safe_to_gray, GPU→CPU 폴백, check_tolerances 방어, max_img_size 2048 |
+| **Web-UI** | 11개 | 0 | 4 | 템플릿 정리(12→6), checkboxGroup, DSE 샘플 이미지, Excel Export 삭제 |
+| **Blueprint AI BOM** | 13개 | 0 | 2 | dimension_service 대규모 리팩토링, DimensionOverlay, table_service |
+| **기타** | 2개 | 0 | 1 | EasyOCR Dockerfile, docs, handoff |
 
 ---
 
-## 🔍 확장 필요 분석 (다른 노드/컴포넌트 적용 검토)
+## 핵심 변경 상세
 
-### A-1. 단가 파일 → BOM 프론트엔드 연동 [P1]
+### 1. BOM Executor: features 병합 + drawing_type 폴백
 
-**문제**: 빌더에서 단가 파일을 업로드하면 BOM 세션에 저장되지만, BOM 프론트엔드(WorkflowPage)에서는 "현재 세션에 커스텀 단가가 적용됨"을 인지하지 못함.
+**파일**: `gateway-api/blueprintflow/executors/bom_executor.py`
 
-**필요 작업**:
-- `blueprint-ai-bom/frontend`: 세션 정보에 pricing 파일 존재 여부 표시
-- BOM 결과 테이블에 "세션 단가 적용됨" 표시
-- BOM UI에서 직접 단가 파일 업로드/제거 기능 (빌더 없이 독립 사용 시)
+| 항목 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| **drawing_type** | `inputs.get("drawing_type", "auto")` (항상 auto) | `inputs or self.parameters` fallback (노드 파라미터 반영) |
+| **features** | 택일 방식 (inputs만 또는 params만) | **병합** (inputs + params, 중복 제거, 순서 유지) |
 
-**관련 파일**:
-```
-blueprint-ai-bom/frontend/src/pages/workflow/WorkflowPage.tsx
-blueprint-ai-bom/frontend/src/pages/workflow/sections/BOMResultsSection.tsx
-blueprint-ai-bom/backend/routers/bom_router.py (GET/DELETE pricing 추가)
-```
+**검증 완료**: 2-1 (`assembly`, 4개 merged), 2-3 (`assembly`, 5개 merged) - 게이트웨이 로그 확인
 
-### A-2. 단가 API 확장 (GET/DELETE) [P2]
+### 2. Table Detector: multi-crop + 품질 필터
 
-**현재**: `POST /{session_id}/pricing` 만 존재
-**필요**: 적용된 단가 조회/삭제 API
+**파일**: `gateway-api/blueprintflow/executors/tabledetector_executor.py` (+182줄)
 
-```python
-# 추가 필요
-GET  /bom/{session_id}/pricing   → 현재 적용된 단가 파일 내용 반환
-DELETE /bom/{session_id}/pricing → 세션 단가 제거 → 글로벌 폴백 복원
-```
+| 항목 | 내용 |
+|------|------|
+| **도면 특화 프리셋** | `title_block`, `revision_table`, `parts_list_right` (3개 추가) |
+| **multi-crop 루프** | `crop_regions` 리스트 순회, 각 영역 독립 API 호출 |
+| **품질 필터** | `_is_quality_table()` - 빈 셀 70% 초과 테이블 자동 제거 |
+| **_call_api()** | API 호출 로직을 별도 메서드로 추출 (재사용성) |
+| **하위호환** | `crop_regions` 없으면 기존 `auto_crop` 폴백 |
 
-### A-3. 템플릿 실행 경로에서 pricing_file 전달 확인 [P2]
+### 3. eDOCr2: 5개 버그 수정
 
-**현재**: `executeWorkflow`, `executeWorkflowStream` 에는 pricing_file 포함
-**확인 필요**: Gateway의 `execute-template`, `execute-template-stream` 엔드포인트도 동일하게 inputs를 그대로 전달하는지
+| Bug | 문제 | 수정 |
+|-----|------|------|
+| **1** | `cv2.cvtColor` 그레이스케일 입력 크래시 | `_safe_to_gray()` 함수 도입 (7곳 교체) |
+| **2** | `dimensions.remove(o)` numpy 배열 비교 에러 | `is` identity 비교로 변경 |
+| **3** | `check_tolerances()` top_line 미초기화 | `top_line = None` + 조기 반환 |
+| **4** | `check_tolerances()` None/빈 이미지 크래시 | 입구 방어 코드 추가 |
+| **5** | `fit()` 0차원 이미지 division-by-zero | 빈 이미지 반환 가드 |
 
-```
-gateway-api/routers/workflow_router.py
-  → execute_template() / execute_template_stream()
-  → inputs dict를 그대로 executor에 전달하므로 별도 작업 불필요할 수 있음
-  → 다만 실제 테스트로 검증 필요
-```
+**추가 개선**:
+- GPU→CPU 전처리 폴백 (CLAHE + GaussianBlur)
+- `max_img_size` 1048→2048 (고해상도 도면 정확도 향상)
 
-### B-1. 클래스 하이라이트 → DetectionResultsSection 확장 [P1]
+### 4. Excel Export 완전 제거
 
-**현재**: FinalResultsSection에서만 클래스명 클릭 → 하이라이트
-**필요**: 검증 단계(DetectionResultsSection)에서도 동일 기능
+| 삭제 파일 | 내용 |
+|-----------|------|
+| `gateway-api/blueprintflow/executors/excelexport_executor.py` | Executor 클래스 189줄 |
+| `gateway-api/api_specs/excelexport.yaml` | API 스펙 90줄 |
+| `__init__.py`에서 import 제거 | 레지스트리 등록 해제 |
+| `test_executors_unit.py`에서 테스트 제거 | 4곳 parametrize 목록 |
+| `analysisNodes.ts`에서 노드 정의 제거 | 프론트엔드 노드 |
+| `locales/en.json`, `ko.json` 번역 제거 | i18n |
+| `monitoring/constants.ts` 제거 | 모니터링 |
+| `constants.ts` baseNodeTypes 제거 | 노드 타입 매핑 |
 
-**이유**: 검증 단계에서 특정 클래스만 골라보며 승인/수정할 때 유용
+### 5. DSE Bearing 템플릿 정리 (12→6)
 
-**관련 파일**:
-```
-blueprint-ai-bom/frontend/src/pages/workflow/sections/DetectionResultsSection.tsx
-  → FinalResultsSection의 selectedClassName, handleClassClick 패턴 복제
-  → Canvas 렌더링 로직에 선택 상태 반영
-```
+**삭제된 템플릿**: 2-4 (CV Cone Cover), 2-5 (GD&T), 2-6 (BOM 추출), 2-7 (Parts List), 3-1 (정밀 분석)
+**갱신된 6개 템플릿**: 1-1, 2-1, 2-2, 2-3, 2-8, 3-2
 
-### B-2. BOM 테이블 ↔ 도면 연동 하이라이트 [P2]
+| 갱신 항목 | 내용 |
+|-----------|------|
+| Table Detector 파라미터 | `mode: extract, ocr_engine: paddle, crop_regions: [3개]` |
+| AI BOM 파라미터 | `drawing_type: assembly/dimension_bom`, features 명시 |
+| Excel Export 노드 제거 | 모든 템플릿에서 excelexport 노드/엣지 삭제 |
+| 샘플 이미지 추가 | 4개 DSE 도면 이미지 경로 설정 |
 
-**현재**: FinalResultsSection 내부에서만 연동
-**필요**: BOMResultsSection 테이블에서 항목 클릭 → FinalResultsSection 도면에 해당 심볼 하이라이트
+### 6. Blueprint AI BOM: dimension_service 대규모 리팩토링 (+872줄)
 
-**구현 방식**:
-```
-BOMResultsSection.tsx → 클래스명 클릭 이벤트 → 상위 컴포넌트(WorkflowPage)로 전달
-  → FinalResultsSection에 selectedClassName prop으로 전달
-  → 기존 하이라이트 로직 재활용
-```
-
-### C-1. data.yaml 방식 → 다른 커스텀 모델 표준화 [P1]
-
-**현재**: panasia만 data.yaml 방식
-**향후**: 새로운 커스텀 모델 등록 시 data.yaml 방식을 표준으로 사용
-
-**확인 필요**:
-```yaml
-# model_registry.yaml 내 다른 모델 중 class_names가 정의된 것들
-pid:        class_names 33개 → data.yaml 전환 대상?
-mechanical: class_names 27개 → data.yaml 전환 대상?
-electrical: class_names 6개  → data.yaml 전환 대상?
-```
-
-**기준**: class_names 목록이 10개 이상이거나, 학습 data.yaml이 존재하는 모델은 data.yaml 방식으로 전환하는 것이 유지보수 용이
-
-### C-2. SAHI 모드에서 data.yaml class_names 호환 [P2]
-
-**현재**: registry.py에서 `service.model.model.names` 직접 교체
-**확인**: SAHI 모드(`use_sahi=true`)일 때 sahi 라이브러리가 model.names를 참조하는지, 별도 경로를 사용하는지
-
-```
-models/yolo-api/services/inference_service.py
-  → SAHI 추론 경로에서 model.names 사용 여부 확인
-  → sahi.AutoDetectionModel이 model.names를 상속하는지 확인
-```
-
-### C-3. Docker 빌드 시 panasia_data.yaml 포함 확인 [P1]
-
-```
-models/yolo-api/Dockerfile
-  → COPY models/ 또는 COPY . 범위에 models/panasia_data.yaml이 포함되는지 확인
-  → 빌드 후 컨테이너 내 /app/models/panasia_data.yaml 존재 확인
-```
+| 기능 | 내용 |
+|------|------|
+| **멀티 엔진 지원** | eDOCr2 + PaddleOCR 결합 |
+| **가중 투표 병합** | `_merge_multi_engine()` - IoU 클러스터링 + 엔진별 가중치 |
+| **PaddleOCR 파싱** | `_parse_paddle_detection()`, `_fix_diameter_symbol()` |
+| **품질 필터** | `_is_valid_dimension()` - 깨진 텍스트/오탐 제거 |
+| **bbox 유연 파싱** | dict/리스트/4점 좌표 모두 지원 |
+| **서브 패턴 추출** | 긴 텍스트 블록에서 개별 치수 패턴 추출 |
 
 ---
 
-## 📌 향후 작업 요약
-
-| 우선순위 | ID | 작업 | 카테고리 | 관련 파일 |
-|----------|-----|------|----------|----------|
-| **P1** | A-1 | BOM 프론트엔드에 세션 단가 표시 | 단가 | bom-frontend |
-| **P1** | B-1 | DetectionResultsSection 클래스 하이라이트 | UX | bom-frontend |
-| **P1** | C-1 | data.yaml 방식 다른 모델 표준화 검토 | YOLO | yolo-api |
-| **P1** | C-3 | Docker 빌드 panasia_data.yaml 포함 확인 | DevOps | yolo-api |
-| **P2** | A-2 | GET/DELETE pricing API 추가 | 단가 | bom-backend |
-| **P2** | A-3 | 템플릿 실행 pricing_file 전달 검증 | 단가 | gateway-api |
-| **P2** | B-2 | BOM 테이블 ↔ 도면 하이라이트 연동 | UX | bom-frontend |
-| **P2** | C-2 | SAHI 모드 data.yaml 호환 검증 | YOLO | yolo-api |
-
----
-
-## 📊 프로젝트 상태
+## 프로젝트 상태
 
 | 항목 | 결과 |
 |------|------|
-| **web-ui 빌드** | ✅ 정상 (15.04s) |
-| **Python 문법** | ✅ 3개 파일 정상 |
-| **미커밋 파일** | 10 modified + 1 new |
+| **web-ui 빌드** | ✅ 정상 |
+| **Python 문법** | ✅ 정상 |
+| **2-1 실행 검증** | ✅ 6 success, 166371ms, 치수 52개 |
+| **2-3 실행 검증** | ✅ 8 success, 135471ms, 치수 29개 |
+| **drawing_type** | ✅ assembly (parameters에서 전달) |
+| **features merge** | ✅ 정상 병합 + 중복 제거 |
 
 ---
 
-## 📂 TODO 파일 구조
-
-```
-.todo/
-├── ACTIVE.md         # 현재 파일 (활성 작업)
-├── BACKLOG.md        # 향후 작업 목록
-├── SYNC_PATTERNS.md  # 패턴 동기화 추적
-├── COMPLETED.md      # 완료 아카이브
-└── archive/          # 상세 문서
-    └── BLUEPRINT_ARCHITECTURE_V2.md
-```
-
----
-
-*마지막 업데이트: 2026-01-30*
+*마지막 업데이트: 2026-02-01*

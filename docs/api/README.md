@@ -55,7 +55,6 @@
 
 | API | Port | Purpose | Status | Docs |
 |-----|------|---------|--------|------|
-| **Excel Export** | 5020 | 분석 결과 Excel 내보내기 | ✅ | [excelexport/](excelexport/) |
 | **PDF Export** | 5020 | 분석 결과 PDF 리포트 | ✅ | [pdfexport/](pdfexport/) |
 
 ### Visualization

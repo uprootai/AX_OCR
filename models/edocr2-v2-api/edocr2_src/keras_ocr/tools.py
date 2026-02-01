@@ -421,6 +421,12 @@ def fit(
         The new image
     """
     fitted = None
+    if image.shape[0] == 0 or image.shape[1] == 0:
+        # Degenerate image with zero dimension — return blank image
+        fitted = np.full((height, width) + image.shape[2:], cval, dtype=image.dtype) if len(image.shape) > 2 else np.full((height, width), cval, dtype=image.dtype)
+        if return_scale:
+            return fitted, 1
+        return fitted
     x_scale = width / image.shape[1]
     y_scale = height / image.shape[0]
     if x_scale == 1 and y_scale == 1:

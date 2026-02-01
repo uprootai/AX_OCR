@@ -3,12 +3,11 @@
  * 치수 OCR 결과 섹션 컴포넌트
  */
 
-import { Loader2 } from 'lucide-react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../lib/constants';
-import logger from '../../../lib/logger';
+import { useState } from 'react';
+import { Loader2, PencilLine } from 'lucide-react';
 import { DimensionList } from '../../../components/DimensionList';
-import { VerificationQueue } from '../../../components/VerificationQueue';
+import { DimensionOverlay } from '../../../components/DimensionOverlay';
+import { DrawingCanvas } from '../../../components/DrawingCanvas';
 import type { Dimension, DimensionStats } from '../types/workflow';
 
 interface DimensionSectionProps {
@@ -17,10 +16,6 @@ interface DimensionSectionProps {
   dimensionStats: DimensionStats | null;
   selectedDimensionId: string | null;
   setSelectedDimensionId: (id: string | null) => void;
-  setDimensions: (dimensions: Dimension[]) => void;
-  setDimensionStats: (stats: DimensionStats | null) => void;
-  showVerificationQueue: boolean;
-  setShowVerificationQueue: (show: boolean) => void;
   imageData: string | null;
   imageSize: { width: number; height: number } | null;
   isRunningAnalysis: boolean;
@@ -28,6 +23,9 @@ interface DimensionSectionProps {
   onEdit: (id: string, newValue: string) => void;
   onDelete: (id: string) => void;
   onBulkApprove: (ids: string[]) => void;
+  onAutoApprove: () => void;
+  isAutoApproving: boolean;
+  onAddManualDimension: (value: string, box: { x1: number; y1: number; x2: number; y2: number }) => Promise<void>;
 }
 
 export function DimensionSection({
@@ -36,10 +34,6 @@ export function DimensionSection({
   dimensionStats,
   selectedDimensionId,
   setSelectedDimensionId,
-  setDimensions,
-  setDimensionStats,
-  showVerificationQueue,
-  setShowVerificationQueue,
   imageData,
   imageSize,
   isRunningAnalysis,
@@ -47,12 +41,15 @@ export function DimensionSection({
   onEdit,
   onDelete,
   onBulkApprove,
+  onAutoApprove,
+  isAutoApproving,
+  onAddManualDimension,
 }: DimensionSectionProps) {
-  const refreshDimensions = async () => {
-    const { data } = await axios.get(`${API_BASE_URL}/analysis/dimensions/${sessionId}`);
-    setDimensions(data.dimensions || []);
-    setDimensionStats(data.stats || null);
-  };
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualValue, setManualValue] = useState('');
+
+  // sessionId used for manual dimension add (passed via onAddManualDimension)
+  void sessionId;
 
   return (
     <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -63,67 +60,108 @@ export function DimensionSection({
             ({dimensions.length}개 치수)
           </span>
         </h2>
-        {isRunningAnalysis && (
-          <div className="flex items-center text-primary-600">
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            <span className="text-sm">분석 중...</span>
+        <div className="flex items-center gap-2">
+          {imageData && imageSize && (
+            <button
+              onClick={() => setShowManualAdd(!showManualAdd)}
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                showManualAdd
+                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <PencilLine className="w-4 h-4" />
+              수작업 추가
+            </button>
+          )}
+          {isRunningAnalysis && (
+            <div className="flex items-center text-primary-600">
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <span className="text-sm">분석 중...</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 수작업 치수 추가 */}
+      {showManualAdd && imageData && imageSize && (
+        <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg">
+          <h3 className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-3">
+            수작업 치수 추가
+          </h3>
+          <div className="mb-3">
+            <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
+              1. 치수 값 입력
+            </label>
+            <input
+              type="text"
+              value={manualValue}
+              onChange={(e) => setManualValue(e.target.value)}
+              placeholder="예: Ø50, R1.6, 100±0.1"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
           </div>
-        )}
-      </div>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            2. 도면에서 바운딩 박스 그리기
+          </p>
+          <DrawingCanvas
+            imageData={imageData}
+            imageSize={imageSize}
+            selectedClass={manualValue || undefined}
+            maxWidth="100%"
+            existingBoxes={
+              dimensions
+                .filter(d =>
+                  d.verification_status === 'approved' ||
+                  d.verification_status === 'modified' ||
+                  d.verification_status === 'manual'
+                )
+                .map(d => ({
+                  bbox: d.bbox,
+                  label: d.modified_value || d.value,
+                  color: d.verification_status === 'manual' ? '#a855f7' :
+                    d.verification_status === 'modified' ? '#f97316' : '#22c55e'
+                }))
+            }
+            onBoxDrawn={async (box) => {
+              if (!manualValue.trim()) {
+                alert('치수 값을 먼저 입력해주세요!');
+                return;
+              }
+              await onAddManualDimension(manualValue.trim(), box);
+              setManualValue('');
+              setShowManualAdd(false);
+            }}
+          />
+        </div>
+      )}
 
-      {/* 뷰 모드 토글 */}
-      <div className="flex gap-2 mb-3">
-        <button
-          onClick={() => setShowVerificationQueue(false)}
-          className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
-            !showVerificationQueue
-              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-          }`}
-        >
-          치수 목록
-        </button>
-        <button
-          onClick={() => setShowVerificationQueue(true)}
-          className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
-            showVerificationQueue
-              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-          }`}
-        >
-          Active Learning 큐
-        </button>
-      </div>
-
-      {/* Dimension List 또는 Verification Queue */}
-      {!showVerificationQueue ? (
-        <DimensionList
-          dimensions={dimensions}
-          stats={dimensionStats || undefined}
-          onVerify={onVerify}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onBulkApprove={onBulkApprove}
-          onHover={(id) => setSelectedDimensionId(id)}
-          selectedId={selectedDimensionId}
+      {/* 도면 오버레이 */}
+      {imageData && imageSize && dimensions.length > 0 && (
+        <DimensionOverlay
           imageData={imageData}
           imageSize={imageSize}
-        />
-      ) : (
-        <VerificationQueue
-          sessionId={sessionId}
-          itemType="dimension"
-          onVerify={(itemId, action) => {
-            logger.log(`Verified ${itemId}: ${action}`);
-            refreshDimensions();
-          }}
-          onAutoApprove={() => {
-            refreshDimensions();
-          }}
-          onItemSelect={(itemId) => setSelectedDimensionId(itemId)}
-          apiBaseUrl={API_BASE_URL}
+          dimensions={dimensions}
+          selectedId={selectedDimensionId}
+          onSelect={(id) => setSelectedDimensionId(id)}
         />
       )}
+
+      {/* 통합 치수 리스트 */}
+      <DimensionList
+        dimensions={dimensions}
+        stats={dimensionStats || undefined}
+        onVerify={onVerify}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onBulkApprove={onBulkApprove}
+        onAutoApprove={onAutoApprove}
+        isAutoApproving={isAutoApproving}
+        onHover={(id) => setSelectedDimensionId(id)}
+        selectedId={selectedDimensionId}
+        imageData={imageData}
+        imageSize={imageSize}
+      />
 
       {/* 치수 요약 */}
       {dimensionStats && (

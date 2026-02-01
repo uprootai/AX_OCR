@@ -36,6 +36,7 @@ export const PID_ANALYZER_BASE = import.meta.env.VITE_PID_ANALYZER_URL || 'http:
 export const DESIGN_CHECKER_BASE = import.meta.env.VITE_DESIGN_CHECKER_URL || 'http://localhost:5019';
 export const BLUEPRINT_AI_BOM_BASE = import.meta.env.VITE_BLUEPRINT_AI_BOM_URL || 'http://localhost:5020';
 export const PID_COMPOSER_BASE = import.meta.env.VITE_PID_COMPOSER_URL || 'http://localhost:5021';
+export const TABLE_DETECTOR_BASE = import.meta.env.VITE_TABLE_DETECTOR_URL || 'http://localhost:5022';
 
 // Axios 인스턴스 생성
 const gatewayAPI = axios.create({ baseURL: API_BASE });
@@ -604,6 +605,7 @@ const API_HEALTH_URLS: Record<string, string> = {
   vl: `${VL_BASE}/health`,
   blueprint_ai_bom: `${BLUEPRINT_AI_BOM_BASE}/health`,
   pid_composer: `${PID_COMPOSER_BASE}/health`,
+  table_detector: `${TABLE_DETECTOR_BASE}/health`,
 };
 
 // Container name -> API ID 매핑
@@ -628,6 +630,7 @@ const CONTAINER_TO_API: Record<string, string> = {
   'vl-api': 'vl',
   'blueprint-ai-bom-backend': 'blueprint_ai_bom',
   'pid-composer-api': 'pid_composer',
+  'table-detector-api': 'table_detector',
 };
 
 // 모든 서비스 헬스체크 (실행 중인 컨테이너만 체크 - 콘솔 에러 방지)

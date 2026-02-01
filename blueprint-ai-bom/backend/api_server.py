@@ -57,6 +57,7 @@ from services.dimension_relation_service import DimensionRelationService
 from services.connectivity_analyzer import ConnectivityAnalyzer  # Phase 6: P&ID 연결 분석
 from services.region_segmenter import RegionSegmenter  # Phase 5: 영역 분할
 from services.gdt_parser import GDTParser  # Phase 7: GD&T 파싱
+from services.table_service import TableService  # 테이블 추출
 from services.export_service import get_export_service  # Phase 2E: Export
 
 # 기본 경로 설정 (Docker에서는 /app 기준)
@@ -113,6 +114,7 @@ if not model_path.exists():
 detection_service = DetectionService(model_path=model_path)
 bom_service = BOMService(output_dir=RESULTS_DIR)
 dimension_service = DimensionService()  # v2: 치수 OCR 서비스
+table_service = TableService()  # 테이블 추출
 line_detector_service = LineDetectorService()  # v2: 선 검출 서비스
 relation_service = DimensionRelationService()  # Phase 2: 치수선 기반 관계 추출
 connectivity_analyzer = ConnectivityAnalyzer()  # Phase 6: P&ID 연결 분석
@@ -124,7 +126,7 @@ set_session_service(session_service, UPLOAD_DIR)
 set_detection_service(detection_service, session_service)
 set_bom_service(bom_service, session_service)
 # Analysis 패키지 서비스 주입 (5개 라우터)
-set_core_services(dimension_service, detection_service, session_service, relation_service)
+set_core_services(dimension_service, detection_service, session_service, relation_service, table_service)
 set_line_services(line_detector_service, connectivity_analyzer)
 set_region_services(region_segmenter)
 set_gdt_services(gdt_parser)

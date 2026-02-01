@@ -18,6 +18,8 @@ import logger from '../lib/logger';
 import { API_BASE_URL } from '../lib/constants';
 import type { VerificationStatus } from '../types';
 import { ReferencePanel } from '../components/ReferencePanel';
+import { InfoTooltip } from '../components/Tooltip';
+import { FEATURE_TOOLTIPS } from '../components/tooltipContent';
 
 // Workflow 모듈 (리팩토링된 섹션)
 import {
@@ -54,8 +56,6 @@ import {
   DetectionResultsSection,
   FinalResultsSection,
   BOMSection,
-  ReferenceDrawingSection,
-  DrawingInfoSection,
   ActiveFeaturesSection,
   VLMClassificationSection,
   PIDFeaturesSection,
@@ -416,22 +416,26 @@ export function WorkflowPage() {
           </div>
 
           {/* 원본 도면 */}
-          {imageData && (
-            <ReferenceDrawingSection
-              imageData={imageData}
-              imageSize={imageSize}
-              detectionCount={detections.length}
-              approvedCount={stats.approved}
-              onImageClick={() => state.setShowImageModal(true)}
-            />
+          {imageData && imageSize && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-1">
+                📐 원본 도면
+                <InfoTooltip content={FEATURE_TOOLTIPS.referenceDrawing.description} position="right" />
+              </h2>
+              <div className="flex justify-center">
+                <img
+                  src={imageData}
+                  alt="원본 도면"
+                  style={{ maxWidth: '75%', height: 'auto' }}
+                  draggable={false}
+                />
+              </div>
+            </section>
           )}
 
           {/* 다중 이미지 검토 (Phase 2C) - 사이드바로 이동됨 */}
 
-          {/* 도면 정보 (빌더에서 설정한 경우) */}
-          {currentSession?.drawing_type && currentSession.drawing_type !== 'auto' && (
-            <DrawingInfoSection drawingType={currentSession.drawing_type} />
-          )}
+          {/* 도면 정보: 사이드바 "참조 도면 유형" 드롭다운으로 통합, DrawingInfoSection 제거 */}
 
           {/* 활성화된 기능 */}
           {effectiveFeatures && effectiveFeatures.length > 0 && (
@@ -458,8 +462,8 @@ export function WorkflowPage() {
             />
           )}
 
-          {/* AI 검출 결과 (GT 관리 통합) */}
-          {detections.length > 0 && (
+          {/* AI 검출 결과 (GT 관리 통합) - symbol_detection 활성화 시만 표시 */}
+          {detections.length > 0 && visibility.symbolDetection && (
             <DetectionResultsSection
               detections={detections}
               imageData={imageData}
@@ -473,8 +477,8 @@ export function WorkflowPage() {
               Note: GT 관리 기능이 DetectionResultsSection에 통합되어 이 섹션은 더 이상 필요하지 않음
           */}
 
-          {/* 심볼 검증 */}
-          {detections.length > 0 && (
+          {/* 심볼 검증 - symbol_detection 활성화 시만 표시 */}
+          {detections.length > 0 && visibility.symbolDetection && (
             <SymbolVerificationSection
               detections={detections}
               paginatedDetections={paginatedDetections}
@@ -515,10 +519,6 @@ export function WorkflowPage() {
               dimensionStats={state.dimensionStats}
               selectedDimensionId={state.selectedDimensionId}
               setSelectedDimensionId={state.setSelectedDimensionId}
-              setDimensions={state.setDimensions}
-              setDimensionStats={state.setDimensionStats}
-              showVerificationQueue={state.showVerificationQueue}
-              setShowVerificationQueue={state.setShowVerificationQueue}
               imageData={imageData}
               imageSize={imageSize}
               isRunningAnalysis={state.isRunningAnalysis}
@@ -526,6 +526,9 @@ export function WorkflowPage() {
               onEdit={dimensionHandlers.handleDimensionEdit}
               onDelete={dimensionHandlers.handleDimensionDelete}
               onBulkApprove={dimensionHandlers.handleBulkApproveDimensions}
+              onAutoApprove={dimensionHandlers.handleAutoApprove}
+              isAutoApproving={dimensionHandlers.isLoading}
+              onAddManualDimension={dimensionHandlers.handleAddManualDimension}
             />
           )}
 
@@ -738,8 +741,10 @@ export function WorkflowPage() {
         </div>
       </main>
 
-      {/* 심볼 참조 패널 */}
-      <ReferencePanel onClose={() => {}} drawingType={effectiveDrawingType} />
+      {/* 심볼 참조 패널 - symbol_detection 기능이 활성화된 경우만 표시 */}
+      {effectiveFeatures?.includes('symbol_detection') && (
+        <ReferencePanel onClose={() => {}} drawingType={effectiveDrawingType} />
+      )}
     </div>
   );
 }

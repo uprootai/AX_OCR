@@ -27,7 +27,6 @@ const FEATURE_OPTIONS = [
   { value: 'gt_comparison', label: 'GT Comparison' },
   { value: 'bom_generation', label: 'BOM Generation' },
   { value: 'pdf_export', label: 'PDF Export' },
-  { value: 'excel_export', label: 'Excel Export' },
 ] as const;
 
 // 도면 타입

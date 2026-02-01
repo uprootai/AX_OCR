@@ -5,7 +5,7 @@
  * 카드 뷰에서 bbox 크롭 이미지 비교 기능 포함
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Check,
   X,
@@ -16,6 +16,8 @@ import {
   Grid3X3,
   List,
   Image as ImageIcon,
+  Zap,
+  Loader2,
 } from 'lucide-react';
 import logger from '../lib/logger';
 
@@ -48,6 +50,21 @@ interface DimensionStats {
   manual: number;
 }
 
+// 우선순위 계산 헬퍼
+type PriorityLevel = 'critical' | 'medium' | 'low';
+
+function getPriority(dim: Dimension): PriorityLevel {
+  if (dim.confidence < 0.7) return 'critical';
+  if (dim.confidence < 0.9) return 'medium';
+  return 'low';
+}
+
+const PRIORITY_DOT: Record<PriorityLevel, string> = {
+  critical: 'bg-red-500',
+  medium: 'bg-yellow-500',
+  low: 'bg-green-500',
+};
+
 interface DimensionListProps {
   dimensions: Dimension[];
   stats?: DimensionStats;
@@ -55,6 +72,8 @@ interface DimensionListProps {
   onEdit?: (id: string, newValue: string) => void;
   onDelete?: (id: string) => void;
   onBulkApprove?: (ids: string[]) => void;
+  onAutoApprove?: () => void;
+  isAutoApproving?: boolean;
   onExport?: () => void;
   onHover?: (id: string | null) => void;
   selectedId?: string | null;
@@ -180,6 +199,8 @@ export function DimensionList({
   onEdit,
   onDelete,
   onBulkApprove,
+  onAutoApprove,
+  isAutoApproving,
   onExport,
   onHover,
   selectedId,
@@ -193,6 +214,24 @@ export function DimensionList({
   const [editValue, setEditValue] = useState('');
   // 뷰 모드: 'table' | 'card'
   const [viewMode, setViewMode] = useState<'table' | 'card'>(imageData ? 'card' : 'table');
+
+  // 아이템 ref 맵 (auto-scroll용)
+  const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const listContainerRef = useRef<HTMLDivElement>(null);
+
+  const setItemRef = useCallback((id: string, el: HTMLElement | null) => {
+    if (el) itemRefs.current.set(id, el);
+    else itemRefs.current.delete(id);
+  }, []);
+
+  // selectedId 변경 시 해당 항목으로 스크롤
+  useEffect(() => {
+    if (!selectedId) return;
+    const el = itemRefs.current.get(selectedId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedId]);
 
   // 필터링 및 정렬
   const filteredDimensions = useMemo(() => {
@@ -223,6 +262,11 @@ export function DimensionList({
   const pendingIds = dimensions
     .filter((d) => d.verification_status === 'pending')
     .map((d) => d.id);
+
+  // 자동 승인 후보 (90%+ 신뢰도, pending 상태)
+  const autoApproveCandidateCount = dimensions.filter(
+    (d) => d.verification_status === 'pending' && d.confidence >= 0.9
+  ).length;
 
   // 수정 시작
   const startEdit = (dim: Dimension) => {
@@ -361,19 +405,35 @@ export function DimensionList({
           </button>
         </div>
 
-        {/* 일괄 승인 */}
-        {pendingIds.length > 0 && onBulkApprove && (
-          <button
-            onClick={() => onBulkApprove(pendingIds)}
-            className="ml-auto text-sm px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
-          >
-            전체 승인 ({pendingIds.length})
-          </button>
-        )}
+        {/* 자동 승인 + 일괄 승인 */}
+        <div className="ml-auto flex items-center gap-2">
+          {autoApproveCandidateCount > 0 && onAutoApprove && (
+            <button
+              onClick={onAutoApprove}
+              disabled={isAutoApproving}
+              className="flex items-center gap-1 text-sm px-3 py-1 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 disabled:opacity-50"
+            >
+              {isAutoApproving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Zap className="w-3.5 h-3.5" />
+              )}
+              자동 승인 90%+ ({autoApproveCandidateCount})
+            </button>
+          )}
+          {pendingIds.length > 0 && onBulkApprove && (
+            <button
+              onClick={() => onBulkApprove(pendingIds)}
+              className="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+            >
+              전체 승인 ({pendingIds.length})
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 목록 */}
-      <div className="max-h-[500px] overflow-y-auto">
+      <div ref={listContainerRef} className="max-h-[500px] overflow-y-auto">
         {filteredDimensions.length === 0 ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             {filter === 'all' ? '치수가 없습니다.' : '해당 상태의 치수가 없습니다.'}
@@ -386,16 +446,19 @@ export function DimensionList({
               const statusStyle = STATUS_STYLES[dim.verification_status] || STATUS_STYLES.pending;
               const isEditing = editingId === dim.id;
               const isSelected = selectedId === dim.id;
+              const priority = getPriority(dim);
 
               return (
                 <div
                   key={dim.id}
+                  ref={(el) => setItemRef(dim.id, el)}
                   onMouseEnter={() => onHover?.(dim.id)}
                   onMouseLeave={() => onHover?.(null)}
                   className={`
                     rounded-lg border-2 p-3 transition-all
                     ${statusStyle.bg}
                     ${isSelected ? 'ring-2 ring-primary-500 border-primary-400' : 'border-gray-200 dark:border-gray-600'}
+                    ${priority === 'critical' ? 'border-l-4 border-l-red-500' : ''}
                     hover:shadow-md
                   `}
                 >
@@ -436,16 +499,19 @@ export function DimensionList({
                     <span className={`px-2 py-0.5 rounded ${typeInfo.color}`}>
                       {typeInfo.label}
                     </span>
-                    <span
-                      className={`font-medium ${
-                        dim.confidence >= 0.8
-                          ? 'text-green-600'
-                          : dim.confidence >= 0.5
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {(dim.confidence * 100).toFixed(0)}%
+                    <span className="flex items-center gap-1">
+                      <span className={`inline-block w-2 h-2 rounded-full ${PRIORITY_DOT[priority]}`} />
+                      <span
+                        className={`font-medium ${
+                          dim.confidence >= 0.8
+                            ? 'text-green-600'
+                            : dim.confidence >= 0.5
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {(dim.confidence * 100).toFixed(0)}%
+                      </span>
                     </span>
                   </div>
 
@@ -556,16 +622,19 @@ export function DimensionList({
                 const statusStyle = STATUS_STYLES[dim.verification_status] || STATUS_STYLES.pending;
                 const isEditing = editingId === dim.id;
                 const isSelected = selectedId === dim.id;
+                const priority = getPriority(dim);
 
                 return (
                   <tr
                     key={dim.id}
+                    ref={(el) => setItemRef(dim.id, el)}
                     onMouseEnter={() => onHover?.(dim.id)}
                     onMouseLeave={() => onHover?.(null)}
                     className={`
                       border-t border-gray-100 transition-colors
                       ${statusStyle.bg}
                       ${isSelected ? 'ring-2 ring-primary-500 ring-inset' : ''}
+                      ${priority === 'critical' ? 'border-l-4 border-l-red-500' : ''}
                       hover:bg-gray-50
                     `}
                   >
@@ -605,16 +674,19 @@ export function DimensionList({
 
                     {/* 신뢰도 */}
                     <td className="px-4 py-2 text-center">
-                      <span
-                        className={`text-xs font-medium ${
-                          dim.confidence >= 0.8
-                            ? 'text-green-600'
-                            : dim.confidence >= 0.5
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {(dim.confidence * 100).toFixed(0)}%
+                      <span className="inline-flex items-center gap-1">
+                        <span className={`inline-block w-2 h-2 rounded-full ${PRIORITY_DOT[priority]}`} />
+                        <span
+                          className={`text-xs font-medium ${
+                            dim.confidence >= 0.8
+                              ? 'text-green-600'
+                              : dim.confidence >= 0.5
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {(dim.confidence * 100).toFixed(0)}%
+                        </span>
                       </span>
                     </td>
 

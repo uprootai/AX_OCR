@@ -109,9 +109,6 @@ export function useWorkflowState() {
   const [selectedDimensionId, setSelectedDimensionId] = useState<string | null>(null);
   const [showAnalysisOptions, setShowAnalysisOptions] = useState(false);
 
-  // Verification queue
-  const [showVerificationQueue, setShowVerificationQueue] = useState(false);
-
   // VLM Classification
   const [classification, setClassification] = useState<ClassificationData | null>(null);
   const [showClassifier, setShowClassifier] = useState(true);
@@ -182,9 +179,6 @@ export function useWorkflowState() {
     isRunningAnalysis, setIsRunningAnalysis,
     selectedDimensionId, setSelectedDimensionId,
     showAnalysisOptions, setShowAnalysisOptions,
-
-    // Verification queue
-    showVerificationQueue, setShowVerificationQueue,
 
     // VLM Classification
     classification, setClassification,

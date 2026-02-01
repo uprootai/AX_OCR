@@ -26,18 +26,20 @@ _dimension_service = None
 _detection_service = None
 _session_service = None
 _relation_service = None
+_table_service = None
 
 # 세션별 옵션 캐시 (메모리) - 다른 라우터에서도 접근 필요
 _session_options: Dict[str, AnalysisOptions] = {}
 
 
-def set_core_services(dimension_service, detection_service, session_service, relation_service=None):
+def set_core_services(dimension_service, detection_service, session_service, relation_service=None, table_service=None):
     """서비스 인스턴스 설정 (api_server.py에서 호출)"""
-    global _dimension_service, _detection_service, _session_service, _relation_service
+    global _dimension_service, _detection_service, _session_service, _relation_service, _table_service
     _dimension_service = dimension_service
     _detection_service = detection_service
     _session_service = session_service
     _relation_service = relation_service
+    _table_service = table_service
 
 
 def get_dimension_service():
@@ -69,6 +71,37 @@ def get_session_options():
     return _session_options
 
 
+def _resolve_options(session_id: str, session: dict) -> AnalysisOptions:
+    """세션의 분석 옵션 결정 (캐시 → features 기반 자동 생성)"""
+    cached = _session_options.get(session_id)
+    if cached is not None:
+        return cached
+
+    options = AnalysisOptions()
+    features = session.get("features", [])
+    if features:
+        feature_to_option = {
+            "symbol_detection": "enable_symbol_detection",
+            "dimension_ocr": "enable_dimension_ocr",
+            "line_detection": "enable_line_detection",
+            "text_extraction": "enable_text_extraction",
+        }
+        data = options.model_dump()
+        for feature in features:
+            opt_key = feature_to_option.get(feature)
+            if opt_key:
+                data[opt_key] = True
+        # dimension_ocr 시 line_detection도 활성화 (치수선 관계 분석용)
+        if data.get("enable_dimension_ocr"):
+            data["enable_line_detection"] = True
+            data["enable_relation_extraction"] = True
+        options = AnalysisOptions(**data)
+        logger.info(f"세션 features에서 옵션 자동 생성: {features}")
+
+    _session_options[session_id] = options
+    return options
+
+
 # ==================== 프리셋 API ====================
 
 @router.get("/presets")
@@ -96,11 +129,7 @@ async def get_analysis_options(session_id: str) -> AnalysisOptions:
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
-    if session_id in _session_options:
-        return _session_options[session_id]
-
-    default_options = AnalysisOptions(preset="electrical")
-    return apply_preset_to_options(default_options, "electrical")
+    return _resolve_options(session_id, session)
 
 
 @router.put("/options/{session_id}")
@@ -146,6 +175,20 @@ async def apply_preset(session_id: str, preset_name: str) -> AnalysisOptions:
     options = apply_preset_to_options(AnalysisOptions(), preset_name)
     _session_options[session_id] = options
 
+    # AnalysisOptions → session features 동기화
+    OPTION_TO_FEATURE = {
+        "enable_symbol_detection": "symbol_detection",
+        "enable_dimension_ocr": "dimension_ocr",
+        "enable_line_detection": "line_detection",
+        "enable_text_extraction": "title_block_ocr",
+        "enable_relation_extraction": "relation_extraction",
+    }
+    features = [
+        feat for opt_key, feat in OPTION_TO_FEATURE.items()
+        if getattr(options, opt_key, False)
+    ]
+    session_service.update_session(session_id, {"features": features})
+
     return options
 
 
@@ -175,7 +218,7 @@ async def run_analysis(session_id: str) -> AnalysisResult:
     if not image_path:
         raise HTTPException(status_code=400, detail="이미지 파일이 없습니다")
 
-    options = _session_options.get(session_id, AnalysisOptions())
+    options = _resolve_options(session_id, session)
 
     result = AnalysisResult(
         session_id=session_id,
@@ -229,7 +272,8 @@ async def run_analysis(session_id: str) -> AnalysisResult:
         try:
             dimension_result = dimension_service.extract_dimensions(
                 image_path=image_path,
-                confidence_threshold=options.confidence_threshold
+                confidence_threshold=options.confidence_threshold,
+                ocr_engines=options.ocr_engines,
             )
 
             result.dimensions = dimension_result.get("dimensions", [])
@@ -280,9 +324,55 @@ async def run_analysis(session_id: str) -> AnalysisResult:
             logger.error(error_msg)
             result.errors.append(error_msg)
 
-    # 4. 텍스트 추출 (TODO)
-    if options.enable_text_extraction:
-        result.errors.append("텍스트 추출은 아직 구현되지 않았습니다 (Phase 2)")
+    # 4. 텍스트/테이블 추출 (Table Detector API)
+    if options.enable_text_extraction and _table_service:
+        try:
+            table_result = _table_service.extract_tables(
+                image_path=image_path,
+            )
+
+            if table_result.get("error"):
+                result.errors.append(table_result["error"])
+            else:
+                tables = table_result.get("tables", [])
+                regions = table_result.get("regions", [])
+                total_time += table_result.get("processing_time_ms", 0)
+
+                text_entries = []
+                for region in regions:
+                    text_entries.append({
+                        "type": "table_region",
+                        "bbox": region.get("bbox"),
+                        "confidence": region.get("confidence"),
+                        "label": region.get("label", "table"),
+                    })
+                for table in tables:
+                    text_entries.append({
+                        "type": "table",
+                        "table_id": table.get("id"),
+                        "rows": table.get("rows"),
+                        "cols": table.get("cols"),
+                        "headers": table.get("headers", []),
+                        "data": table.get("data", []),
+                        "html": table.get("html", ""),
+                    })
+
+                result.texts = text_entries
+
+                session_service.update_session(session_id, {
+                    "texts": text_entries,
+                    "tables_count": len(tables),
+                    "table_regions_count": len(regions),
+                })
+
+                logger.info(
+                    f"테이블 추출 완료: {len(regions)}개 영역, {len(tables)}개 테이블"
+                )
+
+        except Exception as e:
+            error_msg = f"테이블 추출 실패: {str(e)}"
+            logger.error(error_msg)
+            result.errors.append(error_msg)
 
     # ==================== 관계 분석 (Post-Processing) ====================
     current_session = session_service.get_session(session_id)

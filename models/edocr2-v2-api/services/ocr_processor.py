@@ -175,34 +175,46 @@ class EDOCr2Processor:
             if img is None:
                 raise ValueError(f"Failed to read image: {file_path}")
 
-            # GPU preprocessing
-            if use_gpu_preprocessing and GPU_PREPROCESS_AVAILABLE:
-                logger.info("  Applying GPU preprocessing...")
+            # Preprocessing (GPU with CPU fallback)
+            if use_gpu_preprocessing:
+                logger.info("  Applying preprocessing...")
                 preproc_start = time.time()
+                preproc_success = False
 
-                preprocessor = get_preprocessor(use_gpu=True)
+                # Try GPU preprocessing first
+                if GPU_PREPROCESS_AVAILABLE:
+                    try:
+                        preprocessor = get_preprocessor(use_gpu=True)
+                        img_gray = preprocessor.preprocess_pipeline(
+                            img,
+                            apply_clahe=True,
+                            apply_blur=True,
+                            apply_threshold=False,
+                            clahe_params={"clip_limit": 3.0, "tile_grid_size": (8, 8)},
+                            blur_params={"kernel_size": 3, "sigma": 0.8}
+                        )
+                        if len(img_gray.shape) == 2:
+                            img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
+                        preproc_success = True
+                        logger.info("  GPU preprocessing succeeded")
 
-                # OCR preprocessing (CLAHE + Gaussian blur, no binarization)
-                img_gray = preprocessor.preprocess_pipeline(
-                    img,
-                    apply_clahe=True,
-                    apply_blur=True,
-                    apply_threshold=False,  # eDOCr2 does its own binarization
-                    clahe_params={"clip_limit": 3.0, "tile_grid_size": (8, 8)},
-                    blur_params={"kernel_size": 3, "sigma": 0.8}
-                )
+                        if hasattr(preprocessor, 'get_gpu_memory_usage'):
+                            mem_usage = preprocessor.get_gpu_memory_usage()
+                            logger.info(f"  GPU memory used: {mem_usage['used_bytes'] / 1024**2:.1f} MB")
+                    except Exception as e:
+                        logger.warning(f"  GPU preprocessing failed, falling back to CPU: {e}")
 
-                # Convert grayscale to BGR (eDOCr2 expects color images)
-                if len(img_gray.shape) == 2:
-                    img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
+                # CPU fallback: OpenCV CLAHE + GaussianBlur
+                if not preproc_success:
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img.copy()
+                    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+                    enhanced = clahe.apply(gray)
+                    blurred = cv2.GaussianBlur(enhanced, (3, 3), 0.8)
+                    img = cv2.cvtColor(blurred, cv2.COLOR_GRAY2BGR)
+                    logger.info("  CPU preprocessing applied (CLAHE + GaussianBlur)")
 
                 preproc_time = time.time() - preproc_start
-                logger.info(f"  GPU preprocessing completed in {preproc_time:.3f}s")
-
-                # Log GPU memory usage
-                if hasattr(preprocessor, 'get_gpu_memory_usage'):
-                    mem_usage = preprocessor.get_gpu_memory_usage()
-                    logger.info(f"  GPU memory used: {mem_usage['used_bytes'] / 1024**2:.1f} MB")
+                logger.info(f"  Preprocessing completed in {preproc_time:.3f}s")
 
             language = 'eng'
             process_img = img.copy()
@@ -267,7 +279,7 @@ class EDOCr2Processor:
                     tools.ocr_pipelines.read_alphabet(str(self.edocr2_path / "edocr2" / "models" / "recognizer_dimensions_2.keras")),
                     frame, dim_boxes,
                     cluster_thres=20,
-                    max_img_size=1048,
+                    max_img_size=2048,
                     language=language,
                     backg_save=False
                 )

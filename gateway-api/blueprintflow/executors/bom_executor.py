@@ -55,19 +55,28 @@ class BOMExecutor(BaseNodeExecutor):
                         merged_inputs[key] = value
                 logger.info(f"다중 부모 입력 병합: {list(inputs.keys())} → {list(merged_inputs.keys())}")
                 inputs = merged_inputs
-            # 0. 활성화할 기능 가져오기 (2025-12-24: inputs에서 우선, 없으면 파라미터에서)
-            # ImageInput에서 전달된 features 우선 사용
-            features = inputs.get("features")
+            # 0. 활성화할 기능 가져오기
+            # ImageInput features + 노드 파라미터 features를 병합 (중복 제거)
+            input_features = inputs.get("features", [])
+            param_features = self.parameters.get("features", [])
+            if isinstance(input_features, str):
+                input_features = [input_features]
+            if isinstance(param_features, str):
+                param_features = [param_features]
+            # 병합: input features + param features (중복 제거, 순서 유지)
+            seen = set()
+            features = []
+            for f in list(input_features) + list(param_features):
+                if f and f not in seen:
+                    seen.add(f)
+                    features.append(f)
             if not features:
-                # 파이프라인에서 features가 전달되지 않은 경우 파라미터 사용
-                features = self.parameters.get("features", ["verification"])
-            if isinstance(features, str):
-                features = [features]
-            logger.info(f"활성화된 기능 (from {'inputs' if inputs.get('features') else 'parameters'}): {features}")
+                features = ["verification"]
+            logger.info(f"활성화된 기능 (inputs: {input_features}, params: {param_features} → merged: {features})")
 
-            # drawing_type은 ImageInput에서 context를 통해 전달받음
-            drawing_type = inputs.get("drawing_type", "auto")
-            logger.info(f"도면 타입 (ImageInput에서 전달): {drawing_type}")
+            # drawing_type: inputs 우선, 없으면 노드 파라미터, 최종 기본값 auto
+            drawing_type = inputs.get("drawing_type") or self.parameters.get("drawing_type", "auto")
+            logger.info(f"도면 타입: {drawing_type} (source: {'inputs' if inputs.get('drawing_type') else 'parameters'})")
 
             # 1. 이미지 확인 (필수)
             # 원본 이미지: 수작업 라벨 추가용 (깨끗한 이미지)
