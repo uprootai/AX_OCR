@@ -6,15 +6,16 @@ pydantic>=2.5.0
 
 # Image Processing
 Pillow>=10.0.0
-numpy>=1.24.0
-opencv-python>=4.8.0
+numpy==1.26.4
+opencv-contrib-python==4.10.0.84
 
 # Table Detection & Extraction
 img2table>=1.2.0
 
-# OCR Engines (optional - install based on preference)
-# Tesseract is default, others are optional
+# OCR Engines
 pytesseract>=0.3.10
+paddlepaddle==2.6.2
+paddleocr==2.8.1
 
 # Table Transformer (TATR) - optional for better detection
 transformers>=4.35.0

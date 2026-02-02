@@ -258,7 +258,8 @@ async def import_dimensions_bulk(
         try:
             dim_id = f"dim_{uuid.uuid4().hex[:8]}"
 
-            bbox_raw = dim_data.get("bbox", {})
+            # "bbox" 또는 "location" 필드 모두 지원 (eDOCr2는 "location" 사용)
+            bbox_raw = dim_data.get("bbox") or dim_data.get("location", {})
             if isinstance(bbox_raw, dict):
                 bbox = {
                     "x1": int(bbox_raw.get("x1", bbox_raw.get("x", 0))),
@@ -267,17 +268,29 @@ async def import_dimensions_bulk(
                     "y2": int(bbox_raw.get("y2", bbox_raw.get("y", 0) + bbox_raw.get("height", 0))),
                 }
             elif isinstance(bbox_raw, list) and len(bbox_raw) >= 4:
-                bbox = {
-                    "x1": int(bbox_raw[0]),
-                    "y1": int(bbox_raw[1]),
-                    "x2": int(bbox_raw[2]),
-                    "y2": int(bbox_raw[3]),
-                }
+                # nested list [[x1,y1],[x2,y2],...] (eDOCr2 polygon format)
+                if isinstance(bbox_raw[0], (list, tuple)):
+                    xs = [pt[0] for pt in bbox_raw]
+                    ys = [pt[1] for pt in bbox_raw]
+                    bbox = {
+                        "x1": int(min(xs)),
+                        "y1": int(min(ys)),
+                        "x2": int(max(xs)),
+                        "y2": int(max(ys)),
+                    }
+                else:
+                    # flat list [x1, y1, x2, y2]
+                    bbox = {
+                        "x1": int(bbox_raw[0]),
+                        "y1": int(bbox_raw[1]),
+                        "x2": int(bbox_raw[2]),
+                        "y2": int(bbox_raw[3]),
+                    }
             else:
                 logger.warning(f"알 수 없는 bbox 형식: {bbox_raw}")
                 continue
 
-            confidence = float(dim_data.get("confidence", 0.5))
+            confidence = float(dim_data.get("confidence", dim_data.get("score", 0.5)))
 
             verification_status = "pending"
             if request.auto_approve_threshold and confidence >= request.auto_approve_threshold:

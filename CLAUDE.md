@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2026-01-22
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2026-02-02
 > **컨텍스트 효율화**: 상세 가이드는 `.claude/skills/`에서 온디맨드 로드
 
 ---
@@ -285,7 +285,7 @@ type NodeCategory =
 
 ## BlueprintFlow
 
-### 노드 타입 (30개)
+### 노드 타입 (29개)
 
 | 카테고리 | 노드 |
 |----------|------|
@@ -295,7 +295,7 @@ type NodeCategory =
 | Segmentation | EDGNet, Line Detector |
 | Preprocessing | ESRGAN |
 | Analysis | SkinModel, PID Analyzer, Design Checker |
-| Analysis (신규) | GT Comparison, PDF Export, Excel Export, PID Features, Verification Queue |
+| Analysis (신규) | GT Comparison, PDF Export, PID Features, Verification Queue, Dimension Updater |
 | BOM | Blueprint AI BOM |
 | Knowledge | Knowledge |
 | AI | VL |
@@ -315,7 +315,7 @@ type NodeCategory =
 
 | API | 유효 파라미터 |
 |-----|--------------|
-| **eDOCr2** | `language`, `extract_dimensions`, `extract_gdt`, `extract_text`, `extract_tables`, `cluster_threshold`, `visualize` |
+| **eDOCr2** | `language`, `extract_dimensions`, `extract_gdt`, `extract_text`, `extract_tables`, `cluster_threshold`, `visualize`, `enable_crop_upscale`, `crop_preset`, `upscale_scale`, `upscale_denoise` |
 | **SkinModel** | `material_type`, `manufacturing_process`, `correlation_length`, `task` |
 | **YOLO** | `model_type`, `confidence`, `iou`, `imgsz`, `use_sahi`, `slice_height`, `slice_width`, `overlap_ratio`, `visualize`, `task` |
 | **Table Detector** | `mode`, `ocr_engine`, `borderless`, `confidence_threshold`, `min_confidence`, `output_format`, `auto_crop` |

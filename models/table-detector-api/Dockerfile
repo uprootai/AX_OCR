@@ -32,6 +32,7 @@ EXPOSE 5022
 # 환경변수
 ENV PYTHONUNBUFFERED=1
 ENV TABLE_DETECTOR_PORT=5022
+ENV FLAGS_use_mkldnn=0
 
 # 실행
 CMD ["python", "api_server.py"]

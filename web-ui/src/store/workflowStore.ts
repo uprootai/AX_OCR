@@ -96,7 +96,7 @@ export interface NodeStatus {
 }
 
 // Execution mode type
-type ExecutionMode = 'sequential' | 'parallel';
+type ExecutionMode = 'sequential' | 'parallel' | 'eager';
 
 interface WorkflowState {
   // Workflow metadata

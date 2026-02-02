@@ -617,6 +617,7 @@ services:
     environment:
       - TABLE_DETECTOR_PORT=5022
       - PYTHONUNBUFFERED=1
+      - FLAGS_use_mkldnn=0
     networks:
       - ax_poc_network
     restart: unless-stopped

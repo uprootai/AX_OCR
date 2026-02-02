@@ -1,100 +1,96 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-01
-> **기준 커밋**: ea3463f (feat: 빌더 단가 파일 업로드, BOM UX 개선, YOLO data.yaml 클래스명 방식 전환)
+> **마지막 업데이트**: 2026-02-02
+> **기준 커밋**: 6386618 (feat: eDOCr2 버그 수정, Table Detector 멀티크롭, dimension_service 멀티 엔진, Excel Export 제거)
 
 ---
 
-## 미커밋 변경 요약 (ea3463f 대비)
+## 미커밋 변경 요약 (6386618 대비)
 
-> 총 35개 파일 수정/삭제 + 7개 신규 파일 | +1,523줄 / -1,123줄
+> eDOCr2 크롭 업스케일 + BOM 치수 임포트 버그 수정 + DimensionOverlay 스케일링 수정
 
 ### 변경 카테고리
 
-| 영역 | 수정 | 삭제 | 신규 | 핵심 변경 |
-|------|------|------|------|----------|
-| **Gateway API** | 4개 | 2개 | 0 | BOM executor features 병합, Table Detector multi-crop, Excel Export 제거 |
-| **eDOCr2 API** | 3개 | 0 | 0 | _safe_to_gray, GPU→CPU 폴백, check_tolerances 방어, max_img_size 2048 |
-| **Web-UI** | 11개 | 0 | 4 | 템플릿 정리(12→6), checkboxGroup, DSE 샘플 이미지, Excel Export 삭제 |
-| **Blueprint AI BOM** | 13개 | 0 | 2 | dimension_service 대규모 리팩토링, DimensionOverlay, table_service |
-| **기타** | 2개 | 0 | 1 | EasyOCR Dockerfile, docs, handoff |
+| 영역 | 수정 | 신규 | 핵심 변경 |
+|------|------|------|----------|
+| **Gateway API** | 3개 | 1개 | eDOCr2 크롭 업스케일, dimension_updater_executor 신규 |
+| **BOM Backend** | 1개 | 0 | dimension_router.py bbox/location 매핑 수정 |
+| **BOM Frontend** | 1개 | 0 | DimensionOverlay.tsx viewBox 스케일링 수정 |
+| **Web-UI** | 4개 | 0 | eDOCr2 파라미터, DSE 1-1 템플릿, nodeDefinitions 테스트 수정 |
+| **Docker** | 2개 | 0 | table-detector-api Dockerfile/requirements 수정 |
+| **문서** | 2개 | 0 | CLAUDE.md + ACTIVE.md 갱신 |
 
 ---
 
 ## 핵심 변경 상세
 
-### 1. BOM Executor: features 병합 + drawing_type 폴백
+### 1. eDOCr2 크롭 업스케일 (ESRGAN 2x)
 
-**파일**: `gateway-api/blueprintflow/executors/bom_executor.py`
+**목표**: 전체 이미지(3306×2339) 대신 4분할 크롭 → ESRGAN 2x 업스케일 → OCR 수행하여 치수 인식 정확도 향상
 
-| 항목 | 변경 전 | 변경 후 |
-|------|---------|---------|
-| **drawing_type** | `inputs.get("drawing_type", "auto")` (항상 auto) | `inputs or self.parameters` fallback (노드 파라미터 반영) |
-| **features** | 택일 방식 (inputs만 또는 params만) | **병합** (inputs + params, 중복 제거, 순서 유지) |
+**결과**: 정확도 28% → 82% (오탐 36→22, 정탐률 대폭 향상)
 
-**검증 완료**: 2-1 (`assembly`, 4개 merged), 2-3 (`assembly`, 5개 merged) - 게이트웨이 로그 확인
+#### 변경 파일
 
-### 2. Table Detector: multi-crop + 품질 필터
+| 파일 | 변경 내용 |
+|------|----------|
+| `gateway-api/blueprintflow/executors/image_utils.py` | `crop_image_region()`, `upscale_via_esrgan()` 유틸 추가 (439→498줄) |
+| `gateway-api/blueprintflow/executors/edocr2_executor.py` | 크롭+업스케일+좌표변환+중복제거+오탐필터 (131→438줄) |
+| `gateway-api/api_specs/edocr2.yaml` | 파라미터 4개 + 프로필 1개 추가 |
+| `web-ui/src/config/nodes/ocrNodes.ts` | eDOCr2 노드 파라미터 4개 + 프로필 1개 추가 |
+| `web-ui/src/pages/blueprintflow/BlueprintFlowTemplates.tsx` | DSE 1-1 템플릿에 crop upscale 활성화 |
 
-**파일**: `gateway-api/blueprintflow/executors/tabledetector_executor.py` (+182줄)
+#### 핵심 설계
 
-| 항목 | 내용 |
+- **DIMENSION_CROP_PRESETS**: 4분할 (Q1~Q4), 15-20% 오버랩
+- **asyncio.gather**: 4개 크롭 동시 처리 (ESRGAN + eDOCr2)
+- **좌표 변환**: `원본 = 오프셋 + (업스케일 좌표 / scale)`, nested list + flat 둘 다 지원
+- **중복 제거**: 텍스트 일치 + IoU > 0.3 OR 중심점 거리 < 100px
+- **오탐 필터**: 길이, 숫자 존재, 특수문자 비율, 숫자 비율 4개 규칙
+- **graceful fallback**: ESRGAN 실패 시 원본 크롭으로 OCR (기능 중단 없음)
+
+#### 새 파라미터
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `enable_crop_upscale` | boolean | false | 크롭+업스케일 활성화 |
+| `crop_preset` | select | quadrants | 크롭 프리셋 |
+| `upscale_scale` | select | "2" | ESRGAN 배율 (2 권장, 4는 OOM 위험) |
+| `upscale_denoise` | number | 0.3 | 노이즈 제거 강도 |
+
+### 2. dimension_updater_executor (신규)
+
+**파일**: `gateway-api/blueprintflow/executors/dimension_updater_executor.py` (신규)
+
+### 3. BOM dimension_router.py 버그 수정 3건
+
+**파일**: `blueprint-ai-bom/backend/routers/analysis/dimension_router.py`
+
+| 버그 | 수정 |
 |------|------|
-| **도면 특화 프리셋** | `title_block`, `revision_table`, `parts_list_right` (3개 추가) |
-| **multi-crop 루프** | `crop_regions` 리스트 순회, 각 영역 독립 API 호출 |
-| **품질 필터** | `_is_quality_table()` - 빈 셀 70% 초과 테이블 자동 제거 |
-| **_call_api()** | API 호출 로직을 별도 메서드로 추출 (재사용성) |
-| **하위호환** | `crop_regions` 없으면 기존 `auto_crop` 폴백 |
+| `dim_data.get("bbox", {})` → eDOCr2는 `"location"` 사용 | `dim_data.get("bbox") or dim_data.get("location", {})` |
+| nested list `[[x1,y1],[x2,y2],...]` 미지원 | min/max 변환 추가 |
+| confidence 기본값 0.5 고정 | `dim_data.get("confidence", dim_data.get("score", 0.5))` |
 
-### 3. eDOCr2: 5개 버그 수정
+### 4. DimensionOverlay.tsx viewBox 스케일링 수정
 
-| Bug | 문제 | 수정 |
-|-----|------|------|
-| **1** | `cv2.cvtColor` 그레이스케일 입력 크래시 | `_safe_to_gray()` 함수 도입 (7곳 교체) |
-| **2** | `dimensions.remove(o)` numpy 배열 비교 에러 | `is` identity 비교로 변경 |
-| **3** | `check_tolerances()` top_line 미초기화 | `top_line = None` + 조기 반환 |
-| **4** | `check_tolerances()` None/빈 이미지 크래시 | 입구 방어 코드 추가 |
-| **5** | `fit()` 0차원 이미지 division-by-zero | 빈 이미지 반환 가드 |
+**파일**: `blueprint-ai-bom/frontend/src/components/DimensionOverlay.tsx`
 
-**추가 개선**:
-- GPU→CPU 전처리 폴백 (CLAHE + GaussianBlur)
-- `max_img_size` 1048→2048 (고해상도 도면 정확도 향상)
+**문제**: SVG viewBox(3306×2339)가 ~668px 컨테이너에 렌더링되어 strokeWidth/fontSize가 서브픽셀(0.3px, 1.8px)로 축소 → bbox 보이지 않음
 
-### 4. Excel Export 완전 제거
+**수정**:
+- `scale` 상태로 viewBox↔렌더링 비율 계산
+- `px()` 헬퍼로 화면 픽셀을 SVG 단위 변환
+- strokeWidth `px(2)`, fontSize `px(11)` → 항상 화면에 2px/11px 렌더링
+- 텍스트에 흰색 외곽선(`stroke="white"`, `paintOrder="stroke"`) 추가
+- `onLoad` + `resize` 이벤트로 스케일 재계산
 
-| 삭제 파일 | 내용 |
-|-----------|------|
-| `gateway-api/blueprintflow/executors/excelexport_executor.py` | Executor 클래스 189줄 |
-| `gateway-api/api_specs/excelexport.yaml` | API 스펙 90줄 |
-| `__init__.py`에서 import 제거 | 레지스트리 등록 해제 |
-| `test_executors_unit.py`에서 테스트 제거 | 4곳 parametrize 목록 |
-| `analysisNodes.ts`에서 노드 정의 제거 | 프론트엔드 노드 |
-| `locales/en.json`, `ko.json` 번역 제거 | i18n |
-| `monitoring/constants.ts` 제거 | 모니터링 |
-| `constants.ts` baseNodeTypes 제거 | 노드 타입 매핑 |
+### 5. nodeDefinitions 테스트 수정
 
-### 5. DSE Bearing 템플릿 정리 (12→6)
+**파일**: `web-ui/src/config/nodeDefinitions.test.ts`
 
-**삭제된 템플릿**: 2-4 (CV Cone Cover), 2-5 (GD&T), 2-6 (BOM 추출), 2-7 (Parts List), 3-1 (정밀 분석)
-**갱신된 6개 템플릿**: 1-1, 2-1, 2-2, 2-3, 2-8, 3-2
-
-| 갱신 항목 | 내용 |
-|-----------|------|
-| Table Detector 파라미터 | `mode: extract, ocr_engine: paddle, crop_regions: [3개]` |
-| AI BOM 파라미터 | `drawing_type: assembly/dimension_bom`, features 명시 |
-| Excel Export 노드 제거 | 모든 템플릿에서 excelexport 노드/엣지 삭제 |
-| 샘플 이미지 추가 | 4개 DSE 도면 이미지 경로 설정 |
-
-### 6. Blueprint AI BOM: dimension_service 대규모 리팩토링 (+872줄)
-
-| 기능 | 내용 |
-|------|------|
-| **멀티 엔진 지원** | eDOCr2 + PaddleOCR 결합 |
-| **가중 투표 병합** | `_merge_multi_engine()` - IoU 클러스터링 + 엔진별 가중치 |
-| **PaddleOCR 파싱** | `_parse_paddle_detection()`, `_fix_diameter_symbol()` |
-| **품질 필터** | `_is_valid_dimension()` - 깨진 텍스트/오탐 제거 |
-| **bbox 유연 파싱** | dict/리스트/4점 좌표 모두 지원 |
-| **서브 패턴 추출** | 긴 텍스트 블록에서 개별 치수 패턴 추출 |
+- 총 노드 수 34 → 35 (dimension_updater 추가)
+- analysis 카테고리 13 → 14
 
 ---
 
@@ -103,12 +99,14 @@
 | 항목 | 결과 |
 |------|------|
 | **web-ui 빌드** | ✅ 정상 |
+| **web-ui 테스트** | ✅ 67/67 통과 |
 | **Python 문법** | ✅ 정상 |
-| **2-1 실행 검증** | ✅ 6 success, 166371ms, 치수 52개 |
-| **2-3 실행 검증** | ✅ 8 success, 135471ms, 치수 29개 |
-| **drawing_type** | ✅ assembly (parameters에서 전달) |
-| **features merge** | ✅ 정상 병합 + 중복 제거 |
+| **DSE 1-1 크롭 업스케일** | ✅ 22개 치수 검출, 정확도 ~82% |
+| **BOM 치수 임포트** | ✅ bbox 좌표 정확 (nested list → dict 변환) |
+| **DimensionOverlay** | ✅ bbox + 텍스트 라벨 도면 위 표시 |
+| **bbox 클릭 → 카드 선택** | ✅ 작동 |
+| **크롭 썸네일 HITL 카드** | ✅ 정상 표시 |
 
 ---
 
-*마지막 업데이트: 2026-02-01*
+*마지막 업데이트: 2026-02-02*

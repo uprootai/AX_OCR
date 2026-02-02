@@ -769,8 +769,8 @@ function ExecutionModeToggle({
   executionMode,
   setExecutionMode,
 }: {
-  executionMode: 'sequential' | 'parallel';
-  setExecutionMode: (mode: 'sequential' | 'parallel') => void;
+  executionMode: 'sequential' | 'parallel' | 'eager';
+  setExecutionMode: (mode: 'sequential' | 'parallel' | 'eager') => void;
 }) {
   return (
     <div className="flex items-center gap-1 border rounded-md overflow-hidden">
@@ -798,7 +798,7 @@ function ExecutionModeToggle({
             ? 'bg-purple-600 text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
         }`}
-        title="Parallel execution (concurrent nodes)"
+        title="Parallel execution (concurrent nodes by level)"
       >
         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="4" y1="6" x2="20" y2="6" />
@@ -809,6 +809,20 @@ function ExecutionModeToggle({
           <circle cx="12" cy="18" r="2" fill="currentColor" />
         </svg>
         Parallel
+      </button>
+      <button
+        onClick={() => setExecutionMode('eager')}
+        className={`px-2 py-1.5 text-xs flex items-center gap-1 transition-colors ${
+          executionMode === 'eager'
+            ? 'bg-green-600 text-white'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+        }`}
+        title="Eager execution (start each node as soon as its dependencies complete)"
+      >
+        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+        Eager
       </button>
     </div>
   );

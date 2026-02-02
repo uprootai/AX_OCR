@@ -12,3 +12,4 @@ from . import partslist_executor
 from . import dimensionparser_executor
 from . import bommatcher_executor
 from . import quotegenerator_executor
+from . import dimension_updater_executor

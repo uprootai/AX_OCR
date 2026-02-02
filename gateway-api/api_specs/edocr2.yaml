@@ -99,6 +99,33 @@ parameters:
     default: true
     description: 결과 시각화 생성
 
+  - name: enable_crop_upscale
+    type: boolean
+    default: false
+    description: "치수 영역 크롭 + ESRGAN 업스케일 활성화"
+
+  - name: crop_preset
+    type: select
+    default: quadrants
+    options:
+      - quadrants
+    description: "크롭 프리셋 (quadrants: 도면 4분할)"
+
+  - name: upscale_scale
+    type: select
+    default: "2"
+    options:
+      - "2"
+      - "4"
+    description: "ESRGAN 업스케일 배율 (2 권장)"
+
+  - name: upscale_denoise
+    type: number
+    default: 0.3
+    min: 0
+    max: 1
+    description: "업스케일 시 노이즈 제거 강도"
+
 i18n:
   ko:
     label: eDOCr2 OCR
@@ -234,6 +261,17 @@ profiles:
         extract_gdt: true
         extract_text: true
         visualize: true
+
+    - name: crop_upscale
+      label: "크롭 업스케일"
+      description: "4분할 크롭 + 2x 업스케일 OCR (고정밀)"
+      params:
+        extract_dimensions: true
+        extract_gdt: true
+        extract_text: true
+        enable_crop_upscale: true
+        crop_preset: quadrants
+        upscale_scale: 2
 
 usageTips:
   - YOLO와 함께 사용하면 정확도가 높아집니다

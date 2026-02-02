@@ -6,6 +6,7 @@ from typing import Dict, Any, Union, List, Tuple, Optional
 import base64
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
+import httpx
 import logging
 
 logger = logging.getLogger(__name__)
@@ -436,3 +437,62 @@ def _normalize_tesseract_dict(raw: Dict[str, Any]) -> List[Dict[str, Any]]:
         })
 
     return normalized
+
+
+def crop_image_region(
+    file_bytes: bytes,
+    crop_ratio: Tuple[float, float, float, float],
+) -> Tuple[bytes, int, int, int, int]:
+    """
+    비율 기반 이미지 크롭
+
+    Args:
+        file_bytes: 원본 이미지 바이트
+        crop_ratio: (x1_ratio, y1_ratio, x2_ratio, y2_ratio) 0~1 범위
+
+    Returns:
+        (cropped_bytes, offset_x, offset_y, crop_width, crop_height)
+    """
+    img = Image.open(BytesIO(file_bytes))
+    w, h = img.size
+    x1 = int(w * crop_ratio[0])
+    y1 = int(h * crop_ratio[1])
+    x2 = int(w * crop_ratio[2])
+    y2 = int(h * crop_ratio[3])
+    cropped = img.crop((x1, y1, x2, y2))
+    output = BytesIO()
+    cropped.save(output, format="PNG")
+    return output.getvalue(), x1, y1, x2 - x1, y2 - y1
+
+
+async def upscale_via_esrgan(
+    file_bytes: bytes,
+    esrgan_url: str = "http://esrgan-api:5010",
+    scale: int = 2,
+    denoise_strength: float = 0.3,
+) -> Optional[bytes]:
+    """
+    ESRGAN API로 이미지 업스케일. 실패 시 None 반환 (graceful fallback)
+
+    Args:
+        file_bytes: 원본 이미지 바이트
+        esrgan_url: ESRGAN API base URL
+        scale: 업스케일 배율 (2 또는 4)
+        denoise_strength: 노이즈 제거 강도 (0~1)
+
+    Returns:
+        업스케일된 이미지 바이트 또는 None (실패 시)
+    """
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            files = {"file": ("crop.png", file_bytes, "image/png")}
+            data = {"scale": str(scale), "denoise_strength": str(denoise_strength)}
+            resp = await client.post(
+                f"{esrgan_url}/api/v1/upscale", files=files, data=data
+            )
+            if resp.status_code == 200 and "image" in resp.headers.get("content-type", ""):
+                return resp.content
+            logger.warning(f"ESRGAN returned status {resp.status_code}")
+    except Exception as e:
+        logger.warning(f"ESRGAN upscale failed (fallback to original): {e}")
+    return None

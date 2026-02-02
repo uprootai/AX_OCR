@@ -34,6 +34,12 @@ export const ocrNodes: Record<string, NodeDefinition> = {
           description: '도면 텍스트 전체 인식',
           params: { extract_dimensions: true, extract_gdt: true, extract_text: true, extract_tables: true },
         },
+        {
+          name: 'crop_upscale',
+          label: '크롭 업스케일',
+          description: '4분할 크롭 + 2x 업스케일 OCR (고정밀)',
+          params: { extract_dimensions: true, extract_gdt: true, extract_text: true, enable_crop_upscale: true, crop_preset: 'quadrants', upscale_scale: '2' },
+        },
       ],
     },
     inputs: [
@@ -96,6 +102,35 @@ export const ocrNodes: Record<string, NodeDefinition> = {
         type: 'boolean',
         default: true,
         description: 'OCR 결과 시각화 이미지 생성',
+      },
+      {
+        name: 'enable_crop_upscale',
+        type: 'boolean',
+        default: false,
+        description: '치수 영역 크롭 + ESRGAN 업스케일 (고정밀 OCR)',
+      },
+      {
+        name: 'crop_preset',
+        type: 'select',
+        default: 'quadrants',
+        options: ['quadrants'],
+        description: '크롭 프리셋 (quadrants: 도면 4분할)',
+      },
+      {
+        name: 'upscale_scale',
+        type: 'select',
+        default: '2',
+        options: ['2', '4'],
+        description: 'ESRGAN 업스케일 배율 (2 권장)',
+      },
+      {
+        name: 'upscale_denoise',
+        type: 'number',
+        default: 0.3,
+        min: 0,
+        max: 1,
+        step: 0.1,
+        description: '업스케일 노이즈 제거 강도 (0~1)',
       },
     ],
     examples: [
