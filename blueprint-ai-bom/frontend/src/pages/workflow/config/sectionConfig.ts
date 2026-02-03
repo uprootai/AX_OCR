@@ -25,6 +25,8 @@ export const FEATURE_IMPLICATIONS: Record<string, string[]> = {
   pid_connectivity: ['techcross_valve_signal', 'techcross_equipment', 'techcross_checklist', 'techcross_deviation'],
   // 장비 태그 인식 → 장비 목록 내보내기 자동 활성화
   industry_equipment_detection: ['equipment_list_export'],
+  // 테이블 추출 → BOM 생성 자동 활성화
+  table_extraction: ['bom_generation'],
 };
 
 // 역방향 매핑: impliedBy (어떤 feature에 의해 활성화되는지)
@@ -65,6 +67,7 @@ export const ALL_FEATURES_DISABLED: SectionVisibility = {
   gtComparison: false,
   bomGeneration: false,
   industryEquipmentDetection: false,
+  tableExtraction: false,
 };
 
 /**
@@ -114,8 +117,8 @@ export const FEATURE_DEPENDENCIES: Record<string, { requires?: string[]; require
   techcross_deviation: { requiresAtLeastOne: ['pid_connectivity', 'symbol_detection'] },
 
   // === BOM 생성 ===
-  // BOM 생성: 심볼 검출 필요 (치수 OCR은 선택)
-  bom_generation: { requires: ['symbol_detection'] },
+  // BOM 생성: 심볼 검출 또는 치수 OCR 중 하나 이상 필요
+  bom_generation: { requiresAtLeastOne: ['symbol_detection', 'dimension_ocr'] },
 
   // 벌룬 매칭은 심볼+치수 필요
   balloon_matching: { requires: ['symbol_detection', 'dimension_ocr'] },
@@ -250,6 +253,7 @@ const featuresToVisibility = (features: string[]): SectionVisibility => {
     gtComparison: hasFeature('gt_comparison'),
     bomGeneration: hasFeature('bom_generation'),
     industryEquipmentDetection: hasFeature('industry_equipment_detection'),
+    tableExtraction: hasFeature('table_extraction'),
   };
 };
 
@@ -296,6 +300,7 @@ export const ALL_AVAILABLE_FEATURES = [
   { id: 'pid_design_checklist', label: '✅ 설계 체크리스트', group: 'P&ID 분석' },
   { id: 'pid_deviation_analysis', label: '📝 편차 분석', group: 'P&ID 분석' },
   // BOM 생성
+  { id: 'table_extraction', label: '📊 테이블 추출', group: 'BOM 생성' },
   { id: 'bom_generation', label: '📋 BOM 생성', group: 'BOM 생성' },
   { id: 'title_block_ocr', label: '📝 표제란 OCR', group: 'BOM 생성' },
   { id: 'quantity_extraction', label: '🔢 수량 추출', group: 'BOM 생성' },

@@ -67,6 +67,7 @@ export interface SectionVisibility {
   gtComparison: boolean;              // gt_comparison - GT 비교
   bomGeneration: boolean;             // bom_generation - BOM 생성
   industryEquipmentDetection: boolean; // industry_equipment_detection - 산업 장비 검출
+  tableExtraction: boolean;              // table_extraction - 테이블 추출
 }
 
 // Line detection

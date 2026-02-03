@@ -39,6 +39,7 @@ class BOMService:
         detections: List[DetectionDict],
         dimensions: Optional[List[DimensionDict]] = None,
         links: Optional[List[RelationDict]] = None,
+        tables: Optional[List[Dict[str, Any]]] = None,
         filename: Optional[str] = None,
         model_id: Optional[str] = None,
         session_pricing_path: Optional[str] = None,
@@ -60,6 +61,20 @@ class BOMService:
             d for d in detections
             if d.get("verification_status") in ("approved", "modified", "manual")
         ]
+
+        # 치수 전용 세션: 승인된 검출이 없고 승인된 치수가 있으면 치수 기반 BOM 생성
+        approved_dims = [
+            d for d in (dimensions or [])
+            if d.get("verification_status") in ("approved", "modified", "manual")
+        ]
+        if not approved_detections and approved_dims:
+            return self._generate_dimension_bom(
+                session_id=session_id,
+                dimensions=dimensions or [],
+                tables=tables or [],
+                filename=filename,
+                model_id=model_id,
+            )
 
         # 치수 및 링크 맵핑 준비
         dim_map = {d["id"]: d for d in (dimensions or [])}
@@ -180,6 +195,158 @@ class BOMService:
         }
 
         return bom_data
+
+    def _generate_dimension_bom(
+        self,
+        session_id: str,
+        dimensions: List[DimensionDict],
+        tables: List[Dict[str, Any]],
+        filename: Optional[str] = None,
+        model_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """치수 전용 세션에서 BOM 생성 (심볼 검출 없음)"""
+
+        items: List[Dict[str, Any]] = []
+        item_no = 1
+
+        # 1. 테이블 데이터에서 BOM 항목 추출 (부품 리스트 테이블)
+        for entry in tables:
+            if entry.get("type") != "table":
+                continue
+            headers = [h.lower().strip() if h else "" for h in entry.get("headers", [])]
+            data_rows = entry.get("data", [])
+
+            # 부품명/품명 컬럼 찾기
+            name_col = None
+            qty_col = None
+            spec_col = None
+            for i, h in enumerate(headers):
+                if any(k in h for k in ["부품", "품명", "part", "name", "명칭"]):
+                    name_col = i
+                elif any(k in h for k in ["수량", "qty", "quantity", "개수"]):
+                    qty_col = i
+                elif any(k in h for k in ["규격", "spec", "사양", "치수"]):
+                    spec_col = i
+
+            if name_col is None:
+                continue
+
+            for row in data_rows:
+                if not row or name_col >= len(row):
+                    continue
+                part_name = str(row[name_col]).strip()
+                if not part_name or part_name == "-":
+                    continue
+
+                qty = 1
+                if qty_col is not None and qty_col < len(row):
+                    try:
+                        qty = int(row[qty_col])
+                    except (ValueError, TypeError):
+                        qty = 1
+
+                spec = ""
+                if spec_col is not None and spec_col < len(row):
+                    spec = str(row[spec_col]).strip()
+
+                items.append({
+                    "item_no": item_no,
+                    "class_id": -1,
+                    "class_name": part_name,
+                    "model_name": spec or "N/A",
+                    "quantity": qty,
+                    "unit_price": 0,
+                    "total_price": 0,
+                    "avg_confidence": 0.0,
+                    "detection_ids": [],
+                    "lead_time": "-",
+                    "supplier": "미정",
+                    "remarks": "테이블 추출",
+                    "dimensions": [],
+                    "linked_dimension_ids": [],
+                    "source": "table",
+                })
+                item_no += 1
+
+        # 2. 치수를 타입별로 그룹화하여 BOM 항목 생성
+        approved_dims = [
+            d for d in dimensions
+            if d.get("verification_status") in ("approved", "modified", "manual")
+        ]
+        type_groups: Dict[str, List[DimensionDict]] = defaultdict(list)
+        for dim in approved_dims:
+            dim_type = dim.get("type", "unknown")
+            type_groups[dim_type].append(dim)
+
+        for dim_type, dims in sorted(type_groups.items()):
+            dim_values = []
+            dim_ids = []
+            for dim in dims:
+                val = dim.get("modified_value") or dim.get("value", "")
+                if val and val not in dim_values:
+                    dim_values.append(val)
+                if dim.get("id"):
+                    dim_ids.append(dim["id"])
+
+            type_labels = {
+                "length": "길이 치수",
+                "diameter": "직경 치수",
+                "radius": "반지름 치수",
+                "angle": "각도 치수",
+                "thread": "나사 치수",
+                "tolerance": "공차 치수",
+                "unknown": "기타 치수",
+            }
+            label = type_labels.get(dim_type, f"{dim_type} 치수")
+
+            items.append({
+                "item_no": item_no,
+                "class_id": -1,
+                "class_name": label,
+                "model_name": "N/A",
+                "quantity": len(dims),
+                "unit_price": 0,
+                "total_price": 0,
+                "avg_confidence": round(
+                    sum(d.get("confidence", 0) for d in dims) / max(len(dims), 1), 3
+                ),
+                "detection_ids": [],
+                "lead_time": "-",
+                "supplier": "-",
+                "remarks": None,
+                "dimensions": dim_values[:10],
+                "linked_dimension_ids": dim_ids,
+                "source": "dimension",
+            })
+            item_no += 1
+
+        # 요약 계산
+        total_items = len(items)
+        total_quantity = sum(item["quantity"] for item in items)
+        subtotal = sum(item["total_price"] for item in items)
+        vat = subtotal * 0.1
+        total = subtotal + vat
+
+        summary = {
+            "total_items": total_items,
+            "total_quantity": total_quantity,
+            "subtotal": subtotal,
+            "vat": vat,
+            "total": total,
+        }
+
+        return {
+            "session_id": session_id,
+            "created_at": datetime.now().isoformat(),
+            "items": items,
+            "summary": summary,
+            "filename": filename,
+            "model_id": model_id,
+            "detection_count": 0,
+            "approved_count": 0,
+            "dimension_count": len(approved_dims),
+            "source": "dimension_only",
+        }
 
     def export_excel(
         self,

@@ -15,6 +15,21 @@ from utils.visualization import create_ocr_visualization
 
 logger = logging.getLogger(__name__)
 
+
+def _convert_numpy_types(obj):
+    """Recursively convert numpy types to Python native types for JSON serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: _convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_convert_numpy_types(item) for item in obj]
+    return obj
+
 # Add edocr2 to path
 EDOCR2_PATH = Path("/app/edocr2").parent  # /app
 sys.path.insert(0, str(EDOCR2_PATH))
@@ -337,6 +352,26 @@ class EDOCr2Processor:
                                     "location": info_item[1].tolist() if hasattr(info_item[1], 'tolist') else info_item[1]
                                 })
 
+                # Frame offset 보정: 크롭 좌표 → 원본 이미지 좌표
+                if frame and hasattr(frame, 'x') and hasattr(frame, 'y') and (frame.x != 0 or frame.y != 0):
+                    logger.info(f"    Applying frame offset: ({frame.x}, {frame.y})")
+                    for dim in dim_list:
+                        loc = dim.get("location")
+                        if loc and isinstance(loc, list) and len(loc) >= 2:
+                            if isinstance(loc[0], (list, tuple)):
+                                dim["location"] = [[pt[0] + frame.x, pt[1] + frame.y] for pt in loc]
+                            elif len(loc) >= 4:
+                                dim["location"] = [loc[0] + frame.x, loc[1] + frame.y,
+                                                   loc[2] + frame.x, loc[3] + frame.y]
+                    for text_item in possible_text_list:
+                        loc = text_item.get("location")
+                        if loc and isinstance(loc, list) and len(loc) >= 2:
+                            if isinstance(loc[0], (list, tuple)):
+                                text_item["location"] = [[pt[0] + frame.x, pt[1] + frame.y] for pt in loc]
+                            elif len(loc) >= 4:
+                                text_item["location"] = [loc[0] + frame.x, loc[1] + frame.y,
+                                                         loc[2] + frame.x, loc[3] + frame.y]
+
                 result["dimensions"] = dim_list
                 result["possible_text"] = possible_text_list
                 logger.info(f"    Extracted {len(dim_list)} dimensions, {len(possible_text_list)} text annotations")
@@ -374,7 +409,8 @@ class EDOCr2Processor:
                     logger.warning(f"  ⚠️ Visualization error: {e}")
 
             logger.info(f"✅ OCR completed: {len(result['dimensions'])} dims, {len(result['gdt'])} gdts")
-            return result
+            # Convert numpy types to Python native types for JSON serialization
+            return _convert_numpy_types(result)
 
         except Exception as e:
             logger.error(f"❌ OCR processing failed: {e}")

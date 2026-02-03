@@ -870,7 +870,16 @@ def ocr_dimensions(img, detector, recognizer, alphabet_dim, frame, dim_boxes = [
     for d in dim_boxes:
         x, y = d.x -frame.x, d.y-frame.y
         if x + d.w < frame.x + frame.w and y + d.h < frame.y + frame.h:
-            roi = img[y+2:y + d.h-4, x+2:x + d.w-4]
+            # Bounds-safe ROI cropping
+            roi_y1 = max(0, y + 2)
+            roi_y2 = min(img.shape[0], y + d.h - 4)
+            roi_x1 = max(0, x + 2)
+            roi_x2 = min(img.shape[1], x + d.w - 4)
+            if roi_y2 - roi_y1 < 4 or roi_x2 - roi_x1 < 4:
+                continue
+            roi = img[roi_y1:roi_y2, roi_x1:roi_x2]
+            if roi is None or roi.size == 0:
+                continue
             if d.h > d.w:
                 roi=cv2.rotate(roi,cv2.ROTATE_90_CLOCKWISE)
             p = recognizer.recognize(image = roi)

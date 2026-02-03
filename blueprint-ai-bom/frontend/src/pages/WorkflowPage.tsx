@@ -59,6 +59,7 @@ import {
   ActiveFeaturesSection,
   VLMClassificationSection,
   PIDFeaturesSection,
+  TableExtractionSection,
   // GTComparisonSection - GT 관리 기능이 DetectionResultsSection에 통합됨
 } from './workflow';
 
@@ -96,6 +97,74 @@ export function WorkflowPage() {
 
   // 참조 도면 유형 (사용자 오버라이드)
   const [userDrawingType, setUserDrawingType] = useState<string | null>(null);
+
+  // BOM ↔ 도면 하이라이트 연동 (P2-2)
+  const [bomHighlightClass, setBomHighlightClass] = useState<string | null>(null);
+
+  // 이미지를 새 팝업 창에서 확대 보기
+  const openImagePopup = useCallback((imgSrc: string, title = '도면 확대') => {
+    const popup = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+    if (popup) {
+      popup.document.write(`<!DOCTYPE html><html><head><title>${title}</title></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${imgSrc}" style="max-width:100%;max-height:100vh;object-fit:contain"/></body></html>`);
+      popup.document.close();
+    }
+  }, []);
+
+  // 치수 오버레이가 포함된 이미지를 새 팝업 창에서 확대 보기
+  const openOverlayPopup = useCallback((imgSrc: string, dims: Dimension[], title = '치수 오버레이') => {
+    const STATUS_COLORS: Record<string, string> = {
+      pending: '#eab308', approved: '#22c55e', rejected: '#ef4444',
+      modified: '#3b82f6', manual: '#a855f7',
+    };
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+
+      for (const dim of dims) {
+        const { x1, y1, x2, y2 } = dim.bbox;
+        const w = x2 - x1;
+        const h = y2 - y1;
+        const color = STATUS_COLORS[dim.verification_status] || STATUS_COLORS.pending;
+
+        // 반투명 채우기
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = color;
+        ctx.fillRect(x1, y1, w, h);
+        ctx.globalAlpha = 1;
+
+        // 테두리
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x1, y1, w, h);
+
+        // 라벨 (원본 해상도 기준 크기)
+        const label = dim.modified_value || dim.value;
+        const fontSize = Math.max(28, Math.round(img.naturalHeight * 0.012));
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        const tw = ctx.measureText(label).width;
+        const lh = fontSize + 4;
+        ctx.fillStyle = color;
+        ctx.fillRect(x1 + w / 2 - tw / 2 - 6, y1 - lh - 2, tw + 12, lh);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, x1 + w / 2, y1 - 8);
+      }
+      ctx.textAlign = 'start'; // reset
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const popup = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+      if (popup) {
+        popup.document.write(`<!DOCTYPE html><html><head><title>${title}</title></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${dataUrl}" style="max-width:100%;max-height:100vh;object-fit:contain"/></body></html>`);
+        popup.document.close();
+      }
+    };
+    img.src = imgSrc;
+  }, []);
 
   // 세션 이미지 개수 로드
   const loadSessionImageCount = useCallback(async () => {
@@ -426,8 +495,10 @@ export function WorkflowPage() {
                 <img
                   src={imageData}
                   alt="원본 도면"
-                  style={{ maxWidth: '75%', height: 'auto' }}
+                  style={{ maxWidth: '75%', height: 'auto', cursor: 'zoom-in' }}
                   draggable={false}
+                  onClick={() => openImagePopup(imageData, '원본 도면')}
+                  title="클릭하여 새 창에서 확대"
                 />
               </div>
             </section>
@@ -529,7 +600,54 @@ export function WorkflowPage() {
               onAutoApprove={dimensionHandlers.handleAutoApprove}
               isAutoApproving={dimensionHandlers.isLoading}
               onAddManualDimension={dimensionHandlers.handleAddManualDimension}
+              onImagePopup={imageData ? () => openOverlayPopup(imageData, state.dimensions, '치수 OCR 오버레이') : undefined}
             />
+          )}
+
+          {/* 테이블 추출 결과 */}
+          {currentSession && visibility.tableExtraction && (
+            <TableExtractionSection
+              sessionId={currentSession.session_id}
+              apiBaseUrl={API_BASE_URL}
+            />
+          )}
+
+          {/* 치수 전용 검증 완료 (심볼 검출 없는 워크플로우) */}
+          {state.dimensions.length > 0 && !visibility.symbolDetection && currentSession && visibility.dimensionOCR && (
+            <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">검증 진행 상황</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {state.dimensionStats
+                      ? `전체 ${state.dimensions.length}개 중 ${state.dimensionStats.approved + (state.dimensionStats.modified || 0) + (state.dimensionStats.manual || 0)}개 승인됨`
+                      : '치수 검증을 진행해주세요'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => state.setVerificationFinalized(!state.verificationFinalized)}
+                  className={`px-6 py-2 rounded-lg font-bold ${
+                    state.verificationFinalized
+                      ? 'bg-green-500 text-white'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {state.verificationFinalized ? 'V 검증 완료됨' : '검증 완료'}
+                </button>
+              </div>
+              {state.dimensionStats && (
+                <div className="mt-3">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all"
+                      style={{
+                        width: `${Math.round(((state.dimensionStats.approved + (state.dimensionStats.modified || 0) + (state.dimensionStats.manual || 0)) / Math.max(state.dimensions.length, 1)) * 100)}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
           )}
 
           {/* 선 검출 */}
@@ -704,13 +822,18 @@ export function WorkflowPage() {
           )}
 
           {/* 최종 결과 */}
-          {state.verificationFinalized && imageData && imageSize && (stats.approved + stats.manual) > 0 && (
+          {state.verificationFinalized && imageData && imageSize && (
+            (stats.approved + stats.manual) > 0 ||
+            (state.dimensionStats && (state.dimensionStats.approved + (state.dimensionStats.modified || 0) + (state.dimensionStats.manual || 0)) > 0)
+          ) && (
             <FinalResultsSection
               detections={detections}
               imageData={imageData}
               imageSize={imageSize}
               stats={stats}
               onImageClick={() => state.setShowImageModal(true)}
+              selectedClassName={bomHighlightClass}
+              onClassSelect={setBomHighlightClass}
             />
           )}
 
@@ -725,17 +848,21 @@ export function WorkflowPage() {
           )}
 
           {/* BOM 생성 */}
-          {state.verificationFinalized && detections.length > 0 && currentSession && (
+          {state.verificationFinalized && (detections.length > 0 || state.dimensions.length > 0) && currentSession && (
             <BOMSection
               sessionId={currentSession.session_id}
               detections={detections}
               bomData={bomData}
               stats={stats}
+              dimensionStats={state.dimensionStats}
               exportFormat={state.exportFormat}
               setExportFormat={state.setExportFormat}
               onGenerateBOM={handleGenerateBOM}
               isLoading={isLoading}
               apiBaseUrl={API_BASE_URL}
+              hasCustomPricing={currentSession.has_custom_pricing}
+              selectedClassName={bomHighlightClass}
+              onClassSelect={setBomHighlightClass}
             />
           )}
         </div>

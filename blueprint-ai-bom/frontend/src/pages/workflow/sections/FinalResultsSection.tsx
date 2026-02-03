@@ -15,6 +15,9 @@ interface FinalResultsSectionProps {
     manual: number;
   };
   onImageClick: () => void;
+  // BOM ↔ 도면 하이라이트 연동
+  selectedClassName?: string | null;
+  onClassSelect?: (className: string | null) => void;
 }
 
 export function FinalResultsSection({
@@ -23,9 +26,15 @@ export function FinalResultsSection({
   imageSize,
   stats,
   onImageClick,
+  selectedClassName: externalSelectedClassName,
+  onClassSelect,
 }: FinalResultsSectionProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedClassName, setSelectedClassName] = useState<string | null>(null);
+  const [internalSelectedClassName, setInternalSelectedClassName] = useState<string | null>(null);
+
+  // 외부 prop 있으면 사용, 없으면 내부 상태 사용
+  const selectedClassName = externalSelectedClassName !== undefined ? externalSelectedClassName : internalSelectedClassName;
+  const setSelectedClassName = onClassSelect || setInternalSelectedClassName;
 
   const finalDetections = detections.filter(d =>
     d.verification_status === 'approved' ||
@@ -131,7 +140,7 @@ export function FinalResultsSection({
   }, [imageData, imageSize, finalDetections, selectedClassName]);
 
   const handleClassClick = (className: string) => {
-    setSelectedClassName(prev => prev === className ? null : className);
+    setSelectedClassName(selectedClassName === className ? null : className);
   };
 
   return (

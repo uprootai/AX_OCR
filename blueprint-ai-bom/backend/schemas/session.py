@@ -217,6 +217,10 @@ class SessionDetail(BaseModel):
     detections: List[Dict[str, Any]] = []
     detection_count: int = 0
 
+    # 치수 정보
+    dimensions: Optional[List[Dict[str, Any]]] = Field(default=None, description="치수 추출 결과")
+    dimension_count: int = Field(default=0, description="치수 수")
+
     # 검증 정보
     verification_status: Dict[str, str] = {}
     verified_count: int = 0
@@ -226,6 +230,7 @@ class SessionDetail(BaseModel):
     # BOM 정보
     bom_data: Optional[Dict[str, Any]] = None
     bom_generated: bool = False
+    has_custom_pricing: bool = Field(default=False, description="커스텀 단가 파일 존재 여부")
 
     # Phase 2C: 다중 이미지 지원
     images: List[SessionImage] = Field(default_factory=list)
@@ -240,6 +245,11 @@ class SessionDetail(BaseModel):
     image_width: Optional[int] = None
     image_height: Optional[int] = None
     image_base64: Optional[str] = None
+
+    # 테이블 추출 결과 (Gateway Table Detector → BOM 세션)
+    table_results: Optional[List[Dict[str, Any]]] = Field(default=None, description="테이블 추출 결과")
+    texts: Optional[List[Dict[str, Any]]] = Field(default=None, description="텍스트 추출 결과")
+    text_regions: Optional[List[Dict[str, Any]]] = Field(default=None, description="비테이블 텍스트 영역 OCR 결과")
 
     # Phase 2G: 워크플로우 잠금 시스템
     workflow_locked: bool = Field(default=False, description="워크플로우 잠금 여부")

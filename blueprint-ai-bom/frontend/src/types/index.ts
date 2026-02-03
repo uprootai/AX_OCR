@@ -56,6 +56,9 @@ export interface Session {
   template_name?: string;
   workflow_definition?: { nodes?: unknown[] };
   workflow_locked?: boolean;
+
+  // 커스텀 단가 정보
+  has_custom_pricing?: boolean;
 }
 
 export interface SessionDetail extends Session {

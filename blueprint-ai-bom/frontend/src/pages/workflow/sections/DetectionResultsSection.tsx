@@ -80,6 +80,19 @@ export function DetectionResultsSection({
   const [showFP, setShowFP] = useState(true);
   const [showFN, setShowFN] = useState(true);
 
+  // 클래스 하이라이트 상태
+  const [selectedClassName, setSelectedClassName] = useState<string | null>(null);
+
+  // 클래스별 검출 수 계산
+  const classCounts = detections.reduce((acc, d) => {
+    const className = d.class_name;
+    acc[className] = (acc[className] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // 클래스 목록 (검출 수 내림차순)
+  const sortedClasses = Object.entries(classCounts).sort((a, b) => b[1] - a[1]);
+
   // Draw GT canvas (병렬 비교 모드)
   useEffect(() => {
     const canvas = gtCanvasRef.current;
@@ -278,32 +291,37 @@ export function DetectionResultsSection({
         '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
       ];
 
-      ctx.lineWidth = 2;
       ctx.font = 'bold 11px sans-serif';
       detections.forEach((det) => {
+        const isSelected = selectedClassName === null || det.class_name === selectedClassName;
         const color = colors[det.class_id % colors.length];
         const x1 = det.bbox.x1 * scale;
         const y1 = det.bbox.y1 * scale;
         const w = (det.bbox.x2 - det.bbox.x1) * scale;
         const h = (det.bbox.y2 - det.bbox.y1) * scale;
 
-        // Draw box
+        // Draw box (선택되지 않은 클래스는 반투명)
+        ctx.globalAlpha = isSelected ? 1 : 0.2;
+        ctx.lineWidth = isSelected ? 3 : 1;
         ctx.strokeStyle = color;
         ctx.strokeRect(x1, y1, w, h);
 
-        // Draw label background
-        const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
-        const textWidth = ctx.measureText(label).width;
-        ctx.fillStyle = color;
-        ctx.fillRect(x1, y1 - 16, textWidth + 6, 16);
+        // Draw label background (선택된 것만)
+        if (isSelected) {
+          const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillStyle = color;
+          ctx.fillRect(x1, y1 - 16, textWidth + 6, 16);
 
-        // Draw label text
-        ctx.fillStyle = '#fff';
-        ctx.fillText(label, x1 + 3, y1 - 4);
+          // Draw label text
+          ctx.fillStyle = '#fff';
+          ctx.fillText(label, x1 + 3, y1 - 4);
+        }
+        ctx.globalAlpha = 1;
       });
     };
     img.src = imageData;
-  }, [imageData, imageSize, detections, gtCompareResult, viewMode]);
+  }, [imageData, imageSize, detections, gtCompareResult, viewMode, selectedClassName]);
 
   return (
     <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -501,6 +519,43 @@ export function DetectionResultsSection({
             <p className="text-center py-2 text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30">
               검출 결과 ({detections.length}개)
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* 클래스 필터 (클릭하여 하이라이트) */}
+      {sortedClasses.length > 0 && !gtCompareResult && (
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              클래스별 검출 (클릭하여 하이라이트):
+            </span>
+            {selectedClassName && (
+              <button
+                onClick={() => setSelectedClassName(null)}
+                className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-lg text-gray-700 dark:text-gray-200"
+              >
+                전체 보기
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {sortedClasses.map(([className, count]) => {
+              const isSelected = selectedClassName === className;
+              return (
+                <button
+                  key={className}
+                  onClick={() => setSelectedClassName(isSelected ? null : className)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    isSelected
+                      ? 'bg-primary-600 text-white ring-2 ring-primary-400'
+                      : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-500 border border-gray-200 dark:border-gray-500'
+                  }`}
+                >
+                  {className} <span className={isSelected ? 'text-primary-200' : 'text-gray-500 dark:text-gray-400'}>({count})</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

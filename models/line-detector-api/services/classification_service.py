@@ -14,6 +14,17 @@ from .constants import LINE_COLOR_TYPES, LINE_STYLE_TYPES, LINE_PURPOSE_TYPES
 logger = logging.getLogger(__name__)
 
 
+def _safe_to_gray(img: np.ndarray) -> np.ndarray:
+    """Safely convert image to grayscale, handling edge cases."""
+    if img is None or img.size == 0:
+        return img
+    if len(img.shape) == 2:
+        return img
+    if img.shape[2] == 1:
+        return img[:, :, 0]
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
 def classify_line_type(line: Dict, all_lines: List[Dict]) -> str:
     """
     라인 유형 분류 (배관 vs 신호선)
@@ -146,10 +157,7 @@ def classify_line_style(image: np.ndarray, line: Dict, sample_count: int = 30) -
     x1, y1 = line['start_point']
     x2, y2 = line['end_point']
 
-    if len(image.shape) == 3:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = image
+    gray = _safe_to_gray(image)
 
     h, w = gray.shape
 

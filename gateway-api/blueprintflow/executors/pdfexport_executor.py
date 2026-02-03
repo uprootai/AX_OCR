@@ -15,6 +15,30 @@ class PDFExportExecutor(BaseNodeExecutor):
 
     API_BASE_URL = "http://blueprint-ai-bom-backend:5020"
 
+    # ========================================
+    # API 호출 헬퍼 메서드
+    # ========================================
+
+    async def _post_api(
+        self,
+        endpoint: str,
+        json_data: dict = None,
+        params: dict = None,
+        timeout: int = 60
+    ) -> tuple[bool, httpx.Response | None, str | None]:
+        """POST API 호출 헬퍼 메서드"""
+        url = f"{self.API_BASE_URL}{endpoint}"
+        try:
+            async with httpx.AsyncClient(timeout=float(timeout)) as client:
+                response = await client.post(url, json=json_data, params=params)
+                if response.status_code >= 400:
+                    return False, response, f"{response.status_code} - {response.text}"
+                return True, response, None
+        except httpx.ConnectError as e:
+            return False, None, f"연결 실패: {e}"
+        except Exception as e:
+            return False, None, f"오류: {e}"
+
     def validate_parameters(self) -> tuple[bool, str | None]:
         """파라미터 유효성 검사"""
         export_type = self.parameters.get("export_type", "all")
@@ -143,87 +167,72 @@ class PDFExportExecutor(BaseNodeExecutor):
             }
 
         # API 호출하여 PDF 생성
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                # 세션에 데이터 저장 (필요한 경우)
-                if session_data:
-                    # 세션 업데이트
-                    await client.post(
-                        f"{self.API_BASE_URL}/api/v1/session/{session_id}/update",
-                        json=session_data
-                    )
+        # 세션에 데이터 저장 (필요한 경우)
+        if session_data:
+            await self._post_api(
+                f"/api/v1/session/{session_id}/update",
+                json_data=session_data
+            )
 
-                # PDF 생성 요청
-                response = await client.post(
-                    f"{self.API_BASE_URL}/api/v1/pid-features/{session_id}/export/pdf",
-                    params={
-                        "export_type": export_type,
-                        "project_name": project_name,
-                        "drawing_no": drawing_no,
-                        "include_rejected": str(include_rejected).lower()
-                    }
-                )
+        # PDF 생성 요청
+        success, response, error = await self._post_api(
+            f"/api/v1/pid-features/{session_id}/export/pdf",
+            params={
+                "export_type": export_type,
+                "project_name": project_name,
+                "drawing_no": drawing_no,
+                "include_rejected": str(include_rejected).lower()
+            }
+        )
 
-                if response.status_code != 200:
-                    error_text = response.text
-                    return {
-                        "pdf_url": "",
-                        "filename": "",
-                        "summary": {
-                            "success": False,
-                            "error": f"PDF 생성 실패: {response.status_code} - {error_text}"
-                        }
-                    }
-
-                # Content-Disposition에서 파일명 추출
-                content_disp = response.headers.get("Content-Disposition", "")
-                filename = f"PID_Report_{export_type}_{drawing_no}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                if "filename=" in content_disp:
-                    filename = content_disp.split("filename=")[1].strip('"')
-
-                # PDF URL 생성 (실제로는 임시 파일로 저장하거나 base64 반환)
-                pdf_url = f"/api/v1/pid-features/{session_id}/export/pdf?export_type={export_type}"
-
+        if not success:
+            # 연결 실패인 경우
+            if "연결 실패" in (error or ""):
                 return {
-                    "pdf_url": pdf_url,
-                    "filename": filename,
+                    "pdf_url": "",
+                    "filename": "",
                     "summary": {
-                        "success": True,
-                        "export_type": export_type,
-                        "project_name": project_name,
-                        "drawing_no": drawing_no,
-                        "valve_count": len(valves) if export_type in ["valve", "all"] else 0,
-                        "equipment_count": len(equipment) if export_type in ["equipment", "all"] else 0,
-                        "checklist_count": len(checklist) if export_type in ["checklist", "all"] else 0,
-                        "deviation_count": len(deviations) if export_type in ["deviation", "all"] else 0,
-                        "include_rejected": include_rejected
+                        "success": False,
+                        "error": "Blueprint AI BOM 백엔드에 연결할 수 없습니다. 컨테이너가 실행 중인지 확인하세요.",
+                        "valve_count": len(valves),
+                        "equipment_count": len(equipment),
+                        "checklist_count": len(checklist),
+                        "deviation_count": len(deviations)
                     }
                 }
-
-        except httpx.ConnectError:
-            # Blueprint AI BOM 백엔드 연결 실패 - 로컬에서 요약만 반환
             return {
                 "pdf_url": "",
                 "filename": "",
                 "summary": {
                     "success": False,
-                    "error": "Blueprint AI BOM 백엔드에 연결할 수 없습니다. 컨테이너가 실행 중인지 확인하세요.",
-                    "valve_count": len(valves),
-                    "equipment_count": len(equipment),
-                    "checklist_count": len(checklist),
-                    "deviation_count": len(deviations)
+                    "error": f"PDF 생성 실패: {error}"
                 }
             }
 
-        except Exception as e:
-            return {
-                "pdf_url": "",
-                "filename": "",
-                "summary": {
-                    "success": False,
-                    "error": f"PDF 생성 중 오류: {str(e)}"
-                }
+        # Content-Disposition에서 파일명 추출
+        content_disp = response.headers.get("Content-Disposition", "") if response else ""
+        filename = f"PID_Report_{export_type}_{drawing_no}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        if "filename=" in content_disp:
+            filename = content_disp.split("filename=")[1].strip('"')
+
+        # PDF URL 생성 (실제로는 임시 파일로 저장하거나 base64 반환)
+        pdf_url = f"/api/v1/pid-features/{session_id}/export/pdf?export_type={export_type}"
+
+        return {
+            "pdf_url": pdf_url,
+            "filename": filename,
+            "summary": {
+                "success": True,
+                "export_type": export_type,
+                "project_name": project_name,
+                "drawing_no": drawing_no,
+                "valve_count": len(valves) if export_type in ["valve", "all"] else 0,
+                "equipment_count": len(equipment) if export_type in ["equipment", "all"] else 0,
+                "checklist_count": len(checklist) if export_type in ["checklist", "all"] else 0,
+                "deviation_count": len(deviations) if export_type in ["deviation", "all"] else 0,
+                "include_rejected": include_rejected
             }
+        }
 
 
 # 레지스트리에 등록

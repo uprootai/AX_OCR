@@ -483,6 +483,8 @@ def read_and_fit(
         if isinstance(filepath_or_array, str)
         else filepath_or_array
     )
+    if image is None:
+        return np.full((height, width, 3), cval, dtype=np.uint8)
     image = fit(image=image, width=width, height=height, cval=cval, mode=mode)
     return image
 

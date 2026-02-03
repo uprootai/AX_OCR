@@ -3,7 +3,7 @@
  * BOM 생성 및 내보내기 섹션 컴포넌트
  */
 
-import { FileSpreadsheet, Download, Loader2 } from 'lucide-react';
+import { FileSpreadsheet, Download, Loader2, DollarSign } from 'lucide-react';
 import { InfoTooltip } from '../../../components/Tooltip';
 import { FEATURE_TOOLTIPS } from '../../../components/tooltipContent';
 import type { Detection, ExportFormat } from '../../../types';
@@ -32,11 +32,16 @@ interface BOMSectionProps {
     approved: number;
     manual: number;
   };
+  dimensionStats?: { approved: number; modified?: number; manual?: number } | null;
   exportFormat: ExportFormat;
   setExportFormat: (format: ExportFormat) => void;
   onGenerateBOM: () => void;
   isLoading: boolean;
   apiBaseUrl: string;
+  hasCustomPricing?: boolean;
+  // BOM ↔ 도면 하이라이트 연동
+  selectedClassName?: string | null;
+  onClassSelect?: (className: string | null) => void;
 }
 
 export function BOMSection({
@@ -44,17 +49,25 @@ export function BOMSection({
   detections,
   bomData,
   stats,
+  dimensionStats,
   exportFormat,
   setExportFormat,
   onGenerateBOM,
   isLoading,
   apiBaseUrl,
+  hasCustomPricing = false,
+  selectedClassName,
+  onClassSelect,
 }: BOMSectionProps) {
   const approvedDetections = detections.filter(d =>
     d.verification_status === 'approved' ||
     d.verification_status === 'modified' ||
     d.verification_status === 'manual'
   );
+
+  // 치수 승인 수 계산
+  const dimApproved = (dimensionStats?.approved || 0) + (dimensionStats?.modified || 0) + (dimensionStats?.manual || 0);
+  const totalApproved = stats.approved + stats.manual + dimApproved;
 
   // 클래스별로 그룹화
   const grouped = approvedDetections.reduce((acc, d) => {
@@ -72,9 +85,15 @@ export function BOMSection({
   return (
     <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           BOM 생성 및 내보내기
           <InfoTooltip content={FEATURE_TOOLTIPS.bomGeneration.description} position="right" />
+          {hasCustomPricing && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+              <DollarSign className="w-3 h-3" />
+              커스텀 단가
+            </span>
+          )}
         </h2>
         <div className="flex items-center space-x-3">
           <div className="flex items-center">
@@ -92,7 +111,7 @@ export function BOMSection({
           <div className="flex items-center">
             <button
               onClick={onGenerateBOM}
-              disabled={isLoading || stats.approved === 0}
+              disabled={isLoading || totalApproved === 0}
               className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
             >
               {isLoading ? (
@@ -107,11 +126,11 @@ export function BOMSection({
         </div>
       </div>
 
-      {stats.approved === 0 ? (
+      {totalApproved === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>승인된 검출 결과가 없습니다.</p>
-          <p className="text-sm">위에서 검출 결과를 승인하세요.</p>
+          <p>승인된 검출 또는 치수가 없습니다.</p>
+          <p className="text-sm">위에서 검출 결과 또는 치수를 승인하세요.</p>
         </div>
       ) : bomData ? (
         <div>
@@ -147,10 +166,20 @@ export function BOMSection({
                 </tr>
               </thead>
               <tbody>
-                {bomData.items.map((item, idx) => (
-                  <tr key={idx} className="border-b border-gray-200 dark:border-gray-700">
+                {bomData.items.map((item, idx) => {
+                  const isSelected = selectedClassName === item.class_name;
+                  return (
+                  <tr
+                    key={idx}
+                    onClick={() => onClassSelect?.(isSelected ? null : item.class_name)}
+                    className={`border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'bg-blue-50 dark:bg-blue-900/30 ring-1 ring-blue-400'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
                     <td className="px-4 py-2">{idx + 1}</td>
-                    <td className="px-4 py-2 font-medium">{item.class_name}</td>
+                    <td className={`px-4 py-2 font-medium ${isSelected ? 'text-blue-700 dark:text-blue-300' : ''}`}>{item.class_name}</td>
                     <td className="px-4 py-2">
                       {item.dimensions && item.dimensions.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -168,7 +197,8 @@ export function BOMSection({
                     <td className="px-4 py-2 text-right">{item.unit_price?.toLocaleString() || '-'}</td>
                     <td className="px-4 py-2 text-right">{item.total_price?.toLocaleString() || '-'}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
               <tfoot className="bg-gray-50 dark:bg-gray-700 font-bold">
                 <tr>
@@ -214,10 +244,20 @@ export function BOMSection({
                 </tr>
               </thead>
               <tbody>
-                {sortedClasses.map(([className, data], idx) => (
-                  <tr key={className} className="border-b border-gray-200 dark:border-gray-700">
+                {sortedClasses.map(([className, data], idx) => {
+                  const isSelected = selectedClassName === className;
+                  return (
+                  <tr
+                    key={className}
+                    onClick={() => onClassSelect?.(isSelected ? null : className)}
+                    className={`border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'bg-blue-50 dark:bg-blue-900/30 ring-1 ring-blue-400'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
                     <td className="px-4 py-2">{idx + 1}</td>
-                    <td className="px-4 py-2 font-medium">{className}</td>
+                    <td className={`px-4 py-2 font-medium ${isSelected ? 'text-blue-700 dark:text-blue-300' : ''}`}>{className}</td>
                     <td className="px-4 py-2 text-center font-bold text-primary-600">{data.count}</td>
                     <td className="px-4 py-2 text-center">
                       <div className="flex justify-center space-x-1">
@@ -236,7 +276,8 @@ export function BOMSection({
                       {data.items.map(i => i.id.slice(0, 6)).join(', ')}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
               <tfoot className="bg-gray-50 dark:bg-gray-700 font-bold">
                 <tr>

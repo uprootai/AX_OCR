@@ -17,6 +17,34 @@ class PIDFeaturesExecutor(BaseNodeExecutor):
 
     API_BASE_URL = "http://blueprint-ai-bom-backend:5020"
 
+    # ========================================
+    # API 호출 헬퍼 메서드
+    # ========================================
+
+    async def _post_api(
+        self,
+        endpoint: str,
+        json_data: dict = None,
+        files: dict = None,
+        params: dict = None,
+        timeout: int = 120
+    ) -> tuple[bool, dict | None, str | None]:
+        """POST API 호출 헬퍼 메서드"""
+        url = f"{self.API_BASE_URL}{endpoint}"
+        try:
+            async with httpx.AsyncClient(timeout=float(timeout)) as client:
+                response = await client.post(url, json=json_data, files=files, params=params)
+                if response.status_code >= 400:
+                    return False, None, f"{response.status_code} - {response.text}"
+                try:
+                    return True, response.json(), None
+                except Exception:
+                    return True, {"status_code": response.status_code}, None
+        except httpx.ConnectError as e:
+            return False, None, f"연결 실패: {e}"
+        except Exception as e:
+            return False, None, f"오류: {e}"
+
     def validate_parameters(self) -> tuple[bool, str | None]:
         """파라미터 유효성 검사"""
         confidence_threshold = self.parameters.get("confidence_threshold", 0.7)
@@ -122,116 +150,100 @@ class PIDFeaturesExecutor(BaseNodeExecutor):
         checklist: List[Dict] = []
         verification_queue: List[Dict] = []
 
-        try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                # 1. 세션 생성 및 이미지 업로드
-                if image_data:
-                    await client.post(
-                        f"{self.API_BASE_URL}/api/v1/session/{session_id}/upload",
-                        files={"file": (filename, base64.b64decode(image_data) if isinstance(image_data, str) else image_data)},
-                    )
+        # 1. 세션 생성 및 이미지 업로드
+        if image_data:
+            file_data = base64.b64decode(image_data) if isinstance(image_data, str) else image_data
+            await self._post_api(
+                f"/api/v1/session/{session_id}/upload",
+                files={"file": (filename, file_data)}
+            )
 
-                # 2. 검출 결과 저장
-                if detections:
-                    await client.post(
-                        f"{self.API_BASE_URL}/api/v1/session/{session_id}/detections",
-                        json={"detections": detections}
-                    )
+        # 2. 검출 결과 저장
+        if detections:
+            await self._post_api(
+                f"/api/v1/session/{session_id}/detections",
+                json_data={"detections": detections}
+            )
 
-                # 3. 밸브 검출
-                if "valve_signal" in features:
-                    resp = await client.post(
-                        f"{self.API_BASE_URL}/api/v1/pid-features/{session_id}/valve-signal/detect"
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        valves = data.get("valves", [])
-                        # 검증 큐에 추가
-                        for v in valves:
-                            if v.get("confidence", 1.0) < confidence_threshold:
-                                verification_queue.append({
-                                    "item_id": v.get("valve_id", ""),
-                                    "item_type": "valve",
-                                    "confidence": v.get("confidence", 0),
-                                    "data": v
-                                })
-                            elif auto_verify:
-                                v["verification_status"] = "auto_verified"
-
-                # 4. 장비 검출
-                if "equipment" in features:
-                    resp = await client.post(
-                        f"{self.API_BASE_URL}/api/v1/pid-features/{session_id}/equipment/detect"
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        equipment = data.get("equipment", [])
-                        # 검증 큐에 추가
-                        for e in equipment:
-                            if e.get("confidence", 1.0) < confidence_threshold:
-                                verification_queue.append({
-                                    "item_id": e.get("tag", ""),
-                                    "item_type": "equipment",
-                                    "confidence": e.get("confidence", 0),
-                                    "data": e
-                                })
-                            elif auto_verify:
-                                e["verification_status"] = "auto_verified"
-
-                # 5. 체크리스트 검증
-                if "checklist" in features:
-                    resp = await client.post(
-                        f"{self.API_BASE_URL}/api/v1/pid-features/{session_id}/checklist/check",
-                        params={"product_type": product_type}
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        checklist = data.get("checklist_items", [])
-                        # Fail 항목은 검증 큐에 추가
-                        for c in checklist:
-                            if c.get("auto_status") == "fail":
-                                verification_queue.append({
-                                    "item_id": c.get("item_no", ""),
-                                    "item_type": "checklist",
-                                    "confidence": 0.5,  # Fail은 검토 필요
-                                    "data": c
-                                })
-
+        # 3. 밸브 검출
+        if "valve_signal" in features:
+            success, data, error = await self._post_api(
+                f"/api/v1/pid-features/{session_id}/valve-signal/detect"
+            )
+            if success and data:
+                valves = data.get("valves", [])
+                # 검증 큐에 추가
+                for v in valves:
+                    if v.get("confidence", 1.0) < confidence_threshold:
+                        verification_queue.append({
+                            "item_id": v.get("valve_id", ""),
+                            "item_type": "valve",
+                            "confidence": v.get("confidence", 0),
+                            "data": v
+                        })
+                    elif auto_verify:
+                        v["verification_status"] = "auto_verified"
+            elif error and "연결 실패" in error:
                 return {
-                    "valves": valves,
-                    "equipment": equipment,
-                    "checklist": checklist,
-                    "verification_queue": verification_queue,
+                    "valves": [],
+                    "equipment": [],
+                    "checklist": [],
+                    "verification_queue": [],
                     "session_id": session_id,
-                    "summary": {
-                        "valve_count": len(valves),
-                        "equipment_count": len(equipment),
-                        "checklist_count": len(checklist),
-                        "pending_verification": len(verification_queue),
-                        "product_type": product_type
-                    }
+                    "error": "Blueprint AI BOM 백엔드에 연결할 수 없습니다."
                 }
 
-        except httpx.ConnectError:
-            # 백엔드 연결 실패 - 로컬 처리 시도
-            return {
-                "valves": [],
-                "equipment": [],
-                "checklist": [],
-                "verification_queue": [],
-                "session_id": session_id,
-                "error": "Blueprint AI BOM 백엔드에 연결할 수 없습니다."
-            }
+        # 4. 장비 검출
+        if "equipment" in features:
+            success, data, error = await self._post_api(
+                f"/api/v1/pid-features/{session_id}/equipment/detect"
+            )
+            if success and data:
+                equipment = data.get("equipment", [])
+                # 검증 큐에 추가
+                for e in equipment:
+                    if e.get("confidence", 1.0) < confidence_threshold:
+                        verification_queue.append({
+                            "item_id": e.get("tag", ""),
+                            "item_type": "equipment",
+                            "confidence": e.get("confidence", 0),
+                            "data": e
+                        })
+                    elif auto_verify:
+                        e["verification_status"] = "auto_verified"
 
-        except Exception as e:
-            return {
-                "valves": [],
-                "equipment": [],
-                "checklist": [],
-                "verification_queue": [],
-                "session_id": session_id,
-                "error": f"PID Features 분석 오류: {str(e)}"
+        # 5. 체크리스트 검증
+        if "checklist" in features:
+            success, data, _ = await self._post_api(
+                f"/api/v1/pid-features/{session_id}/checklist/check",
+                params={"product_type": product_type}
+            )
+            if success and data:
+                checklist = data.get("checklist_items", [])
+                # Fail 항목은 검증 큐에 추가
+                for c in checklist:
+                    if c.get("auto_status") == "fail":
+                        verification_queue.append({
+                            "item_id": c.get("item_no", ""),
+                            "item_type": "checklist",
+                            "confidence": 0.5,  # Fail은 검토 필요
+                            "data": c
+                        })
+
+        return {
+            "valves": valves,
+            "equipment": equipment,
+            "checklist": checklist,
+            "verification_queue": verification_queue,
+            "session_id": session_id,
+            "summary": {
+                "valve_count": len(valves),
+                "equipment_count": len(equipment),
+                "checklist_count": len(checklist),
+                "pending_verification": len(verification_queue),
+                "product_type": product_type
             }
+        }
 
 
 # 레지스트리에 등록

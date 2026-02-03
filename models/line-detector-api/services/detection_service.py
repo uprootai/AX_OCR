@@ -12,6 +12,17 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+def _safe_to_gray(img: np.ndarray) -> np.ndarray:
+    """Safely convert image to grayscale, handling edge cases."""
+    if img is None or img.size == 0:
+        return img
+    if len(img.shape) == 2:
+        return img
+    if img.shape[2] == 1:
+        return img[:, :, 0]
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
 def thin_image(binary_img: np.ndarray) -> np.ndarray:
     """
     Zhang-Suen Thinning Algorithm
@@ -26,7 +37,7 @@ def detect_lines_lsd(image: np.ndarray) -> List[Dict]:
     Line Segment Detector (LSD) 사용
     더 정확한 라인 검출
     """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+    gray = _safe_to_gray(image)
 
     lsd = cv2.createLineSegmentDetector(cv2.LSD_REFINE_STD)
     lines, widths, precs, nfas = lsd.detect(gray)
@@ -57,7 +68,7 @@ def detect_lines_hough(image: np.ndarray, threshold: int = 50) -> List[Dict]:
     Probabilistic Hough Line Transform
     빠른 라인 검출
     """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+    gray = _safe_to_gray(image)
 
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold, minLineLength=30, maxLineGap=10)

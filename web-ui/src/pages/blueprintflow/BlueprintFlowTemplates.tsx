@@ -225,7 +225,7 @@ export default function BlueprintFlowTemplates() {
         name: 'DSE Bearing 1-1: 도면 분석 + AI BOM',
         description: '터빈 베어링 기계 부품도 분석 - Table Detector로 BOM 테이블 추출, 치수/재질/공차 추출, 견적용 BOM 생성',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: '부품도 입력', parameters: { features: ['dimension_ocr'] }, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: '부품도 입력', parameters: { features: ['dimension_ocr', 'gdt_parsing', 'title_block_ocr', 'notes_extraction', 'drawing_region_segmentation'] }, position: { x: 100, y: 200 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { mode: 'extract', ocr_engine: 'paddle', borderless: false, confidence_threshold: 0.5, min_confidence: 50, crop_regions: ['title_block', 'revision_table', 'parts_list_right'], enable_quality_filter: true }, position: { x: 350, y: 100 } },
           { id: 'edocr2_1', type: 'edocr2', label: '치수/텍스트 OCR', parameters: { extract_dimensions: true, extract_gdt: true, language: 'ko+en', enable_crop_upscale: true, crop_preset: 'quadrants', upscale_scale: 2, upscale_denoise: 0.3 }, position: { x: 350, y: 300 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: { drawing_type: 'dimension_bom', features: ['table_extraction', 'human_verification'] }, position: { x: 600, y: 100 } },

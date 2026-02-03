@@ -85,8 +85,14 @@ def _resolve_options(session_id: str, session: dict) -> AnalysisOptions:
             "dimension_ocr": "enable_dimension_ocr",
             "line_detection": "enable_line_detection",
             "text_extraction": "enable_text_extraction",
+            "table_extraction": "enable_text_extraction",
         }
         data = options.model_dump()
+        # features 리스트가 있으면 모든 enable_* 플래그를 False로 리셋
+        for key in data:
+            if key.startswith("enable_"):
+                data[key] = False
+        # 리스트에 있는 기능만 활성화
         for feature in features:
             opt_key = feature_to_option.get(feature)
             if opt_key:
@@ -329,6 +335,9 @@ async def run_analysis(session_id: str) -> AnalysisResult:
         try:
             table_result = _table_service.extract_tables(
                 image_path=image_path,
+                enable_cell_reocr=True,   # E1-B: EasyOCR 셀 재인식
+                enable_crop_upscale=True, # E1-B-2: 크롭 이미지 ESRGAN 업스케일
+                upscale_scale=2,          # 2x 업스케일 (4x는 너무 느림)
             )
 
             if table_result.get("error"):
@@ -355,24 +364,124 @@ async def run_analysis(session_id: str) -> AnalysisResult:
                         "headers": table.get("headers", []),
                         "data": table.get("data", []),
                         "html": table.get("html", ""),
+                        "source_region": table.get("source_region", ""),
                     })
 
                 result.texts = text_entries
 
-                session_service.update_session(session_id, {
+                # E1-B: 재OCR 통계
+                reocr_stats = table_result.get("reocr_stats")
+                update_data = {
                     "texts": text_entries,
                     "tables_count": len(tables),
                     "table_regions_count": len(regions),
-                })
+                    "table_results": tables,
+                }
+                if reocr_stats:
+                    update_data["reocr_stats"] = reocr_stats
 
-                logger.info(
-                    f"테이블 추출 완료: {len(regions)}개 영역, {len(tables)}개 테이블"
-                )
+                session_service.update_session(session_id, update_data)
+
+                log_msg = f"테이블 추출 완료: {len(regions)}개 영역, {len(tables)}개 테이블"
+                if reocr_stats and reocr_stats.get("corrected", 0) > 0:
+                    log_msg += f" [재OCR: {reocr_stats['corrected']}개 셀 수정]"
+                logger.info(log_msg)
 
         except Exception as e:
             error_msg = f"테이블 추출 실패: {str(e)}"
             logger.error(error_msg)
             result.errors.append(error_msg)
+
+    # 5. 표제란/NOTES 텍스트 OCR (EasyOCR 직접 호출)
+    if options.enable_text_extraction and _table_service:
+        try:
+            text_result = _table_service.extract_text_regions(
+                image_path=image_path,
+                ocr_engine="easyocr",
+                lang="en",
+            )
+            text_regions = text_result.get("text_regions", [])
+            total_time += text_result.get("processing_time_ms", 0)
+
+            if text_regions:
+                session_service.update_session(session_id, {
+                    "text_regions": text_regions,
+                    "text_regions_count": len(text_regions),
+                })
+
+                # text_entries에 텍스트 영역 추가
+                for tr in text_regions:
+                    result.texts.append({
+                        "type": "text_region",
+                        "region": tr.get("region"),
+                        "full_text": tr.get("full_text", ""),
+                        "text_count": tr.get("text_count", 0),
+                        "detections": tr.get("detections", []),
+                    })
+
+                # texts가 갱신되었으면 세션도 갱신
+                session_service.update_session(session_id, {
+                    "texts": result.texts,
+                })
+
+                logger.info(
+                    f"텍스트 영역 OCR 완료: {len(text_regions)}개 영역, "
+                    f"총 {sum(r.get('text_count', 0) for r in text_regions)}개 텍스트"
+                )
+
+        except Exception as e:
+            error_msg = f"텍스트 영역 OCR 실패: {str(e)}"
+            logger.error(error_msg)
+            result.errors.append(error_msg)
+
+    # 6. 표제란 자동 추출 (title_block_ocr feature 활성화 시)
+    if "title_block_ocr" in features:
+        try:
+            from services.region_segmenter import RegionSegmenter, RegionSegmentationConfig, RegionType
+            from schemas.gdt import TitleBlockData
+
+            segmenter = RegionSegmenter()
+            config = RegionSegmentationConfig(
+                detect_title_block=True,
+                detect_bom_table=False,
+                detect_legend=False,
+                detect_notes=False,
+                detect_detail_views=False,
+            )
+
+            seg_result = await segmenter.segment(
+                session_id=session_id,
+                image_path=image_path,
+                config=config,
+            )
+
+            title_block_region = None
+            for region in seg_result.regions:
+                if region.region_type == RegionType.TITLE_BLOCK:
+                    title_block_region = region
+                    break
+
+            if title_block_region:
+                process_result = await segmenter.process_region(
+                    session_id=session_id,
+                    region_id=title_block_region.id,
+                    image_path=image_path,
+                )
+
+                title_block_data = TitleBlockData(
+                    raw_text=process_result.ocr_text,
+                    **(process_result.metadata or {})
+                )
+
+                session_service.update_session(session_id, {
+                    "title_block": title_block_data.model_dump(),
+                    "title_block_region_id": title_block_region.id,
+                })
+
+                logger.info(f"표제란 자동 추출 완료: {title_block_data.drawing_number or 'N/A'}")
+
+        except Exception as e:
+            logger.warning(f"표제란 자동 추출 실패 (계속 진행): {str(e)}")
 
     # ==================== 관계 분석 (Post-Processing) ====================
     current_session = session_service.get_session(session_id)

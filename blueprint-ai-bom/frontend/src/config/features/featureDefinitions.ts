@@ -376,6 +376,37 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     impliedBy: ['pid_connectivity'],
   },
 
+  // === 테이블 추출 / 검증 ===
+  table_extraction: {
+    key: 'table_extraction',
+    icon: '📊',
+    label: '테이블 추출',
+    group: FEATURE_GROUPS.BOM_GENERATION,
+    hint: 'Table Detector 노드 추천',
+    description:
+      'Table Detector를 사용하여 도면 내 테이블(BOM 테이블, 노트 테이블 등)을 검출하고 셀 단위로 텍스트를 추출합니다.',
+    recommendedNodes: ['table-detector'],
+    badgeBgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
+    badgeTextClass: 'text-emerald-700 dark:text-emerald-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'table_service.py',
+    isPrimary: true,
+  },
+  human_verification: {
+    key: 'human_verification',
+    icon: '👤',
+    label: 'Human-in-the-Loop 검증',
+    group: FEATURE_GROUPS.BOM_GENERATION,
+    hint: '사람이 최종 검토',
+    description:
+      'AI 검출 결과를 사람이 검토하고 승인/거부/수정할 수 있는 Human-in-the-Loop 워크플로우입니다.',
+    recommendedNodes: ['blueprint-ai-bom'],
+    badgeBgClass: 'bg-sky-100 dark:bg-sky-900/30',
+    badgeTextClass: 'text-sky-700 dark:text-sky-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'verification_router.py',
+  },
+
   // === BOM 생성 ===
   bom_generation: {
     key: 'bom_generation',

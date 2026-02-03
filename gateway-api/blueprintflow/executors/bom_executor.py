@@ -26,6 +26,103 @@ class BOMExecutor(BaseNodeExecutor):
     BASE_URL = "http://blueprint-ai-bom-backend:5020"
     FRONTEND_URL = "http://localhost:3000"
 
+    # ========================================
+    # API 호출 헬퍼 메서드
+    # ========================================
+
+    async def _call_api(
+        self,
+        method: str,
+        endpoint: str,
+        json_data: dict = None,
+        files: dict = None,
+        data: dict = None,
+        timeout: int = 60,
+        raise_on_error: bool = False
+    ) -> Tuple[bool, Optional[dict], Optional[str]]:
+        """API 호출 헬퍼 메서드
+
+        Args:
+            method: HTTP 메서드 (GET, POST, PATCH, DELETE)
+            endpoint: API 엔드포인트 (BASE_URL 이후 경로, 예: "/sessions/upload")
+            json_data: JSON 바디
+            files: 파일 업로드 (httpx files 형식)
+            data: form data
+            timeout: 타임아웃 (초)
+            raise_on_error: 에러 시 예외 발생 여부
+
+        Returns:
+            Tuple[bool, Optional[dict], Optional[str]]: (성공여부, 응답JSON, 에러메시지)
+        """
+        url = f"{self.BASE_URL}{endpoint}"
+
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                if method.upper() == "GET":
+                    response = await client.get(url)
+                elif method.upper() == "POST":
+                    response = await client.post(url, json=json_data, files=files, data=data)
+                elif method.upper() == "PATCH":
+                    response = await client.patch(url, json=json_data)
+                elif method.upper() == "DELETE":
+                    response = await client.delete(url)
+                else:
+                    raise ValueError(f"지원하지 않는 HTTP 메서드: {method}")
+
+                if response.status_code >= 400:
+                    error_msg = f"{method} {endpoint} 실패: {response.status_code} - {response.text}"
+                    logger.warning(error_msg)
+                    if raise_on_error:
+                        response.raise_for_status()
+                    return False, None, error_msg
+
+                # JSON 응답 파싱 시도
+                try:
+                    result = response.json()
+                except Exception:
+                    result = {"status_code": response.status_code}
+
+                return True, result, None
+
+        except httpx.TimeoutException as e:
+            error_msg = f"{method} {endpoint} 타임아웃: {e}"
+            logger.error(error_msg)
+            if raise_on_error:
+                raise
+            return False, None, error_msg
+        except Exception as e:
+            error_msg = f"{method} {endpoint} 오류: {type(e).__name__}: {e}"
+            logger.error(error_msg)
+            if raise_on_error:
+                raise
+            return False, None, error_msg
+
+    async def _post_api(
+        self,
+        endpoint: str,
+        json_data: dict = None,
+        files: dict = None,
+        data: dict = None,
+        timeout: int = 60,
+        raise_on_error: bool = False
+    ) -> Tuple[bool, Optional[dict], Optional[str]]:
+        """POST API 호출 편의 메서드"""
+        return await self._call_api("POST", endpoint, json_data, files, data, timeout, raise_on_error)
+
+    async def _patch_api(
+        self,
+        endpoint: str,
+        json_data: dict = None,
+        timeout: int = 60,
+        raise_on_error: bool = False
+    ) -> Tuple[bool, Optional[dict], Optional[str]]:
+        """PATCH API 호출 편의 메서드"""
+        return await self._call_api("PATCH", endpoint, json_data, None, None, timeout, raise_on_error)
+
+    # ========================================
+    # 메인 실행 메서드
+    # ========================================
+
     async def execute(self, inputs: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
         """
         BOM 세션 생성 및 검증 UI 열기
@@ -153,7 +250,27 @@ class BOMExecutor(BaseNodeExecutor):
             else:
                 logger.info("dimensions 없음 - 검증 UI에서 직접 치수 인식 필요")
 
-            # 8. 검증 UI URL 반환 (항상 Human-in-the-Loop)
+            # 8. BOM 백엔드 자체 분석 실행 (PaddleOCR 타일 기반 치수 추출)
+            success, result, error = await self._post_api(
+                f"/analysis/run/{session_id}",
+                timeout=120
+            )
+            if success and result:
+                paddle_dims = result.get("dimensions_count", 0)
+                internal_tables = result.get("tables_count", 0)
+                logger.info(f"BOM 분석 완료: PaddleOCR dims={paddle_dims}, tables={internal_tables}")
+            elif error:
+                logger.warning(f"BOM 분석 실행 중 오류 (무시): {error}")
+
+            # 9. Gateway Table Detector 결과 덮어쓰기 (내부 테이블보다 품질 높음)
+            tables = inputs.get("tables", [])
+            regions = inputs.get("regions", [])
+            if tables and len(tables) > 0:
+                await self._import_tables(session_id, tables, regions)
+            else:
+                logger.info("Table Detector 결과 없음 - 내부 테이블 유지")
+
+            # 10. 검증 UI URL 반환 (항상 Human-in-the-Loop)
             # WorkflowPage 사용 - GT 비교, Precision, Recall, F1 Score 표시
             # features 파라미터를 URL에 포함
             features_param = ",".join(features) if features else "verification"
@@ -276,39 +393,39 @@ class BOMExecutor(BaseNodeExecutor):
             result = response.json()
             session_id = result["session_id"]
 
-            # 이미지 크기 추출 (PIL 사용)
-            image_width, image_height = 0, 0
-            if file_bytes:
-                try:
-                    img = Image.open(BytesIO(file_bytes))
-                    image_width, image_height = img.size
-                    logger.info(f"이미지 크기 추출: {image_width}x{image_height}")
+        # 이미지 크기 추출 (PIL 사용) - httpx 컨텍스트 매니저 밖에서 처리
+        image_width, image_height = 0, 0
+        if file_bytes:
+            try:
+                img = Image.open(BytesIO(file_bytes))
+                image_width, image_height = img.size
+                logger.info(f"이미지 크기 추출: {image_width}x{image_height}")
 
-                    # 세션에 이미지 크기 업데이트
-                    patch_response = await client.patch(
-                        f"{self.BASE_URL}/sessions/{session_id}",
-                        json={"image_width": image_width, "image_height": image_height}
-                    )
-                    if patch_response.status_code == 200:
-                        logger.info(f"세션 이미지 크기 업데이트 완료: {session_id}")
-                    else:
-                        logger.warning(f"세션 이미지 크기 업데이트 실패: {patch_response.status_code}")
-                except Exception as e:
-                    logger.warning(f"이미지 크기 추출 실패: {e}")
+                # 세션에 이미지 크기 업데이트 (헬퍼 메서드 사용)
+                success, _, error = await self._patch_api(
+                    f"/sessions/{session_id}",
+                    json_data={"image_width": image_width, "image_height": image_height}
+                )
+                if success:
+                    logger.info(f"세션 이미지 크기 업데이트 완료: {session_id}")
+                else:
+                    logger.warning(f"세션 이미지 크기 업데이트 실패: {error}")
+            except Exception as e:
+                logger.warning(f"이미지 크기 추출 실패: {e}")
 
-            return session_id, image_width, image_height
+        return session_id, image_width, image_height
 
     async def _import_detections(self, session_id: str, detections: list):
-        """외부 검출 결과 가져오기 (레거시)"""
-        async with httpx.AsyncClient(timeout=60) as client:
-            for detection in detections:
-                await client.post(
-                    f"{self.BASE_URL}/detection/{session_id}/manual",
-                    json={
-                        "class_name": detection.get("class_name", "unknown"),
-                        "bbox": detection.get("bbox", {})
-                    }
-                )
+        """외부 검출 결과 가져오기 (레거시 - _import_detections_v2 권장)"""
+        for detection in detections:
+            await self._post_api(
+                f"/detection/{session_id}/manual",
+                json_data={
+                    "class_name": detection.get("class_name", "unknown"),
+                    "bbox": detection.get("bbox", {})
+                },
+                timeout=60
+            )
 
     async def _import_detections_v2(self, session_id: str, detections: list):
         """YOLO 노드의 검출 결과를 Blueprint AI BOM 세션에 가져오기 (Bulk API 사용)
@@ -377,17 +494,15 @@ class BOMExecutor(BaseNodeExecutor):
 
         # 2. Bulk API로 한 번에 전송
         if bulk_detections:
-            async with httpx.AsyncClient(timeout=120) as client:
-                response = await client.post(
-                    f"{self.BASE_URL}/detection/{session_id}/import-bulk",
-                    json={"detections": bulk_detections}
-                )
-
-                if response.status_code == 200:
-                    result = response.json()
-                    logger.info(f"Bulk import 완료: {result.get('imported_count', 0)}/{len(bulk_detections)}개")
-                else:
-                    logger.error(f"Bulk import 실패: {response.status_code} - {response.text}")
+            success, result, error = await self._post_api(
+                f"/detection/{session_id}/import-bulk",
+                json_data={"detections": bulk_detections},
+                timeout=120
+            )
+            if success and result:
+                logger.info(f"Bulk import 완료: {result.get('imported_count', 0)}/{len(bulk_detections)}개")
+            else:
+                logger.error(f"Bulk import 실패: {error}")
         else:
             logger.warning("가져올 검출 결과가 없습니다")
 
@@ -417,21 +532,20 @@ class BOMExecutor(BaseNodeExecutor):
                 gt_bytes = gt_content.encode("utf-8")
 
             # GT 파일 업로드 (filename은 세션의 이미지명과 매칭)
-            async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.post(
-                    f"{self.BASE_URL}/api/ground-truth/upload",
-                    files={"file": (gt_name, gt_bytes, "text/plain")},
-                    data={
-                        "filename": "image",
-                        "image_width": str(image_width),
-                        "image_height": str(image_height),
-                    }
-                )
-
-                if response.status_code == 200:
-                    logger.info(f"GT 파일 업로드 완료: {gt_name} → 세션 {session_id}")
-                else:
-                    logger.warning(f"GT 파일 업로드 실패: {response.status_code} - {response.text}")
+            success, _, error = await self._post_api(
+                "/api/ground-truth/upload",
+                files={"file": (gt_name, gt_bytes, "text/plain")},
+                data={
+                    "filename": "image",
+                    "image_width": str(image_width),
+                    "image_height": str(image_height),
+                },
+                timeout=30
+            )
+            if success:
+                logger.info(f"GT 파일 업로드 완료: {gt_name} → 세션 {session_id}")
+            else:
+                logger.warning(f"GT 파일 업로드 실패: {error}")
 
         except Exception as e:
             logger.error(f"GT 파일 업로드 중 오류: {e}")
@@ -459,19 +573,74 @@ class BOMExecutor(BaseNodeExecutor):
             else:
                 file_bytes = content.encode("utf-8")
 
-            async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.post(
-                    f"{self.BASE_URL}/bom/{session_id}/pricing",
-                    files={"file": (name, file_bytes, "application/json")}
-                )
-
-                if response.status_code == 200:
-                    logger.info(f"단가 파일 업로드 완료: {name} → 세션 {session_id}")
-                else:
-                    logger.warning(f"단가 파일 업로드 실패: {response.status_code}")
+            success, _, error = await self._post_api(
+                f"/bom/{session_id}/pricing",
+                files={"file": (name, file_bytes, "application/json")},
+                timeout=30
+            )
+            if success:
+                logger.info(f"단가 파일 업로드 완료: {name} → 세션 {session_id}")
+            else:
+                logger.warning(f"단가 파일 업로드 실패: {error}")
 
         except Exception as e:
             logger.error(f"단가 파일 업로드 중 오류: {e}")
+
+    async def _import_tables(self, session_id: str, tables: list, regions: list = None):
+        """Gateway Table Detector 결과를 BOM 세션의 table_results 필드에 저장
+
+        Table Detector 출력 형식:
+        tables: [{"headers": [...], "data": [[...]], "html": "...", "source_region": "title_block"}, ...]
+
+        프론트엔드 기대 형식 (table_results):
+        [{"table_id": "...", "rows": N, "cols": M, "cells": [{text, row, col}], "html": "..."}]
+        """
+        try:
+            table_results = []
+
+            for i, table in enumerate(tables):
+                headers = table.get("headers", [])
+                data = table.get("data", [])
+                rows_count = len(data) + (1 if headers else 0)
+                cols_count = len(headers) if headers else (len(data[0]) if data else 0)
+
+                # headers + data → cells 배열 변환
+                cells = []
+                if headers:
+                    for col_idx, header_text in enumerate(headers):
+                        cells.append({"text": str(header_text), "row": 0, "col": col_idx})
+                for row_idx, row_data in enumerate(data):
+                    actual_row = row_idx + (1 if headers else 0)
+                    if isinstance(row_data, list):
+                        for col_idx, cell_text in enumerate(row_data):
+                            cells.append({"text": str(cell_text), "row": actual_row, "col": col_idx})
+                    elif isinstance(row_data, dict):
+                        for col_idx, (_, cell_text) in enumerate(row_data.items()):
+                            cells.append({"text": str(cell_text), "row": actual_row, "col": col_idx})
+
+                table_results.append({
+                    "table_id": f"gateway_table_{i}",
+                    "rows": rows_count,
+                    "cols": cols_count,
+                    "cells": cells,
+                    "headers": headers,
+                    "html": table.get("html", ""),
+                    "source_region": table.get("source_region", ""),
+                    "confidence": table.get("confidence", 0.9),
+                })
+
+            if table_results:
+                success, _, error = await self._patch_api(
+                    f"/sessions/{session_id}",
+                    json_data={"table_results": table_results},
+                    timeout=30
+                )
+                if success:
+                    logger.info(f"테이블 import 완료: {len(table_results)}개 테이블 → table_results")
+                else:
+                    logger.warning(f"테이블 import 실패: {error}")
+        except Exception as e:
+            logger.warning(f"테이블 import 중 오류 (무시): {e}")
 
     async def _import_dimensions(self, session_id: str, dimensions: list):
         """eDOCr2 치수 결과를 Blueprint AI BOM 세션에 가져오기
@@ -489,21 +658,19 @@ class BOMExecutor(BaseNodeExecutor):
             logger.warning("가져올 치수 결과가 없습니다")
             return
 
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/analysis/dimensions/{session_id}/import-bulk",
-                json={
-                    "dimensions": dimensions,
-                    "source": "edocr2",
-                    "auto_approve_threshold": None  # 자동 승인 비활성화 - 검증 UI에서 확인
-                }
-            )
-
-            if response.status_code == 200:
-                result = response.json()
-                logger.info(f"치수 import 완료: {result.get('imported_count', 0)}개")
-            else:
-                logger.error(f"치수 import 실패: {response.status_code} - {response.text}")
+        success, result, error = await self._post_api(
+            f"/analysis/dimensions/{session_id}/import-bulk",
+            json_data={
+                "dimensions": dimensions,
+                "source": "edocr2",
+                "auto_approve_threshold": None  # 자동 승인 비활성화 - 검증 UI에서 확인
+            },
+            timeout=120
+        )
+        if success and result:
+            logger.info(f"치수 import 완료: {result.get('imported_count', 0)}개")
+        else:
+            logger.error(f"치수 import 실패: {error}")
 
 
 # 실행기 등록

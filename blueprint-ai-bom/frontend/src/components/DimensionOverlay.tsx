@@ -20,6 +20,7 @@ interface DimensionOverlayProps {
   dimensions: Dimension[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onImagePopup?: () => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -36,6 +37,7 @@ export function DimensionOverlay({
   dimensions,
   selectedId,
   onSelect,
+  onImagePopup,
 }: DimensionOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<SVGRectElement>(null);
@@ -81,8 +83,11 @@ export function DimensionOverlay({
             src={imageData}
             alt="도면"
             className="w-full"
+            style={onImagePopup ? { cursor: 'zoom-in' } : undefined}
             draggable={false}
             onLoad={measureScale}
+            onClick={onImagePopup}
+            title={onImagePopup ? '클릭하여 새 창에서 확대' : undefined}
           />
 
           <svg

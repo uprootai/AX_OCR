@@ -76,16 +76,21 @@ async def generate_bom(session_id: str):
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
     detections = session.get("detections", [])
-    if not detections:
-        raise HTTPException(status_code=400, detail="검출 결과가 없습니다")
+    dimensions = session.get("dimensions", [])
 
     # 승인된 검출 확인
-    approved = [
+    approved_detections = [
         d for d in detections
         if d.get("verification_status") in ("approved", "modified", "manual")
     ]
-    if not approved:
-        raise HTTPException(status_code=400, detail="승인된 검출이 없습니다")
+    # 승인된 치수 확인
+    approved_dimensions = [
+        d for d in dimensions
+        if d.get("verification_status") in ("approved", "modified", "manual")
+    ]
+
+    if not approved_detections and not approved_dimensions:
+        raise HTTPException(status_code=400, detail="승인된 검출 또는 치수가 없습니다")
 
     # 상태 업데이트
     from schemas.session import SessionStatus
@@ -106,6 +111,7 @@ async def generate_bom(session_id: str):
             detections=detections,
             dimensions=session.get("dimensions"),
             links=session.get("dimension_symbol_links"),
+            tables=session.get("table_results") or session.get("texts", []),
             filename=session.get("filename"),
             model_id=session.get("model_id"),
             session_pricing_path=session_pricing_path,
@@ -155,6 +161,65 @@ async def upload_pricing(session_id: str, file: UploadFile = File(...)):
         f.write(content)
 
     return {"status": "uploaded", "session_id": session_id, "pricing_path": str(pricing_path)}
+
+
+@router.get("/{session_id}/pricing")
+async def get_pricing(session_id: str):
+    """세션별 단가 파일 조회"""
+    session_service = get_session_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 세션 디렉토리에서 pricing.json 찾기
+    file_path = Path(session.get("file_path", ""))
+    pricing_path = None
+
+    if file_path.exists():
+        pricing_path = file_path.parent / "pricing.json"
+    else:
+        sessions_dir = Path("/app/sessions") / session_id
+        pricing_path = sessions_dir / "pricing.json"
+
+    if not pricing_path or not pricing_path.exists():
+        raise HTTPException(status_code=404, detail="단가 파일이 없습니다")
+
+    with open(pricing_path, "r", encoding="utf-8") as f:
+        pricing_data = json.load(f)
+
+    return {
+        "session_id": session_id,
+        "pricing_path": str(pricing_path),
+        "pricing_data": pricing_data,
+    }
+
+
+@router.delete("/{session_id}/pricing")
+async def delete_pricing(session_id: str):
+    """세션별 단가 파일 삭제 (글로벌 단가로 복원)"""
+    session_service = get_session_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 세션 디렉토리에서 pricing.json 찾기
+    file_path = Path(session.get("file_path", ""))
+    pricing_path = None
+
+    if file_path.exists():
+        pricing_path = file_path.parent / "pricing.json"
+    else:
+        sessions_dir = Path("/app/sessions") / session_id
+        pricing_path = sessions_dir / "pricing.json"
+
+    if not pricing_path or not pricing_path.exists():
+        raise HTTPException(status_code=404, detail="단가 파일이 없습니다")
+
+    pricing_path.unlink()
+
+    return {"status": "deleted", "session_id": session_id, "message": "글로벌 단가로 복원됨"}
 
 
 @router.get("/{session_id}")

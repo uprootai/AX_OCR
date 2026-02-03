@@ -26,6 +26,7 @@ interface DimensionSectionProps {
   onAutoApprove: () => void;
   isAutoApproving: boolean;
   onAddManualDimension: (value: string, box: { x1: number; y1: number; x2: number; y2: number }) => Promise<void>;
+  onImagePopup?: () => void;
 }
 
 export function DimensionSection({
@@ -44,6 +45,7 @@ export function DimensionSection({
   onAutoApprove,
   isAutoApproving,
   onAddManualDimension,
+  onImagePopup,
 }: DimensionSectionProps) {
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [manualValue, setManualValue] = useState('');
@@ -59,6 +61,11 @@ export function DimensionSection({
           <span className="text-base font-normal text-gray-500 ml-2">
             ({dimensions.length}개 치수)
           </span>
+          {dimensionStats && (
+            <span className="text-sm text-gray-500 ml-2">
+              ({dimensionStats.approved + dimensionStats.modified + dimensionStats.manual}/{dimensions.length} 승인됨)
+            </span>
+          )}
         </h2>
         <div className="flex items-center gap-2">
           {imageData && imageSize && (
@@ -144,7 +151,24 @@ export function DimensionSection({
           dimensions={dimensions}
           selectedId={selectedDimensionId}
           onSelect={(id) => setSelectedDimensionId(id)}
+          onImagePopup={onImagePopup}
         />
+      )}
+
+      {/* 검증 진행률 바 */}
+      {dimensionStats && (
+        <div className="mx-4 mb-2">
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>검증 진행률</span>
+            <span>{Math.round(((dimensionStats.approved + dimensionStats.modified + dimensionStats.manual) / Math.max(dimensions.length, 1)) * 100)}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              className="bg-green-500 h-1.5 rounded-full transition-all"
+              style={{ width: `${Math.round(((dimensionStats.approved + dimensionStats.modified + dimensionStats.manual) / Math.max(dimensions.length, 1)) * 100)}%` }}
+            />
+          </div>
+        </div>
       )}
 
       {/* 통합 치수 리스트 */}

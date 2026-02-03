@@ -45,8 +45,9 @@ export function toCheckboxGroupOptions(): CheckboxGroupOption[] {
   const options: CheckboxGroupOption[] = [];
 
   for (const group of groupOrder) {
+    // impliedBy가 있는 feature는 부모 feature 선택 시 자동 활성화되므로 체크박스에서 제외
     const featuresInGroup = Object.values(FEATURE_DEFINITIONS).filter(
-      (f) => f.group === group
+      (f) => f.group === group && !f.impliedBy
     );
 
     for (const feature of featuresInGroup) {

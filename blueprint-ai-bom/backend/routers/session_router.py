@@ -148,8 +148,9 @@ async def get_session(session_id: str, include_image: bool = Query(default=False
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
-    # 이미지 base64 인코딩 (옵션)
+    # 이미지 base64 처리
     if include_image and session.get("file_path"):
+        # 이미지 포함 요청 시 파일에서 로드
         try:
             file_path = Path(session["file_path"])
             if file_path.exists():
@@ -158,6 +159,16 @@ async def get_session(session_id: str, include_image: bool = Query(default=False
                     session["image_base64"] = base64.b64encode(image_data).decode("utf-8")
         except Exception:
             pass
+    else:
+        # 이미지 미포함 시 명시적으로 제거 (저장된 데이터에 있을 수 있음)
+        session.pop("image_base64", None)
+
+    # 커스텀 단가 파일 존재 여부 확인
+    if session.get("file_path"):
+        pricing_path = Path(session["file_path"]).parent / "pricing.json"
+        session["has_custom_pricing"] = pricing_path.exists()
+    else:
+        session["has_custom_pricing"] = False
 
     return SessionDetail(**session)
 
@@ -171,8 +182,8 @@ async def update_session(session_id: str, updates: dict):
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
-    # 허용된 필드만 업데이트 (features, ocr_texts, connections 추가)
-    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source"}
+    # 허용된 필드만 업데이트 (features, ocr_texts, connections, texts, table_results 추가)
+    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source", "texts", "texts_count", "tables_count", "table_regions_count", "table_results"}
     filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
 
     if filtered_updates:

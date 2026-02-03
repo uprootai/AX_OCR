@@ -60,6 +60,8 @@ const FEATURE_NAMES: Record<string, string> = {
   bom_generation: 'BOM 생성',
   gdt_analysis: 'GD&T 분석',
   tolerance_analysis: '공차 분석',
+  table_extraction: '테이블 추출',
+  human_verification: 'HITL 검증',
 };
 
 // 도면 유형 옵션 (기본 제공)
