@@ -222,8 +222,14 @@ class BOMExecutor(BaseNodeExecutor):
                     logger.info(f"'{drawing_type}' 타입: detections 없이 세션 생성 (OCR 전용 모드)")
 
             # 3. 세션 생성 (이미지 크기 자동 추출 및 업데이트, 도면 타입, features 전달)
-            session_id, image_width, image_height = await self._create_session(image_data, drawing_type, features)
-            logger.info(f"세션 생성됨: {session_id} (이미지 크기: {image_width}x{image_height}, features: {features})")
+            # project_id, metadata는 inputs에서 가져옴 (BOM 계층 워크플로우)
+            project_id = inputs.get("project_id") or self.parameters.get("project_id")
+            metadata = inputs.get("metadata") or self.parameters.get("metadata")
+            session_id, image_width, image_height = await self._create_session(
+                image_data, drawing_type, features,
+                project_id=project_id, metadata=metadata
+            )
+            logger.info(f"세션 생성됨: {session_id} (이미지 크기: {image_width}x{image_height}, features: {features}, project: {project_id})")
 
             # 4. YOLO 노드의 검출 결과 가져오기 (있는 경우만)
             if external_detections and len(external_detections) > 0:
@@ -313,23 +319,37 @@ class BOMExecutor(BaseNodeExecutor):
         """파라미터 유효성 검사 - 파라미터 없음"""
         return True, None
 
-    async def _create_session(self, image_data: Any, drawing_type: str = "auto", features: list = None) -> Tuple[str, int, int]:
+    async def _create_session(
+        self, image_data: Any, drawing_type: str = "auto", features: list = None,
+        project_id: str = None, metadata: dict = None
+    ) -> Tuple[str, int, int]:
         """세션 생성 및 이미지 업로드
 
         Args:
             image_data: 이미지 데이터 (base64, URL, 바이트 등)
             drawing_type: 빌더에서 설정한 도면 타입
             features: 활성화된 기능 목록 (2025-12-24)
+            project_id: 프로젝트 ID (BOM 계층 워크플로우)
+            metadata: BOM 메타데이터 (drawing_number, material 등)
 
         Returns:
             Tuple[str, int, int]: (session_id, image_width, image_height)
         """
         import base64
+        import json as _json
 
         file_bytes = None
         # features를 쉼표 구분 문자열로 변환
         features_param = ",".join(features) if features else ""
         upload_url = f"{self.BASE_URL}/sessions/upload?drawing_type={drawing_type}&features={features_param}"
+
+        # project_id, metadata를 쿼리 파라미터로 추가
+        if project_id:
+            upload_url += f"&project_id={project_id}"
+        if metadata:
+            metadata_json = _json.dumps(metadata, ensure_ascii=False)
+            from urllib.parse import quote
+            upload_url += f"&metadata_json={quote(metadata_json)}"
 
         async with httpx.AsyncClient(timeout=60) as client:
             # Data URL 형식 (data:image/png;base64,...)

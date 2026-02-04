@@ -30,6 +30,10 @@ class ProjectCreate(BaseModel):
         example=["symbol_detection", "gt_comparison"]
     )
 
+    # BOM 프로젝트 확장
+    bom_source: Optional[str] = Field(None, description="BOM PDF 파일명")
+    drawing_folder: Optional[str] = Field(None, description="도면 폴더 경로")
+
 
 class ProjectUpdate(BaseModel):
     """프로젝트 수정 요청"""
@@ -41,6 +45,8 @@ class ProjectUpdate(BaseModel):
     default_features: Optional[List[str]] = None
     gt_folder: Optional[str] = None
     reference_folder: Optional[str] = None
+    bom_source: Optional[str] = None
+    drawing_folder: Optional[str] = None
 
 
 class ProjectResponse(BaseModel):
@@ -64,10 +70,20 @@ class ProjectResponse(BaseModel):
     gt_folder: Optional[str] = None
     reference_folder: Optional[str] = None
 
+    # BOM 프로젝트 확장
+    bom_source: Optional[str] = Field(None, description="BOM PDF 파일명")
+    drawing_folder: Optional[str] = Field(None, description="도면 폴더 경로")
+
     # 통계
     session_count: int = 0
     completed_count: int = 0
     pending_count: int = 0
+
+    # BOM 견적 통계
+    bom_item_count: int = Field(default=0, description="전체 BOM 항목 수")
+    quotation_item_count: int = Field(default=0, description="견적 대상 (WHITE) 수")
+    quoted_count: int = Field(default=0, description="견적 완료 수")
+    total_quotation: float = Field(default=0.0, description="총 견적가")
 
     # 메타
     created_at: datetime

@@ -1,96 +1,122 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-02
-> **기준 커밋**: 6386618 (feat: eDOCr2 버그 수정, Table Detector 멀티크롭, dimension_service 멀티 엔진, Excel Export 제거)
+> **마지막 업데이트**: 2026-02-04
+> **기준 커밋**: 9c278b0 (feat: BOM HITL 치수 전용 워크플로우 완성, Executor 리팩토링, UI 하이라이트 연동)
 
 ---
 
-## 미커밋 변경 요약 (6386618 대비)
+## 미커밋 변경 요약 — DSE Bearing BOM 계층 워크플로우 (Phase 1 + Phase 2 + Phase 3)
 
-> eDOCr2 크롭 업스케일 + BOM 치수 임포트 버그 수정 + DimensionOverlay 스케일링 수정
+> 동서기연 1차 미팅 결과 반영: BOM PDF → 계층 파싱 → 단품 세션 일괄 생성 → 프로젝트 견적 집계
 
 ### 변경 카테고리
 
 | 영역 | 수정 | 신규 | 핵심 변경 |
 |------|------|------|----------|
-| **Gateway API** | 3개 | 1개 | eDOCr2 크롭 업스케일, dimension_updater_executor 신규 |
-| **BOM Backend** | 1개 | 0 | dimension_router.py bbox/location 매핑 수정 |
-| **BOM Frontend** | 1개 | 0 | DimensionOverlay.tsx viewBox 스케일링 수정 |
-| **Web-UI** | 4개 | 0 | eDOCr2 파라미터, DSE 1-1 템플릿, nodeDefinitions 테스트 수정 |
-| **Docker** | 2개 | 0 | table-detector-api Dockerfile/requirements 수정 |
-| **문서** | 2개 | 0 | CLAUDE.md + ACTIVE.md 갱신 |
+| **BOM Backend** | 5개 | 4개 | session metadata, BOM PDF parser, drawing matcher, quotation service |
+| **BOM Frontend** | 2개 | 5개 | project API BOM 메서드, BOM 워크플로우 위저드 UI, MaterialBreakdown |
+| **Gateway API** | 1개 | 0 | BOM executor project_id + metadata 전달 |
+| **Web-UI** | 1개 | 0 | DSE 1-1 수정, 2-1/2-2/2-3 숨김, hidden 필터 |
 
 ---
 
-## 핵심 변경 상세
+## Phase 1 백엔드 변경 상세
 
-### 1. eDOCr2 크롭 업스케일 (ESRGAN 2x)
+### BOM PDF Parser (신규)
+- **파일**: `services/bom_pdf_parser.py`
+- RGB 색상 기반 레벨 감지 (PINK=ASSY, BLUE=SUB, WHITE=PART)
+- PDF 테이블 파싱 → BOM 계층 구조 반환
 
-**목표**: 전체 이미지(3306×2339) 대신 4분할 크롭 → ESRGAN 2x 업스케일 → OCR 수행하여 치수 인식 정확도 향상
+### Drawing Matcher (신규)
+- **파일**: `services/drawing_matcher.py`
+- 파일명 ↔ 도면번호 매칭 (정규화 비교)
+- 매칭 결과 + needs_quotation 필터링
 
-**결과**: 정확도 28% → 82% (오탐 36→22, 정탐률 대폭 향상)
+### BOM Item Schema (신규)
+- **파일**: `schemas/bom_item.py`
+- BOMItem, BOMHierarchyResponse, DrawingMatchResult 등 데이터 모델
 
-#### 변경 파일
+### Project/Session 확장 (수정 5개)
+- project_router: 6개 BOM 엔드포인트 추가
+- session_router: metadata 지원
+- project_service: BOM 파싱/매칭/세션 생성
+- session_service: metadata 전달, 일괄 생성
 
-| 파일 | 변경 내용 |
-|------|----------|
-| `gateway-api/blueprintflow/executors/image_utils.py` | `crop_image_region()`, `upscale_via_esrgan()` 유틸 추가 (439→498줄) |
-| `gateway-api/blueprintflow/executors/edocr2_executor.py` | 크롭+업스케일+좌표변환+중복제거+오탐필터 (131→438줄) |
-| `gateway-api/api_specs/edocr2.yaml` | 파라미터 4개 + 프로필 1개 추가 |
-| `web-ui/src/config/nodes/ocrNodes.ts` | eDOCr2 노드 파라미터 4개 + 프로필 1개 추가 |
-| `web-ui/src/pages/blueprintflow/BlueprintFlowTemplates.tsx` | DSE 1-1 템플릿에 crop upscale 활성화 |
+---
 
-#### 핵심 설계
+## Phase 2 프론트엔드 변경 상세
 
-- **DIMENSION_CROP_PRESETS**: 4분할 (Q1~Q4), 15-20% 오버랩
-- **asyncio.gather**: 4개 크롭 동시 처리 (ESRGAN + eDOCr2)
-- **좌표 변환**: `원본 = 오프셋 + (업스케일 좌표 / scale)`, nested list + flat 둘 다 지원
-- **중복 제거**: 텍스트 일치 + IoU > 0.3 OR 중심점 거리 < 100px
-- **오탐 필터**: 길이, 숫자 존재, 특수문자 비율, 숫자 비율 4개 규칙
-- **graceful fallback**: ESRGAN 실패 시 원본 크롭으로 OCR (기능 중단 없음)
+### 1. API 타입 내보내기 수정
 
-#### 새 파라미터
+**파일**: `lib/api/index.ts` (+4 타입)
 
-| 파라미터 | 타입 | 기본값 | 설명 |
-|----------|------|--------|------|
-| `enable_crop_upscale` | boolean | false | 크롭+업스케일 활성화 |
-| `crop_preset` | select | quadrants | 크롭 프리셋 |
-| `upscale_scale` | select | "2" | ESRGAN 배율 (2 권장, 4는 OOM 위험) |
-| `upscale_denoise` | number | 0.3 | 노이즈 제거 강도 |
+BOMItem, BOMHierarchyResponse, DrawingMatchResult, SessionBatchCreateResponse 타입 re-export 추가
 
-### 2. dimension_updater_executor (신규)
+### 2. BOMHierarchyTree (신규, 247줄)
 
-**파일**: `gateway-api/blueprintflow/executors/dimension_updater_executor.py` (신규)
+**파일**: `pages/project/components/BOMHierarchyTree.tsx`
 
-### 3. BOM dimension_router.py 버그 수정 3건
+- 재귀 TreeNode 컴포넌트로 BOM 계층 트리뷰 렌더링
+- PINK(ASSY) / BLUE(SUB) / WHITE(PART) 색상 코딩
+- 펼치기/접기 (개별 + 전체)
+- 요약 통계 바 (전체/ASSY/SUB/PART 개수)
 
-**파일**: `blueprint-ai-bom/backend/routers/analysis/dimension_router.py`
+### 3. DrawingMatchTable (신규, 171줄)
 
-| 버그 | 수정 |
-|------|------|
-| `dim_data.get("bbox", {})` → eDOCr2는 `"location"` 사용 | `dim_data.get("bbox") or dim_data.get("location", {})` |
-| nested list `[[x1,y1],[x2,y2],...]` 미지원 | min/max 변환 추가 |
-| confidence 기본값 0.5 고정 | `dim_data.get("confidence", dim_data.get("score", 0.5))` |
+**파일**: `pages/project/components/DrawingMatchTable.tsx`
 
-### 4. DimensionOverlay.tsx viewBox 스케일링 수정
+- 도면 폴더 경로 입력 + 매칭 실행 버튼
+- 매칭 결과 프로그레스 바 (매칭/미매칭 %)
+- 견적 대상(needs_quotation) 항목만 테이블 표시
+- 매칭/미매칭 상태 뱃지
 
-**파일**: `blueprint-ai-bom/frontend/src/components/DimensionOverlay.tsx`
+### 4. QuotationDashboard (신규 → Phase 3에서 확장, 218줄)
 
-**문제**: SVG viewBox(3306×2339)가 ~668px 컨테이너에 렌더링되어 strokeWidth/fontSize가 서브픽셀(0.3px, 1.8px)로 축소 → bbox 보이지 않음
+**파일**: `pages/project/components/QuotationDashboard.tsx`
 
-**수정**:
-- `scale` 상태로 viewBox↔렌더링 비율 계산
-- `px()` 헬퍼로 화면 픽셀을 SVG 단위 변환
-- strokeWidth `px(2)`, fontSize `px(11)` → 항상 화면에 2px/11px 렌더링
-- 텍스트에 흰색 외곽선(`stroke="white"`, `paintOrder="stroke"`) 추가
-- `onLoad` + `resize` 이벤트로 스케일 재계산
+- 4개 통계 카드 (견적대상/세션생성/분석완료/견적완료)
+- 필터 (전체/완료/진행중/미생성)
+- BOM items ↔ sessions 조인 테이블
+- 세션 링크 → /workflow?session= 이동
 
-### 5. nodeDefinitions 테스트 수정
+### 5. BOMWorkflowSection (신규, 377줄)
 
-**파일**: `web-ui/src/config/nodeDefinitions.test.ts`
+**파일**: `pages/project/components/BOMWorkflowSection.tsx`
 
-- 총 노드 수 34 → 35 (dimension_updater 추가)
-- analysis 카테고리 13 → 14
+- 5단계 위저드: BOM 업로드 → 계층 트리 → 도면 매칭 → 세션 생성 → 견적 현황
+- 아이콘 스테퍼 UI (완료=green, 활성=blue, 비활성=gray)
+- 자동 시작 위치 감지 (project 상태 기반)
+- 단계별 조건 네비게이션
+
+### 6. ProjectDetailPage 수정 (+8줄)
+
+**파일**: `pages/project/ProjectDetailPage.tsx`
+
+- BOMWorkflowSection import 추가
+- 프로젝트 정보 grid와 세션 목록 사이에 BOMWorkflowSection 렌더링
+
+---
+
+## Phase 3 견적 집계 변경 상세
+
+### Quotation Schema (신규)
+- **파일**: `schemas/quotation.py`
+- QuotationSummary, MaterialGroup, QuotationExportRequest 등
+
+### Quotation Service (신규)
+- **파일**: `services/quotation_service.py`
+- 세션별 BOM 데이터 읽기 → 재질별 그룹핑
+- PDF/Excel 내보내기 지원
+- `_build_session_item()` → `session.json` → `bom_data.summary` 읽기
+
+### MaterialBreakdown (신규)
+- **파일**: `pages/project/components/MaterialBreakdown.tsx`
+- 재질별 분류 테이블 (수량, 중량, 금액)
+- 원형 차트 / 막대 그래프 시각화
+
+### QuotationDashboard 확장
+- 통계 카드에 MaterialBreakdown 연동
+- 다운로드 버튼 (PDF/Excel)
 
 ---
 
@@ -98,15 +124,23 @@
 
 | 항목 | 결과 |
 |------|------|
-| **web-ui 빌드** | ✅ 정상 |
-| **web-ui 테스트** | ✅ 67/67 통과 |
-| **Python 문법** | ✅ 정상 |
-| **DSE 1-1 크롭 업스케일** | ✅ 22개 치수 검출, 정확도 ~82% |
-| **BOM 치수 임포트** | ✅ bbox 좌표 정확 (nested list → dict 변환) |
-| **DimensionOverlay** | ✅ bbox + 텍스트 라벨 도면 위 표시 |
-| **bbox 클릭 → 카드 선택** | ✅ 작동 |
-| **크롭 썸네일 HITL 카드** | ✅ 정상 표시 |
+| **Python 문법** | ✅ 12/12 파일 정상 |
+| **web-ui tsc** | ✅ 에러 0개 |
+| **bom frontend tsc** | ✅ 에러 0개 |
+| **bom frontend build** | ✅ 빌드 성공 |
+| **데이터 흐름** | ✅ bom_service → session.json → quotation_service 통합 갭 없음 |
 
 ---
 
-*마지막 업데이트: 2026-02-02*
+## 다음 단계
+
+- [x] BOMHierarchyTree 프론트엔드 컴포넌트
+- [x] DrawingMatchTable 프론트엔드 컴포넌트
+- [x] QuotationDashboard 프론트엔드 컴포넌트
+- [x] BOMWorkflowSection 위저드 컨트롤러
+- [x] ProjectDetailPage 확장 (BOM 섹션 추가)
+- [x] 견적 집계/출력 서비스
+
+---
+
+*마지막 업데이트: 2026-02-04*

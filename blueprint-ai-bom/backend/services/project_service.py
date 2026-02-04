@@ -69,9 +69,17 @@ class ProjectService:
             "default_features": data.default_features,
             "gt_folder": None,
             "reference_folder": None,
+            # BOM 프로젝트 확장
+            "bom_source": getattr(data, "bom_source", None),
+            "drawing_folder": getattr(data, "drawing_folder", None),
+            # 통계
             "session_count": 0,
             "completed_count": 0,
             "pending_count": 0,
+            "bom_item_count": 0,
+            "quotation_item_count": 0,
+            "quoted_count": 0,
+            "total_quotation": 0.0,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat(),
         }

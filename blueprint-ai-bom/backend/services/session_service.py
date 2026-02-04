@@ -41,6 +41,8 @@ class SessionService:
         project_id: str = None,
         template_id: str = None,
         model_type: str = None,
+        # BOM 메타데이터
+        metadata: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         """새 세션 생성"""
         now = datetime.now()
@@ -82,6 +84,8 @@ class SessionService:
             "template_id": template_id,
             "template_name": None,  # 조인 시 채움
             "model_type": model_type,
+            # BOM 메타데이터
+            "metadata": metadata,
         }
 
         self.sessions[session_id] = session

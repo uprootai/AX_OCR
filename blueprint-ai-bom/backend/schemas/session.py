@@ -118,6 +118,11 @@ class SessionCreate(BaseModel):
     project_id: Optional[str] = Field(None, description="프로젝트 ID")
     template_id: Optional[str] = Field(None, description="템플릿 ID")
 
+    # BOM 메타데이터 (drawing_number, material, bom_item_no 등)
+    metadata: Optional[Dict[str, Any]] = Field(
+        None, description="BOM 메타데이터 (drawing_number, material, bom_item_no 등)"
+    )
+
     # Phase 2G: 워크플로우 잠금 시스템 (BlueprintFlow → 고객 배포)
     workflow_locked: bool = Field(default=False, description="워크플로우 잠금 여부")
     workflow_definition: Optional[Dict[str, Any]] = Field(
@@ -172,6 +177,9 @@ class SessionResponse(BaseModel):
     template_name: Optional[str] = Field(None, description="템플릿명 (조인)")
     model_type: Optional[str] = Field(None, description="YOLO 모델 타입")
 
+    # BOM 메타데이터
+    metadata: Optional[Dict[str, Any]] = Field(None, description="BOM 메타데이터")
+
     # Phase 2C: 다중 이미지 지원
     image_count: int = Field(default=0, description="이미지 수")
     images_approved: int = Field(default=0, description="승인된 이미지 수")
@@ -212,6 +220,9 @@ class SessionDetail(BaseModel):
     template_id: Optional[str] = Field(None, description="템플릿 ID")
     template_name: Optional[str] = Field(None, description="템플릿명 (조인)")
     model_type: Optional[str] = Field(None, description="YOLO 모델 타입")
+
+    # BOM 메타데이터
+    metadata: Optional[Dict[str, Any]] = Field(None, description="BOM 메타데이터")
 
     # 검출 정보
     detections: List[Dict[str, Any]] = []

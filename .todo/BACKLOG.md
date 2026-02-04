@@ -1,6 +1,6 @@
 # 백로그 (향후 작업)
 
-> 마지막 업데이트: 2026-02-03
+> 마지막 업데이트: 2026-02-04
 > 미래 작업 및 참조 문서
 
 ---
@@ -183,6 +183,9 @@ models/yolo-api/services/inference_service.py
 | **P1-4 BOM 프론트엔드 세션 단가 표시** | 2026-02-03 |
 | **P1-5 DetectionResultsSection 클래스 하이라이트** | 2026-02-03 |
 | **P2-2 BOM ↔ 도면 하이라이트 연동** (양방향 동기화) | 2026-02-03 |
+| **DSE Bearing BOM 계층 워크플로우 Phase 1** (PDF 파싱, 도면 매칭, 세션 일괄 생성) | 2026-02-04 |
+| **DSE Bearing BOM 계층 워크플로우 Phase 2** (5단계 위저드 UI, 트리뷰, 매칭 테이블) | 2026-02-04 |
+| **DSE Bearing BOM 계층 워크플로우 Phase 3** (견적 집계 서비스, MaterialBreakdown, QuotationDashboard) | 2026-02-04 |
 | **eDOCr2 5개 버그 수정** | 2026-02-01 |
 | **BOM executor features 병합 + drawing_type 폴백** | 2026-02-01 |
 | **Table Detector multi-crop + 품질 필터** | 2026-02-01 |
@@ -210,4 +213,4 @@ models/yolo-api/services/inference_service.py
 
 ---
 
-*마지막 업데이트: 2026-02-03*
+*마지막 업데이트: 2026-02-04*

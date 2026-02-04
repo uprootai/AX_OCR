@@ -20,6 +20,7 @@ interface TemplateInfo {
   accuracy: string;
   category: 'basic' | 'advanced' | 'pid' | 'ai' | 'benchmark' | 'panasia' | 'techcross' | 'dsebearing';
   featured?: boolean;
+  hidden?: boolean;  // 숨김 처리 (미팅 결과 등으로 비활성화)
   sampleImage?: string;  // e.g. '/samples/sample7_mcp_panel_body.jpg'
   sampleGT?: string;     // e.g. '/samples/gt/sample7_mcp_panel_body.txt'
 }
@@ -216,21 +217,20 @@ export default function BlueprintFlowTemplates() {
       nameKey: 'dseBearingAnalysis',
       descKey: 'dseBearingAnalysisDesc',
       useCaseKey: 'dseBearingAnalysisUseCase',
-      estimatedTime: '20-30s',
+      estimatedTime: '15-25s',
       accuracy: '96%',
       category: 'dsebearing',
       featured: true,
       sampleImage: '/samples/dse_bearing_assy_t1.png',
       workflow: {
-        name: 'DSE Bearing 1-1: 도면 분석 + AI BOM',
-        description: '터빈 베어링 기계 부품도 분석 - Table Detector로 BOM 테이블 추출, 치수/재질/공차 추출, 견적용 BOM 생성',
+        name: 'DSE Bearing 1-1: 단품 도면 분석 + AI BOM',
+        description: '터빈 베어링 단품 부품도 분석 - Table Detector로 BOM 테이블 추출, 치수 OCR, 견적용 BOM 생성 (소재 사이즈 1순위)',
         nodes: [
-          { id: 'imageinput_1', type: 'imageinput', label: '부품도 입력', parameters: { features: ['dimension_ocr', 'gdt_parsing', 'title_block_ocr', 'notes_extraction', 'drawing_region_segmentation'] }, position: { x: 100, y: 200 } },
+          { id: 'imageinput_1', type: 'imageinput', label: '부품도 입력', parameters: { features: ['dimension_ocr', 'table_extraction'] }, position: { x: 100, y: 200 } },
           { id: 'tabledetector_1', type: 'table_detector', label: 'BOM 테이블 추출', parameters: { mode: 'extract', ocr_engine: 'paddle', borderless: false, confidence_threshold: 0.5, min_confidence: 50, crop_regions: ['title_block', 'revision_table', 'parts_list_right'], enable_quality_filter: true }, position: { x: 350, y: 100 } },
-          { id: 'edocr2_1', type: 'edocr2', label: '치수/텍스트 OCR', parameters: { extract_dimensions: true, extract_gdt: true, language: 'ko+en', enable_crop_upscale: true, crop_preset: 'quadrants', upscale_scale: 2, upscale_denoise: 0.3 }, position: { x: 350, y: 300 } },
+          { id: 'edocr2_1', type: 'edocr2', label: '치수/텍스트 OCR', parameters: { extract_dimensions: true, extract_gdt: false, language: 'ko+en', enable_crop_upscale: true, crop_preset: 'quadrants', upscale_scale: 2, upscale_denoise: 0.3 }, position: { x: 350, y: 300 } },
           { id: 'aibom_1', type: 'blueprint-ai-bom', label: '도면 검증 (AI BOM)', parameters: { drawing_type: 'dimension_bom', features: ['table_extraction', 'human_verification'] }, position: { x: 600, y: 100 } },
           { id: 'dim_updater_1', type: 'dimension_updater', label: '치수 비동기 추가', parameters: {}, position: { x: 600, y: 350 } },
-          { id: 'skinmodel_1', type: 'skinmodel', label: '공차 분석', parameters: { task: 'tolerance', material_type: 'steel', manufacturing_process: 'machining' }, position: { x: 850, y: 200 } },
         ],
         edges: [
           { id: 'e1', source: 'imageinput_1', target: 'tabledetector_1' },
@@ -240,11 +240,10 @@ export default function BlueprintFlowTemplates() {
           // edocr2 → aibom 엣지 제거 (eager 모드에서 BOM 크리티컬 패스 분리)
           { id: 'e5', source: 'aibom_1', target: 'dim_updater_1' },
           { id: 'e6', source: 'edocr2_1', target: 'dim_updater_1' },
-          { id: 'e7', source: 'dim_updater_1', target: 'skinmodel_1' },
         ],
       },
     },
-    // DSE Bearing 2-1: Bearing Ring ASSY (T1-T8 시리즈)
+    // DSE Bearing 2-1: Bearing Ring ASSY (T1-T8 시리즈) - 미팅 결과 조립도 불필요
     {
       nameKey: 'dseBearingRingAssy',
       descKey: 'dseBearingRingAssyDesc',
@@ -252,6 +251,7 @@ export default function BlueprintFlowTemplates() {
       estimatedTime: '25-35s',
       accuracy: '94%',
       category: 'dsebearing',
+      hidden: true,
       sampleImage: '/samples/dse_ring_assy_t1.png',
       workflow: {
         name: 'DSE Bearing 2-1: Bearing Ring ASSY',
@@ -278,7 +278,7 @@ export default function BlueprintFlowTemplates() {
         ],
       },
     },
-    // DSE Bearing 2-2: Bearing Casing ASSY
+    // DSE Bearing 2-2: Bearing Casing ASSY - 미팅 결과 조립도 불필요
     {
       nameKey: 'dseBearingCasingAssy',
       descKey: 'dseBearingCasingAssyDesc',
@@ -287,6 +287,7 @@ export default function BlueprintFlowTemplates() {
       sampleImage: '/samples/dse_casing_assy_t1.png',
       accuracy: '93%',
       category: 'dsebearing',
+      hidden: true,
       workflow: {
         name: 'DSE Bearing 2-2: Bearing Casing ASSY',
         description: '베어링 케이싱 조립체 - Table Detector + VLM으로 상하부 Split 구조, 오일 포트/나사 가공 추출',
@@ -312,7 +313,7 @@ export default function BlueprintFlowTemplates() {
         ],
       },
     },
-    // DSE Bearing 2-3: Thrust Bearing (TBN/GEN Side)
+    // DSE Bearing 2-3: Thrust Bearing (TBN/GEN Side) - 미팅 결과 조립도 불필요
     {
       nameKey: 'dseThrustBearing',
       descKey: 'dseThrustBearingDesc',
@@ -320,6 +321,7 @@ export default function BlueprintFlowTemplates() {
       estimatedTime: '30-40s',
       accuracy: '95%',
       category: 'dsebearing',
+      hidden: true,
       sampleImage: '/samples/dse_thrust_bearing_assy.png',
       workflow: {
         name: 'DSE Bearing 2-3: Thrust Bearing',
@@ -992,20 +994,22 @@ export default function BlueprintFlowTemplates() {
     benchmark: { icon: FlaskConical, color: 'from-rose-500 to-red-500', label: t('blueprintflow.benchmarkTemplates'), shortLabel: '🧪 Benchmark' },
   };
 
-  // Get templates for active tab
+  // Get templates for active tab (hidden 템플릿 제외)
+  const visibleTemplates = templates.filter(t => !t.hidden);
+
   const getFilteredTemplates = (): TemplateInfo[] => {
-    if (activeTab === 'all') return templates;
-    if (activeTab === 'featured') return templates.filter(t => t.featured);
-    return templates.filter(t => t.category === activeTab);
+    if (activeTab === 'all') return visibleTemplates;
+    if (activeTab === 'featured') return visibleTemplates.filter(t => t.featured);
+    return visibleTemplates.filter(t => t.category === activeTab);
   };
 
   const filteredTemplates = getFilteredTemplates();
 
   // Count templates per category
   const getCategoryCount = (category: TemplateCategory): number => {
-    if (category === 'all') return templates.length;
-    if (category === 'featured') return templates.filter(t => t.featured).length;
-    return templates.filter(t => t.category === category).length;
+    if (category === 'all') return visibleTemplates.length;
+    if (category === 'featured') return visibleTemplates.filter(t => t.featured).length;
+    return visibleTemplates.filter(t => t.category === category).length;
   };
 
   const tabCategories: TemplateCategory[] = ['all', 'featured', 'panasia', 'techcross', 'dsebearing', 'basic', 'advanced', 'pid', 'ai', 'benchmark'];

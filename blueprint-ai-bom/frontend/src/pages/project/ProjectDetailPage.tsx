@@ -23,6 +23,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { projectApi, sessionApi, type ProjectDetail } from '../../lib/api';
+import { BOMWorkflowSection } from './components/BOMWorkflowSection';
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -326,6 +327,13 @@ export function ProjectDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* BOM 워크플로우 */}
+        <BOMWorkflowSection
+          projectId={projectId!}
+          project={project}
+          onRefresh={loadProject}
+        />
 
         {/* 세션 목록 */}
         <div className="bg-white rounded-xl border">

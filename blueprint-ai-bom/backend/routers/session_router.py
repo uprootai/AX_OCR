@@ -64,7 +64,9 @@ def get_session_service():
 async def upload_image(
     file: UploadFile = File(...),
     drawing_type: str = Query(default="auto", description="도면 타입 (빌더에서 설정)"),
-    features: str = Query(default="", description="활성화된 기능 목록 (쉼표 구분)")
+    features: str = Query(default="", description="활성화된 기능 목록 (쉼표 구분)"),
+    project_id: Optional[str] = Query(default=None, description="프로젝트 ID"),
+    metadata_json: Optional[str] = Query(default=None, description="BOM 메타데이터 (JSON 문자열)")
 ):
     """이미지 업로드 및 새 세션 생성
 
@@ -72,6 +74,8 @@ async def upload_image(
         file: 업로드할 이미지 파일
         drawing_type: 도면 타입 (auto, mechanical, pid, assembly, electrical, architectural)
         features: 활성화된 기능 목록 (예: "symbol_detection,bom_generation")
+        project_id: 프로젝트 ID (BOM 워크플로우에서 사용)
+        metadata_json: BOM 메타데이터 JSON 문자열
     """
     service = get_session_service()
 
@@ -117,7 +121,15 @@ async def upload_image(
     # features 파싱 (쉼표 구분 문자열 → 리스트)
     features_list = [f.strip() for f in features.split(",") if f.strip()] if features else []
 
-    # 세션 생성 (drawing_type, features, 이미지 크기 포함)
+    # metadata 파싱 (JSON 문자열 → dict)
+    metadata = None
+    if metadata_json:
+        try:
+            metadata = json.loads(metadata_json)
+        except json.JSONDecodeError:
+            logger.warning(f"[Session] Invalid metadata JSON: {metadata_json[:100]}")
+
+    # 세션 생성 (drawing_type, features, 이미지 크기, project_id, metadata 포함)
     session = service.create_session(
         session_id=session_id,
         filename=file.filename,
@@ -125,17 +137,25 @@ async def upload_image(
         drawing_type=dt.value,
         image_width=image_width,
         image_height=image_height,
-        features=features_list
+        features=features_list,
+        project_id=project_id,
+        metadata=metadata,
     )
 
     return SessionResponse(**session)
 
 
 @router.get("", response_model=List[SessionResponse])
-async def list_sessions(limit: int = Query(default=50, ge=1, le=100)):
+async def list_sessions(
+    limit: int = Query(default=50, ge=1, le=100),
+    project_id: Optional[str] = Query(default=None, description="프로젝트 ID 필터")
+):
     """세션 목록 조회"""
     service = get_session_service()
-    sessions = service.list_sessions(limit=limit)
+    if project_id:
+        sessions = service.list_sessions_by_project(project_id, limit=limit)
+    else:
+        sessions = service.list_sessions(limit=limit)
     return [SessionResponse(**s) for s in sessions]
 
 
@@ -182,8 +202,8 @@ async def update_session(session_id: str, updates: dict):
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
-    # 허용된 필드만 업데이트 (features, ocr_texts, connections, texts, table_results 추가)
-    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source", "texts", "texts_count", "tables_count", "table_regions_count", "table_results"}
+    # 허용된 필드만 업데이트 (features, ocr_texts, connections, texts, table_results, metadata 추가)
+    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source", "texts", "texts_count", "tables_count", "table_regions_count", "table_results", "metadata", "project_id"}
     filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
 
     if filtered_updates:
