@@ -121,6 +121,9 @@ class BOMPDFParser:
             # 테이블의 행 bounding boxes
             row_bboxes = self._get_row_bboxes(table)
 
+            # Level 컬럼 존재 여부 확인
+            level_col_idx = col_map.get("level_depth")
+
             # 데이터 행 처리
             for row_idx in range(1, len(rows)):
                 row = rows[row_idx]
@@ -133,6 +136,10 @@ class BOMPDFParser:
                 row_bbox = row_bboxes[row_idx] if row_idx < len(row_bboxes) else None
                 level = self._detect_row_color(page, row_bbox)
 
+                # 색상이 part(기본값)이고 Level 컬럼이 있으면 컬럼 값으로 판단
+                if level == "part" and level_col_idx is not None:
+                    level = self._parse_level_column(row, level_col_idx)
+
                 # 컬럼 값 추출
                 item = self._extract_item_from_row(row, col_map, level, page_num)
                 if item and item.get("drawing_number"):
@@ -144,11 +151,10 @@ class BOMPDFParser:
         """헤더 행에서 컬럼 인덱스 매핑
 
         BOM 테이블의 일반적인 컬럼:
-        - No./번호/품번
-        - 도면번호/Drawing No.
-        - 품명/Description
-        - 재질/Material
-        - 수량/Qty
+        - No./번호/품번, 도면번호, 품명, 재질, 수량
+        - Rev (BOM 항목 개정), Doc Rev (도면 개정), Part No, Size, 중량, 비고
+
+        매칭 순서: 도면번호(구체적) → 품명 → 재질 → 수량 → 신규 컬럼 → 품번(범용적)
         """
         col_map = {}
         header_lower = [str(h).strip().lower() if h else "" for h in header_row]
@@ -157,22 +163,68 @@ class BOMPDFParser:
             if not header:
                 continue
 
-            # 품번
-            if any(k in header for k in ["no", "번호", "품번", "item", "#"]):
-                if "item_no" not in col_map:
-                    col_map["item_no"] = idx
-            # 도면번호
-            elif any(k in header for k in ["도면", "drawing", "part no", "dwg"]):
+            # 도면번호 (최우선 - "번호" 포함 컬럼보다 먼저 체크)
+            if "drawing_number" not in col_map and any(
+                k in header for k in ["도면", "drawing", "dwg"]
+            ):
                 col_map["drawing_number"] = idx
+            # Doc Rev (도면 개정 — "doc rev" 형태, "rev" 단독보다 먼저)
+            elif "doc_revision" not in col_map and (
+                "doc" in header and "rev" in header
+            ):
+                col_map["doc_revision"] = idx
             # 품명
-            elif any(k in header for k in ["품명", "description", "name", "명칭", "desc"]):
+            elif "description" not in col_map and any(
+                k in header for k in ["품명", "description", "명칭", "desc"]
+            ):
                 col_map["description"] = idx
+            # Part No
+            elif "part_no" not in col_map and (
+                "part" in header and "no" in header
+            ):
+                col_map["part_no"] = idx
             # 재질
-            elif any(k in header for k in ["재질", "material", "mat", "spec"]):
+            elif "material" not in col_map and any(
+                k in header for k in ["재질", "material", "mat"]
+            ):
                 col_map["material"] = idx
+            # Size / 규격
+            elif "size" not in col_map and any(
+                k in header for k in ["size", "규격", "spec", "사양"]
+            ):
+                col_map["size"] = idx
             # 수량
-            elif any(k in header for k in ["수량", "qty", "quantity", "q'ty", "ea"]):
+            elif "quantity" not in col_map and any(
+                k in header for k in ["수량", "qty", "quantity", "q'ty"]
+            ):
                 col_map["quantity"] = idx
+            # 중량
+            elif "weight" not in col_map and any(
+                k in header for k in ["중량", "weight", "wt", "w.t"]
+            ):
+                col_map["weight"] = idx
+            # BOM Rev (항목 개정 — "rev" 단독)
+            elif "revision" not in col_map and (
+                header in ("rev", "rev.", "rev.no", "개정", "revision")
+                or re.match(r'^rev\b', header)
+            ):
+                col_map["revision"] = idx
+            # 레벨/깊이 (계층 컬럼: "Level", "Lv" 등)
+            elif "level_depth" not in col_map and any(
+                k in header for k in ["level", "lv", "레벨", "계층"]
+            ):
+                col_map["level_depth"] = idx
+            # 비고
+            elif "remark" not in col_map and any(
+                k in header for k in ["비고", "remark", "remarks", "note", "비 고"]
+            ):
+                col_map["remark"] = idx
+            # 품번 (마지막 - "no", "번호" 등 범용 키워드)
+            elif "item_no" not in col_map and any(
+                k in header for k in ["품번", "품목", "item", "serial",
+                                      "no", "번호", "#"]
+            ):
+                col_map["item_no"] = idx
 
         # 최소 drawing_number 또는 item_no가 있어야 유효
         if "drawing_number" not in col_map and "item_no" not in col_map:
@@ -278,6 +330,27 @@ class BOMPDFParser:
         # WHITE 또는 기타 → part
         return "part"
 
+    def _parse_level_column(self, row: list, level_col_idx: int) -> str:
+        """Level 컬럼 값에서 계층 레벨 판단
+
+        BOM Level 컬럼 형식: "..2", "...3", "....4", "…..5" 등
+        숫자가 깊이를 나타냄 (1-2: assembly, 3: subassembly, 4+: part)
+        """
+        if level_col_idx >= len(row) or not row[level_col_idx]:
+            return "part"
+
+        val = str(row[level_col_idx]).strip()
+        match = re.search(r'(\d+)', val)
+        if not match:
+            return "part"
+
+        depth = int(match.group(1))
+        if depth <= 2:
+            return "assembly"
+        elif depth == 3:
+            return "subassembly"
+        return "part"
+
     def _extract_item_from_row(
         self, row: list, col_map: Dict[str, int], level: str, page_num: int
     ) -> Optional[Dict[str, Any]]:
@@ -296,6 +369,14 @@ class BOMPDFParser:
         material = get_cell("material")
         quantity_str = get_cell("quantity")
 
+        # 신규 컬럼
+        revision_str = get_cell("revision")
+        doc_revision = get_cell("doc_revision")
+        part_no = get_cell("part_no")
+        size = get_cell("size")
+        weight_str = get_cell("weight")
+        remark = get_cell("remark")
+
         # 도면번호 정리 (공백, 특수문자 제거)
         drawing_number = re.sub(r'\s+', '', drawing_number)
 
@@ -310,6 +391,22 @@ class BOMPDFParser:
             except (AttributeError, ValueError):
                 quantity = 1
 
+        # BOM Rev 파싱 (0 or 1)
+        bom_revision = None
+        if revision_str:
+            try:
+                bom_revision = int(re.search(r'\d+', revision_str).group())
+            except (AttributeError, ValueError):
+                pass
+
+        # 중량 파싱
+        weight_kg = None
+        if weight_str:
+            try:
+                weight_kg = float(re.search(r'[\d.]+', weight_str).group())
+            except (AttributeError, ValueError):
+                pass
+
         return {
             "item_no": item_no or f"P{page_num + 1}-auto",
             "level": level,
@@ -321,32 +418,47 @@ class BOMPDFParser:
             "needs_quotation": False,
             "matched_file": None,
             "session_id": None,
+            # 신규 필드
+            "assembly_drawing_number": None,
+            "bom_revision": bom_revision,
+            "doc_revision": doc_revision or None,
+            "part_no": part_no or None,
+            "size": size or None,
+            "weight_kg": weight_kg,
+            "remark": remark or None,
         }
 
     def _assign_parents(self, items: List[Dict]):
-        """부모-자식 관계 설정
+        """부모-자식 관계 + 어셈블리 귀속 설정
 
         순서대로 순회하면서:
         - ASSEMBLY가 나오면 현재 부모를 이 항목으로 설정
         - SUBASSEMBLY가 나오면 부모를 마지막 ASSEMBLY로, 현재 서브부모를 이것으로
         - PART가 나오면 부모를 마지막 SUBASSEMBLY (없으면 ASSEMBLY)로
+
+        모든 항목에 assembly_drawing_number를 설정하여 소속 어셈블리를 추적.
         """
         current_assembly = None
+        current_assembly_dwg = None
         current_subassembly = None
 
         for item in items:
             if item["level"] == "assembly":
                 current_assembly = item["item_no"]
+                current_assembly_dwg = item["drawing_number"]
                 current_subassembly = None
                 # assembly는 부모 없음 (최상위)
                 item["parent_item_no"] = None
+                item["assembly_drawing_number"] = current_assembly_dwg
 
             elif item["level"] == "subassembly":
                 current_subassembly = item["item_no"]
                 item["parent_item_no"] = current_assembly
+                item["assembly_drawing_number"] = current_assembly_dwg
 
             elif item["level"] == "part":
                 item["parent_item_no"] = current_subassembly or current_assembly
+                item["assembly_drawing_number"] = current_assembly_dwg
 
     def _build_hierarchy(self, items: List[Dict]) -> List[Dict]:
         """flat 목록 → 트리 구조

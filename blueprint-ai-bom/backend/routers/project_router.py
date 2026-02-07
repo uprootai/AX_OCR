@@ -25,6 +25,7 @@ from schemas.project import (
     ProjectBatchUploadResponse,
 )
 from schemas.quotation import QuotationExportRequest, QuotationExportFormat
+from schemas.pricing_config import PricingConfig, DEFAULT_PRICING_CONFIG
 from schemas.bom_item import (
     BOMHierarchyResponse,
     DrawingMatchRequest,
@@ -115,8 +116,8 @@ async def get_project(project_id: str):
     project_service = services["project_service"]
     template_service = services["template_service"]
 
-    # 세션 서비스는 api_server에서 주입 필요 (순환 참조 방지)
-    # 일단 기본 정보만 반환
+    from routers.session_router import get_session_service
+
     project = project_service.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
@@ -128,8 +129,21 @@ async def get_project(project_id: str):
             project["template"] = template
             project["default_template_name"] = template.get("name")
 
-    # sessions는 api_server에서 별도 처리
-    project["sessions"] = []
+    # 세션 목록 조회
+    try:
+        session_service = get_session_service()
+        sessions = session_service.list_sessions_by_project(project_id)
+        project["sessions"] = sessions
+        project["session_count"] = len(sessions)
+        project["completed_count"] = len([
+            s for s in sessions if s.get("status") == "completed"
+        ])
+        project["pending_count"] = len([
+            s for s in sessions
+            if s.get("status") in ("uploaded", "detected", "verifying")
+        ])
+    except Exception:
+        project["sessions"] = []
 
     return project
 
@@ -359,15 +373,29 @@ async def get_bom_hierarchy(project_id: str):
     if not bom_data:
         raise HTTPException(status_code=404, detail="BOM 데이터가 없습니다. 먼저 import-bom을 실행하세요.")
 
+    # bom_items.json이 리스트(직접 아이템 배열) 또는 dict 형태 모두 지원
+    if isinstance(bom_data, list):
+        bom_items = bom_data
+        bom_source = project.get("bom_source", "")
+        assembly_count = sum(1 for i in bom_items if i.get("level") == "assembly")
+        subassembly_count = sum(1 for i in bom_items if i.get("level") == "subassembly")
+        part_count = sum(1 for i in bom_items if i.get("level") == "part")
+    else:
+        bom_items = bom_data.get("items", [])
+        bom_source = bom_data.get("source_file", "")
+        assembly_count = bom_data.get("assembly_count", 0)
+        subassembly_count = bom_data.get("subassembly_count", 0)
+        part_count = bom_data.get("part_count", 0)
+
     return BOMHierarchyResponse(
         project_id=project_id,
-        bom_source=bom_data.get("source_file", ""),
-        total_items=bom_data.get("total_items", 0),
-        assembly_count=bom_data.get("assembly_count", 0),
-        subassembly_count=bom_data.get("subassembly_count", 0),
-        part_count=bom_data.get("part_count", 0),
-        items=bom_data.get("items", []),
-        hierarchy=bom_data.get("hierarchy", []),
+        bom_source=bom_source,
+        total_items=len(bom_items),
+        assembly_count=assembly_count,
+        subassembly_count=subassembly_count,
+        part_count=part_count,
+        items=bom_items,
+        hierarchy=bom_data.get("hierarchy", []) if isinstance(bom_data, dict) else [],
     )
 
 
@@ -431,6 +459,47 @@ async def match_drawings(
     )
 
 
+def _get_subtree_items(items: list, root_drawing_number: str) -> list:
+    """특정 어셈블리의 하위 항목만 필터링
+
+    BOM 계층에서 root_drawing_number에 해당하는 ASSY를 찾고,
+    parent_item_no 체인을 따라 모든 자손 항목을 수집합니다.
+
+    Args:
+        items: 전체 BOM 항목 리스트
+        root_drawing_number: 루트 어셈블리 도면번호
+
+    Returns:
+        해당 어셈블리의 모든 하위 항목 (루트 포함)
+    """
+    # 1. root item 찾기
+    root_item = None
+    for item in items:
+        if item.get("drawing_number") == root_drawing_number:
+            root_item = item
+            break
+
+    if not root_item:
+        return []
+
+    root_item_no = root_item.get("item_no")
+
+    # 2. 모든 자손 item_no 수집 (BFS)
+    subtree_item_nos = {root_item_no}
+    queue = [root_item_no]
+
+    while queue:
+        current = queue.pop(0)
+        for item in items:
+            parent = item.get("parent_item_no")
+            if parent == current and item.get("item_no") not in subtree_item_nos:
+                subtree_item_nos.add(item.get("item_no"))
+                queue.append(item.get("item_no"))
+
+    # 3. 서브트리 항목 반환
+    return [item for item in items if item.get("item_no") in subtree_item_nos]
+
+
 @router.post("/{project_id}/create-sessions", response_model=SessionBatchCreateResponse)
 async def create_sessions_from_bom(
     project_id: str,
@@ -456,10 +525,27 @@ async def create_sessions_from_bom(
 
     services = get_services()
     project_service = services["project_service"]
+    template_service = services["template_service"]
 
     project = project_service.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
+
+    # 템플릿 조회 (이름으로 검색)
+    template = None
+    template_id = None
+    if request.template_name:
+        for t in template_service.list_templates():
+            if t.get("name") == request.template_name:
+                template_id = t.get("template_id")
+                template = template_service.get_template(template_id)
+                break
+        if not template:
+            logger.warning(f"템플릿을 찾을 수 없음: {request.template_name}, 기본값 사용")
+
+    # 템플릿에서 설정 추출 (없으면 기본값)
+    tmpl_drawing_type = template.get("drawing_type", "dimension_bom") if template else "dimension_bom"
+    tmpl_features = template.get("features", ["dimension_ocr", "table_extraction"]) if template else ["dimension_ocr", "table_extraction"]
 
     # BOM 데이터 로드
     project_dir = project_service.projects_dir / project_id
@@ -478,28 +564,60 @@ async def create_sessions_from_bom(
             detail="세션 서비스가 초기화되지 않았습니다"
         )
 
+    all_items = bom_data["items"]
+
+    # 어셈블리 스코프 필터
+    if request.root_drawing_number:
+        all_items = _get_subtree_items(all_items, request.root_drawing_number)
+        if not all_items:
+            raise HTTPException(
+                status_code=404,
+                detail=f"어셈블리를 찾을 수 없습니다: {request.root_drawing_number}"
+            )
+
     # WHITE(part) 항목만 필터
     part_items = [
-        item for item in bom_data["items"]
+        item for item in all_items
         if item.get("needs_quotation", False)
     ]
+
+    # 도면번호 기준 중복 제거 및 수량 합산
+    from collections import defaultdict
+    drawing_groups: Dict[str, list] = defaultdict(list)
+    for item in part_items:
+        dwg = item.get("drawing_number", "")
+        if dwg:
+            drawing_groups[dwg].append(item)
 
     created_sessions = []
     skipped = 0
     failed = 0
 
-    for item in part_items:
-        matched_file = item.get("matched_file")
+    for drawing_number, group_items in drawing_groups.items():
+        # 이미 세션이 생성된 도면은 건너뛰기
+        existing_session = next(
+            (it.get("session_id") for it in group_items if it.get("session_id")),
+            None,
+        )
+        if existing_session:
+            skipped += len(group_items)
+            continue
+
+        # 대표 항목 선택 (matched_file 있는 것 우선)
+        rep = next(
+            (it for it in group_items if it.get("matched_file")),
+            group_items[0],
+        )
+        matched_file = rep.get("matched_file")
 
         # 매칭된 파일이 없으면 건너뛰기
         if request.only_matched and not matched_file:
-            skipped += 1
+            skipped += len(group_items)
             continue
 
-        # 이미 세션이 생성된 항목은 건너뛰기
-        if item.get("session_id"):
-            skipped += 1
-            continue
+        # 수량 합산 및 item_no 목록 수집
+        total_qty = sum(it.get("quantity", 1) for it in group_items)
+        all_item_nos = [it.get("item_no", "") for it in group_items]
 
         try:
             session_id = str(uuid.uuid4())
@@ -518,8 +636,26 @@ async def create_sessions_from_bom(
                 shutil.copy2(str(src_path), str(dest_path))
                 file_path = str(dest_path)
 
+                # PDF → PNG 변환 (ML 모델은 이미지만 처리 가능)
+                if src_path.suffix.lower() == ".pdf":
+                    try:
+                        import fitz
+                        doc = fitz.open(str(dest_path))
+                        page = doc[0]
+                        # 300 DPI 렌더링 (OCR 정확도 향상)
+                        mat = fitz.Matrix(300 / 72, 300 / 72)
+                        pix = page.get_pixmap(matrix=mat)
+                        png_path = session_dir / "original.png"
+                        pix.save(str(png_path))
+                        image_width, image_height = pix.width, pix.height
+                        file_path = str(png_path)
+                        doc.close()
+                        logger.info(f"PDF→PNG 변환 완료: {drawing_number} ({image_width}x{image_height})")
+                    except Exception as e:
+                        logger.error(f"PDF→PNG 변환 실패: {drawing_number}: {e}")
+
                 # 이미지인 경우 크기 추출
-                if src_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".tiff", ".tif"}:
+                elif src_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".tiff", ".tif"}:
                     try:
                         from PIL import Image
                         with Image.open(dest_path) as img:
@@ -527,43 +663,72 @@ async def create_sessions_from_bom(
                     except Exception:
                         pass
 
-            # BOM 메타데이터 구성
+            # 소속 어셈블리 목록 수집 (공유 도면 → 복수 어셈블리)
+            assembly_refs = []
+            seen_assy = set()
+            for it in group_items:
+                assy_dwg = it.get("assembly_drawing_number")
+                if assy_dwg and assy_dwg not in seen_assy:
+                    seen_assy.add(assy_dwg)
+                    assembly_refs.append({
+                        "assembly": assy_dwg,
+                        "item_no": it.get("item_no"),
+                        "quantity": it.get("quantity", 1),
+                    })
+
+            # BOM 메타데이터 구성 (수량 합산, item_no 목록)
             metadata = {
-                "drawing_number": item.get("drawing_number", ""),
-                "bom_item_no": item.get("item_no", ""),
-                "bom_level": item.get("level", "part"),
-                "material": item.get("material", ""),
-                "bom_quantity": item.get("quantity", 1),
-                "bom_description": item.get("description", ""),
+                "drawing_number": drawing_number,
+                "bom_item_no": all_item_nos[0] if len(all_item_nos) == 1 else ",".join(all_item_nos),
+                "bom_item_nos": all_item_nos,
+                "bom_level": rep.get("level", "part"),
+                "material": rep.get("material", ""),
+                "bom_quantity": total_qty,
+                "bom_line_count": len(group_items),
+                "bom_description": rep.get("description", ""),
                 "quote_status": "pending",
+                # 어셈블리 귀속 및 개정 정보
+                "assembly_refs": assembly_refs,
+                "bom_revision": rep.get("bom_revision"),
+                "doc_revision": rep.get("doc_revision"),
+                "part_no": rep.get("part_no"),
+                "size": rep.get("size"),
+                "remark": rep.get("remark"),
             }
 
-            # 세션 생성
+            # 세션 생성 (템플릿 설정 적용)
             session = session_service.create_session(
                 session_id=session_id,
-                filename=Path(matched_file).name if matched_file else f"{item.get('drawing_number', 'unknown')}.pdf",
+                filename=Path(matched_file).name if matched_file else f"{drawing_number}.pdf",
                 file_path=file_path,
-                drawing_type="dimension_bom",
+                drawing_type=tmpl_drawing_type,
                 image_width=image_width,
                 image_height=image_height,
-                features=["dimension_ocr", "table_extraction"],
+                features=tmpl_features,
                 project_id=project_id,
                 metadata=metadata,
             )
 
-            # BOM 항목에 세션 ID 기록
-            item["session_id"] = session_id
+            # 템플릿 상세 설정 적용 (model_type, detection_params 등)
+            if template_id:
+                template_service.apply_template_to_session(template_id, session)
+
+            # 그룹 내 모든 BOM 항목에 동일 세션 ID 기록
+            for it in group_items:
+                it["session_id"] = session_id
 
             created_sessions.append({
                 "session_id": session_id,
-                "drawing_number": item.get("drawing_number"),
-                "description": item.get("description"),
-                "material": item.get("material"),
+                "drawing_number": drawing_number,
+                "description": rep.get("description"),
+                "material": rep.get("material"),
+                "quantity": total_qty,
+                "line_count": len(group_items),
                 "filename": session.get("filename"),
             })
 
         except Exception as e:
-            logger.error(f"세션 생성 실패 ({item.get('drawing_number')}): {e}")
+            logger.error(f"세션 생성 실패 ({drawing_number}): {e}")
             failed += 1
 
     # BOM 데이터 업데이트 (세션 ID 저장)
@@ -575,6 +740,8 @@ async def create_sessions_from_bom(
     project_service._save_project(project_id)
 
     message = f"{len(created_sessions)}개 세션 생성 완료"
+    if template:
+        message += f" (템플릿: {request.template_name})"
     if skipped > 0:
         message += f", {skipped}개 건너뜀"
     if failed > 0:
@@ -785,6 +952,173 @@ async def download_project_quotation(
         media_type=media_type,
         filename=filename,
     )
+
+
+@router.get("/{project_id}/quotation/assembly/{assembly_dwg}/download")
+async def download_assembly_quotation(
+    project_id: str,
+    assembly_dwg: str,
+    format: str = Query("pdf", description="다운로드 형식 (pdf/excel)"),
+):
+    """어셈블리 단위 견적서 파일 다운로드
+
+    Args:
+        project_id: 프로젝트 ID
+        assembly_dwg: 어셈블리 도면번호
+        format: 다운로드 형식 (pdf/excel)
+
+    Returns:
+        FileResponse: 견적서 파일
+    """
+    from fastapi.responses import FileResponse
+    from services.quotation_service import get_quotation_service
+    from routers.session_router import get_session_service
+
+    services = get_services()
+    project_service = services["project_service"]
+
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
+
+    quotation_service = get_quotation_service()
+
+    # 견적 데이터 로드 또는 생성
+    quotation_data = quotation_service._load_quotation(project_id, project_service)
+    if not quotation_data:
+        try:
+            session_service = get_session_service()
+        except Exception:
+            raise HTTPException(
+                status_code=500,
+                detail="세션 서비스가 초기화되지 않았습니다"
+            )
+        quotation_data = quotation_service.aggregate_quotation(
+            project_id, project_service, session_service
+        )
+
+    # 어셈블리 존재 확인
+    assy_group = next(
+        (g for g in quotation_data.assembly_groups
+         if g.assembly_drawing_number == assembly_dwg),
+        None
+    )
+    if not assy_group:
+        raise HTTPException(status_code=404, detail=f"어셈블리를 찾을 수 없습니다: {assembly_dwg}")
+
+    # 파일 경로 및 생성
+    safe_assy = assembly_dwg.replace("/", "_").replace(" ", "_")
+    export_format = (
+        QuotationExportFormat.EXCEL if format == "excel"
+        else QuotationExportFormat.PDF
+    )
+
+    try:
+        result = quotation_service.export_assembly(
+            quotation_data=quotation_data,
+            assembly_drawing_number=assembly_dwg,
+            format=export_format,
+        )
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"어셈블리 견적서 생성 실패: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    file_path = Path(result.file_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="견적서 파일을 생성할 수 없습니다")
+
+    if format == "excel":
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"quotation_{project_id}_{safe_assy}.xlsx"
+    else:
+        media_type = "application/pdf"
+        filename = f"quotation_{project_id}_{safe_assy}.pdf"
+
+    return FileResponse(
+        path=str(file_path),
+        media_type=media_type,
+        filename=filename,
+    )
+
+
+# =============================================================================
+# 단가 설정 API (Phase 4)
+# =============================================================================
+
+@router.get("/{project_id}/pricing-config")
+async def get_pricing_config(project_id: str):
+    """프로젝트 단가 설정 조회
+
+    현재 단가 설정 반환 (없으면 기본값)
+
+    Args:
+        project_id: 프로젝트 ID
+
+    Returns:
+        PricingConfig: 단가 설정
+    """
+    services = get_services()
+    project_service = services["project_service"]
+
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
+
+    project_dir = project_service.projects_dir / project_id
+    config_file = project_dir / "pricing_config.json"
+
+    if config_file.exists():
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return PricingConfig(**data)
+        except Exception as e:
+            logger.warning(f"단가 설정 로드 실패, 기본값 반환: {e}")
+
+    return DEFAULT_PRICING_CONFIG
+
+
+@router.post("/{project_id}/pricing-config")
+async def save_pricing_config(
+    project_id: str,
+    config: PricingConfig,
+):
+    """프로젝트 단가 설정 저장
+
+    단가 설정을 pricing_config.json으로 저장합니다.
+
+    Args:
+        project_id: 프로젝트 ID
+        config: 단가 설정
+
+    Returns:
+        저장 결과
+    """
+    services = get_services()
+    project_service = services["project_service"]
+
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
+
+    project_dir = project_service.projects_dir / project_id
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    config_file = project_dir / "pricing_config.json"
+    with open(config_file, "w", encoding="utf-8") as f:
+        json.dump(config.model_dump(), f, ensure_ascii=False, indent=2)
+
+    logger.info(f"단가 설정 저장: {project_id} → {config_file}")
+
+    return {
+        "project_id": project_id,
+        "message": "단가 설정이 저장되었습니다",
+        "config": config,
+    }
 
 
 # =============================================================================

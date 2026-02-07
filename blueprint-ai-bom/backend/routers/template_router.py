@@ -18,6 +18,9 @@ from schemas.template import (
     TemplateResponse,
     TemplateDetail,
     TemplateListResponse,
+    TemplateVersionListResponse,
+    TemplateVersion,
+    TemplateRollbackRequest,
 )
 from services.template_service import get_template_service, TemplateService
 
@@ -209,3 +212,194 @@ async def preview_template(template_id: str):
         "edge_count": template.get("edge_count", 0),
         "node_types": template.get("node_types", [])
     }
+
+
+# ============ 버전 관리 엔드포인트 ============
+
+@router.get("/{template_id}/versions", response_model=TemplateVersionListResponse)
+async def get_version_history(template_id: str):
+    """템플릿 버전 히스토리 조회
+
+    Args:
+        template_id: 템플릿 ID
+
+    Returns:
+        버전 히스토리 목록 (최신순)
+    """
+    svc = get_template_svc()
+    template = svc.get_template(template_id)
+
+    if not template:
+        raise HTTPException(status_code=404, detail=f"템플릿을 찾을 수 없습니다: {template_id}")
+
+    versions = svc.get_version_history(template_id)
+
+    return {
+        "template_id": template_id,
+        "template_name": template.get("name"),
+        "current_version": template.get("current_version", len(versions)),
+        "versions": [
+            {
+                "version": v.get("version"),
+                "change_summary": v.get("change_summary", ""),
+                "node_count": v.get("node_count", 0),
+                "edge_count": v.get("edge_count", 0),
+                "created_at": v.get("created_at"),
+                "created_by": v.get("created_by"),
+            }
+            for v in versions
+        ],
+        "total": len(versions)
+    }
+
+
+@router.get("/{template_id}/versions/{version}", response_model=TemplateVersion)
+async def get_version(template_id: str, version: int):
+    """특정 버전 상세 조회
+
+    Args:
+        template_id: 템플릿 ID
+        version: 버전 번호
+
+    Returns:
+        버전 상세 정보 (노드/엣지 포함)
+    """
+    svc = get_template_svc()
+    version_data = svc.get_version(template_id, version)
+
+    if not version_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"버전을 찾을 수 없습니다: {template_id} v{version}"
+        )
+
+    return version_data
+
+
+@router.post("/{template_id}/versions")
+async def create_version(
+    template_id: str,
+    change_summary: str = "",
+    created_by: Optional[str] = None
+):
+    """현재 상태로 버전 생성
+
+    Args:
+        template_id: 템플릿 ID
+        change_summary: 변경 요약
+        created_by: 변경자
+
+    Returns:
+        생성된 버전 정보
+    """
+    svc = get_template_svc()
+    template = svc.get_template(template_id)
+
+    if not template:
+        raise HTTPException(status_code=404, detail=f"템플릿을 찾을 수 없습니다: {template_id}")
+
+    version_data = svc._create_version_snapshot(
+        template_id,
+        change_summary=change_summary or "수동 버전 생성",
+        created_by=created_by
+    )
+
+    return {
+        "success": True,
+        "version": version_data.get("version"),
+        "message": f"버전 {version_data.get('version')} 생성 완료"
+    }
+
+
+@router.post("/{template_id}/rollback", response_model=TemplateResponse)
+async def rollback_template(
+    template_id: str,
+    request: TemplateRollbackRequest,
+    created_by: Optional[str] = None
+):
+    """특정 버전으로 롤백
+
+    Args:
+        template_id: 템플릿 ID
+        request: 롤백 요청 (target_version)
+        created_by: 변경자
+
+    Returns:
+        롤백된 템플릿 정보
+    """
+    svc = get_template_svc()
+    result = svc.rollback_to_version(
+        template_id,
+        request.target_version,
+        created_by=created_by
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"롤백 실패: 버전 {request.target_version}을 찾을 수 없습니다"
+        )
+
+    return svc.get_template_summary(template_id)
+
+
+@router.get("/{template_id}/versions/compare")
+async def compare_versions(
+    template_id: str,
+    version_a: int,
+    version_b: int
+):
+    """두 버전 비교
+
+    Args:
+        template_id: 템플릿 ID
+        version_a: 비교할 버전 A
+        version_b: 비교할 버전 B
+
+    Returns:
+        버전 간 차이점
+    """
+    svc = get_template_svc()
+    diff = svc.compare_versions(template_id, version_a, version_b)
+
+    if not diff:
+        raise HTTPException(
+            status_code=404,
+            detail=f"버전 비교 실패: {template_id} v{version_a} 또는 v{version_b}를 찾을 수 없습니다"
+        )
+
+    return diff
+
+
+@router.put("/{template_id}/with-version", response_model=TemplateResponse)
+async def update_template_with_version(
+    template_id: str,
+    updates: TemplateUpdate,
+    change_summary: str = "",
+    created_by: Optional[str] = None
+):
+    """버전 관리와 함께 템플릿 수정
+
+    수정 전후 상태를 자동으로 버전으로 저장합니다.
+
+    Args:
+        template_id: 템플릿 ID
+        updates: 수정할 데이터
+        change_summary: 변경 요약 (선택, 자동 생성됨)
+        created_by: 변경자
+
+    Returns:
+        수정된 템플릿 정보
+    """
+    svc = get_template_svc()
+    result = svc.update_template_with_version(
+        template_id,
+        updates,
+        change_summary=change_summary,
+        created_by=created_by
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail=f"템플릿을 찾을 수 없습니다: {template_id}")
+
+    return svc.get_template_summary(template_id)

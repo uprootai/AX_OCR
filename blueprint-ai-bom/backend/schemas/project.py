@@ -7,7 +7,7 @@ Phase 2: 프로젝트 기반 도면 관리
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -16,6 +16,10 @@ class ProjectCreate(BaseModel):
     name: str = Field(..., description="프로젝트명", example="파나시아 BWMS")
     customer: str = Field(..., description="고객사명", example="파나시아")
     description: Optional[str] = Field(None, description="프로젝트 설명")
+    project_type: Optional[Literal["bom_quotation", "pid_detection", "general"]] = Field(
+        "general",
+        description="프로젝트 타입 (선택사항)"
+    )
     default_template_id: Optional[str] = Field(None, description="기본 템플릿 ID")
 
     # 기본 설정 (템플릿 없이 사용 시)
@@ -39,6 +43,7 @@ class ProjectUpdate(BaseModel):
     """프로젝트 수정 요청"""
     name: Optional[str] = None
     customer: Optional[str] = None
+    project_type: Optional[Literal["bom_quotation", "pid_detection", "general"]] = None
     description: Optional[str] = None
     default_template_id: Optional[str] = None
     default_model_type: Optional[str] = None
@@ -57,6 +62,7 @@ class ProjectResponse(BaseModel):
     name: str
     customer: str
     description: Optional[str] = None
+    project_type: str = Field(default="general", description="프로젝트 타입")
 
     # 템플릿 연결
     default_template_id: Optional[str] = None

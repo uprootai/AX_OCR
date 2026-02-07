@@ -126,3 +126,54 @@ class TemplateListResponse(BaseModel):
     """템플릿 목록 응답"""
     templates: List[TemplateResponse]
     total: int
+
+
+# ============ 버전 관리 스키마 ============
+
+class TemplateVersion(BaseModel):
+    """템플릿 버전 정보"""
+    version: int = Field(..., description="버전 번호")
+    template_id: str = Field(..., description="템플릿 ID")
+    name: str = Field(..., description="템플릿명")
+    description: Optional[str] = None
+    model_type: str
+    detection_params: Dict[str, Any] = Field(default_factory=dict)
+    features: List[str] = Field(default_factory=list)
+    drawing_type: str = "auto"
+    nodes: List[TemplateNode] = Field(default_factory=list)
+    edges: List[TemplateEdge] = Field(default_factory=list)
+    node_count: int = 0
+    edge_count: int = 0
+    change_summary: str = Field(
+        default="",
+        description="변경 요약",
+        example="YOLO confidence 0.3→0.4, 노드 2개 추가"
+    )
+    created_at: datetime
+    created_by: Optional[str] = Field(None, description="변경자")
+
+
+class TemplateVersionResponse(BaseModel):
+    """버전 응답"""
+    model_config = ConfigDict(from_attributes=True)
+
+    version: int
+    change_summary: str
+    node_count: int
+    edge_count: int
+    created_at: datetime
+    created_by: Optional[str] = None
+
+
+class TemplateVersionListResponse(BaseModel):
+    """버전 목록 응답"""
+    template_id: str
+    template_name: str
+    current_version: int
+    versions: List[TemplateVersionResponse]
+    total: int
+
+
+class TemplateRollbackRequest(BaseModel):
+    """롤백 요청"""
+    target_version: int = Field(..., description="롤백할 버전 번호")

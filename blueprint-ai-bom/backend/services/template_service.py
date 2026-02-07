@@ -18,6 +18,7 @@ from schemas.template import (
     TemplateUpdate,
     TemplateResponse,
     TemplateDetail,
+    TemplateVersion,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,13 +34,17 @@ class TemplateService:
         """
         self.data_dir = data_dir
         self.templates_dir = data_dir / "templates"
+        self.versions_dir = data_dir / "template_versions"
         self.templates_dir.mkdir(parents=True, exist_ok=True)
+        self.versions_dir.mkdir(parents=True, exist_ok=True)
 
         # 메모리 캐시
         self.templates: Dict[str, Dict[str, Any]] = {}
+        self.versions: Dict[str, List[Dict[str, Any]]] = {}  # template_id -> versions
 
         # 기존 템플릿 로드
         self._load_all_templates()
+        self._load_all_versions()
 
     def _load_all_templates(self):
         """모든 템플릿 파일 로드"""
@@ -228,6 +233,281 @@ class TemplateService:
         self.increment_usage(template_id)
 
         return session_data
+
+    # ============ 버전 관리 메서드 ============
+
+    def _load_all_versions(self):
+        """모든 버전 파일 로드"""
+        for version_file in self.versions_dir.glob("*.json"):
+            try:
+                with open(version_file, "r", encoding="utf-8") as f:
+                    version_data = json.load(f)
+                    template_id = version_data.get("template_id")
+                    if template_id:
+                        if template_id not in self.versions:
+                            self.versions[template_id] = []
+                        self.versions[template_id].append(version_data)
+            except Exception as e:
+                logger.error(f"버전 로드 실패: {version_file} - {e}")
+
+        # 각 템플릿의 버전을 버전 번호순 정렬
+        for template_id in self.versions:
+            self.versions[template_id].sort(key=lambda v: v.get("version", 0))
+
+        total_versions = sum(len(v) for v in self.versions.values())
+        logger.info(f"템플릿 버전 {total_versions}개 로드 완료")
+
+    def _create_version_snapshot(
+        self,
+        template_id: str,
+        change_summary: str = "",
+        created_by: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """현재 템플릿 상태의 버전 스냅샷 생성"""
+        template = self.get_template(template_id)
+        if not template:
+            return None
+
+        # 현재 버전 번호 계산
+        current_versions = self.versions.get(template_id, [])
+        next_version = len(current_versions) + 1
+
+        # 버전 스냅샷 생성
+        version_data = {
+            "version": next_version,
+            "template_id": template_id,
+            "name": template.get("name"),
+            "description": template.get("description"),
+            "model_type": template.get("model_type"),
+            "detection_params": template.get("detection_params", {}),
+            "features": template.get("features", []),
+            "drawing_type": template.get("drawing_type", "auto"),
+            "nodes": template.get("nodes", []),
+            "edges": template.get("edges", []),
+            "node_count": template.get("node_count", 0),
+            "edge_count": template.get("edge_count", 0),
+            "change_summary": change_summary,
+            "created_at": datetime.now().isoformat(),
+            "created_by": created_by,
+        }
+
+        # 메모리에 저장
+        if template_id not in self.versions:
+            self.versions[template_id] = []
+        self.versions[template_id].append(version_data)
+
+        # 파일로 저장
+        version_file = self.versions_dir / f"{template_id}_v{next_version}.json"
+        with open(version_file, "w", encoding="utf-8") as f:
+            json.dump(version_data, f, ensure_ascii=False, indent=2, default=str)
+
+        # 템플릿에 현재 버전 정보 업데이트
+        template["current_version"] = next_version
+        self.templates[template_id] = template
+        self._save_template(template_id)
+
+        logger.info(f"템플릿 버전 생성: {template_id} v{next_version}")
+        return version_data
+
+    def get_version_history(self, template_id: str) -> List[Dict[str, Any]]:
+        """템플릿 버전 히스토리 조회"""
+        versions = self.versions.get(template_id, [])
+        # 최신순으로 반환
+        return sorted(versions, key=lambda v: v.get("version", 0), reverse=True)
+
+    def get_version(self, template_id: str, version: int) -> Optional[Dict[str, Any]]:
+        """특정 버전 조회"""
+        versions = self.versions.get(template_id, [])
+        for v in versions:
+            if v.get("version") == version:
+                return v
+        return None
+
+    def rollback_to_version(
+        self,
+        template_id: str,
+        target_version: int,
+        created_by: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """특정 버전으로 롤백"""
+        target = self.get_version(template_id, target_version)
+        if not target:
+            return None
+
+        # 현재 상태를 먼저 버전으로 저장
+        self._create_version_snapshot(
+            template_id,
+            change_summary=f"v{target_version}으로 롤백 전 백업",
+            created_by=created_by
+        )
+
+        # 타겟 버전의 데이터로 템플릿 복원
+        template = self.get_template(template_id)
+        if not template:
+            return None
+
+        # 복원할 필드들
+        restore_fields = [
+            "name", "description", "model_type", "detection_params",
+            "features", "drawing_type", "nodes", "edges",
+            "node_count", "edge_count"
+        ]
+        for field in restore_fields:
+            if field in target:
+                template[field] = target[field]
+
+        template["updated_at"] = datetime.now().isoformat()
+        self.templates[template_id] = template
+        self._save_template(template_id)
+
+        # 롤백 후 새 버전 생성
+        self._create_version_snapshot(
+            template_id,
+            change_summary=f"v{target_version}에서 롤백 완료",
+            created_by=created_by
+        )
+
+        logger.info(f"템플릿 롤백: {template_id} → v{target_version}")
+        return template
+
+    def compare_versions(
+        self,
+        template_id: str,
+        version_a: int,
+        version_b: int
+    ) -> Optional[Dict[str, Any]]:
+        """두 버전 비교"""
+        va = self.get_version(template_id, version_a)
+        vb = self.get_version(template_id, version_b)
+
+        if not va or not vb:
+            return None
+
+        diff = {
+            "template_id": template_id,
+            "version_a": version_a,
+            "version_b": version_b,
+            "changes": []
+        }
+
+        # 비교할 필드들
+        compare_fields = [
+            ("name", "이름"),
+            ("model_type", "모델 타입"),
+            ("drawing_type", "도면 타입"),
+            ("node_count", "노드 수"),
+            ("edge_count", "엣지 수"),
+        ]
+
+        for field, label in compare_fields:
+            val_a = va.get(field)
+            val_b = vb.get(field)
+            if val_a != val_b:
+                diff["changes"].append({
+                    "field": field,
+                    "label": label,
+                    "from": val_a,
+                    "to": val_b
+                })
+
+        # 파라미터 비교
+        params_a = va.get("detection_params", {})
+        params_b = vb.get("detection_params", {})
+        all_params = set(params_a.keys()) | set(params_b.keys())
+        for param in all_params:
+            val_a = params_a.get(param)
+            val_b = params_b.get(param)
+            if val_a != val_b:
+                diff["changes"].append({
+                    "field": f"detection_params.{param}",
+                    "label": f"파라미터: {param}",
+                    "from": val_a,
+                    "to": val_b
+                })
+
+        # 기능 비교
+        features_a = set(va.get("features", []))
+        features_b = set(vb.get("features", []))
+        added = features_b - features_a
+        removed = features_a - features_b
+        if added or removed:
+            diff["changes"].append({
+                "field": "features",
+                "label": "기능",
+                "added": list(added),
+                "removed": list(removed)
+            })
+
+        return diff
+
+    def update_template_with_version(
+        self,
+        template_id: str,
+        data: TemplateUpdate,
+        change_summary: str = "",
+        created_by: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """버전 관리와 함께 템플릿 수정"""
+        template = self.get_template(template_id)
+        if not template:
+            return None
+
+        # 수정 전 버전 스냅샷 생성 (첫 번째 버전이 아닌 경우에만)
+        if template_id in self.versions and len(self.versions[template_id]) > 0:
+            # 변경 요약 자동 생성
+            if not change_summary:
+                change_summary = self._generate_change_summary(template, data)
+        else:
+            # 첫 번째 버전 생성
+            self._create_version_snapshot(
+                template_id,
+                change_summary="초기 버전",
+                created_by=created_by
+            )
+
+        # 템플릿 수정
+        result = self.update_template(template_id, data)
+        if not result:
+            return None
+
+        # 수정 후 버전 스냅샷 생성
+        self._create_version_snapshot(
+            template_id,
+            change_summary=change_summary or "템플릿 수정",
+            created_by=created_by
+        )
+
+        return result
+
+    def _generate_change_summary(
+        self,
+        old_template: Dict[str, Any],
+        updates: TemplateUpdate
+    ) -> str:
+        """변경 요약 자동 생성"""
+        changes = []
+        update_data = updates.model_dump(exclude_unset=True)
+
+        if "name" in update_data and update_data["name"] != old_template.get("name"):
+            changes.append(f"이름 변경: {update_data['name']}")
+
+        if "model_type" in update_data and update_data["model_type"] != old_template.get("model_type"):
+            changes.append(f"모델 변경: {update_data['model_type']}")
+
+        if "nodes" in update_data:
+            old_count = old_template.get("node_count", 0)
+            new_count = len(update_data["nodes"])
+            if new_count != old_count:
+                diff = new_count - old_count
+                changes.append(f"노드 {'+' if diff > 0 else ''}{diff}개")
+
+        if "detection_params" in update_data:
+            changes.append("검출 파라미터 수정")
+
+        if "features" in update_data:
+            changes.append("기능 목록 수정")
+
+        return ", ".join(changes) if changes else "템플릿 수정"
 
     def _save_template(self, template_id: str):
         """템플릿 파일 저장"""

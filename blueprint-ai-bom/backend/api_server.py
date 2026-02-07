@@ -27,6 +27,7 @@ from routers.analysis import (
     line_router,
     region_router,
     gdt_router,
+    batch_router,
     set_core_services,
     set_line_services,
     set_region_services,
@@ -151,6 +152,7 @@ app.include_router(dimension_router, tags=["Dimensions"])
 app.include_router(line_router, tags=["Lines & Connectivity"])
 app.include_router(region_router, tags=["Regions"])
 app.include_router(gdt_router, tags=["GD&T & Title Block"])
+app.include_router(batch_router, tags=["Batch Analysis"])
 app.include_router(verification_router_api, tags=["Verification"])  # v3: Active Learning
 app.include_router(classification_router_api, tags=["Classification"])  # v4: VLM 분류
 app.include_router(relation_router_api, tags=["Relations"])  # Phase 2: 치수선 기반 관계

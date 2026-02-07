@@ -16,6 +16,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from services.image_utils import resize_image_if_needed
+
 from schemas.session import (
     SessionResponse,
     SessionDetail,
@@ -108,14 +110,20 @@ async def upload_image(
         content = await file.read()
         await f.write(content)
 
-    # 이미지 크기 추출
+    # 이미지 크기 추출 및 필요 시 리사이즈 (ML 모델 최적화)
     from PIL import Image
     try:
-        with Image.open(file_path) as img:
-            image_width, image_height = img.size
-        logger.info(f"[Session] Image size extracted: {image_width}x{image_height}")
+        # 대용량 이미지 자동 리사이즈 (max 8000px, 64MP)
+        resize_result = resize_image_if_needed(file_path)
+        if resize_result["resized"]:
+            logger.info(
+                f"[Session] 이미지 자동 리사이즈: "
+                f"{resize_result['original_size']} → {resize_result['new_size']}"
+            )
+        image_width, image_height = resize_result["new_size"]
+        logger.info(f"[Session] Image size: {image_width}x{image_height}")
     except Exception as e:
-        logger.warning(f"[Session] Failed to extract image size: {e}")
+        logger.warning(f"[Session] Failed to process image: {e}")
         image_width, image_height = None, None
 
     # features 파싱 (쉼표 구분 문자열 → 리스트)
@@ -203,7 +211,7 @@ async def update_session(session_id: str, updates: dict):
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
     # 허용된 필드만 업데이트 (features, ocr_texts, connections, texts, table_results, metadata 추가)
-    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source", "texts", "texts_count", "tables_count", "table_regions_count", "table_results", "metadata", "project_id"}
+    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source", "texts", "texts_count", "tables_count", "table_regions_count", "table_results", "metadata", "project_id", "model_type", "template_id"}
     filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
 
     if filtered_updates:
@@ -748,25 +756,27 @@ async def add_image_to_session(
         content = await file.read()
         await f.write(content)
 
-    # 이미지 크기 추출
+    # 이미지 크기 추출 및 필요 시 리사이즈
     from PIL import Image
     try:
-        with Image.open(file_path) as img:
-            image_width, image_height = img.size
+        # 대용량 이미지 자동 리사이즈
+        resize_result = resize_image_if_needed(file_path)
+        if resize_result["resized"]:
+            logger.info(f"[Session] 추가 이미지 자동 리사이즈: {resize_result['original_size']} → {resize_result['new_size']}")
+        image_width, image_height = resize_result["new_size"]
 
         # 썸네일 생성
         thumbnail_base64 = None
         try:
             with Image.open(file_path) as img:
                 img.thumbnail((150, 150))
-                from io import BytesIO
                 buffer = BytesIO()
                 img.save(buffer, format="JPEG", quality=75)
                 thumbnail_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
         except Exception as e:
             logger.warning(f"[Session] Failed to create thumbnail: {e}")
     except Exception as e:
-        logger.warning(f"[Session] Failed to extract image size: {e}")
+        logger.warning(f"[Session] Failed to process image: {e}")
         image_width, image_height = None, None
         thumbnail_base64 = None
 
@@ -1039,11 +1049,12 @@ async def bulk_upload_images(
             async with aiofiles.open(file_path, "wb") as f:
                 await f.write(content)
 
-            # 이미지 크기 추출
-            from PIL import Image
+            # 이미지 크기 추출 및 필요 시 리사이즈
             try:
-                with Image.open(file_path) as img:
-                    image_width, image_height = img.size
+                resize_result = resize_image_if_needed(file_path)
+                if resize_result["resized"]:
+                    logger.info(f"[Session] 벌크 업로드 이미지 리사이즈: {resize_result['original_size']} → {resize_result['new_size']}")
+                image_width, image_height = resize_result["new_size"]
             except Exception:
                 image_width, image_height = None, None
 

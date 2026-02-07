@@ -302,7 +302,7 @@ class DimensionService:
         filename = Path(image_path).name
         content_type = mimetypes.guess_type(filename)[0] or "image/png"
 
-        with httpx.Client(timeout=120.0) as client:
+        with httpx.Client(timeout=600.0) as client:
             files = {"file": (filename, file_bytes, content_type)}
             data = {
                 "extract_dimensions": "true",

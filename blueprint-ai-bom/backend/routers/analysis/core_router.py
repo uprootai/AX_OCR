@@ -97,8 +97,12 @@ def _resolve_options(session_id: str, session: dict) -> AnalysisOptions:
             opt_key = feature_to_option.get(feature)
             if opt_key:
                 data[opt_key] = True
-        # dimension_ocr 시 line_detection도 활성화 (치수선 관계 분석용)
-        if data.get("enable_dimension_ocr"):
+        # dimension_ocr 시 line_detection 자동 활성화 (치수선 관계 분석용)
+        # 단, features에 line_detection이 명시적으로 없으면 스킵 (BOM 세션 등)
+        if data.get("enable_dimension_ocr") and "line_detection" not in features:
+            # line_detection 미요청 → 관계 분석만 활성화 (로컬 계산, API 호출 없음)
+            data["enable_relation_extraction"] = True
+        elif data.get("enable_dimension_ocr") and "line_detection" in features:
             data["enable_line_detection"] = True
             data["enable_relation_extraction"] = True
         options = AnalysisOptions(**data)
@@ -435,6 +439,7 @@ async def run_analysis(session_id: str) -> AnalysisResult:
             result.errors.append(error_msg)
 
     # 6. 표제란 자동 추출 (title_block_ocr feature 활성화 시)
+    features = session.get("features", [])
     if "title_block_ocr" in features:
         try:
             from services.region_segmenter import RegionSegmenter, RegionSegmentationConfig, RegionType
@@ -571,7 +576,9 @@ async def run_analysis(session_id: str) -> AnalysisResult:
 
     result.processing_time_ms = total_time
 
-    if result.errors:
+    # 핵심 결과(치수/검출)가 있으면 비핵심 오류(OCR 엔진 미접속 등)는 무시
+    has_results = len(result.dimensions) > 0 or len(result.detections) > 0
+    if result.errors and not has_results:
         session_service.update_status(session_id, SessionStatus.ERROR)
     else:
         session_service.update_status(session_id, SessionStatus.VERIFIED)

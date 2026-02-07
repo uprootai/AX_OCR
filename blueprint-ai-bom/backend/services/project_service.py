@@ -47,6 +47,7 @@ class ProjectService:
             try:
                 with open(project_file, "r", encoding="utf-8") as f:
                     project = json.load(f)
+                    project.setdefault("project_type", "general")
                     self.projects[project["project_id"]] = project
             except Exception as e:
                 logger.error(f"프로젝트 로드 실패: {project_file} - {e}")
@@ -63,6 +64,7 @@ class ProjectService:
             "name": data.name,
             "customer": data.customer,
             "description": data.description,
+            "project_type": data.project_type,
             "default_template_id": data.default_template_id,
             "default_template_name": None,
             "default_model_type": data.default_model_type,

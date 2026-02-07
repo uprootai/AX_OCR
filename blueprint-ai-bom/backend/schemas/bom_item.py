@@ -34,6 +34,46 @@ class BOMItemParsed(BaseModel):
     )
     matched_file: Optional[str] = Field(None, description="매칭된 도면 파일 경로")
     session_id: Optional[str] = Field(None, description="생성된 BOM 세션 ID")
+    # 어셈블리 귀속 및 개정 추적 (Phase 4)
+    assembly_drawing_number: Optional[str] = Field(
+        None, description="소속 핑크 어셈블리 도면번호 (예: TD0062015)"
+    )
+    bom_revision: Optional[int] = Field(
+        None, description="BOM 문서 내 항목 개정번호 (0=초판, 1=R1 변경)"
+    )
+    doc_revision: Optional[str] = Field(
+        None, description="도면 개정번호 (예: A, B, C, D)"
+    )
+    part_no: Optional[str] = Field(
+        None, description="Part No (예: P001, P030L180)"
+    )
+    size: Optional[str] = Field(
+        None, description="규격/사이즈 (예: OD700 x ID366x 250L)"
+    )
+    weight_kg: Optional[float] = Field(
+        None, description="BOM 명시 중량 (kg)"
+    )
+    remark: Optional[str] = Field(
+        None, description="비고 (예: SS400+N 사용시 최소 경도감 HB120)"
+    )
+
+
+class AssemblyGroup(BaseModel):
+    """핑크 어셈블리 단위 그룹 (견적 롤업 단위)"""
+    assembly_drawing_number: str = Field(..., description="어셈블리 도면번호")
+    assembly_item_no: str = Field(..., description="BOM item_no")
+    assembly_description: str = Field(default="", description="어셈블리 품명")
+    total_weight_kg: float = Field(default=0.0, description="BOM 명시 총 중량")
+    subassembly_count: int = 0
+    part_count: int = 0
+    total_items: int = 0
+    sessions_created: int = 0
+    sessions_analyzed: int = 0
+    sessions_verified: int = 0
+    subtotal: float = 0.0
+    vat: float = 0.0
+    total: float = 0.0
+    session_ids: List[str] = Field(default_factory=list, description="관련 세션 IDs")
 
 
 class BOMHierarchyResponse(BaseModel):
@@ -47,6 +87,9 @@ class BOMHierarchyResponse(BaseModel):
     items: List[BOMItemParsed] = Field(default_factory=list, description="전체 항목 (flat)")
     hierarchy: List[Dict[str, Any]] = Field(
         default_factory=list, description="계층 트리 구조"
+    )
+    assembly_groups: List[AssemblyGroup] = Field(
+        default_factory=list, description="어셈블리 단위 그룹 목록"
     )
 
 
@@ -73,6 +116,10 @@ class SessionBatchCreateRequest(BaseModel):
     only_matched: bool = Field(
         default=True,
         description="매칭된 도면만 세션 생성 (True 권장)"
+    )
+    root_drawing_number: Optional[str] = Field(
+        None,
+        description="특정 어셈블리 도면번호 지정 시 해당 하위 항목만 세션 생성 (예: TD0062055)"
     )
 
 

@@ -23,6 +23,21 @@ class SessionQuotationItem(BaseModel):
     total: float = 0.0
     session_status: str = "uploaded"
     bom_generated: bool = False
+    # 원가 내역 (Phase 4)
+    material_cost: float = 0.0
+    machining_cost: float = 0.0
+    weight_kg: float = 0.0
+    raw_dimensions: Optional[dict] = None
+    cost_source: str = "none"           # "calculated" | "estimated" | "none"
+    # 어셈블리 귀속 및 개정 추적
+    assembly_drawing_number: Optional[str] = Field(
+        None, description="소속 어셈블리 도면번호"
+    )
+    doc_revision: Optional[str] = Field(None, description="도면 개정번호")
+    bom_revision: Optional[int] = Field(None, description="BOM 항목 개정번호")
+    part_no: Optional[str] = Field(None, description="BOM Part No")
+    size: Optional[str] = Field(None, description="BOM 규격/사이즈")
+    remark: Optional[str] = Field(None, description="비고")
 
 
 class MaterialGroup(BaseModel):
@@ -31,6 +46,22 @@ class MaterialGroup(BaseModel):
     item_count: int = 0
     total_quantity: int = 0
     subtotal: float = 0.0
+    total_weight: float = 0.0
+    material_cost_sum: float = 0.0
+    items: List[SessionQuotationItem] = Field(default_factory=list)
+
+
+class AssemblyQuotationGroup(BaseModel):
+    """어셈블리 단위 견적 그룹"""
+    assembly_drawing_number: str
+    assembly_description: str = ""
+    bom_weight_kg: float = 0.0
+    total_parts: int = 0
+    quoted_parts: int = 0
+    progress_percent: float = 0.0
+    subtotal: float = 0.0
+    vat: float = 0.0
+    total: float = 0.0
     items: List[SessionQuotationItem] = Field(default_factory=list)
 
 
@@ -56,6 +87,10 @@ class ProjectQuotationResponse(BaseModel):
     summary: QuotationSummary
     items: List[SessionQuotationItem] = Field(default_factory=list)
     material_groups: List[MaterialGroup] = Field(default_factory=list)
+    assembly_groups: List[AssemblyQuotationGroup] = Field(
+        default_factory=list,
+        description="어셈블리 단위 견적 그룹"
+    )
 
 
 class QuotationExportFormat(str, Enum):

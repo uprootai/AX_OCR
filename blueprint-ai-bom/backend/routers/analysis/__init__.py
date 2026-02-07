@@ -12,6 +12,7 @@ from .dimension_router import router as dimension_router
 from .line_router import router as line_router
 from .region_router import router as region_router
 from .gdt_router import router as gdt_router
+from .batch_router import router as batch_router
 
 # 서비스 주입 함수들
 from .core_router import (
@@ -42,6 +43,7 @@ __all__ = [
     'line_router',
     'region_router',
     'gdt_router',
+    'batch_router',
     # Core services
     'set_core_services',
     'get_session_service',

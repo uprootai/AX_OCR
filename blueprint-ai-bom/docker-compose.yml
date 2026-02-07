@@ -18,6 +18,8 @@ services:
       - ./classes_info_with_pricing.json:/app/classes_info_with_pricing.json:ro
       - ./test_drawings:/app/test_drawings:ro
       - ./class_examples:/app/class_examples:ro
+      # 프로젝트 데이터 영속화
+      - ./data:/app/data
       # Feedback Loop Pipeline v8.0
       - ./feedback:/data/feedback
       - ./yolo_training:/data/yolo_training
