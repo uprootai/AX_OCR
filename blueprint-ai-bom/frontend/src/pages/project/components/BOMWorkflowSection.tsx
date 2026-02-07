@@ -43,7 +43,7 @@ const STEPS = [
 
 function detectInitialStep(project: ProjectDetail): number {
   // 세션이 이미 연결된 BOM 항목이 있으면 → Step 4
-  const hasSessions = project.sessions.length > 0 && project.bom_item_count > 0;
+  const hasSessions = (project.sessions ?? []).length > 0 && project.bom_item_count > 0;
   if (hasSessions) return 4;
 
   // bom_source가 있으면 BOM이 이미 업로드됨
@@ -59,7 +59,7 @@ export function BOMWorkflowSection({
 }: BOMWorkflowSectionProps) {
   const [currentStep, setCurrentStep] = useState(() => detectInitialStep(project));
   const [bomData, setBomData] = useState<BOMHierarchyResponse | null>(null);
-  const [matchResult, setMatchResult] = useState<DrawingMatchResult | null>(null);
+  const [_matchResult, setMatchResult] = useState<DrawingMatchResult | null>(null);
   const [sessionResult, setSessionResult] = useState<SessionBatchCreateResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,9 +141,9 @@ export function BOMWorkflowSection({
   };
 
   return (
-    <div className="bg-white rounded-xl border mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 mb-6">
       {/* 스테퍼 */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b dark:border-gray-700">
         <div className="flex items-center justify-between">
           {STEPS.map((step, idx) => {
             const Icon = step.icon;
@@ -163,7 +163,7 @@ export function BOMWorkflowSection({
                       ? 'bg-blue-500 text-white'
                       : isCompleted
                         ? 'bg-green-500 text-white'
-                        : 'bg-gray-100 text-gray-400'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -172,7 +172,7 @@ export function BOMWorkflowSection({
                 {idx < STEPS.length - 1 && (
                   <div
                     className={`w-8 h-0.5 mx-1 ${
-                      idx < currentStep ? 'bg-green-400' : 'bg-gray-200'
+                      idx < currentStep ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-600'
                     }`}
                   />
                 )}
@@ -184,7 +184,7 @@ export function BOMWorkflowSection({
 
       {/* 에러 메시지 */}
       {error && (
-        <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-sm text-red-600">
+        <div className="mx-4 mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
@@ -195,8 +195,8 @@ export function BOMWorkflowSection({
         {/* Step 0: BOM 업로드 */}
         {currentStep === 0 && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">BOM PDF 업로드</h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">BOM PDF 업로드</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               BOM(Bill of Materials) PDF 파일을 업로드하면 계층 구조를 자동으로 파싱합니다.
             </p>
             <div className="flex items-center gap-3">
@@ -224,7 +224,7 @@ export function BOMWorkflowSection({
               </button>
             </div>
             {bomData && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center gap-2">
+              <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
                 파싱 완료: 전체 {bomData.total_items}개 (ASSY {bomData.assembly_count}, SUB{' '}
                 {bomData.subassembly_count}, PART {bomData.part_count})
@@ -238,7 +238,7 @@ export function BOMWorkflowSection({
           <BOMHierarchyTree bomData={bomData} />
         )}
         {currentStep === 1 && !bomData && (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-gray-400 dark:text-gray-500">
             {isLoading ? (
               <Loader2 className="w-8 h-8 mx-auto animate-spin" />
             ) : (
@@ -257,7 +257,7 @@ export function BOMWorkflowSection({
           />
         )}
         {currentStep === 2 && !bomData && (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-gray-400 dark:text-gray-500">
             BOM 데이터가 필요합니다.
           </div>
         )}
@@ -265,14 +265,14 @@ export function BOMWorkflowSection({
         {/* Step 3: 세션 일괄 생성 */}
         {currentStep === 3 && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">세션 일괄 생성</h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">세션 일괄 생성</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               BOM의 견적 대상 항목에 대해 BlueprintFlow 세션을 일괄 생성합니다.
             </p>
 
             <div className="space-y-4 max-w-md">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
                   템플릿 이름 (선택)
                 </label>
                 <input
@@ -280,11 +280,11 @@ export function BOMWorkflowSection({
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
                   placeholder="예: bearing-analysis"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={onlyMatched}
@@ -309,23 +309,23 @@ export function BOMWorkflowSection({
             </div>
 
             {sessionResult && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
-                <h4 className="font-medium text-gray-900 mb-2">생성 결과</h4>
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border dark:border-gray-600">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">생성 결과</h4>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="flex items-center gap-1 text-green-600">
+                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
                     <CheckCircle className="w-4 h-4" />
                     생성: {sessionResult.created_count}개
                   </span>
-                  <span className="text-gray-500">
+                  <span className="text-gray-500 dark:text-gray-400">
                     건너뜀: {sessionResult.skipped_count}개
                   </span>
                   {sessionResult.failed_count > 0 && (
-                    <span className="text-red-600">
+                    <span className="text-red-600 dark:text-red-400">
                       실패: {sessionResult.failed_count}개
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 mt-2">{sessionResult.message}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{sessionResult.message}</p>
               </div>
             )}
           </div>
@@ -340,7 +340,7 @@ export function BOMWorkflowSection({
           />
         )}
         {currentStep === 4 && !bomData && (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-gray-400 dark:text-gray-500">
             {isLoading ? (
               <Loader2 className="w-8 h-8 mx-auto animate-spin" />
             ) : (
@@ -351,16 +351,16 @@ export function BOMWorkflowSection({
       </div>
 
       {/* 네비게이션 */}
-      <div className="p-4 border-t flex items-center justify-between">
+      <div className="p-4 border-t dark:border-gray-700 flex items-center justify-between">
         <button
           onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
           disabled={currentStep === 0}
-          className="flex items-center gap-1 px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-30"
+          className="flex items-center gap-1 px-4 py-2 border dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-30"
         >
           <ChevronLeft className="w-4 h-4" />
           이전
         </button>
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-gray-400 dark:text-gray-500">
           {currentStep + 1} / {STEPS.length}
         </span>
         <button

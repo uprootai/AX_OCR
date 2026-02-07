@@ -17,6 +17,7 @@ interface HierarchyNode {
   needs_quotation: boolean;
   matched_file?: string;
   session_id?: string;
+  doc_revision?: string;
   children?: HierarchyNode[];
 }
 
@@ -107,6 +108,13 @@ function TreeNode({
         <span className="text-sm font-medium text-gray-900 w-32 shrink-0 truncate">
           {node.drawing_number}
         </span>
+
+        {/* 개정 번호 */}
+        {node.doc_revision && (
+          <span className="px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-700 shrink-0">
+            Rev.{node.doc_revision}
+          </span>
+        )}
 
         {/* 품명 */}
         <span className="text-sm text-gray-700 flex-1 truncate">

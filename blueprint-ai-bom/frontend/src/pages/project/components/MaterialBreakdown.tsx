@@ -12,6 +12,10 @@ interface MaterialBreakdownProps {
 
 export function MaterialBreakdown({ groups }: MaterialBreakdownProps) {
   const totalSubtotal = groups.reduce((sum, g) => sum + g.subtotal, 0);
+  const totalWeight = groups.reduce((sum, g) => sum + (g.total_weight || 0), 0);
+  const totalMaterialCost = groups.reduce((sum, g) => sum + (g.material_cost_sum || 0), 0);
+
+  const fmt = (v: number) => (v > 0 ? `₩${v.toLocaleString()}` : '-');
 
   return (
     <div className="bg-white rounded-xl border overflow-hidden">
@@ -26,6 +30,8 @@ export function MaterialBreakdown({ groups }: MaterialBreakdownProps) {
               <th className="px-4 py-2">재질</th>
               <th className="px-4 py-2 text-center">품목수</th>
               <th className="px-4 py-2 text-center">총 수량</th>
+              <th className="px-4 py-2 text-right">중량(kg)</th>
+              <th className="px-4 py-2 text-right">재료비</th>
               <th className="px-4 py-2 text-right">소계</th>
               <th className="px-4 py-2 text-right">비율</th>
             </tr>
@@ -47,9 +53,15 @@ export function MaterialBreakdown({ groups }: MaterialBreakdownProps) {
                     {group.total_quantity}
                   </td>
                   <td className="px-4 py-2 text-right text-gray-700">
-                    {group.subtotal > 0
-                      ? `₩${group.subtotal.toLocaleString()}`
+                    {(group.total_weight || 0) > 0
+                      ? `${group.total_weight.toFixed(1)}`
                       : '-'}
+                  </td>
+                  <td className="px-4 py-2 text-right text-gray-700">
+                    {fmt(group.material_cost_sum || 0)}
+                  </td>
+                  <td className="px-4 py-2 text-right text-gray-700">
+                    {fmt(group.subtotal)}
                   </td>
                   <td className="px-4 py-2 text-right text-gray-500">
                     {ratio > 0 ? `${ratio.toFixed(1)}%` : '-'}
@@ -68,9 +80,13 @@ export function MaterialBreakdown({ groups }: MaterialBreakdownProps) {
                 {groups.reduce((s, g) => s + g.total_quantity, 0)}
               </td>
               <td className="px-4 py-2 text-right text-gray-900">
-                {totalSubtotal > 0
-                  ? `₩${totalSubtotal.toLocaleString()}`
-                  : '-'}
+                {totalWeight > 0 ? `${totalWeight.toFixed(1)}` : '-'}
+              </td>
+              <td className="px-4 py-2 text-right text-gray-900">
+                {fmt(totalMaterialCost)}
+              </td>
+              <td className="px-4 py-2 text-right text-gray-900">
+                {fmt(totalSubtotal)}
               </td>
               <td className="px-4 py-2 text-right text-gray-900">100%</td>
             </tr>

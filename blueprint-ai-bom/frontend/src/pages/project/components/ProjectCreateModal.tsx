@@ -36,6 +36,7 @@ export function ProjectCreateModal({
     name: '',
     customer: '',
     description: '',
+    project_type: 'bom_quotation' as const,
     default_template_id: '',
     default_features: [],
   });
@@ -49,6 +50,7 @@ export function ProjectCreateModal({
         name: '',
         customer: '',
         description: '',
+        project_type: 'bom_quotation' as const,
         default_template_id: '',
         default_features: [],
       });
@@ -111,6 +113,39 @@ export function ProjectCreateModal({
 
         {/* 폼 */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* 프로젝트 타입 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              프로젝트 타입 <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, project_type: 'bom_quotation' })}
+                className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                  formData.project_type === 'bom_quotation'
+                    ? 'border-pink-500 bg-pink-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="font-medium text-sm">BOM 견적</div>
+                <div className="text-xs text-gray-500 mt-0.5">BOM 기반 부품 분석 · 견적</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, project_type: 'pid_detection' })}
+                className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                  formData.project_type === 'pid_detection'
+                    ? 'border-cyan-500 bg-cyan-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="font-medium text-sm">P&ID 검출</div>
+                <div className="text-xs text-gray-500 mt-0.5">심볼 검출 · GT 비교</div>
+              </button>
+            </div>
+          </div>
+
           {/* 프로젝트명 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

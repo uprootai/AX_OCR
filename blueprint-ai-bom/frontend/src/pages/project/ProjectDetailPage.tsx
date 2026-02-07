@@ -24,10 +24,14 @@ import {
 } from 'lucide-react';
 import { projectApi, sessionApi, type ProjectDetail } from '../../lib/api';
 import { BOMWorkflowSection } from './components/BOMWorkflowSection';
+import { PIDWorkflowSection } from './components/PIDWorkflowSection';
+import { ThemeToggle } from '../../components/ThemeToggle';
+import { useTheme } from '../../hooks/useTheme';
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +104,7 @@ export function ProjectDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
       </div>
     );
@@ -108,10 +112,10 @@ export function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <FolderOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500">{error || '프로젝트를 찾을 수 없습니다.'}</p>
+          <FolderOpen className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+          <p className="text-gray-500 dark:text-gray-400">{error || '프로젝트를 찾을 수 없습니다.'}</p>
           <Link
             to="/projects"
             className="inline-flex items-center gap-2 mt-4 text-blue-500 hover:text-blue-600"
@@ -125,35 +129,36 @@ export function ProjectDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* 헤더 */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link
                 to="/projects"
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-gray-500" />
+                <ArrowLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{project.name}</h1>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{project.name}</h1>
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <Building className="w-3.5 h-3.5" />
                   <span>{project.customer}</span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
               <button
                 onClick={loadProject}
                 disabled={isLoading}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 title="새로고침"
               >
                 <RefreshCw
-                  className={`w-5 h-5 text-gray-500 ${isLoading ? 'animate-spin' : ''}`}
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 ${isLoading ? 'animate-spin' : ''}`}
                 />
               </button>
               <button
@@ -179,9 +184,9 @@ export function ProjectDetailPage() {
               <div className="relative">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  <MoreVertical className="w-5 h-5 text-gray-500" />
+                  <MoreVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 </button>
                 {showMenu && (
                   <>
@@ -189,30 +194,30 @@ export function ProjectDetailPage() {
                       className="fixed inset-0 z-10"
                       onClick={() => setShowMenu(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-20">
                       <button
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
                         onClick={() => {
                           setShowMenu(false);
                           // TODO: 설정 모달
                         }}
                       >
-                        <Settings className="w-4 h-4 text-gray-400" />
+                        <Settings className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                         프로젝트 설정
                       </button>
                       <button
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
                         onClick={() => {
                           setShowMenu(false);
                           // TODO: GT 관리
                         }}
                       >
-                        <Database className="w-4 h-4 text-gray-400" />
+                        <Database className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                         GT 관리
                       </button>
-                      <hr />
+                      <hr className="dark:border-gray-700" />
                       <button
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                         onClick={() => {
                           setShowMenu(false);
                           handleDelete();
@@ -235,7 +240,7 @@ export function ProjectDetailPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* 에러 메시지 */}
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 mb-6">
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 mb-6">
             {error}
           </div>
         )}
@@ -243,15 +248,15 @@ export function ProjectDetailPage() {
         {/* 프로젝트 정보 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* 기본 정보 */}
-          <div className="lg:col-span-2 bg-white rounded-xl border p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">프로젝트 정보</h2>
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">프로젝트 정보</h2>
             {project.description && (
-              <p className="text-gray-600 mb-4">{project.description}</p>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">{project.description}</p>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-500">생성일</p>
-                <p className="font-medium">
+                <p className="text-sm text-gray-500 dark:text-gray-400">생성일</p>
+                <p className="font-medium text-gray-900 dark:text-white">
                   {new Date(project.created_at).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'long',
@@ -260,8 +265,8 @@ export function ProjectDetailPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">최근 수정</p>
-                <p className="font-medium">
+                <p className="text-sm text-gray-500 dark:text-gray-400">최근 수정</p>
+                <p className="font-medium text-gray-900 dark:text-white">
                   {new Date(project.updated_at).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'long',
@@ -271,8 +276,8 @@ export function ProjectDetailPage() {
               </div>
               {project.default_template_name && (
                 <div className="col-span-2">
-                  <p className="text-sm text-gray-500">기본 템플릿</p>
-                  <div className="flex items-center gap-2 font-medium text-blue-600">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">기본 템플릿</p>
+                  <div className="flex items-center gap-2 font-medium text-blue-600 dark:text-blue-400">
                     <LayoutTemplate className="w-4 h-4" />
                     {project.default_template_name}
                   </div>
@@ -282,42 +287,42 @@ export function ProjectDetailPage() {
           </div>
 
           {/* 통계 */}
-          <div className="bg-white rounded-xl border p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">진행 현황</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">진행 현황</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                   <FileText className="w-4 h-4" />
                   <span>전체 세션</span>
                 </div>
-                <span className="text-xl font-bold text-gray-900">
+                <span className="text-xl font-bold text-gray-900 dark:text-white">
                   {project.session_count}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-green-600">
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                   <CheckCircle className="w-4 h-4" />
                   <span>완료</span>
                 </div>
-                <span className="text-xl font-bold text-green-600">
+                <span className="text-xl font-bold text-green-600 dark:text-green-400">
                   {project.completed_count}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-yellow-600">
+                <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
                   <Clock className="w-4 h-4" />
                   <span>대기</span>
                 </div>
-                <span className="text-xl font-bold text-yellow-600">
+                <span className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
                   {project.pending_count}
                 </span>
               </div>
               <div className="pt-2">
                 <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-gray-600">진행률</span>
-                  <span className="font-medium">{progressPercent}%</span>
+                  <span className="text-gray-600 dark:text-gray-400">진행률</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{progressPercent}%</span>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-500 transition-all"
                     style={{ width: `${progressPercent}%` }}
@@ -328,45 +333,53 @@ export function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* BOM 워크플로우 */}
-        <BOMWorkflowSection
-          projectId={projectId!}
-          project={project}
-          onRefresh={loadProject}
-        />
+        {/* 워크플로우 - 타입에 따라 분기 */}
+        {project.project_type !== 'pid_detection' ? (
+          <BOMWorkflowSection
+            projectId={projectId!}
+            project={project}
+            onRefresh={loadProject}
+          />
+        ) : (
+          <PIDWorkflowSection
+            projectId={projectId!}
+            project={project}
+            onRefresh={loadProject}
+          />
+        )}
 
         {/* 세션 목록 */}
-        <div className="bg-white rounded-xl border">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">세션 목록</h2>
-            <span className="text-sm text-gray-500">
-              {project.sessions.length}개
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700">
+          <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 dark:text-white">세션 목록</h2>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {(project.sessions ?? []).length}개
             </span>
           </div>
-          {project.sessions.length === 0 ? (
+          {(project.sessions ?? []).length === 0 ? (
             <div className="p-12 text-center">
-              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-500">세션이 없습니다.</p>
-              <p className="text-sm text-gray-400 mt-1">
+              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <p className="text-gray-500 dark:text-gray-400">세션이 없습니다.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
                 "도면 추가" 버튼을 클릭하여 도면을 업로드하세요.
               </p>
             </div>
           ) : (
-            <div className="divide-y">
-              {project.sessions.map((session) => (
+            <div className="divide-y dark:divide-gray-700">
+              {(project.sessions ?? []).map((session) => (
                 <Link
                   key={session.session_id}
                   to={`/workflow?session=${session.session_id}`}
-                  className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-gray-400" />
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
+                    <p className="font-medium text-gray-900 dark:text-white truncate">
                       {session.filename}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       검출: {session.detection_count}개 | 검증: {session.verified_count}개
                     </p>
                   </div>
@@ -374,15 +387,15 @@ export function ProjectDetailPage() {
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${
                         session.status === 'completed'
-                          ? 'bg-green-100 text-green-600'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                           : session.status === 'error'
-                            ? 'bg-red-100 text-red-600'
-                            : 'bg-blue-100 text-blue-600'
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                       }`}
                     >
                       {session.status}
                     </span>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
+                    <ExternalLink className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                   </div>
                 </Link>
               ))}
