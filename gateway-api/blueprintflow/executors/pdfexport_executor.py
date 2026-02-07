@@ -2,44 +2,21 @@
 PDF Export Executor
 P&ID 분석 결과를 PDF 리포트로 내보내기
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ..executors.base_executor import BaseNodeExecutor
+from ..executors.base_executor import BaseNodeExecutor, APICallerMixin
 from ..executors.executor_registry import ExecutorRegistry
-import httpx
 
 
-class PDFExportExecutor(BaseNodeExecutor):
+class PDFExportExecutor(BaseNodeExecutor, APICallerMixin):
     """PDF Export 실행기 - P&ID 분석 결과 PDF 리포트 생성"""
 
     API_BASE_URL = "http://blueprint-ai-bom-backend:5020"
+    DEFAULT_TIMEOUT = 60
+    DEFAULT_MAX_RETRIES = 3
 
-    # ========================================
-    # API 호출 헬퍼 메서드
-    # ========================================
-
-    async def _post_api(
-        self,
-        endpoint: str,
-        json_data: dict = None,
-        params: dict = None,
-        timeout: int = 60
-    ) -> tuple[bool, httpx.Response | None, str | None]:
-        """POST API 호출 헬퍼 메서드"""
-        url = f"{self.API_BASE_URL}{endpoint}"
-        try:
-            async with httpx.AsyncClient(timeout=float(timeout)) as client:
-                response = await client.post(url, json=json_data, params=params)
-                if response.status_code >= 400:
-                    return False, response, f"{response.status_code} - {response.text}"
-                return True, response, None
-        except httpx.ConnectError as e:
-            return False, None, f"연결 실패: {e}"
-        except Exception as e:
-            return False, None, f"오류: {e}"
-
-    def validate_parameters(self) -> tuple[bool, str | None]:
+    def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
         export_type = self.parameters.get("export_type", "all")
         valid_types = ["all", "valve", "equipment", "checklist", "deviation"]
@@ -166,16 +143,16 @@ class PDFExportExecutor(BaseNodeExecutor):
                 }
             }
 
-        # API 호출하여 PDF 생성
+        # API 호출하여 PDF 생성 (재시도 로직 포함)
         # 세션에 데이터 저장 (필요한 경우)
         if session_data:
-            await self._post_api(
+            await self._post_api_retry(
                 f"/api/v1/session/{session_id}/update",
                 json_data=session_data
             )
 
         # PDF 생성 요청
-        success, response, error = await self._post_api(
+        success, response_data, error = await self._post_api_retry(
             f"/api/v1/pid-features/{session_id}/export/pdf",
             params={
                 "export_type": export_type,
@@ -209,11 +186,10 @@ class PDFExportExecutor(BaseNodeExecutor):
                 }
             }
 
-        # Content-Disposition에서 파일명 추출
-        content_disp = response.headers.get("Content-Disposition", "") if response else ""
+        # 응답에서 파일명 추출 (JSON 응답 또는 기본값)
         filename = f"PID_Report_{export_type}_{drawing_no}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        if "filename=" in content_disp:
-            filename = content_disp.split("filename=")[1].strip('"')
+        if response_data and isinstance(response_data, dict):
+            filename = response_data.get("filename", filename)
 
         # PDF URL 생성 (실제로는 임시 파일로 저장하거나 base64 반환)
         pdf_url = f"/api/v1/pid-features/{session_id}/export/pdf?export_type={export_type}"

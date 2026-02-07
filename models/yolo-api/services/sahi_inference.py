@@ -20,7 +20,8 @@ def run_sahi_inference(
     confidence: float = 0.25,
     slice_height: int = 512,
     slice_width: int = 512,
-    overlap_ratio: float = 0.25
+    overlap_ratio: float = 0.25,
+    class_names: Optional[Dict[int, str]] = None
 ) -> Optional[List]:
     """
     SAHI 슬라이싱 기반 추론
@@ -34,6 +35,7 @@ def run_sahi_inference(
         slice_height: 슬라이스 높이
         slice_width: 슬라이스 너비
         overlap_ratio: 슬라이스 오버랩 비율
+        class_names: 클래스 ID → 이름 매핑 (data_yaml 오버라이드용)
 
     Returns:
         Detection 객체 목록 또는 실패 시 None
@@ -77,10 +79,18 @@ def run_sahi_inference(
             bbox = pred.bbox.to_xyxy()
             x1, y1, x2, y2 = bbox
 
+            # 클래스 ID 및 이름 추출
+            cls_id = pred.category.id if pred.category else 0
+            # class_names 오버라이드가 있으면 사용 (data_yaml 지원)
+            if class_names and cls_id in class_names:
+                cls_name = class_names[cls_id]
+            else:
+                cls_name = pred.category.name if pred.category else "object"
+
             # bbox를 Dict[str, int] 형식으로 변환 (schemas.py 스키마와 일치)
             detection = Detection(
-                class_id=pred.category.id if pred.category else 0,
-                class_name=pred.category.name if pred.category else "object",
+                class_id=cls_id,
+                class_name=cls_name,
                 confidence=round(pred.score.value, 4),
                 bbox={
                     'x': int(x1),

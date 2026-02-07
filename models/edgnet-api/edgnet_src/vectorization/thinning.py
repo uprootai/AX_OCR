@@ -9,6 +9,17 @@ from skimage.morphology import skeletonize, thin
 from scipy import ndimage
 
 
+def _safe_to_gray(img):
+    """이미 그레이스케일인 경우에도 안전하게 변환"""
+    if img is None or img.size == 0:
+        return img
+    if len(img.shape) == 2:
+        return img
+    if img.shape[2] == 1:
+        return img[:, :, 0]
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
 def thin_image(image, method='datta_parui', smooth=True):
     """
     Apply thinning/skeletonization to binary image
@@ -23,7 +34,7 @@ def thin_image(image, method='datta_parui', smooth=True):
     """
     # Ensure binary image
     if len(image.shape) == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = _safe_to_gray(image)
 
     _, binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY_INV)
 

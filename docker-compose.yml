@@ -149,6 +149,8 @@ services:
       - YOLO_API_PORT=5005
       - YOLO_MODEL_PATH=/app/models/best.pt
       - PYTHONUNBUFFERED=1
+      # GPU 자동 감지: auto|true|false (auto는 가용시 GPU 사용)
+      - USE_GPU=auto
     networks:
       - ax_poc_network
     restart: unless-stopped
@@ -695,6 +697,7 @@ services:
     ports:
       - "5020:5020"
     volumes:
+      - ./blueprint-ai-bom/data:/app/data
       - ./blueprint-ai-bom/uploads:/app/uploads
       - ./blueprint-ai-bom/results:/app/results
       - ./blueprint-ai-bom/config:/app/config

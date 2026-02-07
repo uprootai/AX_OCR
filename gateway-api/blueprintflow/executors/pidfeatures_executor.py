@@ -2,50 +2,23 @@
 PID Features Executor
 TECHCROSS 통합 워크플로우 - Valve/Equipment/Checklist 한 번에 검출
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 import uuid
 import base64
 
-from ..executors.base_executor import BaseNodeExecutor
+from ..executors.base_executor import BaseNodeExecutor, APICallerMixin
 from ..executors.executor_registry import ExecutorRegistry
-import httpx
 
 
-class PIDFeaturesExecutor(BaseNodeExecutor):
+class PIDFeaturesExecutor(BaseNodeExecutor, APICallerMixin):
     """PID Features 실행기 - TECHCROSS 통합 분석"""
 
     API_BASE_URL = "http://blueprint-ai-bom-backend:5020"
+    DEFAULT_TIMEOUT = 120
+    DEFAULT_MAX_RETRIES = 3
 
-    # ========================================
-    # API 호출 헬퍼 메서드
-    # ========================================
-
-    async def _post_api(
-        self,
-        endpoint: str,
-        json_data: dict = None,
-        files: dict = None,
-        params: dict = None,
-        timeout: int = 120
-    ) -> tuple[bool, dict | None, str | None]:
-        """POST API 호출 헬퍼 메서드"""
-        url = f"{self.API_BASE_URL}{endpoint}"
-        try:
-            async with httpx.AsyncClient(timeout=float(timeout)) as client:
-                response = await client.post(url, json=json_data, files=files, params=params)
-                if response.status_code >= 400:
-                    return False, None, f"{response.status_code} - {response.text}"
-                try:
-                    return True, response.json(), None
-                except Exception:
-                    return True, {"status_code": response.status_code}, None
-        except httpx.ConnectError as e:
-            return False, None, f"연결 실패: {e}"
-        except Exception as e:
-            return False, None, f"오류: {e}"
-
-    def validate_parameters(self) -> tuple[bool, str | None]:
+    def validate_parameters(self) -> tuple[bool, Optional[str]]:
         """파라미터 유효성 검사"""
         confidence_threshold = self.parameters.get("confidence_threshold", 0.7)
         if not 0 <= confidence_threshold <= 1:
@@ -150,24 +123,24 @@ class PIDFeaturesExecutor(BaseNodeExecutor):
         checklist: List[Dict] = []
         verification_queue: List[Dict] = []
 
-        # 1. 세션 생성 및 이미지 업로드
+        # 1. 세션 생성 및 이미지 업로드 (재시도 로직 포함)
         if image_data:
             file_data = base64.b64decode(image_data) if isinstance(image_data, str) else image_data
-            await self._post_api(
+            await self._post_api_retry(
                 f"/api/v1/session/{session_id}/upload",
                 files={"file": (filename, file_data)}
             )
 
         # 2. 검출 결과 저장
         if detections:
-            await self._post_api(
+            await self._post_api_retry(
                 f"/api/v1/session/{session_id}/detections",
                 json_data={"detections": detections}
             )
 
         # 3. 밸브 검출
         if "valve_signal" in features:
-            success, data, error = await self._post_api(
+            success, data, error = await self._post_api_retry(
                 f"/api/v1/pid-features/{session_id}/valve-signal/detect"
             )
             if success and data:
@@ -195,7 +168,7 @@ class PIDFeaturesExecutor(BaseNodeExecutor):
 
         # 4. 장비 검출
         if "equipment" in features:
-            success, data, error = await self._post_api(
+            success, data, error = await self._post_api_retry(
                 f"/api/v1/pid-features/{session_id}/equipment/detect"
             )
             if success and data:
@@ -214,7 +187,7 @@ class PIDFeaturesExecutor(BaseNodeExecutor):
 
         # 5. 체크리스트 검증
         if "checklist" in features:
-            success, data, _ = await self._post_api(
+            success, data, _ = await self._post_api_retry(
                 f"/api/v1/pid-features/{session_id}/checklist/check",
                 params={"product_type": product_type}
             )

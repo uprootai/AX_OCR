@@ -33,6 +33,14 @@ RUN mkdir -p /tmp/yolo-api/uploads /tmp/yolo-api/results /app/models
 # Download YOLOv11n as default model (for prototype)
 RUN python -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
 
+# Copy GPU auto-detection entrypoint script (if exists)
+# 참조: scripts/docker-gpu-entrypoint.sh를 빌드 전에 복사하거나 volume mount
+COPY docker-gpu-entrypoint.sh /usr/local/bin/docker-gpu-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-gpu-entrypoint.sh
+
+# Environment: USE_GPU=auto|true|false (default: auto)
+ENV USE_GPU=auto
+
 # Expose port
 EXPOSE 5005
 
@@ -40,5 +48,6 @@ EXPOSE 5005
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:5005/api/v1/health || exit 1
 
-# Run server
+# Use GPU entrypoint with fallback
+ENTRYPOINT ["/bin/bash", "-c", "if [ -x /usr/local/bin/docker-gpu-entrypoint.sh ]; then exec /usr/local/bin/docker-gpu-entrypoint.sh \"$@\"; else exec \"$@\"; fi", "--"]
 CMD ["python", "api_server.py"]

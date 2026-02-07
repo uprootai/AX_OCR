@@ -277,6 +277,12 @@ async def detect_objects(
             model_file = model_info.get('file', 'best.pt') if model_info else 'best.pt'
             model_path = str(MODELS_DIR / model_file)
 
+            # class_names 오버라이드 준비 (data_yaml 지원)
+            sahi_class_names = None
+            if model_info and 'class_names' in model_info:
+                class_names_list = model_info['class_names']
+                sahi_class_names = {i: name for i, name in enumerate(class_names_list)}
+
             logger.info(f"SAHI 추론: model={model_id}, slice={slice_height}x{slice_width}, overlap={overlap_ratio}")
             detections = run_sahi_inference(
                 model_path=model_path,
@@ -284,7 +290,8 @@ async def detect_objects(
                 confidence=confidence,
                 slice_height=slice_height,
                 slice_width=slice_width,
-                overlap_ratio=overlap_ratio
+                overlap_ratio=overlap_ratio,
+                class_names=sahi_class_names
             )
 
             # SAHI 실패 시 일반 추론으로 폴백

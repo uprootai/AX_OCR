@@ -274,7 +274,13 @@ def analyze_tables(
         if bbox:
             # Crop region
             x1, y1, x2, y2 = [int(v) for v in bbox]
+            # Guard: skip zero-dimension or too small crops
+            if x2 <= x1 or y2 <= y1:
+                continue
             cropped = image.crop((x1, y1, x2, y2))
+            # Guard: skip if cropped image is too small
+            if cropped.width < 10 or cropped.height < 10:
+                continue
         else:
             cropped = image
 

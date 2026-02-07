@@ -8,26 +8,33 @@ import httpx
 from io import BytesIO
 from typing import Dict, Any, Optional, Tuple
 from PIL import Image
-from .base_executor import BaseNodeExecutor
+from .base_executor import BaseNodeExecutor, APICallerMixin
 from .executor_registry import ExecutorRegistry
 
 logger = logging.getLogger(__name__)
 
 
-class BOMExecutor(BaseNodeExecutor):
+class BOMExecutor(BaseNodeExecutor, APICallerMixin):
     """
     Blueprint AI BOM 실행기
 
     Human-in-the-Loop 검증이 필요한 경우 UI URL을 반환하고,
     자동 모드에서는 직접 BOM을 생성합니다.
+
+    APICallerMixin을 상속받아 재시도 로직이 포함된 API 호출 사용.
     """
 
     # Blueprint AI BOM 백엔드 URL
     BASE_URL = "http://blueprint-ai-bom-backend:5020"
+    API_BASE_URL = "http://blueprint-ai-bom-backend:5020"  # APICallerMixin용
     FRONTEND_URL = "http://localhost:3000"
 
+    # 재시도 설정 (APICallerMixin 오버라이드)
+    DEFAULT_TIMEOUT = 60
+    DEFAULT_MAX_RETRIES = 3
+
     # ========================================
-    # API 호출 헬퍼 메서드
+    # API 호출 헬퍼 메서드 (레거시 호환 + 재시도 지원)
     # ========================================
 
     async def _call_api(
@@ -38,9 +45,10 @@ class BOMExecutor(BaseNodeExecutor):
         files: dict = None,
         data: dict = None,
         timeout: int = 60,
-        raise_on_error: bool = False
+        raise_on_error: bool = False,
+        max_retries: int = 3,
     ) -> Tuple[bool, Optional[dict], Optional[str]]:
-        """API 호출 헬퍼 메서드
+        """API 호출 헬퍼 메서드 (재시도 로직 포함)
 
         Args:
             method: HTTP 메서드 (GET, POST, PATCH, DELETE)
@@ -50,52 +58,21 @@ class BOMExecutor(BaseNodeExecutor):
             data: form data
             timeout: 타임아웃 (초)
             raise_on_error: 에러 시 예외 발생 여부
+            max_retries: 최대 재시도 횟수 (기본값: 3)
 
         Returns:
             Tuple[bool, Optional[dict], Optional[str]]: (성공여부, 응답JSON, 에러메시지)
         """
-        url = f"{self.BASE_URL}{endpoint}"
-
-        try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                if method.upper() == "GET":
-                    response = await client.get(url)
-                elif method.upper() == "POST":
-                    response = await client.post(url, json=json_data, files=files, data=data)
-                elif method.upper() == "PATCH":
-                    response = await client.patch(url, json=json_data)
-                elif method.upper() == "DELETE":
-                    response = await client.delete(url)
-                else:
-                    raise ValueError(f"지원하지 않는 HTTP 메서드: {method}")
-
-                if response.status_code >= 400:
-                    error_msg = f"{method} {endpoint} 실패: {response.status_code} - {response.text}"
-                    logger.warning(error_msg)
-                    if raise_on_error:
-                        response.raise_for_status()
-                    return False, None, error_msg
-
-                # JSON 응답 파싱 시도
-                try:
-                    result = response.json()
-                except Exception:
-                    result = {"status_code": response.status_code}
-
-                return True, result, None
-
-        except httpx.TimeoutException as e:
-            error_msg = f"{method} {endpoint} 타임아웃: {e}"
-            logger.error(error_msg)
-            if raise_on_error:
-                raise
-            return False, None, error_msg
-        except Exception as e:
-            error_msg = f"{method} {endpoint} 오류: {type(e).__name__}: {e}"
-            logger.error(error_msg)
-            if raise_on_error:
-                raise
-            return False, None, error_msg
+        return await self._api_call_with_retry(
+            method=method,
+            endpoint=endpoint,
+            json_data=json_data,
+            files=files,
+            data=data,
+            timeout=timeout,
+            max_retries=max_retries,
+            raise_on_error=raise_on_error,
+        )
 
     async def _post_api(
         self,
@@ -106,7 +83,7 @@ class BOMExecutor(BaseNodeExecutor):
         timeout: int = 60,
         raise_on_error: bool = False
     ) -> Tuple[bool, Optional[dict], Optional[str]]:
-        """POST API 호출 편의 메서드"""
+        """POST API 호출 편의 메서드 (재시도 포함)"""
         return await self._call_api("POST", endpoint, json_data, files, data, timeout, raise_on_error)
 
     async def _patch_api(
@@ -116,7 +93,7 @@ class BOMExecutor(BaseNodeExecutor):
         timeout: int = 60,
         raise_on_error: bool = False
     ) -> Tuple[bool, Optional[dict], Optional[str]]:
-        """PATCH API 호출 편의 메서드"""
+        """PATCH API 호출 편의 메서드 (재시도 포함)"""
         return await self._call_api("PATCH", endpoint, json_data, None, None, timeout, raise_on_error)
 
     # ========================================
