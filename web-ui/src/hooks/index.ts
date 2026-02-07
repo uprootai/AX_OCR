@@ -12,6 +12,10 @@ export {
   calculateScaleFactor,
   createLabelOverlapChecker,
   drawBoundingBox,
+  drawBoundingBoxes,
+  drawLine,
+  drawPolyline,
+  drawText,
   type CanvasDrawingOptions,
   type CanvasDrawingResult,
 } from './useCanvasDrawing';

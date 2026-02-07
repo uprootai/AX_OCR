@@ -980,7 +980,6 @@ export default function BlueprintFlowTemplates() {
     setDeployModalOpen(true);
   };
 
-
   const categoryInfo: Record<TemplateCategory, { icon: typeof Star; color: string; label: string; shortLabel: string }> = {
     all: { icon: Sparkles, color: 'from-gray-500 to-gray-600', label: t('blueprintflow.allTemplates', '전체'), shortLabel: t('blueprintflow.all', '전체') },
     featured: { icon: Star, color: 'from-amber-500 to-orange-500', label: t('blueprintflow.featuredTemplates'), shortLabel: '⭐ Featured' },

@@ -6,6 +6,7 @@ import {
   Book,
   Shield,
   Workflow,
+  FolderOpen,
 } from 'lucide-react';
 
 const navigationItems = [
@@ -87,6 +88,33 @@ export default function Sidebar() {
             );
           })}
         </div>
+      </div>
+
+      {/* 프로젝트 관리 (Blueprint AI BOM) */}
+      <div
+        className="mt-4 p-4 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 rounded-lg border-2 border-pink-200 dark:border-pink-800"
+        title={t('sidebar.projectManagementTooltip')}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <FolderOpen className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+          <h3 className="font-semibold text-sm text-pink-900 dark:text-pink-100">
+            {t('sidebar.projectManagement')}
+          </h3>
+        </div>
+        <p className="text-xs text-pink-700 dark:text-pink-300 mb-3">
+          {t('sidebar.projectManagementDesc')}
+        </p>
+        <Link
+          to="/projects"
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs hover:bg-pink-100 dark:hover:bg-pink-900/50 transition-colors ${
+            location.pathname.startsWith('/projects')
+              ? 'bg-pink-100 dark:bg-pink-900/50 text-pink-900 dark:text-pink-100 font-medium'
+              : 'text-pink-700 dark:text-pink-300'
+          }`}
+        >
+          <span>•</span>
+          <span>{t('sidebar.projectList')}</span>
+        </Link>
       </div>
     </aside>
   );

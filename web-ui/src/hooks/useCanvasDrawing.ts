@@ -219,4 +219,200 @@ export function drawBoundingBox(
   }
 }
 
+/**
+ * 여러 바운딩 박스 그리기 유틸리티
+ */
+export function drawBoundingBoxes(
+  ctx: CanvasRenderingContext2D,
+  boxes: Array<{
+    bbox: { x: number; y: number; width: number; height: number };
+    label?: string;
+    color?: string;
+    confidence?: number;
+    isSelected?: boolean;
+  }>,
+  options: {
+    defaultColor?: string;
+    lineWidth?: number;
+    fontSize?: number;
+    showLabels?: boolean;
+    showConfidence?: boolean;
+    selectedLineWidth?: number;
+  } = {}
+) {
+  const {
+    defaultColor = '#3b82f6',
+    lineWidth = 2,
+    fontSize = 12,
+    showLabels = true,
+    showConfidence = true,
+    selectedLineWidth = 4,
+  } = options;
+
+  const labelChecker = createLabelOverlapChecker();
+
+  boxes.forEach((box) => {
+    const color = box.color || defaultColor;
+    const actualLineWidth = box.isSelected ? selectedLineWidth : lineWidth;
+
+    // 박스 그리기
+    ctx.fillStyle = color + '30'; // 투명 배경
+    ctx.fillRect(box.bbox.x, box.bbox.y, box.bbox.width, box.bbox.height);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = actualLineWidth;
+    ctx.strokeRect(box.bbox.x, box.bbox.y, box.bbox.width, box.bbox.height);
+
+    // 선택된 박스 강조
+    if (box.isSelected) {
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(box.bbox.x - 2, box.bbox.y - 2, box.bbox.width + 4, box.bbox.height + 4);
+      ctx.setLineDash([]);
+    }
+
+    // 라벨 그리기
+    if (showLabels && box.label) {
+      const labelText = showConfidence && box.confidence !== undefined
+        ? `${box.label} (${(box.confidence * 100).toFixed(1)}%)`
+        : box.label;
+
+      ctx.font = `bold ${fontSize}px Pretendard, Arial, sans-serif`;
+      const textMetrics = ctx.measureText(labelText);
+      const padding = 3;
+      const labelWidth = textMetrics.width + padding * 2;
+      const labelHeight = fontSize + padding * 2;
+      let labelX = box.bbox.x;
+      let labelY = box.bbox.y - labelHeight - 2;
+
+      // 오버랩 체크 및 위치 조정
+      if (labelChecker.checkOverlap(labelX, labelY, labelWidth, labelHeight) || labelY < 0) {
+        labelY = box.bbox.y + box.bbox.height + 2;
+      }
+
+      if (!labelChecker.checkOverlap(labelX, labelY, labelWidth, labelHeight)) {
+        labelChecker.addPosition(labelX, labelY, labelWidth, labelHeight);
+
+        ctx.fillStyle = color;
+        ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+        ctx.fillStyle = '#ffffff';
+        ctx.textBaseline = 'top';
+        ctx.fillText(labelText, labelX + padding, labelY + padding);
+      }
+    }
+  });
+}
+
+/**
+ * 라인 그리기 유틸리티
+ */
+export function drawLine(
+  ctx: CanvasRenderingContext2D,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  options: {
+    color?: string;
+    lineWidth?: number;
+    dash?: number[];
+  } = {}
+) {
+  const { color = '#ff0000', lineWidth = 2, dash = [] } = options;
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash(dash);
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/**
+ * 폴리라인 그리기 유틸리티
+ */
+export function drawPolyline(
+  ctx: CanvasRenderingContext2D,
+  points: Array<{ x: number; y: number }>,
+  options: {
+    color?: string;
+    lineWidth?: number;
+    dash?: number[];
+    closed?: boolean;
+    fill?: string;
+  } = {}
+) {
+  const { color = '#ff0000', lineWidth = 2, dash = [], closed = false, fill } = options;
+
+  if (points.length < 2) return;
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash(dash);
+  ctx.moveTo(points[0].x, points[0].y);
+
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+
+  if (closed) {
+    ctx.closePath();
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+  }
+
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/**
+ * 텍스트 그리기 유틸리티
+ */
+export function drawText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  options: {
+    color?: string;
+    fontSize?: number;
+    fontWeight?: string;
+    fontFamily?: string;
+    textAlign?: CanvasTextAlign;
+    textBaseline?: CanvasTextBaseline;
+    backgroundColor?: string;
+    padding?: number;
+  } = {}
+) {
+  const {
+    color = '#000000',
+    fontSize = 12,
+    fontWeight = 'normal',
+    fontFamily = 'Pretendard, Arial, sans-serif',
+    textAlign = 'left',
+    textBaseline = 'top',
+    backgroundColor,
+    padding = 2,
+  } = options;
+
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  ctx.textAlign = textAlign;
+  ctx.textBaseline = textBaseline;
+
+  if (backgroundColor) {
+    const textMetrics = ctx.measureText(text);
+    const bgWidth = textMetrics.width + padding * 2;
+    const bgHeight = fontSize + padding * 2;
+    const bgX = textAlign === 'center' ? x - bgWidth / 2 : textAlign === 'right' ? x - bgWidth : x;
+    const bgY = textBaseline === 'middle' ? y - bgHeight / 2 : textBaseline === 'bottom' ? y - bgHeight : y;
+
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
+  }
+
+  ctx.fillStyle = color;
+  ctx.fillText(text, x + (backgroundColor ? padding : 0), y + (backgroundColor ? padding : 0));
+}
+
 export default useCanvasDrawing;

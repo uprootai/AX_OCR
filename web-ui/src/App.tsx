@@ -28,6 +28,10 @@ const BlueprintFlowTemplates = lazy(() => import('./pages/blueprintflow/Blueprin
 // PID Overlay Page (lazy)
 const PIDOverlayPage = lazy(() => import('./pages/pid-overlay/PIDOverlayPage'));
 
+// Project Pages (lazy)
+const ProjectList = lazy(() => import('./pages/project/ProjectListPage'));
+const ProjectDetail = lazy(() => import('./pages/project/ProjectDetailPage'));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -86,6 +90,10 @@ function App() {
 
                 {/* P&ID 오버레이 페이지 */}
                 <Route path="/pid-overlay" element={<PIDOverlayPage />} />
+
+                {/* 프로젝트 관리 페이지 */}
+                <Route path="/projects" element={<ProjectList />} />
+                <Route path="/projects/:projectId" element={<ProjectDetail />} />
               </Route>
             </Routes>
           </Suspense>
