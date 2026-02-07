@@ -134,6 +134,9 @@ export function QuotationDashboard({
       machining_cost: number;
       weight_kg: number;
       cost_source: string;
+      original_dimensions?: Record<string, number>;
+      raw_dimensions?: Record<string, number>;
+      allowance_applied?: boolean;
     }>();
     if (quotation) {
       for (const item of quotation.items) {
@@ -143,6 +146,9 @@ export function QuotationDashboard({
           machining_cost: item.machining_cost,
           weight_kg: item.weight_kg,
           cost_source: item.cost_source,
+          original_dimensions: item.original_dimensions,
+          raw_dimensions: item.raw_dimensions,
+          allowance_applied: item.allowance_applied,
         });
       }
     }
@@ -177,6 +183,9 @@ export function QuotationDashboard({
           machining_cost: costInfo?.machining_cost ?? 0,
           weight_kg: costInfo?.weight_kg ?? 0,
           cost_source: costInfo?.cost_source ?? 'none',
+          original_dimensions: costInfo?.original_dimensions,
+          raw_dimensions: costInfo?.raw_dimensions,
+          allowance_applied: costInfo?.allowance_applied,
         };
       }),
     [quotationItems, sessionMap, quotationItemMap]
@@ -395,6 +404,7 @@ export function QuotationDashboard({
                 <th className="px-3 py-2 w-20 text-right">재료비</th>
                 <th className="px-3 py-2 w-20 text-right">가공비</th>
                 <th className="px-3 py-2 w-20 text-right">소계</th>
+                <th className="px-3 py-2 w-32 text-center">치수</th>
                 <th className="px-3 py-2 w-16 text-center">산출</th>
                 <th className="px-3 py-2 w-8"></th>
               </tr>
@@ -429,6 +439,22 @@ export function QuotationDashboard({
                   <td className="px-3 py-2 text-right text-xs font-medium text-gray-900 dark:text-white">
                     {formatCurrency(item.subtotal)}
                   </td>
+                  <td className="px-3 py-2 text-center text-[10px]">
+                    {item.original_dimensions ? (
+                      <div className="space-y-0.5">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          {formatDims(item.original_dimensions)}
+                        </div>
+                        {item.allowance_applied && item.raw_dimensions && (
+                          <div className="text-amber-600 dark:text-amber-400 font-medium">
+                            → {formatDims(item.raw_dimensions)}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-300 dark:text-gray-600">-</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-center">
                     <CostSourceBadge source={item.cost_source} />
                   </td>
@@ -448,7 +474,7 @@ export function QuotationDashboard({
               ))}
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center">
+                  <td colSpan={10} className="px-4 py-8 text-center">
                     <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                     <p className="text-gray-400 dark:text-gray-500">해당 조건의 항목이 없습니다.</p>
                   </td>
@@ -474,6 +500,14 @@ export function QuotationDashboard({
       )}
     </div>
   );
+}
+
+function formatDims(dims: Record<string, number>): string {
+  const parts: string[] = [];
+  if (dims.od) parts.push(`\u00D8${dims.od}`);
+  if (dims.id) parts.push(`\u00F8${dims.id}`);
+  if (dims.length) parts.push(`L${dims.length}`);
+  return parts.join(' \u00D7 ') || '-';
 }
 
 const COST_SOURCE_STYLES: Record<string, { label: string; className: string }> = {

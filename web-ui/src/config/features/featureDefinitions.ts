@@ -435,6 +435,23 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     implementationStatus: 'partial',
     implementationLocation: 'midterm_router.py (근접성 기반)',
   },
+  material_allowance: {
+    key: 'material_allowance',
+    icon: '📐',
+    label: '여유치 자동 계산',
+    group: FEATURE_GROUPS.BOM_GENERATION,
+    hint: 'OD/ID/Length 여유치 자동 적용',
+    description:
+      '도면 치수에 가공 여유치를 자동 적용하여 소재 발주 사이즈를 계산합니다. ' +
+      '기본값: OD +10mm, ID -5mm, Length +5mm. 프로젝트별 커스텀 설정 가능.',
+    recommendedNodes: ['edocr2', 'blueprintaibom'],
+    badgeBgClass: 'bg-amber-100 dark:bg-amber-900/30',
+    badgeTextClass: 'text-amber-700 dark:text-amber-300',
+    implementationStatus: 'implemented',
+    implementationLocation: 'cost_calculator.py (apply_allowance)',
+    implies: ['dimension_ocr'],
+    isPrimary: true,
+  },
 
   // === 장기 로드맵 ===
   drawing_region_segmentation: {

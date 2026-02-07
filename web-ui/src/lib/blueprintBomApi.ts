@@ -140,6 +140,8 @@ export interface SessionQuotationItem {
   machining_cost: number;
   weight_kg: number;
   raw_dimensions?: Record<string, number>;
+  original_dimensions?: Record<string, number>;
+  allowance_applied?: boolean;
   cost_source: string;
   assembly_drawing_number?: string;
   doc_revision?: string;

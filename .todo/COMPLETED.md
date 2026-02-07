@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-02-07 완료
+
+### 1000줄 초과 파일 4개 리팩토링
+
+**상태**: ✅ **완료**
+
+| 원본 파일 | 이전 | 이후 | 신규 모듈 |
+|----------|------|------|----------|
+| `self_contained_export_service.py` | 1304줄 | 550줄 | `export_script_generator.py` (527), `export_docker_handler.py` (247) |
+| `analysisNodes.ts` | 2019줄 | 17줄 | `analysisNodesPid.ts` (453), `analysisNodesDocument.ts` (539), `analysisNodesBom.ts` (559), `analysisNodesQuality.ts` (468) |
+| `api.ts` | 1397줄 | 7줄 | `apiTypes.ts` (242), `apiServices.ts` (567), `apiHealth.ts` (273), `apiProject.ts` (385) |
+| `ExecutionStatusPanel.tsx` | 1097줄 | 171줄 | `FinalResultView.tsx` (530), `OutputDisplays.tsx` (416) |
+
+**패턴**: 배럴 re-export로 기존 import 경로 유지
+**검증**: Python 문법 ✅, TypeScript 빌드 ✅, 프로덕션 빌드 ✅
+
+---
+
 ## 2026-02-05~06 완료
 
 ### DSE Bearing BOM 배치 분석 100% 달성
