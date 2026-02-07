@@ -26,8 +26,18 @@ class SessionQuotationItem(BaseModel):
     # 원가 내역 (Phase 4)
     material_cost: float = 0.0
     machining_cost: float = 0.0
+    treatment_cost: float = 0.0         # 열처리/표면처리
+    scrap_cost: float = 0.0             # 스크랩/절삭 손실
+    setup_cost: float = 0.0             # 셋업비
+    inspection_cost: float = 0.0        # 검사비
+    transport_cost: float = 0.0         # 운송비
     weight_kg: float = 0.0
+    difficulty_factor: float = 1.0      # 가공 난이도 계수
+    treatments: List[str] = Field(default_factory=list)
+    quantity_discount: float = 0.0      # 수량 할인율 %
     raw_dimensions: Optional[dict] = None
+    original_dimensions: Optional[dict] = None
+    allowance_applied: bool = False
     cost_source: str = "none"           # "calculated" | "estimated" | "none"
     # 어셈블리 귀속 및 개정 추적
     assembly_drawing_number: Optional[str] = Field(
