@@ -1,6 +1,9 @@
 """Blueprint AI BOM - Routers"""
 
 from .session_router import router as session_router
+from .workflow_session_router import router as workflow_session_router
+from .session_io_router import router as session_io_router
+from .session_images_router import router as session_images_router
 from .detection_router import router as detection_router
 from .bom_router import router as bom_router
 from .verification_router import router as verification_router
@@ -18,13 +21,28 @@ from .analysis import (
 
 # Roadmap routers (로드맵 기능)
 from .midterm_router import router as midterm_router
-from .longterm_router import router as longterm_router
+
+# Long-term routers (longterm_router.py에서 5개 모듈로 분리)
+from .analysis import (
+    drawing_region_router as analysis_drawing_region_router,
+    notes_router as analysis_notes_router,
+    revision_router as analysis_revision_router,
+    vlm_router as analysis_vlm_router,
+    viewlabels_router as analysis_viewlabels_router,
+)
 
 # P&ID 분석 기능
 from .pid_features_router import router as pid_features_router
 
+# GT, Config & System 라우터
+from .gt_router import router as gt_router
+from .config_router import router as config_router
+
 __all__ = [
     "session_router",
+    "workflow_session_router",
+    "session_io_router",
+    "session_images_router",
     "detection_router",
     "bom_router",
     "verification_router",
@@ -38,7 +56,15 @@ __all__ = [
     "analysis_gdt_router",
     # Roadmap routers
     "midterm_router",
-    "longterm_router",
+    # Long-term routers (분리됨)
+    "analysis_drawing_region_router",
+    "analysis_notes_router",
+    "analysis_revision_router",
+    "analysis_vlm_router",
+    "analysis_viewlabels_router",
     # P&ID 분석
     "pid_features_router",
+    # GT, Config & System
+    "gt_router",
+    "config_router",
 ]
