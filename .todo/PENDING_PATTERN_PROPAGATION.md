@@ -6,68 +6,23 @@
 
 ---
 
-## P0: 즉시 확인 필요 (잔여 참조 정리)
+## ~~P0: 즉시 확인 필요 (잔여 참조 정리)~~ ✅ 완료 (2026-02-06)
 
-### 0-1. Excel Export 잔여 참조 완전 제거 확인
+### ~~0-1. Excel Export 잔여 참조 완전 제거 확인~~ ✅
 
-**배경**: Excel Export 노드를 완전 삭제했으나, 코드베이스 전체에서 참조가 남아있을 수 있음
-
-**확인 대상**:
-
-| 항목 | 확인 방법 | 예상 |
-|------|----------|------|
-| CLAUDE.md 노드 목록 | `grep -i "excel" CLAUDE.md` | ❓ 노드 30개 목록에 Excel Export 포함 여부 |
-| node-palette/constants.ts | `grep "excelexport\|excel-export\|FileSpreadsheet" web-ui/` | ✅ 이미 제거됨 |
-| apiRegistry.ts | `grep "excelexport" web-ui/src/config/apiRegistry.ts` | ❓ 확인 필요 |
-| SaveTemplateModal.tsx | diff에서 1줄 변경 확인 | ❓ excelexport 참조 제거인지 확인 |
-| 사용자 저장 템플릿 | DB/localStorage에 excelexport 노드 포함 템플릿 | ❓ 런타임 에러 가능 |
-
-**작업**:
-```bash
-# 전체 코드베이스 검색
-grep -r "excelexport\|excel.export\|ExcelExport\|FileSpreadsheet" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.yaml" --include="*.md" web-ui/ gateway-api/ blueprint-ai-bom/ CLAUDE.md
-```
+**결과**: FileSpreadsheet 참조는 Lucide 아이콘 사용 (정상). `excelexport` 노드 참조 없음 확인됨.
 
 ---
 
-## P1: 다른 OCR 엔진에 _safe_to_gray() 패턴 적용
+## ~~P1: 다른 OCR 엔진에 _safe_to_gray() 패턴 적용~~ ✅ 완료 (2026-02-06)
 
-### 1-1. cv2.cvtColor(img, COLOR_BGR2GRAY) 안전화
+### ~~1-1. cv2.cvtColor(img, COLOR_BGR2GRAY) 안전화~~ ✅
 
-**문제**: eDOCr2에서 `cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)` 호출 시 이미 그레이스케일인 이미지가 들어오면 크래시. 전처리 파이프라인(CLAHE 등)이 그레이스케일을 반환하는 경우 발생.
-
-**eDOCr2 수정 완료**: `_safe_to_gray()` 함수 도입, 7곳 교체
-
-**다른 API 확인 대상**:
-
-| API | 파일 | 확인 내용 | 우선순위 |
-|-----|------|----------|----------|
-| **PaddleOCR** | `models/paddleocr-api/services/ocr_service.py` | `cv2.cvtColor` 직접 호출 여부 | 높음 |
-| **EasyOCR** | `models/easyocr-api/services/ocr_service.py` | 동일 | 높음 |
-| **Tesseract** | `models/tesseract-api/services/ocr_service.py` | 동일 | 중간 |
-| **TrOCR** | `models/trocr-api/services/ocr_service.py` | 동일 | 중간 |
-| **DocTR** | `models/doctr-api/services/ocr_service.py` | 동일 | 중간 |
-| **SuryaOCR** | `models/suryaocr-api/services/ocr_service.py` | 동일 | 낮음 |
-| **EDGNet** | `models/edgnet-api/services/segmentation_service.py` | 엣지 검출 전처리 | 중간 |
-| **Line Detector** | `models/line-detector-api/services/line_service.py` | 라인 검출 전처리 | 중간 |
-| **ESRGAN** | `models/esrgan-api/services/upscale_service.py` | 업스케일링 전처리 | 낮음 |
-
-**검색 방법**:
-```bash
-grep -rn "cv2.cvtColor.*COLOR_BGR2GRAY\|cv2.cvtColor.*COLOR_RGB2GRAY" models/ --include="*.py" | grep -v "edocr2"
-```
-
-**적용 패턴**:
-```python
-def _safe_to_gray(img):
-    if img is None or img.size == 0:
-        return img
-    if len(img.shape) == 2:
-        return img
-    if img.shape[2] == 1:
-        return img[:, :, 0]
-    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-```
+**결과**:
+- ✅ eDOCr2: `_safe_to_gray()` 적용됨
+- ✅ Line Detector: 이미 `_safe_to_gray()` 적용됨
+- ✅ EDGNet: `thinning.py`에 `_safe_to_gray()` 추가 완료 (2026-02-06)
+- ℹ️ 기타 OCR API: PaddleOCR, EasyOCR 등은 라이브러리 내부에서 변환 처리
 
 ---
 
@@ -279,30 +234,30 @@ models/ocr-ensemble-api/services/ensemble_service.py     → merge_results()
 
 ---
 
-## 작업 체크리스트 요약
+## 작업 체크리스트 요약 ✅ 모두 완료 (2026-02-06)
 
 ### 즉시 (P0)
-- [ ] **0-1**: Excel Export 잔여 참조 전체 검색 및 정리
+- [x] **0-1**: Excel Export 잔여 참조 전체 검색 및 정리 ✅
 
 ### 이번 주 (P1)
-- [ ] **1-1**: 다른 OCR API에서 `cv2.cvtColor` 직접 호출 검색 → _safe_to_gray 필요 여부
-- [ ] **1-2**: 크롭 후 제로 차원 이미지 방어 검색
-- [ ] **1-3**: numpy 배열 리스트 `remove()` 사용 검색
-- [ ] **1-4**: GPU 전처리 API 폴백 상태 확인
-- [ ] **1-5**: Executor inputs+parameters 병합 필요 케이스 검색
-- [ ] **1-6**: Executor _call_api() 메서드 추출 필요 케이스 검색
+- [x] **1-1**: 다른 OCR API에서 `cv2.cvtColor` 직접 호출 검색 → _safe_to_gray 필요 여부 ✅
+- [x] **1-2**: 크롭 후 제로 차원 이미지 방어 검색 ✅ (table-detector-api에 가드 추가)
+- [x] **1-3**: numpy 배열 리스트 `remove()` 사용 검색 ✅ (해당 없음)
+- [x] **1-4**: GPU 전처리 API 폴백 상태 확인 ✅ (모든 API가 자체 폴백 보유)
+- [x] **1-5**: Executor inputs+parameters 병합 필요 케이스 검색 ✅ (bom_executor만 해당, 이미 구현)
+- [x] **1-6**: Executor _call_api() 메서드 추출 → ✅ APICallerMixin으로 대체
 
 ### 다음 주 (P2)
-- [ ] **2-1**: 비DSE 템플릿 multi-crop 적용
-- [ ] **2-2**: 품질 필터 도면 종류별 임계값
-- [ ] **2-3**: dimension_service 다른 OCR 엔진 통합
-- [ ] **2-4**: 가중 투표 병합 공통 라이브러리 검토
-- [ ] **2-5**: CLAUDE.md 노드/파라미터 목록 갱신
+- [x] **2-1**: 비DSE 템플릿 multi-crop 적용 ✅ (기본 프로파일로 이미 적용)
+- [x] **2-2**: 품질 필터 도면 종류별 임계값 ✅ (max_empty_ratio 파라미터 노출됨)
+- [x] **2-3**: dimension_service 다른 OCR 엔진 통합 ✅ (6개 엔진 지원)
+- [x] **2-4**: 가중 투표 병합 공통 라이브러리 검토 ✅ (WeightedVoter 클래스)
+- [x] **2-5**: CLAUDE.md 노드/파라미터 목록 갱신 ✅
 
 ### 장기 (P3)
-- [ ] **3-1**: Executor API 호출 재시도/타임아웃 표준화
-- [ ] **3-2**: Docker GPU 자동 감지
-- [ ] **3-3**: 크롭 영역 미리보기 도구
+- [x] **3-1**: Executor API 호출 재시도/타임아웃 표준화 ✅ (APICallerMixin)
+- [x] **3-2**: Docker GPU 자동 감지 ✅ (docker-gpu-entrypoint.sh)
+- [x] **3-3**: 크롭 영역 미리보기 도구 ✅ (CropRegionPreview.tsx)
 
 ---
 

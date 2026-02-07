@@ -1,146 +1,148 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-04
-> **기준 커밋**: 9c278b0 (feat: BOM HITL 치수 전용 워크플로우 완성, Executor 리팩토링, UI 하이라이트 연동)
+> **마지막 업데이트**: 2026-02-07
+> **기준 커밋**: cfd35cc (feat: BOM 계층 워크플로우 Phase 1-3 완성)
 
 ---
 
-## 미커밋 변경 요약 — DSE Bearing BOM 계층 워크플로우 (Phase 1 + Phase 2 + Phase 3)
+## 현재 상태 요약
 
-> 동서기연 1차 미팅 결과 반영: BOM PDF → 계층 파싱 → 단품 세션 일괄 생성 → 프로젝트 견적 집계
-
-### 변경 카테고리
-
-| 영역 | 수정 | 신규 | 핵심 변경 |
-|------|------|------|----------|
-| **BOM Backend** | 5개 | 4개 | session metadata, BOM PDF parser, drawing matcher, quotation service |
-| **BOM Frontend** | 2개 | 5개 | project API BOM 메서드, BOM 워크플로우 위저드 UI, MaterialBreakdown |
-| **Gateway API** | 1개 | 0 | BOM executor project_id + metadata 전달 |
-| **Web-UI** | 1개 | 0 | DSE 1-1 수정, 2-1/2-2/2-3 숨김, hidden 필터 |
+| 항목 | 값 |
+|------|-----|
+| **프로젝트** | 동서기연 터빈 베어링 (a444211b) |
+| **배치 분석** | 53/53 세션 완료 (100%) |
+| **총 치수 추출** | 2,710개 (평균 51.1개/세션) |
+| **어셈블리 그룹** | 7개 (T3~T8 + THRUST) |
+| **빌드 상태** | ✅ 정상 |
 
 ---
 
-## Phase 1 백엔드 변경 상세
+## 2026-02-07 완료 작업
 
-### BOM PDF Parser (신규)
-- **파일**: `services/bom_pdf_parser.py`
-- RGB 색상 기반 레벨 감지 (PINK=ASSY, BLUE=SUB, WHITE=PART)
-- PDF 테이블 파싱 → BOM 계층 구조 반환
+### 14. 프로젝트 관리 UI 재설계 ✅
+- **계획 문서**: `.todo/2026-02-06_PROJECT_UI_REDESIGN.md`
+- **11개 파일** 네이티브 재작성 (다크모드 지원)
+- **390개** `dark:` 클래스 적용
+- Phase 1-6 모두 완료
+- 빌드 성공
 
-### Drawing Matcher (신규)
-- **파일**: `services/drawing_matcher.py`
-- 파일명 ↔ 도면번호 매칭 (정규화 비교)
-- 매칭 결과 + needs_quotation 필터링
-
-### BOM Item Schema (신규)
-- **파일**: `schemas/bom_item.py`
-- BOMItem, BOMHierarchyResponse, DrawingMatchResult 등 데이터 모델
-
-### Project/Session 확장 (수정 5개)
-- project_router: 6개 BOM 엔드포인트 추가
-- session_router: metadata 지원
-- project_service: BOM 파싱/매칭/세션 생성
-- session_service: metadata 전달, 일괄 생성
+### 15. Docker 네트워크 연결 수정 ✅
+- **문제**: gateway-api → blueprint-ai-bom-backend 연결 불가
+- **원인**: 컨테이너가 다른 Docker 네트워크에 있음
+- **수정**: `docker network connect ax_poc_network blueprint-ai-bom-backend`
+- **결과**: BlueprintFlow AI BOM 노드 정상 작동
 
 ---
 
-## Phase 2 프론트엔드 변경 상세
+## 2026-02-06 완료 작업
 
-### 1. API 타입 내보내기 수정
+### 5. PDF/Excel 어셈블리 견적서 ✅
+- **백엔드**: `quotation_service.py` - `export_assembly_pdf()`, `export_assembly_excel()`
+- **라우터**: `project_router.py` - `/quotation/assembly/{assembly_dwg}/download`
+- **프론트**: `AssemblyBreakdown.tsx` - PDF/Excel 다운로드 버튼 추가
+- **결과**: 어셈블리 단위 견적서 내보내기 가능
 
-**파일**: `lib/api/index.ts` (+4 타입)
+### 6. E1 - Table Detector OCR 품질 개선 ✅ (기존 구현 확인)
+- **파일**: `table_service.py`, `core_router.py`
+- **기능**: `enable_cell_reocr=True`, `enable_crop_upscale=True` (기본 활성화)
+- **사전 교정**: `_OCR_CORRECTIONS` 70+ 항목
 
-BOMItem, BOMHierarchyResponse, DrawingMatchResult, SessionBatchCreateResponse 타입 re-export 추가
+### 7. E2 - 표제란 자동 OCR ✅ (기존 구현 확인)
+- **파일**: `core_router.py:399-489`
+- **기능**: `extract_text_regions()` 자동 실행, `title_block_ocr` feature 지원
 
-### 2. BOMHierarchyTree (신규, 247줄)
+### 8. dimension_service 다중 엔진 ✅ (기존 구현 확인)
+- **파일**: `dimension_service.py`
+- **지원 엔진**: paddleocr, edocr2, easyocr, trocr, suryaocr, doctr (6개)
+- **가중 투표**: `_merge_multi_engine()` 구현
 
-**파일**: `pages/project/components/BOMHierarchyTree.tsx`
+### 9. 패턴 확산 작업 ✅
+- **P0 Excel Export 잔여 참조**: 없음 (FileSpreadsheet는 일반 아이콘)
+- **P1-1 _safe_to_gray()**: `edgnet-api/thinning.py` 수정 완료
+  - `line-detector-api/`는 이미 적용됨
 
-- 재귀 TreeNode 컴포넌트로 BOM 계층 트리뷰 렌더링
-- PINK(ASSY) / BLUE(SUB) / WHITE(PART) 색상 코딩
-- 펼치기/접기 (개별 + 전체)
-- 요약 통계 바 (전체/ASSY/SUB/PART 개수)
+### 10. BOMHierarchyTree 리비전 표시 ✅
+- **파일**: `BOMHierarchyTree.tsx`
+- **변경**: `doc_revision` 필드 추가, 보라색 `Rev.X` 뱃지로 표시
 
-### 3. DrawingMatchTable (신규, 171줄)
+### 11. 단가 API 확장 ✅ (기존 구현 확인)
+- **파일**: `bom_router.py:166-222`
+- **GET /bom/{session_id}/pricing**: 단가 파일 조회
+- **DELETE /bom/{session_id}/pricing**: 단가 파일 삭제 (글로벌 복원)
 
-**파일**: `pages/project/components/DrawingMatchTable.tsx`
+### 12. R&D 문서 업데이트 ✅
+- **README.md**: 시스템 현황 추가 (21 API, 549 테스트, 29 노드)
+- **SOTA_GAP_ANALYSIS.md**: OCR 6엔진 앙상블, PID2Graph 완료 반영
+- **SOTA 부합도**: ~82% 유지 (P&ID 60% → 65% 개선)
 
-- 도면 폴더 경로 입력 + 매칭 실행 버튼
-- 매칭 결과 프로그레스 바 (매칭/미매칭 %)
-- 견적 대상(needs_quotation) 항목만 테이블 표시
-- 매칭/미매칭 상태 뱃지
-
-### 4. QuotationDashboard (신규 → Phase 3에서 확장, 218줄)
-
-**파일**: `pages/project/components/QuotationDashboard.tsx`
-
-- 4개 통계 카드 (견적대상/세션생성/분석완료/견적완료)
-- 필터 (전체/완료/진행중/미생성)
-- BOM items ↔ sessions 조인 테이블
-- 세션 링크 → /workflow?session= 이동
-
-### 5. BOMWorkflowSection (신규, 377줄)
-
-**파일**: `pages/project/components/BOMWorkflowSection.tsx`
-
-- 5단계 위저드: BOM 업로드 → 계층 트리 → 도면 매칭 → 세션 생성 → 견적 현황
-- 아이콘 스테퍼 UI (완료=green, 활성=blue, 비활성=gray)
-- 자동 시작 위치 감지 (project 상태 기반)
-- 단계별 조건 네비게이션
-
-### 6. ProjectDetailPage 수정 (+8줄)
-
-**파일**: `pages/project/ProjectDetailPage.tsx`
-
-- BOMWorkflowSection import 추가
-- 프로젝트 정보 grid와 세션 목록 사이에 BOMWorkflowSection 렌더링
+### 13. 향후 기능 구현 ✅
+- **NOTES 텍스트 추출**: 이미 구현됨 (`notes_extractor.py`, `longterm_router.py`)
+- **뷰 라벨 인식**: 신규 구현 (`view_label_extractor.py`)
+  - SECTION A-A, DETAIL B, VIEW C-C, 정면도/측면도 등 파싱
+  - API: `POST/GET /longterm/view-labels/{session_id}`
+- **DocLayout-YOLO Fine-tuning**: 준비 완료 (8클래스, 29이미지, 라벨링 필요)
+- **YOLOv12 업그레이드 계획**: 문서화 완료 (`YOLOV12_UPGRADE_PLAN.md`)
 
 ---
 
-## Phase 3 견적 집계 변경 상세
+## 이전 완료 작업 (2026-02-05~06)
 
-### Quotation Schema (신규)
-- **파일**: `schemas/quotation.py`
-- QuotationSummary, MaterialGroup, QuotationExportRequest 등
+### 1. eDOCr2 타임아웃 증가 ✅
+- `timeout=120.0` → `timeout=600.0`
 
-### Quotation Service (신규)
-- **파일**: `services/quotation_service.py`
-- 세션별 BOM 데이터 읽기 → 재질별 그룹핑
-- PDF/Excel 내보내기 지원
-- `_build_session_item()` → `session.json` → `bom_data.summary` 읽기
+### 2. 대용량 이미지 자동 리사이즈 ✅
+- MAX_DIMENSION=8000, MAX_PIXELS=64M
 
-### MaterialBreakdown (신규)
-- **파일**: `pages/project/components/MaterialBreakdown.tsx`
-- 재질별 분류 테이블 (수량, 중량, 금액)
-- 원형 차트 / 막대 그래프 시각화
+### 3. 어셈블리 단위 세션 관리 ✅
+- 스키마, 서비스, UI 컴포넌트
 
-### QuotationDashboard 확장
-- 통계 카드에 MaterialBreakdown 연동
-- 다운로드 버튼 (PDF/Excel)
+### 4. 배치 분석 어셈블리 단위 실행 UI ✅
+- `currentBatchDrawing`, `isAnalyzing` props
 
 ---
 
-## 프로젝트 상태
+## 2026-02-06 P3 작업 완료
+
+### 완료된 P3 작업 (11/11) ✅
+
+| 작업 | 설명 | 파일 |
+|------|------|------|
+| ✅ P3-1 | Executor API 재시도/타임아웃 표준화 | `APICallerMixin` in `base_executor.py` |
+| ✅ P3-2 | Docker GPU 자동 감지 | `scripts/docker-gpu-entrypoint.sh` |
+| ✅ P3-3 | 가중 투표 공통 라이브러리 | `gateway-api/common/weighted_voting.py` |
+| ✅ P3-4 | 제네릭 OverlayViewer | `GenericOverlayViewer.tsx` |
+| ✅ P3-5 | useCanvasDrawing 훅 확장 | `drawBoundingBoxes`, `drawLine` 등 추가 |
+| ✅ P3-6 | 크롭 영역 미리보기 도구 | `CropRegionPreview.tsx` |
+| ✅ P3-7 | Blueprint AI BOM SVG 연동 | `BOMSessionOverlay.tsx` |
+| ✅ P3-8 | 시각화 기능 확장 (공차 히트맵, BOM 연결선) | `ToleranceHeatmap.tsx`, `BOMConnectionLines.tsx` |
+| ✅ P3-9 | 템플릿 버전 관리 | `template_service.py`, `TemplateVersionHistory.tsx` |
+| ✅ P3-10 | Gateway 서비스 분리 | 기존 완료 (vl-api:5004, ocr-ensemble-api:5011) |
+| ✅ P3-11 | QuotePreview i18n | 기존 완료 확인 |
+
+**P1/P2/P3 모든 작업 완료** - 100% 진행
+
+---
+
+## 검증 결과
 
 | 항목 | 결과 |
 |------|------|
-| **Python 문법** | ✅ 12/12 파일 정상 |
-| **web-ui tsc** | ✅ 에러 0개 |
-| **bom frontend tsc** | ✅ 에러 0개 |
-| **bom frontend build** | ✅ 빌드 성공 |
-| **데이터 흐름** | ✅ bom_service → session.json → quotation_service 통합 갭 없음 |
+| **Python 컴파일** | ✅ 전체 정상 |
+| **TypeScript 빌드** | ✅ 에러 0개 |
+| **Frontend 빌드** | ✅ 성공 |
+| **Docker 배포** | ✅ 정상 |
+| **배치 분석** | ✅ 53/53 완료 (100%) |
 
 ---
 
-## 다음 단계
+## 참조 문서
 
-- [x] BOMHierarchyTree 프론트엔드 컴포넌트
-- [x] DrawingMatchTable 프론트엔드 컴포넌트
-- [x] QuotationDashboard 프론트엔드 컴포넌트
-- [x] BOMWorkflowSection 위저드 컨트롤러
-- [x] ProjectDetailPage 확장 (BOM 섹션 추가)
-- [x] 견적 집계/출력 서비스
+| 문서 | 위치 |
+|------|------|
+| 패턴 확산 작업 | `.todo/PENDING_PATTERN_PROPAGATION.md` |
+| 백로그 | `.todo/BACKLOG.md` |
+| 완료 아카이브 | `.todo/COMPLETED.md` |
 
 ---
 
-*마지막 업데이트: 2026-02-04*
+*마지막 업데이트: 2026-02-07 (Docker 네트워크 연결 수정)*

@@ -1,7 +1,88 @@
 # 완료된 작업 아카이브
 
-> 마지막 업데이트: 2026-01-22
+> 마지막 업데이트: 2026-02-06
 > 완료된 작업들의 기록 (참조용)
+
+---
+
+## 2026-02-05~06 완료
+
+### DSE Bearing BOM 배치 분석 100% 달성
+
+**상태**: ✅ **완료**
+
+| 항목 | 결과 |
+|------|------|
+| 세션 수 | 53/53 (100%) |
+| 총 치수 | 2,710개 |
+| 평균 치수/세션 | 51.1개 |
+| 처리 시간 | ~3시간 |
+
+**해결한 문제들**:
+1. **eDOCr2 타임아웃 이슈**: 120초 → 600초 증가 (47.2% → 98.1%)
+2. **대용량 이미지 OOM**: 139MP 이미지 자동 리사이즈 (98.1% → 100%)
+
+**구현 파일**:
+- `services/dimension_service.py` - timeout 600초
+- `services/image_utils.py` - resize_image_if_needed() 신규
+- `routers/session_router.py` - 업로드 시 자동 리사이즈
+
+---
+
+### 어셈블리 단위 세션 관리 (Step 1-3)
+
+**상태**: ✅ **완료**
+
+| Step | 작업 | 상태 |
+|------|------|------|
+| Step 1 | 데이터 스키마 확장 | ✅ |
+| Step 2 | 견적 집계 서비스 | ✅ |
+| Step 3 | UI 컴포넌트 | ✅ |
+
+**결과**: 7개 어셈블리 그룹 감지, 51/53 세션 매핑
+
+---
+
+## 2026-02-04 완료
+
+### DSE Bearing BOM 계층 워크플로우 Phase 1-3
+
+**상태**: ✅ **완료**
+
+| Phase | 작업 | 상태 |
+|-------|------|------|
+| Phase 1 | BOM PDF 파싱, 도면 매칭, 세션 일괄 생성 | ✅ |
+| Phase 2 | 5단계 위저드 UI, 트리뷰, 매칭 테이블 | ✅ |
+| Phase 3 | 견적 집계, MaterialBreakdown, QuotationDashboard | ✅ |
+
+**커밋**: cfd35cc
+
+---
+
+## 2026-02-03 완료
+
+### P1-3 Executor API 호출 메서드 분리
+
+| Executor | 상태 |
+|----------|------|
+| bom_executor.py | ✅ `_call_api()`, `_post_api()`, `_patch_api()` |
+| pdfexport_executor.py | ✅ `_post_api()` |
+| pidfeatures_executor.py | ✅ `_post_api()` |
+
+### P1-4 BOM 프론트엔드 세션 단가 표시
+
+- 세션 조회 시 `has_custom_pricing` 반환
+- BOM 헤더에 "커스텀 단가" 배지
+
+### P1-5 DetectionResultsSection 클래스 하이라이트
+
+- `selectedClassName` state
+- 클래스 필터 UI
+- Canvas 렌더링 (opacity/lineWidth)
+
+### P2-2 BOM ↔ 도면 하이라이트 연동
+
+양방향 동기화: BOM 테이블 클릭 ↔ 도면 하이라이트
 
 ---
 

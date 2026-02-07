@@ -1,7 +1,19 @@
 # AX POC - R&D (Research & Development)
 
-> **최종 업데이트**: 2026-01-20
+> **최종 업데이트**: 2026-02-06
 > **목적**: 프로젝트 관련 연구 개발, SOTA 논문 수집, 실험 및 벤치마크 관리
+
+---
+
+## 현재 시스템 현황
+
+| 항목 | 값 |
+|------|-----|
+| **API 서비스** | 21개 |
+| **테스트** | 549개 (gateway 364 + web-ui 185) |
+| **노드 정의** | 29개 |
+| **SOTA 부합도** | ~82% |
+| **DSE Bearing 배치 분석** | 53/53 세션 완료 (2,710 치수) |
 
 ---
 
@@ -13,31 +25,33 @@ rnd/
 ├── SOTA_GAP_ANALYSIS.md     # ⭐ SOTA vs 현재 시스템 Gap 분석
 ├── IMPLEMENTATION_DETAILS.md # SOTA 세부 파라미터 설정
 ├── TRAINING_GUIDES.md        # API별 커스텀 학습 가이드
+├── YOLOV12_UPGRADE_PLAN.md  # ⏳ YOLOv12 업그레이드 계획 (신규)
 ├── papers/                   # 논문 수집 및 정리
 │   └── README.md            # 49개 SOTA 논문 인덱스
 ├── experiments/             # 실험 기록
 │   ├── doclayout_yolo/      # ✅ DocLayout-YOLO 테스트 (2025-12-31)
-│   └── bwms_pipeline_improvement/  # 🔴 BWMS 파이프라인 개선 (2026-01-20)
+│   ├── bwms_pipeline_improvement/  # ✅ BWMS 파이프라인 개선 (2026-01-20)
+│   └── pid2graph_benchmark_analysis.md  # ✅ PID2Graph 벤치마크 (2026-01-19)
 ├── benchmarks/              # 성능 벤치마크
-│   └── (향후 벤치마크 결과)
+│   └── pid2graph/           # ✅ PID2Graph 벤치마크 결과
 └── models/                  # 모델 실험 및 가중치
-    └── (향후 커스텀 모델)
+    └── pid2graph_yolo11n_finetuned.pt  # ✅ Fine-tuned 모델 (16MB)
 ```
 
 ---
 
 ## SOTA Gap 분석 결과 요약
 
-**현재 시스템 SOTA 부합도: ~81%** (2025-12-31 업데이트)
+**현재 시스템 SOTA 부합도: ~82%** (2026-02-06 업데이트)
 
 | 영역 | 부합도 | 현재 | SOTA | Gap |
 |------|--------|------|------|-----|
 | Object Detection | ✅ 100% | YOLOv11 | YOLOv11 | 없음 |
-| OCR/Document | ✅ 95% | **PP-OCRv5 (3.0)** | PaddleOCR 3.0 | ✅ 업그레이드 완료 |
+| OCR/Document | ✅ 95% | **6엔진 가중 투표** | PaddleOCR 3.0 | ✅ 앙상블 완료 |
 | GD&T Recognition | ✅ 85% | YOLO 기반 | YOLO + PARSeq | 텍스트 인식 |
 | VLM | ✅ 80% | **CoT 추론 (v1.1)** | LLaVA-CoT | ✅ 업그레이드 완료 |
-| Layout Analysis | ⚠️ 65% | 휴리스틱 | SCAN | 방법론 |
-| P&ID Analysis | ⚠️ 60% | 모듈식 | Relationformer | End-to-End |
+| Layout Analysis | ⚠️ 70% | **DocLayout-YOLO 테스트** | SCAN | Fine-tuning 필요 |
+| P&ID Analysis | ⚠️ 65% | **PID2Graph Fine-tuned** | Relationformer | End-to-End |
 
 **상세 분석**: [SOTA_GAP_ANALYSIS.md](SOTA_GAP_ANALYSIS.md)
 
@@ -47,14 +61,14 @@ rnd/
 
 **총 49개 논문** (2025-12-31 v2 심층 조사)
 
-| 카테고리 | 수량 | 핵심 기술 |
-|----------|------|-----------|
-| Object Detection | 12 | **YOLOv12**, YOLO26, RT-DETRv3, RF-DETR |
-| OCR & Document | 7 | PaddleOCR 3.0, TrOCR, DocTR |
-| P&ID Analysis | 6 | Relationformer, PID2Graph |
-| Vision-Language | 10 | **Qwen3-VL**, InternVL3.5, LLaVA-o1 |
-| Layout Analysis | 10 | **DocLayout-YOLO**, SCAN, SFDLA |
-| GD&T Recognition | 4 | YOLOv8/v11 기반 |
+| 카테고리 | 수량 | 핵심 기술 | 적용 상태 |
+|----------|------|-----------|----------|
+| Object Detection | 12 | **YOLOv12**, YOLO26, RT-DETRv3, RF-DETR | ✅ YOLOv11 적용 |
+| OCR & Document | 7 | PaddleOCR 3.0, TrOCR, DocTR | ✅ 6엔진 앙상블 |
+| P&ID Analysis | 6 | Relationformer, PID2Graph | ✅ PID2Graph Fine-tuned |
+| Vision-Language | 10 | **Qwen3-VL**, InternVL3.5, LLaVA-o1 | ✅ CoT 추론 적용 |
+| Layout Analysis | 10 | **DocLayout-YOLO**, SCAN, SFDLA | ✅ 테스트 완료 |
+| GD&T Recognition | 4 | YOLOv8/v11 기반 | ✅ YOLO 기반 적용 |
 
 자세한 논문 목록: [papers/README.md](papers/README.md)
 
@@ -63,18 +77,18 @@ rnd/
 ## R&D 로드맵 (GPU 제약 반영, RTX 3080 8GB)
 
 ### 완료 ✅
-| 연구 주제 | 적용 대상 API | 상태 |
-|-----------|--------------|------|
-| YOLOv11 아키텍처 | YOLO (5005) | ✅ 적용됨 |
-| PaddleOCR 3.0 업그레이드 | PaddleOCR (5006) | ✅ 완료 |
-| LLaVA-CoT 단계별 추론 | VL (5004) | ✅ 완료 |
-| DocLayout-YOLO 테스트 | Layout Analysis | ✅ 완료 (4GB VRAM, 40ms/img) |
-| **PID2Graph Fine-tuning** | YOLO (5005) | ✅ 완료 (mAP50: 68.5%, Recall: 66.0%) |
-
-### 진행 중 🔴
-| 연구 주제 | 상태 | 비고 |
-|-----------|------|------|
-| **BWMS 파이프라인 개선** | 🔴 분석 중 | YOLO 신뢰도, Line Detector 노이즈, BWMS 규칙 |
+| 연구 주제 | 적용 대상 API | 상태 | 완료일 |
+|-----------|--------------|------|--------|
+| YOLOv11 아키텍처 | YOLO (5005) | ✅ 적용됨 | 2025-12 |
+| PaddleOCR 3.0 업그레이드 | PaddleOCR (5006) | ✅ 완료 | 2025-12-31 |
+| LLaVA-CoT 단계별 추론 | VL (5004) | ✅ 완료 | 2025-12-31 |
+| DocLayout-YOLO 테스트 | Layout Analysis | ✅ 완료 (4GB VRAM, 40ms/img) | 2025-12-31 |
+| **PID2Graph Fine-tuning** | YOLO (5005) | ✅ 완료 (mAP50: 68.5%, Recall: 66.0%) | 2026-01-19 |
+| **BWMS 파이프라인 개선** | Design Checker | ✅ 완료 (4개 실험) | 2026-01-20 |
+| **OCR 6엔진 가중 투표** | dimension_service | ✅ 완료 (`_merge_multi_engine()`) | 2026-02-06 |
+| **Table Detector 후처리** | Table Detector | ✅ 완료 (crop upscale, reocr) | 2026-02-06 |
+| **DSE Bearing BOM 워크플로우** | Blueprint AI BOM | ✅ Phase 1-3 완료 | 2026-02-04 |
+| **템플릿 버전 관리** | Blueprint AI BOM | ✅ 완료 (히스토리, 롤백, 비교) | 2026-02-06 |
 
 ### 실현 가능 (P1)
 | 연구 주제 | GPU 요구 | 상태 |
@@ -99,7 +113,7 @@ rnd/
 | 연구 주제 | 용도 |
 |-----------|------|
 | Drawing2CAD | 2D→3D 연구 |
-| PID2Graph | 벤치마크 데이터 |
+| PID2Graph | ✅ 벤치마크 완료 |
 
 ---
 
@@ -148,15 +162,21 @@ rnd/
 
 | 날짜 | 변경 내용 |
 |------|----------|
-| 2026-01-20 | **BWMS 파이프라인 개선 연구 시작**: YOLO 신뢰도, Line Detector 노이즈, Design Checker 규칙 최적화 분석 |
-| 2026-01-19 | **PID2Graph Fine-tuning 완료**: YOLOv11n 기반, 1000장 학습, mAP50 68.5%, Recall 66.0% (기존 11.5% → 66.0%) |
-| 2025-12-31 (v3) | **DocLayout-YOLO 테스트 완료**: 4GB VRAM, 40ms 추론 속도, 기계도면/P&ID 6개 이미지 테스트, Fine-tuning 필요성 확인 |
-| 2025-12-31 (v2) | **SOTA 심층 조사**: 49개 논문 수집 (14개 신규), YOLOv12/Qwen3-VL/DocLayout-YOLO 등 차기 업그레이드 후보 발견 |
-| 2025-12-31 | VL API v1.1.0: LLaVA-CoT 스타일 다단계 추론 추가, SOTA 부합도 80% → 81% |
-| 2025-12-31 | PaddleOCR 3.0 업그레이드 완료 (PP-OCRv5), SOTA 부합도 75% → 80% |
+| **2026-02-06** | **R&D 문서 갱신**: 시스템 현황 업데이트 (21 API, 549 테스트, 29 노드), OCR 6엔진 앙상블 반영 |
+| 2026-02-06 | **OCR 6엔진 가중 투표 완료**: paddleocr, edocr2, easyocr, trocr, suryaocr, doctr 통합 |
+| 2026-02-06 | **Table Detector 후처리 강화**: crop upscale, cell reocr 기본 활성화 |
+| 2026-02-06 | **템플릿 버전 관리 완료**: 스냅샷, 롤백, 버전 비교 기능 |
+| 2026-02-05 | **DSE Bearing 배치 분석 100%**: 53/53 세션, 2,710 치수 추출 |
+| 2026-02-04 | **BOM 계층 워크플로우 Phase 1-3 완료**: PDF 파싱, 도면 매칭, 견적 집계 |
+| 2026-01-20 | **BWMS 파이프라인 개선 완료**: YOLO 신뢰도, Line Detector 노이즈, Design Checker 규칙 최적화 |
+| 2026-01-19 | **PID2Graph Fine-tuning 완료**: YOLOv11n 기반, mAP50 68.5%, Recall 66.0% |
+| 2025-12-31 | **DocLayout-YOLO 테스트 완료**: 4GB VRAM, 40ms 추론 속도 |
+| 2025-12-31 | **SOTA 심층 조사**: 49개 논문 수집, YOLOv12/Qwen3-VL 등 후보 발견 |
+| 2025-12-31 | VL API v1.1.0: LLaVA-CoT 스타일 다단계 추론 추가 |
+| 2025-12-31 | PaddleOCR 3.0 업그레이드 완료 (PP-OCRv5) |
 | 2025-12-31 | R&D 디렉토리 생성, 35개 논문 수집 |
 
 ---
 
 *작성자*: Claude Code (Opus 4.5)
-*최종 업데이트*: 2025-12-31
+*최종 업데이트*: 2026-02-06

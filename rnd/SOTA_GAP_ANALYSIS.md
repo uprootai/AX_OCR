@@ -1,8 +1,8 @@
 # SOTA Gap Analysis: 현재 시스템 vs 최신 연구 동향
 
-> **작성일**: 2025-12-31 (v2 - 심층 조사 업데이트)
+> **작성일**: 2026-02-06 (v4 - 시스템 현황 업데이트)
 > **목적**: 수집한 **49개** SOTA 논문 분석 및 현재 시스템과의 Gap 분석
-> **결론**: 현재 시스템은 SOTA 트렌드에 **대체로 부합**하나, **차기 업그레이드 후보** 다수 발견
+> **결론**: 현재 시스템은 SOTA 트렌드에 **대체로 부합**, OCR 앙상블 강화 및 PID2Graph Fine-tuning 완료
 
 ---
 
@@ -11,13 +11,13 @@
 | 영역 | 현재 수준 | SOTA 수준 | Gap | 부합도 |
 |------|----------|----------|-----|--------|
 | Object Detection | YOLOv11 | YOLOv11 | 없음 | ✅ **100%** |
-| OCR | **PaddleOCR 3.0 (PP-OCRv5)** | PaddleOCR 3.0 | 없음 | ✅ **95%** |
-| P&ID Analysis | 모듈식 파이프라인 | Transformer 기반 | 있음 | ⚠️ **60%** |
+| OCR | **6엔진 가중 투표 앙상블** | PaddleOCR 3.0 | 없음 | ✅ **95%** |
+| P&ID Analysis | **PID2Graph Fine-tuned** | Transformer 기반 | 일부 | ⚠️ **65%** |
 | Vision-Language | **CoT 추론 (LLaVA-CoT 스타일)** | LLaVA-CoT | 일부 | ✅ **80%** |
 | Document Layout | **DocLayout-YOLO 테스트 완료** | SCAN/UnSupDLA | 일부 | ⚠️ **70%** |
 | GD&T Recognition | YOLO 기반 | YOLO + PARSeq | 일부 | ✅ **85%** |
 
-**종합 부합도**: **~82%** (2025-12-31 DocLayout-YOLO 테스트 완료)
+**종합 부합도**: **~82%** (2026-02-06 OCR 앙상블 강화, PID2Graph 완료)
 
 ---
 
@@ -113,7 +113,7 @@
 ### 2.3 현재 시스템 (업그레이드 완료)
 
 ```yaml
-현재 OCR 스택 (2025-12-31 업데이트):
+현재 OCR 스택 (2026-02-06 업데이트):
   - PaddleOCR (5006): PP-OCRv5 (v3.0.0) ✅ SOTA
   - eDOCr2 (5002): 한국어 치수 특화
   - TrOCR (5009): Transformer 기반
@@ -121,6 +121,11 @@
   - OCR Ensemble (5011): 4엔진 가중 투표
   - Surya OCR (5013): 90+ 언어
   - EasyOCR (5015): 80+ 언어
+
+dimension_service 6엔진 가중 투표 (2026-02-06 신규):
+  지원 엔진: paddleocr, edocr2, easyocr, trocr, suryaocr, doctr
+  투표 방식: _merge_multi_engine() 가중 투표
+  용도: 치수 OCR 정확도 향상
 ```
 
 ### 2.4 Gap 분석 (업그레이드 후)
@@ -180,7 +185,7 @@ SOTA: Relationformer로 심볼+연결 동시 추출
 | **Hallucination 감소** | 실제 P&ID 데이터 기반 응답 |
 | **도구** | pyDEXPI 패키지 활용 |
 
-### 3.3 현재 시스템
+### 3.3 현재 시스템 (2026-02-06 업데이트)
 
 ```yaml
 현재 P&ID 분석:
@@ -191,10 +196,18 @@ SOTA: Relationformer로 심볼+연결 동시 추출
     4. Design Checker → 규칙 검증
 
   방식: 모듈식 (Modular)
-  문제: 각 단계별 오류 전파
+  개선: PID2Graph Fine-tuning 완료
+
+PID2Graph Fine-tuning 결과 (2026-01-19 완료):
+  모델: YOLOv11n
+  데이터셋: PID2Graph 1,000장
+  성능:
+    - mAP50: 68.5% (기존 대비 +57%)
+    - Recall: 66.0% (기존 11.5% → 66.0%)
+  모델 파일: rnd/models/pid2graph_yolo11n_finetuned.pt (16MB)
 ```
 
-### 3.4 Gap 분석
+### 3.4 Gap 분석 (2026-02-06 업데이트)
 
 | 항목 | SOTA | 현재 | Gap |
 |------|------|------|-----|
@@ -202,21 +215,26 @@ SOTA: Relationformer로 심볼+연결 동시 추출
 | 심볼+연결 | 동시 추출 | 순차 추출 | ⚠️ **접근법 Gap** |
 | 그래프 출력 | 직접 그래프 생성 | 후처리로 그래프화 | ⚠️ **효율성 Gap** |
 | RAG + LLM | 자연어 질의 지원 | 미지원 | ⚠️ **기능 Gap** |
-| 데이터셋 | PID2Graph 벤치마크 | 자체 데이터만 | ⚠️ **평가 Gap** |
-| 정확도 | SOTA (25%↑) | 기존 수준 | ⚠️ **성능 Gap** |
+| 데이터셋 | PID2Graph 벤치마크 | ✅ **Fine-tuning 완료** | ✅ **개선됨** |
+| 정확도 | SOTA (25%↑) | **mAP50 68.5%, Recall 66.0%** | ✅ **개선됨** |
 
-### 3.5 결론: ⚠️ **Gap 존재 (60%)**
+### 3.5 결론: ⚠️ **Gap 존재 (65%)** ← 개선됨 (기존 60%)
+
+**완료된 개선 (2026-01-19)**:
+1. ✅ PID2Graph 데이터셋 Fine-tuning 완료
+2. ✅ mAP50: 68.5%, Recall: 66.0% 달성
+3. ✅ 모델 파일 생성: `pid2graph_yolo11n_finetuned.pt`
 
 **현재 시스템의 한계**:
 - 모듈식 접근으로 오류 전파 문제
-- 전체 구조를 한번에 학습하지 못함
+- End-to-End 아키텍처 미적용
 
 **권장 조치**:
-1. **단기**: PID2Graph 데이터셋으로 평가 수행
+1. ~~**단기**: PID2Graph 데이터셋으로 평가 수행~~ ✅ 완료
 2. **중기**: Relationformer 아키텍처 도입 검토
 3. **장기**: Graph-RAG 기반 자연어 질의 기능 추가
 
-**강점**: TECHCROSS BWMS 규칙 60개 + Human-in-the-Loop은 실용적 가치 높음
+**강점**: TECHCROSS BWMS 규칙 60개 + Human-in-the-Loop + PID2Graph Fine-tuned 모델
 
 ---
 
@@ -485,12 +503,14 @@ SOTA와의 Gap에도 불구하고, 현재 시스템의 강점:
 
 | 강점 | 설명 |
 |------|------|
-| **실용적 파이프라인** | 19개 API 통합, 즉시 사용 가능 |
+| **실용적 파이프라인** | **21개** API 통합, 즉시 사용 가능 |
 | **Human-in-the-Loop** | Active Learning + 검증 큐 |
 | **도메인 특화** | TECHCROSS BWMS 60개 규칙 |
 | **모듈성** | 각 API 독립 업그레이드 가능 |
-| **테스트 커버리지** | 400+ 테스트 통과 |
-| **OCR Ensemble** | 4엔진 투표로 안정성 확보 |
+| **테스트 커버리지** | **549개** 테스트 통과 |
+| **OCR Ensemble** | **6엔진** 가중 투표로 안정성 확보 |
+| **BOM 워크플로우** | DSE Bearing 53/53 세션 완료 (2,710 치수) |
+| **PID2Graph** | Fine-tuned 모델 (mAP50 68.5%) |
 
 ---
 
@@ -499,17 +519,18 @@ SOTA와의 Gap에도 불구하고, 현재 시스템의 강점:
 ### 8.1 종합 평가
 
 ```
-현재 시스템 SOTA 부합도: ~81% (2025-12-31 업데이트)
+현재 시스템 SOTA 부합도: ~82% (2026-02-06 업데이트)
 
 ✅ 강점 (SOTA 수준):
 - Object Detection: SOTA 수준 (YOLOv11) 100%
-- OCR: SOTA 수준 (PP-OCRv5) 95% ⬆️ 업그레이드 완료
-- VLM: CoT 추론 적용 80% ⬆️ 업그레이드 완료
+- OCR: SOTA 수준 (6엔진 앙상블) 95% ⬆️ 앙상블 강화
+- VLM: CoT 추론 적용 80%
 - GD&T: 85% 수준
+- P&ID: 65% (PID2Graph Fine-tuning 완료) ⬆️ 개선됨
 
 ⚠️ 개선 필요:
-- P&ID: End-to-End 접근 필요 (Relationformer)
-- Layout: SCAN 방법론 검토
+- P&ID: End-to-End 접근 필요 (Relationformer) - GPU 제약
+- Layout: SCAN 방법론 검토 - DocLayout-YOLO Fine-tuning 필요
 ```
 
 ### 8.2 최종 권장사항 (GPU 제약 반영)
@@ -535,15 +556,23 @@ SOTA와의 Gap에도 불구하고, 현재 시스템의 강점:
 | 영역 | 현재 상태 | SOTA 대비 | 추가 조치 필요 |
 |------|----------|----------|----------------|
 | **Object Detection** | YOLOv11 | ✅ 100% | ❌ 불필요 (YOLOv12 대기) |
-| **OCR** | PP-OCRv5 | ✅ 95% | ❌ 불필요 |
+| **OCR** | **6엔진 가중 투표** | ✅ 95% | ❌ 불필요 |
 | **VLM** | GPT-4o-mini + CoT | ✅ 80% | ❌ 불필요 (GPU 제약) |
 | **GD&T** | YOLO 기반 | ✅ 85% | ❌ 불필요 |
-| **P&ID** | 모듈식 파이프라인 | ⚠️ 60% | ⚠️ 제한적 (GPU 제약) |
+| **P&ID** | **PID2Graph Fine-tuned** | ⚠️ 65% | ⚠️ 제한적 (GPU 제약) |
 | **Layout** | **DocLayout-YOLO 테스트 완료** | ⚠️ 70% | ✅ Fine-tuning 필요 |
 
-**결론**: 현재 시스템은 **82% SOTA 부합**으로 충분히 경쟁력 있음. DocLayout-YOLO 테스트 완료로 Layout 분석 개선 가능성 확인. GPU 제약으로 대형 모델 업그레이드 불가하나, 현재 API 기반 접근이 실용적.
+**결론**: 현재 시스템은 **82% SOTA 부합**으로 충분히 경쟁력 있음.
+
+**2026-02-06 주요 개선사항**:
+- ✅ OCR 6엔진 가중 투표 앙상블 구현 (dimension_service)
+- ✅ PID2Graph Fine-tuning 완료 (mAP50 68.5%, Recall 66.0%)
+- ✅ Table Detector 후처리 강화 (crop upscale, reocr)
+- ✅ DSE Bearing BOM 워크플로우 완료 (53/53 세션, 2,710 치수)
+
+GPU 제약으로 대형 모델 업그레이드 불가하나, 현재 API 기반 접근이 실용적.
 
 ---
 
 *작성자*: Claude Code (Opus 4.5)
-*최종 업데이트*: 2025-12-31 v3 (GPU 제약 반영, 실현 가능한 로드맵으로 정리)
+*최종 업데이트*: 2026-02-06 v4 (OCR 앙상블 강화, PID2Graph 완료 반영)

@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2026-02-02
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2026-02-06
 > **컨텍스트 효율화**: 상세 가이드는 `.claude/skills/`에서 온디맨드 로드
 
 ---
@@ -51,10 +51,11 @@
 
 ```
 .todo/
-├── ACTIVE.md      # 현재 진행 중인 작업 (Claude가 매 세션 확인/갱신)
-├── BACKLOG.md     # 향후 작업 목록 (장기 계획)
-├── COMPLETED.md   # 완료 아카이브 (참조용)
-└── archive/       # 완료된 상세 문서
+├── ACTIVE.md                      # 현재 진행 중인 작업
+├── BACKLOG.md                     # 향후 작업 목록
+├── COMPLETED.md                   # 완료 아카이브
+├── PENDING_PATTERN_PROPAGATION.md # 패턴 확산 추적
+└── CLAUDE_CODE_STRATEGIES.md      # 보리스 체니 13가지 전략
 ```
 
 ### 핵심 규칙
@@ -318,7 +319,8 @@ type NodeCategory =
 | **eDOCr2** | `language`, `extract_dimensions`, `extract_gdt`, `extract_text`, `extract_tables`, `cluster_threshold`, `visualize`, `enable_crop_upscale`, `crop_preset`, `upscale_scale`, `upscale_denoise` |
 | **SkinModel** | `material_type`, `manufacturing_process`, `correlation_length`, `task` |
 | **YOLO** | `model_type`, `confidence`, `iou`, `imgsz`, `use_sahi`, `slice_height`, `slice_width`, `overlap_ratio`, `visualize`, `task` |
-| **Table Detector** | `mode`, `ocr_engine`, `borderless`, `confidence_threshold`, `min_confidence`, `output_format`, `auto_crop` |
+| **Table Detector** | `mode`, `ocr_engine`, `borderless`, `confidence_threshold`, `min_confidence`, `output_format` |
+| **Blueprint AI BOM** | `features` (array: `verification`, `gt_comparison`, `bom_generation`, `dimension_extraction`) |
 
 **금지 파라미터 예시 (API 스펙에 없음):**
 - ❌ `extract_tolerances`, `extract_bom`, `extract_title_block`, `extract_part_number`
