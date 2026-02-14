@@ -38,6 +38,90 @@ def get_session_service():
     return _session_service
 
 
+def build_session_export_dict(
+    session: dict,
+    session_id: str,
+    include_image: bool = True,
+    include_rejected: bool = True,
+) -> dict:
+    """세션 export 데이터 dict 생성 (프로젝트 export에서도 재사용)
+
+    Args:
+        session: 세션 데이터 dict
+        session_id: 세션 ID
+        include_image: 이미지 base64 포함 여부
+        include_rejected: 거부된 항목 포함 여부
+
+    Returns:
+        dict: export용 세션 데이터
+    """
+    detections = session.get("detections", [])
+    verification_status = session.get("verification_status", {})
+
+    if not include_rejected:
+        detections = [d for d in detections if verification_status.get(d.get("id")) != "rejected"]
+        verification_status = {k: v for k, v in verification_status.items() if v != "rejected"}
+
+    export_data = {
+        "export_version": "1.0",
+        "export_timestamp": datetime.now().isoformat(),
+        "session_metadata": {
+            "original_session_id": session_id,
+            "filename": session.get("filename"),
+            "status": session.get("status"),
+            "created_at": session.get("created_at"),
+            "updated_at": session.get("updated_at"),
+            "drawing_type": session.get("drawing_type", "auto"),
+            "drawing_type_source": session.get("drawing_type_source", "builder"),
+            "drawing_type_confidence": session.get("drawing_type_confidence"),
+            "features": session.get("features", []),
+            "image_width": session.get("image_width"),
+            "image_height": session.get("image_height"),
+            "detection_count": len(detections),
+            "verified_count": session.get("verified_count", 0),
+            "approved_count": session.get("approved_count", 0),
+            "rejected_count": session.get("rejected_count", 0) if include_rejected else 0,
+            "metadata": session.get("metadata"),
+        },
+        "detections": detections,
+        "verification_status": verification_status,
+        "bom_data": session.get("bom_data"),
+        "pid_valves": session.get("pid_valves"),
+        "pid_equipment": session.get("pid_equipment"),
+        "pid_checklist": session.get("pid_checklist"),
+        "pid_deviations": session.get("pid_deviations"),
+        "ocr_texts": session.get("ocr_texts"),
+        "connections": session.get("connections"),
+    }
+
+    if include_image:
+        file_path = Path(session.get("file_path", ""))
+        if file_path.exists():
+            try:
+                with open(file_path, "rb") as f:
+                    image_bytes = f.read()
+
+                ext = file_path.suffix.lower()
+                mime_types = {
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                    ".png": "image/png",
+                    ".bmp": "image/bmp",
+                    ".tiff": "image/tiff",
+                    ".tif": "image/tiff",
+                }
+
+                export_data["image_data"] = {
+                    "filename": session.get("filename"),
+                    "mime_type": mime_types.get(ext, "application/octet-stream"),
+                    "image_base64": base64.b64encode(image_bytes).decode("utf-8"),
+                }
+            except Exception as e:
+                logger.warning(f"Failed to include image in export: {e}")
+
+    return export_data
+
+
 # =============================================================================
 # Session Export/Import API
 # =============================================================================
@@ -100,73 +184,9 @@ async def export_session_json(
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
-    # 필터링: rejected 제외
-    detections = session.get("detections", [])
-    verification_status = session.get("verification_status", {})
-
-    if not include_rejected:
-        detections = [d for d in detections if verification_status.get(d.get("id")) != "rejected"]
-        verification_status = {k: v for k, v in verification_status.items() if v != "rejected"}
-
-    # Export 데이터 구성
-    export_data = {
-        "export_version": "1.0",
-        "export_timestamp": datetime.now().isoformat(),
-        "session_metadata": {
-            "original_session_id": session_id,
-            "filename": session.get("filename"),
-            "status": session.get("status"),
-            "created_at": session.get("created_at"),
-            "updated_at": session.get("updated_at"),
-            "drawing_type": session.get("drawing_type", "auto"),
-            "drawing_type_source": session.get("drawing_type_source", "builder"),
-            "drawing_type_confidence": session.get("drawing_type_confidence"),
-            "features": session.get("features", []),
-            "image_width": session.get("image_width"),
-            "image_height": session.get("image_height"),
-            "detection_count": len(detections),
-            "verified_count": session.get("verified_count", 0),
-            "approved_count": session.get("approved_count", 0),
-            "rejected_count": session.get("rejected_count", 0) if include_rejected else 0,
-        },
-        "detections": detections,
-        "verification_status": verification_status,
-        "bom_data": session.get("bom_data"),
-        # P&ID 특화 데이터
-        "pid_valves": session.get("pid_valves"),
-        "pid_equipment": session.get("pid_equipment"),
-        "pid_checklist": session.get("pid_checklist"),
-        "pid_deviations": session.get("pid_deviations"),
-        # OCR 및 연결 정보
-        "ocr_texts": session.get("ocr_texts"),
-        "connections": session.get("connections"),
-    }
-
-    # 이미지 데이터 추가
-    if include_image:
-        file_path = Path(session.get("file_path", ""))
-        if file_path.exists():
-            try:
-                with open(file_path, "rb") as f:
-                    image_bytes = f.read()
-
-                ext = file_path.suffix.lower()
-                mime_types = {
-                    ".jpg": "image/jpeg",
-                    ".jpeg": "image/jpeg",
-                    ".png": "image/png",
-                    ".bmp": "image/bmp",
-                    ".tiff": "image/tiff",
-                    ".tif": "image/tiff",
-                }
-
-                export_data["image_data"] = {
-                    "filename": session.get("filename"),
-                    "mime_type": mime_types.get(ext, "application/octet-stream"),
-                    "image_base64": base64.b64encode(image_bytes).decode("utf-8"),
-                }
-            except Exception as e:
-                logger.warning(f"Failed to include image in export: {e}")
+    export_data = build_session_export_dict(
+        session, session_id, include_image=include_image, include_rejected=include_rejected,
+    )
 
     # JSON 파일 생성
     json_content = json.dumps(export_data, ensure_ascii=False, indent=2, default=str)
@@ -191,7 +211,8 @@ async def export_session_json(
 @router.post("/import", response_model=SessionResponse)
 async def import_session_json(
     file: UploadFile = File(...),
-    new_session_id: Optional[str] = Query(default=None, description="새 세션 ID (미지정 시 자동 생성)")
+    new_session_id: Optional[str] = Query(default=None, description="새 세션 ID (미지정 시 자동 생성)"),
+    project_id: Optional[str] = Query(default=None, description="연결할 프로젝트 ID"),
 ):
     """세션 JSON Import
 
@@ -314,6 +335,11 @@ async def import_session_json(
     if bom_data:
         final_status = SessionStatus.COMPLETED
     service.update_session(session_id, {"status": final_status})
+
+    # 프로젝트 연결
+    if project_id:
+        service.update_session(session_id, {"project_id": project_id})
+        logger.info(f"[Import] Session {session_id} linked to project {project_id}")
 
     # 응답
     updated_session = service.get_session(session_id)

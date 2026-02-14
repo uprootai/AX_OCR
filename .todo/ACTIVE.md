@@ -1,7 +1,21 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-07
-> **기준 커밋**: cfd35cc (feat: BOM 계층 워크플로우 Phase 1-3 완성)
+> **마지막 업데이트**: 2026-02-14
+> **기준 커밋**: 7532379 (refactor: web-ui 1000줄 초과 파일 분리 + 기능 확장)
+
+---
+
+## 2026-02-14 완료 작업
+
+### Self-contained Export에 프로젝트 데이터 + GT 라벨 포함 ✅
+- **문제**: 외부 환경에서 Import 시 `project_id=None`이 되어 GT 비교 섹션 미표시
+- **수정 파일**: 4개
+  - `session_io_router.py`: import 엔드포인트에 `project_id` 파라미터 추가
+  - `self_contained_export_service.py`: 패키지에 `project.json` + `gt_labels/` + `gt_reference/` 포함
+  - `export_script_generator.py`: import 스크립트 5단계 → 8단계 확장 (프로젝트 복원, GT 주입, 세션 연결)
+  - `api_server.py`: `project_service`를 `set_export_services()`에 전달 누락 수정
+- **결과**: Import 후 GT 비교 정상 표시 (F1: 96.2%, Precision: 96.2%, Recall: 96.2%)
+- **검증**: Playwright E2E ✅
 
 ---
 

@@ -3,8 +3,9 @@
  * 워크플로우 빌더 메인 컴포넌트
  */
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import ReactFlow, {
   Background,
   Controls,
@@ -21,8 +22,9 @@ import NodeDetailPanel from '../../components/blueprintflow/NodeDetailPanel';
 import DynamicNode from '../../components/blueprintflow/nodes/DynamicNode';
 import { Button } from '../../components/ui/Button';
 import Toast from '../../components/ui/Toast';
-import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle, FolderOpen, FileDown, FileText, DollarSign, Download } from 'lucide-react';
+import { Play, Save, Trash2, Upload, X, Bug, Loader2, StopCircle, FolderOpen, FileDown, FileText, DollarSign, Download, Briefcase } from 'lucide-react';
 import { workflowApi, type TemplateDetail } from '../../lib/api';
+import { projectApi, type Project } from '../../lib/blueprintBomApi';
 import DebugPanel from '../../components/blueprintflow/DebugPanel';
 
 // Toast 알림 타입
@@ -53,6 +55,41 @@ function WorkflowBuilderCanvas() {
   } = useImageUpload({
     onShowToast: (message, type) => setToast({ show: true, message, type }),
   });
+
+  // Session auto-load from ?session= query parameter
+  const [searchParams] = useSearchParams();
+  const setUploadedImage = useWorkflowStore((state) => state.setUploadedImage);
+
+  useEffect(() => {
+    const sessionId = searchParams.get('session');
+    if (!sessionId || uploadedImage) return;
+
+    (async () => {
+      try {
+        const session = await projectApi.getSession(sessionId);
+        const imageUrl = projectApi.getSessionImageUrl(sessionId);
+        const res = await fetch(imageUrl);
+        const data = await res.json();
+        if (data.image_base64 && data.mime_type) {
+          const dataUrl = `data:${data.mime_type};base64,${data.image_base64}`;
+          setUploadedImage(dataUrl, session.drawing_number || data.filename || 'session-image');
+        }
+      } catch (err) {
+        console.error('Failed to load session image:', err);
+      }
+    })();
+  }, [searchParams, uploadedImage, setUploadedImage]);
+
+  // Project association
+  const [projects, setProjects] = React.useState<Project[]>([]);
+  const selectedProjectId = useWorkflowStore((state) => state.selectedProjectId);
+  const setSelectedProjectId = useWorkflowStore((state) => state.setSelectedProjectId);
+
+  React.useEffect(() => {
+    projectApi.list(undefined, 100)
+      .then(res => setProjects(res.projects ?? []))
+      .catch(() => setProjects([]));
+  }, []);
 
   // GT file attachment
   const uploadedGTFile = useWorkflowStore((state) => state.uploadedGTFile);
@@ -591,6 +628,25 @@ function WorkflowBuilderCanvas() {
                 <Save className="w-4 h-4" />
                 {t('blueprintflow.save')}
               </Button>
+
+              {/* Project Selector */}
+              {projects.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <Briefcase className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <select
+                    value={selectedProjectId || ''}
+                    onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                    className="px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 max-w-[200px]"
+                  >
+                    <option value="">프로젝트 미지정</option>
+                    {projects.map(p => (
+                      <option key={p.project_id} value={p.project_id}>
+                        {p.name} ({p.customer})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Execution Mode Toggle */}
               <ExecutionModeToggle

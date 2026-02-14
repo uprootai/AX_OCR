@@ -306,9 +306,19 @@ async def create_sessions_from_bom(
         if not template:
             logger.warning(f"템플릿을 찾을 수 없음: {request.template_name}, 기본값 사용")
 
-    # 템플릿에서 설정 추출 (없으면 기본값)
-    tmpl_drawing_type = template.get("drawing_type", "dimension_bom") if template else "dimension_bom"
-    tmpl_features = template.get("features", ["dimension_ocr", "table_extraction"]) if template else ["dimension_ocr", "table_extraction"]
+    # 프로젝트 타입 기반 프리셋 (우선순위: 템플릿 > 프로젝트 default_features > 타입 프리셋)
+    from services.project_service import get_default_features_for_type
+    preset = get_default_features_for_type(project.get("project_type", "general"))
+
+    if template:
+        tmpl_drawing_type = template.get("drawing_type", preset["drawing_type"])
+        tmpl_features = template.get("features", preset["features"])
+    elif project.get("default_features"):
+        tmpl_drawing_type = preset["drawing_type"]
+        tmpl_features = project["default_features"]
+    else:
+        tmpl_drawing_type = preset["drawing_type"]
+        tmpl_features = preset["features"]
 
     # BOM 데이터 로드
     project_dir = project_service.projects_dir / project_id

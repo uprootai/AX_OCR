@@ -23,6 +23,28 @@ from schemas.project import (
 logger = logging.getLogger(__name__)
 
 
+# 프로젝트 타입별 기본 features 프리셋
+PROJECT_TYPE_PRESETS = {
+    "bom_quotation": {
+        "drawing_type": "dimension_bom",
+        "features": ["dimension_ocr", "table_extraction", "bom_generation", "title_block_ocr"],
+    },
+    "pid_detection": {
+        "drawing_type": "pid",
+        "features": ["symbol_detection", "pid_connectivity", "gt_comparison"],
+    },
+    "general": {
+        "drawing_type": "auto",
+        "features": ["symbol_detection", "dimension_ocr", "title_block_ocr"],
+    },
+}
+
+
+def get_default_features_for_type(project_type: str) -> dict:
+    """프로젝트 타입에 따른 기본 features/drawing_type 프리셋 반환"""
+    return PROJECT_TYPE_PRESETS.get(project_type, PROJECT_TYPE_PRESETS["general"])
+
+
 class ProjectService:
     """프로젝트 관리 서비스"""
 

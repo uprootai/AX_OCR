@@ -59,6 +59,9 @@ export interface Session {
 
   // 커스텀 단가 정보
   has_custom_pricing?: boolean;
+
+  // 프로젝트 연결 정보
+  project_id?: string;
 }
 
 export interface SessionDetail extends Session {

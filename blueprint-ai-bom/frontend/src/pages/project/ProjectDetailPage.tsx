@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Trash2,
   Upload,
+  Download,
   FileText,
   CheckCircle,
   Clock,
@@ -18,13 +19,15 @@ import {
   RefreshCw,
   Loader2,
   MoreVertical,
+  ExternalLink,
   Settings,
   Database,
-  ExternalLink,
 } from 'lucide-react';
 import { projectApi, sessionApi, type ProjectDetail } from '../../lib/api';
 import { BOMWorkflowSection } from './components/BOMWorkflowSection';
 import { PIDWorkflowSection } from './components/PIDWorkflowSection';
+import { ProjectSettingsModal } from './components/ProjectSettingsModal';
+import { GTManagementModal } from './components/GTManagementModal';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -38,7 +41,12 @@ export function ProjectDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showGTManagement, setShowGTManagement] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   // 프로젝트 로드
   const loadProject = useCallback(async () => {
@@ -93,6 +101,39 @@ export function ProjectDetailPage() {
       setError('파일 업로드에 실패했습니다.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // 프로젝트 Export
+  const handleExportProject = async () => {
+    if (!projectId) return;
+    setIsExporting(true);
+    setShowMenu(false);
+    try {
+      await projectApi.exportProject(projectId);
+    } catch (err) {
+      console.error('Failed to export project:', err);
+      setError('프로젝트 Export에 실패했습니다.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // 프로젝트 Import
+  const handleImportProject = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsImporting(true);
+    setShowMenu(false);
+    try {
+      const result = await projectApi.importProject(file);
+      navigate(`/projects/${result.project_id}`);
+    } catch (err) {
+      console.error('Failed to import project:', err);
+      setError('프로젝트 Import에 실패했습니다.');
+    } finally {
+      setIsImporting(false);
+      if (importFileRef.current) importFileRef.current.value = '';
     }
   };
 
@@ -194,30 +235,58 @@ export function ProjectDetailPage() {
                       className="fixed inset-0 z-10"
                       onClick={() => setShowMenu(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-20">
+                    <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-20 overflow-hidden">
                       <button
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
                         onClick={() => {
                           setShowMenu(false);
-                          // TODO: 설정 모달
+                          setShowSettings(true);
                         }}
                       >
-                        <Settings className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <Settings className="w-4 h-4" />
                         프로젝트 설정
                       </button>
                       <button
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
                         onClick={() => {
                           setShowMenu(false);
-                          // TODO: GT 관리
+                          setShowGTManagement(true);
                         }}
                       >
-                        <Database className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <Database className="w-4 h-4" />
                         GT 관리
                       </button>
                       <hr className="dark:border-gray-700" />
                       <button
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-2 text-blue-600 dark:text-blue-400"
+                        onClick={handleExportProject}
+                        disabled={isExporting}
+                      >
+                        {isExporting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                        프로젝트 Export
+                      </button>
+                      <button
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-green-50 dark:hover:bg-green-900/30 flex items-center gap-2 text-green-600 dark:text-green-400"
+                        onClick={() => {
+                          setShowMenu(false);
+                          importFileRef.current?.click();
+                        }}
+                        disabled={isImporting}
+                      >
+                        {isImporting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        프로젝트 Import
+                      </button>
+                      <hr className="dark:border-gray-700" />
+                      <button
+                        className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                         onClick={() => {
                           setShowMenu(false);
                           handleDelete();
@@ -402,7 +471,28 @@ export function ProjectDetailPage() {
             </div>
           )}
         </div>
+        {/* 프로젝트 Import용 hidden input */}
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".json"
+          onChange={handleImportProject}
+          className="hidden"
+        />
       </main>
+
+      {/* 모달 */}
+      <ProjectSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        project={project}
+        onUpdated={loadProject}
+      />
+      <GTManagementModal
+        isOpen={showGTManagement}
+        onClose={() => setShowGTManagement(false)}
+        projectId={projectId!}
+      />
     </div>
   );
 }

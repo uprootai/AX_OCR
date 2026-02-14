@@ -70,6 +70,18 @@ export interface ProjectCreate {
   drawing_folder?: string;
 }
 
+export interface ProjectUpdate {
+  name?: string;
+  customer?: string;
+  project_type?: 'bom_quotation' | 'pid_detection';
+  description?: string;
+  default_template_id?: string;
+  default_model_type?: string;
+  default_features?: string[];
+  gt_folder?: string;
+  reference_folder?: string;
+}
+
 export interface ProjectListResponse {
   projects: Project[];
   total: number;
@@ -197,6 +209,16 @@ export interface ProjectQuotationResponse {
   assembly_groups: AssemblyQuotationGroup[];
 }
 
+export interface SessionListItem {
+  session_id: string;
+  filename: string;
+  status: string;
+  detection_count: number;
+  verified_count: number;
+  project_id?: string | null;
+  created_at?: string;
+}
+
 // =====================
 // API Methods
 // =====================
@@ -219,10 +241,36 @@ export const projectApi = {
     return data;
   },
 
+  update: async (projectId: string, updates: ProjectUpdate): Promise<Project> => {
+    const { data } = await api.put<Project>(`/projects/${projectId}`, updates);
+    return data;
+  },
+
   delete: async (projectId: string, deleteSessions = false): Promise<void> => {
     await api.delete(`/projects/${projectId}`, {
       params: { delete_sessions: deleteSessions },
     });
+  },
+
+  uploadGT: async (
+    projectId: string,
+    files: File[]
+  ): Promise<{ uploaded: string[]; failed: string[] }> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    const { data } = await api.post(
+      `/projects/${projectId}/gt`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return data;
+  },
+
+  listGT: async (
+    projectId: string
+  ): Promise<{ gt_files: string[]; total: number }> => {
+    const { data } = await api.get(`/projects/${projectId}/gt`);
+    return data;
   },
 
   batchUpload: async (
@@ -329,17 +377,47 @@ export const projectApi = {
   },
 
   // ========================================
+  // Project Export/Import
+  // ========================================
+
+  exportProject: async (projectId: string, includeImages = false): Promise<void> => {
+    const { data } = await api.get(`/projects/${projectId}/export`, {
+      params: { include_images: includeImages },
+      responseType: 'blob',
+    });
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `project_${projectId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  importProject: async (file: File): Promise<ProjectDetail> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post<ProjectDetail>('/projects/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
+    return data;
+  },
+
+  // ========================================
   // Session API (세션 상세 - 치수, 이미지 등)
   // ========================================
 
   getSession: async (sessionId: string): Promise<SessionDetail> => {
-    const { data } = await api.get<SessionDetail>(`/session/${sessionId}`);
+    const { data } = await api.get<SessionDetail>(`/sessions/${sessionId}`);
     return data;
   },
 
   getSessionImageUrl: (sessionId: string): string => {
     const baseUrl = api.defaults.baseURL || '';
-    return `${baseUrl}/session/${sessionId}/image`;
+    return `${baseUrl}/sessions/${sessionId}/image`;
   },
 
   getSessionDimensions: async (sessionId: string): Promise<SessionDimension[]> => {
@@ -359,6 +437,23 @@ export const projectApi = {
       verification_status: status,
       modified_value: modifiedValue,
     });
+  },
+};
+
+export const sessionApi = {
+  list: async (projectId?: string, limit = 50): Promise<SessionListItem[]> => {
+    const { data } = await api.get<SessionListItem[]>('/sessions', {
+      params: { project_id: projectId, limit },
+    });
+    return data;
+  },
+
+  updateProjectId: async (sessionId: string, projectId: string): Promise<void> => {
+    await api.patch(`/sessions/${sessionId}`, { project_id: projectId });
+  },
+
+  unlinkProjectId: async (sessionId: string): Promise<void> => {
+    await api.patch(`/sessions/${sessionId}`, { project_id: null });
   },
 };
 

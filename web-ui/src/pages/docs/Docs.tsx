@@ -16,6 +16,14 @@ interface DocFile {
 
 const docStructure: DocFile[] = [
   {
+    name: 'System Overview',
+    path: 'overview',
+    type: 'folder',
+    children: [
+      { name: '시스템 아키텍처 개요', path: '/docs/architecture/SYSTEM_OVERVIEW.md', type: 'file' },
+    ],
+  },
+  {
     name: 'Quick Start',
     path: 'quickstart',
     type: 'folder',
@@ -148,7 +156,7 @@ interface FolderTreeProps {
 }
 
 function FolderTree({ items, onSelectFile, selectedFile, searchQuery }: FolderTreeProps) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['quickstart', 'user', 'api']));
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(['overview', 'quickstart', 'user', 'api']));
 
   // Expand all folders when searching
   useEffect(() => {
@@ -192,6 +200,7 @@ function FolderTree({ items, onSelectFile, selectedFile, searchQuery }: FolderTr
     const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
 
     const folderColors: Record<string, string> = {
+      'overview': 'text-rose-500',
       'quickstart': 'text-green-500',
       'user': 'text-blue-500',
       'developer': 'text-purple-500',
@@ -247,7 +256,7 @@ function FolderTree({ items, onSelectFile, selectedFile, searchQuery }: FolderTr
 
 export default function Docs() {
   const { t } = useTranslation();
-  const [selectedFile, setSelectedFile] = useState<string | null>('/README.md');
+  const [selectedFile, setSelectedFile] = useState<string | null>('/docs/architecture/SYSTEM_OVERVIEW.md');
   const [markdown, setMarkdown] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -408,9 +417,11 @@ export default function Docs() {
 
                         if (chartCode) {
                           return (
-                            <div className="my-6">
+                            <div className="my-6 -mx-4 px-4">
                               <ImageZoom>
-                                <Mermaid chart={chartCode} />
+                                <div className="overflow-x-auto">
+                                  <Mermaid chart={chartCode} />
+                                </div>
                               </ImageZoom>
                             </div>
                           );

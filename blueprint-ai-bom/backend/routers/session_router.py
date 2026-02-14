@@ -110,6 +110,20 @@ async def upload_image(
     # features 파싱 (쉼표 구분 문자열 → 리스트)
     features_list = [f.strip() for f in features.split(",") if f.strip()] if features else []
 
+    # 프로젝트 features 상속 (명시적 features가 없을 때)
+    if not features_list and project_id:
+        try:
+            from services.project_service import get_project_service, get_default_features_for_type
+            project_svc = get_project_service()
+            proj = project_svc.get_project(project_id)
+            if proj:
+                preset = get_default_features_for_type(proj.get("project_type", "general"))
+                features_list = proj.get("default_features") or preset["features"]
+                if dt == DrawingType.AUTO:
+                    dt = DrawingType(preset["drawing_type"])
+        except Exception as e:
+            logger.warning(f"[Session] 프로젝트 features 상속 실패: {e}")
+
     # metadata 파싱 (JSON 문자열 → dict)
     metadata = None
     if metadata_json:

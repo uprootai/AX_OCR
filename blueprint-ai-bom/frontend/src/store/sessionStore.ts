@@ -38,7 +38,7 @@ interface SessionState {
   // Actions
   uploadImage: (file: File) => Promise<string>;
   loadSession: (sessionId: string) => Promise<void>;
-  loadSessions: (limit?: number) => Promise<void>;
+  loadSessions: (limit?: number, projectId?: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   loadImage: (sessionId: string, imageId: string) => Promise<void>;  // 특정 이미지 로드
 
@@ -138,10 +138,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   // Load sessions list
-  loadSessions: async (limit = 50) => {
+  loadSessions: async (limit = 50, projectId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const sessions = await sessionApi.list(limit);
+      const sessions = await sessionApi.list(limit, projectId);
       set({ sessions, isLoading: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : '목록 로드 실패';

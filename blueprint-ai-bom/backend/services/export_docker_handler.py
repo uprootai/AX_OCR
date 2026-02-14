@@ -28,9 +28,12 @@ def get_docker_image_size(
         service_name: 서비스 이름 (예: yolo-api)
         source_prefix: 소스 이미지 접두사 (예: poc_, poc-)
     """
-    # 여러 이미지 이름 형식 시도 (prefix 있는 것, 없는 것)
+    # 여러 이미지 이름 형식 시도 (prefix 변형 + prefix 없는 것)
+    # Docker Compose는 '_'를, docker compose v2는 '-'를 사용
+    alt_prefix = source_prefix.replace("_", "-") if "_" in source_prefix else source_prefix.replace("-", "_")
     image_names_to_try = [
         f"{source_prefix}{service_name}:latest",
+        f"{alt_prefix}{service_name}:latest",
         f"{service_name}:latest",
     ]
 
@@ -74,9 +77,11 @@ def export_docker_images(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for service in services:
-        # 여러 이미지 이름 형식 시도
+        # 여러 이미지 이름 형식 시도 (prefix 변형 + prefix 없는 것)
+        alt_prefix = source_prefix.replace("_", "-") if "_" in source_prefix else source_prefix.replace("-", "_")
         image_names_to_try = [
             f"{source_prefix}{service}:latest",
+            f"{alt_prefix}{service}:latest",
             f"{service}:latest",
         ]
 

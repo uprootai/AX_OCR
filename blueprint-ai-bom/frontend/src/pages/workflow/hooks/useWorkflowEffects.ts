@@ -19,10 +19,11 @@ interface UseWorkflowEffectsParams {
     session_id: string;
     filename: string;
     drawing_type?: string;
+    project_id?: string;
   } | null;
   detections: Detection[];
   imageSize: { width: number; height: number } | null;
-  loadSessions: () => void;
+  loadSessions: (limit?: number, projectId?: string) => void;
   loadSession: (sessionId: string) => void;
   urlSessionId: string | null;
 }
@@ -134,6 +135,13 @@ export function useWorkflowEffects({
   useEffect(() => {
     setVerificationFinalized(false);
   }, [currentSession?.session_id, setVerificationFinalized]);
+
+  // Reload sessions filtered by project when current session's project changes
+  useEffect(() => {
+    if (currentSession?.session_id && currentSession.project_id) {
+      loadSessions(50, currentSession.project_id);
+    }
+  }, [currentSession?.session_id, currentSession?.project_id, loadSessions]);
 
   // Auto-load dimensions when session changes
   useEffect(() => {

@@ -5,9 +5,19 @@ interface TooltipProps {
   content: string;
   children: ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
+  /** 인라인 텍스트용 점선 밑줄 + cursor-help 스타일 (기본: false) */
+  underline?: boolean;
+  /** 래퍼 요소의 추가 className */
+  className?: string;
 }
 
-export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
+export function Tooltip({
+  content,
+  children,
+  position = 'top',
+  underline = false,
+  className = '',
+}: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   const positionClasses = {
@@ -26,20 +36,20 @@ export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
 
   return (
     <span
-      className="relative inline-block cursor-help"
-      style={{ borderBottom: '1px dotted #9ca3af' }}
+      className={`relative inline-flex ${underline ? 'cursor-help' : ''} ${className}`}
+      style={underline ? { borderBottom: '1px dotted #9ca3af' } : undefined}
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
     >
       {children}
       {isVisible && (
         <span
-          className={`absolute z-50 px-3 py-2 text-sm text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg whitespace-nowrap pointer-events-none ${positionClasses[position]}`}
+          className={`absolute z-50 px-3 py-2 text-xs leading-relaxed text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg w-max max-w-xs pointer-events-none ${positionClasses[position]}`}
           role="tooltip"
         >
           {content}
           <span
-            className={`absolute w-0 h-0 border-4 border-gray-900 dark:border-gray-800 ${arrowClasses[position]}`}
+            className={`absolute w-0 h-0 border-4 border-gray-900 dark:border-gray-700 ${arrowClasses[position]}`}
           />
         </span>
       )}

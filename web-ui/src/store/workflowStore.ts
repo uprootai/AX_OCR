@@ -161,6 +161,10 @@ interface WorkflowState {
   setUploadedPricingFile: (file: { name: string; content: string } | null) => void;
   setExecutionMode: (mode: ExecutionMode) => void;
   cancelExecution: () => Promise<void>;
+
+  // Project association
+  selectedProjectId: string | null;
+  setSelectedProjectId: (id: string | null) => void;
 }
 
 // Helper to load image from sessionStorage
@@ -212,6 +216,7 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   uploadedGTFile: null,
   uploadedPricingFile: null,
   executionMode: 'sequential', // Default: sequential execution
+  selectedProjectId: null,
 
   // Actions
   setWorkflowName: (name) => set({ workflowName: name }),
@@ -529,6 +534,10 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       if (streamPricingFile) {
         streamInputs.pricing_file = streamPricingFile;
       }
+      const selectedProjectId = get().selectedProjectId;
+      if (selectedProjectId) {
+        streamInputs.project_id = selectedProjectId;
+      }
 
       const requestPayload = {
         workflow: workflowDefinition,
@@ -763,4 +772,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   setUploadedPricingFile: (file) => set({ uploadedPricingFile: file }),
 
   setExecutionMode: (mode) => set({ executionMode: mode }),
+
+  setSelectedProjectId: (id) => set({ selectedProjectId: id }),
 }));

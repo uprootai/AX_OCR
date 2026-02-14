@@ -1,7 +1,24 @@
 # 완료된 작업 아카이브
 
-> 마지막 업데이트: 2026-02-06
+> 마지막 업데이트: 2026-02-14
 > 완료된 작업들의 기록 (참조용)
+
+---
+
+## 2026-02-14 완료
+
+### Self-contained Export에 프로젝트 데이터 + GT 라벨 포함
+
+**상태**: ✅ **완료**
+
+| 수정 파일 | 변경 내용 |
+|----------|----------|
+| `session_io_router.py` | import 엔드포인트에 `project_id` 파라미터 추가 |
+| `self_contained_export_service.py` | `project.json` + `gt_labels/` + `gt_reference/` 패키지 포함 |
+| `export_script_generator.py` | import 스크립트 5→8단계 (프로젝트/GT 복원) |
+| `api_server.py` | `project_service` 주입 누락 수정 |
+
+**결과**: Import 환경에서 GT 비교 정상 작동 (F1: 96.2%, Precision: 96.2%, Recall: 96.2%)
 
 ---
 

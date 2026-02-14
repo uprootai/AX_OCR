@@ -215,7 +215,8 @@ class SelfContainedExportService:
         self,
         session: Dict[str, Any],
         output_path: Path,
-        upload_dir: Path
+        upload_dir: Path,
+        project_id: Optional[str] = None,
     ) -> bool:
         """Import 엔드포인트와 호환되는 세션 JSON 생성"""
         session_id = session.get("session_id", "")
@@ -266,6 +267,7 @@ class SelfContainedExportService:
                 "created_at": session.get("created_at"),
                 "template_id": session.get("template_id"),
                 "template_name": session.get("template_name"),
+                "project_id": project_id or session.get("project_id"),
             },
             "image_data": image_data,
             "detections": session.get("detections", []),
@@ -408,8 +410,55 @@ class SelfContainedExportService:
             self.generate_importable_session(
                 session=session,
                 output_path=temp_path / "session_import.json",
-                upload_dir=self.upload_dir
+                upload_dir=self.upload_dir,
+                project_id=project.get("project_id") if project else None,
             )
+
+            # 프로젝트 데이터 및 GT 라벨 포함
+            if project:
+                project_export = {
+                    "name": project.get("name"),
+                    "customer": project.get("customer"),
+                    "project_type": project.get("project_type"),
+                    "description": project.get("description"),
+                    "default_features": project.get("default_features", []),
+                    "default_model_type": project.get("default_model_type"),
+                }
+                with open(temp_path / "project.json", "w", encoding="utf-8") as f:
+                    json.dump(project_export, f, indent=2, ensure_ascii=False)
+
+                manifest_data["project_id"] = project.get("project_id")
+                manifest_data["project_name"] = project.get("name")
+
+                # GT 라벨 파일 복사
+                gt_folder = Path(project.get("gt_folder", ""))
+                if gt_folder.exists():
+                    gt_files = list(gt_folder.glob("*.txt"))
+                    if gt_files:
+                        gt_dest = temp_path / "gt_labels"
+                        gt_dest.mkdir()
+                        for gt_file in gt_files:
+                            shutil.copy2(gt_file, gt_dest / gt_file.name)
+                        logger.info(f"[Export] GT labels copied: {len(gt_files)} files")
+
+                # manifest 파일 재기록 (project 정보 추가)
+                with open(temp_path / "manifest.json", "w") as f:
+                    json.dump(manifest_data, f, indent=2, default=str)
+
+            # 참조 GT 라벨 파일 포함 (test_drawings/labels/)
+            gt_ref_dir = Path(__file__).parent.parent / "test_drawings" / "labels"
+            if gt_ref_dir.exists():
+                session_filename = session.get("filename", "")
+                base_name = Path(session_filename).stem
+                gt_ref_file = gt_ref_dir / f"{base_name}.txt"
+                if gt_ref_file.exists():
+                    gt_ref_dest = temp_path / "gt_reference"
+                    gt_ref_dest.mkdir(exist_ok=True)
+                    shutil.copy2(gt_ref_file, gt_ref_dest / gt_ref_file.name)
+                    # classes 파일도 복사 (클래스 매핑용)
+                    for cls_file in gt_ref_dir.glob("classes*.txt"):
+                        shutil.copy2(cls_file, gt_ref_dest / cls_file.name)
+                    logger.info(f"[Export] Reference GT copied: {gt_ref_file.name}")
 
             docker_images_info = {}
             docker_total_size = 0.0

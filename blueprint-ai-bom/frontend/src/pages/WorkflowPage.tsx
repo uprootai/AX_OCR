@@ -420,6 +420,7 @@ export function WorkflowPage() {
         gpuStatus={state.gpuStatus}
         currentSession={currentSession}
         sessions={sessions}
+        projectId={currentSession?.project_id}
         detectionCount={detections.length}
         sessionImageCount={sessionImageCount}
         onImagesAdded={loadSessionImageCount}

@@ -123,6 +123,17 @@ BOMSection.tsx → onClassSelect callback
 
 ---
 
+## 고려 사항
+
+### Claude Code Agent Teams 도입 검토
+
+- **기능**: 여러 Claude Code 인스턴스를 리더+팀원 구조로 병렬 협업 (실험적 기능)
+- **현재 판단**: 지금은 불필요 — subagent 방식으로 충분
+- **도입 시점**: 프로덕션 전환 대규모 리팩토링, 신규 기업 3~4개 동시 온보딩, 프론트/백엔드/AI 동시 대규모 변경 시
+- **참고**: https://code.claude.com/docs/ko/agent-teams
+
+---
+
 ## P3: 장기 작업
 
 ### 완료된 P3 작업 (2026-02-06)

@@ -85,34 +85,97 @@ if docker ps --format "{{{{.Names}}}}" | grep -q "$FRONTEND_CONTAINER"; then
     echo "  Nginx configuration updated"
 fi
 
-# [5/5] 세션 데이터 자동 복원
+# [5/7] 백엔드 대기
 cd "$SCRIPT_DIR/.."
+echo ""
+echo "[5/8] Waiting for backend to be ready..."
+for i in {{1..30}}; do
+    if curl -s "http://localhost:{bom_backend_port}/health" | grep -q "healthy"; then
+        echo "  Backend is ready"
+        break
+    fi
+    echo "  Waiting for backend... ($i/30)"
+    sleep 1
+done
+
+# [6/8] 프로젝트 및 GT 복원
+PROJECT_ID=""
+if [ -f "project.json" ]; then
+    echo ""
+    echo "[6/8] Restoring project and GT labels..."
+    PROJECT_RESULT=$(curl -s -X POST "http://localhost:{bom_backend_port}/projects" \\
+        -H "Content-Type: application/json" \\
+        -d @project.json 2>/dev/null || echo "failed")
+
+    if echo "$PROJECT_RESULT" | grep -q "project_id"; then
+        PROJECT_ID=$(echo "$PROJECT_RESULT" | grep -o '"project_id":"[^"]*"' | cut -d'"' -f4)
+        echo "  ✅ Project restored: $PROJECT_ID"
+
+        # GT 라벨 업로드
+        if [ -d "gt_labels" ] && [ -n "$PROJECT_ID" ]; then
+            GT_COUNT=$(ls -1 gt_labels/*.txt 2>/dev/null | wc -l)
+            if [ "$GT_COUNT" -gt 0 ]; then
+                GT_FILES=""
+                for f in gt_labels/*.txt; do
+                    GT_FILES="$GT_FILES -F files=@$f"
+                done
+                GT_RESULT=$(curl -s -X POST "http://localhost:{bom_backend_port}/projects/$PROJECT_ID/gt" \\
+                    $GT_FILES 2>/dev/null || echo "failed")
+                echo "  ✅ GT labels uploaded: $GT_COUNT files"
+            fi
+        fi
+    else
+        echo "  ⚠️  Project restore failed"
+    fi
+else
+    echo ""
+    echo "[6/8] No project data to restore (project.json not found)"
+fi
+
+# [7/8] 참조 GT 라벨 주입 (test_drawings/labels/)
+BACKEND_CONTAINER="{container_prefix}-blueprint-ai-bom-backend"
+if [ -d "gt_reference" ]; then
+    GT_REF_COUNT=$(ls -1 gt_reference/*.txt 2>/dev/null | wc -l)
+    if [ "$GT_REF_COUNT" -gt 0 ]; then
+        echo ""
+        echo "[7/8] Injecting reference GT labels into backend..."
+        docker exec "$BACKEND_CONTAINER" mkdir -p /app/test_drawings/labels 2>/dev/null || true
+        for f in gt_reference/*.txt; do
+            docker cp "$f" "$BACKEND_CONTAINER":/app/test_drawings/labels/
+        done
+        echo "  ✅ Reference GT labels injected: $GT_REF_COUNT files"
+    fi
+else
+    echo ""
+    echo "[7/8] No reference GT labels to inject"
+fi
+
+# [8/8] 세션 데이터 자동 복원
 if [ -f "session_import.json" ]; then
     echo ""
-    echo "[5/5] Restoring session data..."
+    echo "[8/8] Restoring session data..."
 
-    # 백엔드가 준비될 때까지 대기 (최대 30초)
-    for i in {{1..30}}; do
-        if curl -s "http://localhost:{bom_backend_port}/health" | grep -q "healthy"; then
-            break
-        fi
-        echo "  Waiting for backend to be ready... ($i/30)"
-        sleep 1
-    done
+    # 프로젝트 연결 파라미터
+    IMPORT_URL="http://localhost:{bom_backend_port}/sessions/import"
+    if [ -n "$PROJECT_ID" ]; then
+        IMPORT_URL="$IMPORT_URL?project_id=$PROJECT_ID"
+    fi
 
-    # 세션 Import
-    IMPORT_RESULT=$(curl -s -X POST "http://localhost:{bom_backend_port}/sessions/import" \\
+    IMPORT_RESULT=$(curl -s -X POST "$IMPORT_URL" \\
         -F "file=@session_import.json" 2>/dev/null || echo "failed")
 
     if echo "$IMPORT_RESULT" | grep -q "session_id"; then
         SESSION_ID=$(echo "$IMPORT_RESULT" | grep -o '"session_id":"[^"]*"' | cut -d'"' -f4)
         echo "  ✅ Session restored: $SESSION_ID"
+        if [ -n "$PROJECT_ID" ]; then
+            echo "  ✅ Session linked to project: $PROJECT_ID"
+        fi
     else
         echo "  ⚠️  Session restore failed (you can manually import session_import.json)"
     fi
 else
     echo ""
-    echo "[5/5] No session data to restore (session_import.json not found)"
+    echo "[8/8] No session data to restore (session_import.json not found)"
 fi
 
 echo ""
@@ -212,38 +275,112 @@ if ($RunningContainers -match $FrontendContainer) {{
     Write-Host "  Nginx configuration updated"
 }}
 
-# [5/5] 세션 데이터 자동 복원
+# [5/7] 백엔드 대기
 Set-Location $RootDir
+Write-Host ""
+Write-Host "[5/8] Waiting for backend to be ready..." -ForegroundColor Yellow
+for ($i = 1; $i -le 30; $i++) {{
+    try {{
+        $health = Invoke-RestMethod -Uri "http://localhost:{bom_backend_port}/health" -Method Get -ErrorAction SilentlyContinue
+        if ($health.status -eq "healthy") {{
+            Write-Host "  Backend is ready"
+            break
+        }}
+    }} catch {{}}
+    Write-Host "  Waiting for backend... ($i/30)"
+    Start-Sleep -Seconds 1
+}}
+
+# [6/8] 프로젝트 및 GT 복원
+$ProjectId = ""
+if (Test-Path "project.json") {{
+    Write-Host ""
+    Write-Host "[6/8] Restoring project and GT labels..." -ForegroundColor Yellow
+    try {{
+        $projectData = Get-Content "project.json" -Raw
+        $projectResult = Invoke-RestMethod -Uri "http://localhost:{bom_backend_port}/projects" `
+            -Method Post `
+            -Body $projectData `
+            -ContentType "application/json" `
+            -ErrorAction SilentlyContinue
+
+        if ($projectResult.project_id) {{
+            $ProjectId = $projectResult.project_id
+            Write-Host "  Project restored: $ProjectId" -ForegroundColor Green
+
+            # GT 라벨 업로드
+            if ((Test-Path "gt_labels") -and $ProjectId) {{
+                $gtFiles = Get-ChildItem -Path "gt_labels\\*.txt" -ErrorAction SilentlyContinue
+                if ($gtFiles.Count -gt 0) {{
+                    $form = @{{}}
+                    foreach ($f in $gtFiles) {{
+                        $form["files"] = Get-Item $f.FullName
+                    }}
+                    # 다중 파일 업로드는 curl 사용
+                    $gtArgs = @("-s", "-X", "POST", "http://localhost:{bom_backend_port}/projects/$ProjectId/gt")
+                    foreach ($f in $gtFiles) {{
+                        $gtArgs += "-F"
+                        $gtArgs += "files=@$($f.FullName)"
+                    }}
+                    & curl @gtArgs 2>$null | Out-Null
+                    Write-Host "  GT labels uploaded: $($gtFiles.Count) files" -ForegroundColor Green
+                }}
+            }}
+        }}
+    }} catch {{
+        Write-Host "  Project restore failed" -ForegroundColor Yellow
+    }}
+}} else {{
+    Write-Host ""
+    Write-Host "[6/8] No project data to restore (project.json not found)" -ForegroundColor Yellow
+}}
+
+# [7/8] 참조 GT 라벨 주입 (test_drawings/labels/)
+$BackendContainer = "{container_prefix}-blueprint-ai-bom-backend"
+if (Test-Path "gt_reference") {{
+    $gtRefFiles = Get-ChildItem -Path "gt_reference\\*.txt" -ErrorAction SilentlyContinue
+    if ($gtRefFiles.Count -gt 0) {{
+        Write-Host ""
+        Write-Host "[7/8] Injecting reference GT labels into backend..." -ForegroundColor Yellow
+        docker exec $BackendContainer mkdir -p /app/test_drawings/labels 2>$null
+        foreach ($f in $gtRefFiles) {{
+            docker cp $f.FullName "${{BackendContainer}}:/app/test_drawings/labels/"
+        }}
+        Write-Host "  Reference GT labels injected: $($gtRefFiles.Count) files" -ForegroundColor Green
+    }}
+}} else {{
+    Write-Host ""
+    Write-Host "[7/8] No reference GT labels to inject" -ForegroundColor Yellow
+}}
+
+# [8/8] 세션 데이터 자동 복원
 if (Test-Path "session_import.json") {{
     Write-Host ""
-    Write-Host "[5/5] Restoring session data..." -ForegroundColor Yellow
+    Write-Host "[8/8] Restoring session data..." -ForegroundColor Yellow
 
-    # 백엔드가 준비될 때까지 대기 (최대 30초)
-    for ($i = 1; $i -le 30; $i++) {{
-        try {{
-            $health = Invoke-RestMethod -Uri "http://localhost:{bom_backend_port}/health" -Method Get -ErrorAction SilentlyContinue
-            if ($health.status -eq "healthy") {{ break }}
-        }} catch {{}}
-        Write-Host "  Waiting for backend to be ready... ($i/30)"
-        Start-Sleep -Seconds 1
+    $importUrl = "http://localhost:{bom_backend_port}/sessions/import"
+    if ($ProjectId) {{
+        $importUrl = "$importUrl?project_id=$ProjectId"
     }}
 
-    # 세션 Import
     try {{
-        $importResult = Invoke-RestMethod -Uri "http://localhost:{bom_backend_port}/sessions/import" `
+        $importResult = Invoke-RestMethod -Uri $importUrl `
             -Method Post `
             -Form @{{ file = Get-Item "session_import.json" }} `
             -ErrorAction SilentlyContinue
 
         if ($importResult.session_id) {{
             Write-Host "  Session restored: $($importResult.session_id)" -ForegroundColor Green
+            if ($ProjectId) {{
+                Write-Host "  Session linked to project: $ProjectId" -ForegroundColor Green
+            }}
         }}
     }} catch {{
         Write-Host "  Session restore failed (you can manually import session_import.json)" -ForegroundColor Yellow
     }}
 }} else {{
     Write-Host ""
-    Write-Host "[5/5] No session data to restore (session_import.json not found)" -ForegroundColor Yellow
+    Write-Host "[8/8] No session data to restore (session_import.json not found)" -ForegroundColor Yellow
 }}
 
 Write-Host ""
@@ -289,7 +426,11 @@ def generate_nginx_config(
     output_dir: Path,
     container_prefix: str,
 ) -> None:
-    """Frontend용 Nginx 설정 파일 생성"""
+    """Frontend용 Nginx 설정 파일 생성
+
+    프론트엔드는 VITE_API_URL=/api 로 빌드되어 모든 API 요청이 /api/... 로 발생.
+    /api/ prefix를 제거(rewrite)하고 백엔드로 전달해야 함.
+    """
     backend_container = f"{container_prefix}-blueprint-ai-bom-backend"
 
     nginx_config = f'''server {{
@@ -298,103 +439,34 @@ def generate_nginx_config(
     root /usr/share/nginx/html;
     index index.html;
 
+    # Gzip compression
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 
-    location / {{
-        try_files $uri $uri/ /index.html;
-    }}
-
-    location /api {{
+    # API proxy — /api/ 프리픽스를 제거하고 백엔드로 전달
+    # 프론트엔드는 VITE_API_URL=/api 로 빌드되어 모든 API 요청이 /api/... 로 발생
+    location /api/ {{
+        rewrite ^/api(/.*)$ $1 break;
         proxy_pass http://{backend_container}:5020;
         proxy_http_version 1.1;
+        proxy_set_header Host $host;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 1800s;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 1800s;
     }}
 
-    location /sessions {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /detection {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /bom {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /health {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /export {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /customer {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /analysis {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /verification {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /feedback {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /projects {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /config {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /openapi.json {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
-    location /docs {{
-        proxy_pass http://{backend_container}:5020;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }}
-
+    # Cache static assets
     location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg)$ {{
         expires 1y;
         add_header Cache-Control "public, immutable";
+    }}
+
+    # SPA routing — 모든 나머지 요청은 index.html로 (React Router 처리)
+    location / {{
+        try_files $uri $uri/ /index.html;
     }}
 }}
 '''

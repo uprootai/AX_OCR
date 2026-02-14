@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 logger = logging.getLogger(__name__)
@@ -167,13 +168,47 @@ async def list_test_images():
 
 
 @router.post("/test-images/load")
-async def load_test_image(filename: str):
-    """테스트 이미지 로드 및 세션 생성"""
+async def load_test_image(
+    filename: str,
+    source_session_id: Optional[str] = None,
+):
+    """테스트 이미지 로드 및 세션 생성
+
+    Args:
+        filename: 테스트 이미지 파일명
+        source_session_id: 원본 세션 ID (features/drawing_type/project_id 상속용)
+    """
     session_service = get_session_service()
     file_path = TEST_DRAWINGS_DIR / filename
 
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="테스트 이미지를 찾을 수 없습니다.")
+
+    # features/drawing_type 결정 (우선순위: source_session > 파일명 기반 프리셋)
+    from services.project_service import get_default_features_for_type
+    features = []
+    drawing_type = "auto"
+    project_id = None
+
+    # 1) 원본 세션에서 상속
+    if source_session_id:
+        source = session_service.get_session(source_session_id)
+        if source:
+            features = source.get("features", [])
+            drawing_type = source.get("drawing_type", "auto")
+            project_id = source.get("project_id")
+
+    # 2) 여전히 비어있으면 파일명 기반 프리셋 적용
+    if not features:
+        fn_lower = filename.lower()
+        if "mcp" in fn_lower or "panel" in fn_lower or "pid" in fn_lower:
+            preset = get_default_features_for_type("pid_detection")
+        elif "bom" in fn_lower or "bearing" in fn_lower:
+            preset = get_default_features_for_type("bom_quotation")
+        else:
+            preset = get_default_features_for_type("general")
+        features = preset["features"]
+        drawing_type = preset["drawing_type"]
 
     # 세션 ID 생성
     session_id = str(uuid.uuid4())
@@ -186,11 +221,14 @@ async def load_test_image(filename: str):
     dest_path = session_dir / filename
     shutil.copy(file_path, dest_path)
 
-    # 세션 정보 저장
+    # 세션 정보 저장 (원본 세션의 설정 상속)
     session_info = session_service.create_session(
         session_id=session_id,
         filename=filename,
-        file_path=str(dest_path)
+        file_path=str(dest_path),
+        drawing_type=drawing_type,
+        features=features,
+        project_id=project_id,
     )
 
     return {

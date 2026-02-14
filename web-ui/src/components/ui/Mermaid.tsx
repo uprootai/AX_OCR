@@ -34,21 +34,27 @@ export default function Mermaid({ chart, className = '' }: MermaidProps) {
             activationBorderColor: '#666',
             activationBkgColor: '#f4f4f4',
             sequenceNumberColor: '#ffffff',
+            fontSize: '14px',
           },
           securityLevel: 'loose',
           flowchart: {
-            useMaxWidth: true,
+            useMaxWidth: false,
             htmlLabels: true,
             curve: 'basis',
+            nodeSpacing: 30,
+            rankSpacing: 40,
           },
           sequence: {
-            useMaxWidth: true,
+            useMaxWidth: false,
             showSequenceNumbers: false,
             actorFontSize: 14,
             actorFontWeight: 600,
             noteFontSize: 12,
             messageFontSize: 13,
             messageFontWeight: 500,
+          },
+          mindmap: {
+            useMaxWidth: false,
           },
         });
 

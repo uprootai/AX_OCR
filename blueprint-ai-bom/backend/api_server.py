@@ -60,6 +60,8 @@ from routers.pricing_router import router as pricing_router_api
 from routers.template_router import router as template_router_api
 # Phase 2E: Export 라우터
 from routers.export_router import router as export_router_api, set_export_services
+# Project I/O 라우터 (프로젝트 단위 Export/Import)
+from routers.project_io_router import router as project_io_router_api, set_project_io_services
 # Reference Sets (커스텀 참조 도면) 라우터
 from routers.reference_router import router as reference_router_api
 # 신규 라우터: GT, Config & System
@@ -76,6 +78,7 @@ from services.region_segmenter import RegionSegmenter  # Phase 5: 영역 분할
 from services.gdt_parser import GDTParser  # Phase 7: GD&T 파싱
 from services.table_service import TableService  # 테이블 추출
 from services.export_service import get_export_service  # Phase 2E: Export
+from services.project_service import get_project_service  # 프로젝트 서비스
 
 # 기본 경로 설정 (Docker에서는 /app 기준)
 BASE_DIR = Path(__file__).parent
@@ -164,9 +167,12 @@ set_viewlabels_services(session_service)
 set_pid_features_service(session_service)  # P&ID 분석 기능: 밸브, 장비, 체크리스트
 # Phase 2E: Export 서비스 초기화
 export_service = get_export_service(EXPORT_DIR, UPLOAD_DIR)
-set_export_services(session_service, export_service)  # template_service, project_service는 필요시 추가
+project_service = get_project_service(DATA_DIR)
+set_export_services(session_service, export_service, project_service=project_service)
 # Config & System 라우터 서비스 주입
 set_config_services(session_service)
+# Project I/O 서비스 주입
+set_project_io_services(session_service, UPLOAD_DIR)
 
 # 라우터 등록 (prefix 없이 - 라우터 내부에 이미 prefix 있음)
 app.include_router(session_router_api, tags=["Session"])
@@ -198,6 +204,7 @@ app.include_router(settings_router_api, tags=["Settings"])  # API 키 설정
 # Phase 2: 프로젝트/템플릿 라우터
 app.include_router(project_router_api, tags=["Projects"])  # 프로젝트 CRUD
 app.include_router(project_bom_router_api, tags=["Projects - BOM"])  # BOM 계층/매칭/세션 생성
+app.include_router(project_io_router_api, tags=["Projects - I/O"])  # 프로젝트 Export/Import
 app.include_router(quotation_router_api, tags=["Projects - Quotation"])  # 견적 집계/내보내기
 app.include_router(pricing_router_api, tags=["Projects - Pricing & GT"])  # 단가 설정/GT 관리
 app.include_router(template_router_api, tags=["Templates"])  # 템플릿 관리

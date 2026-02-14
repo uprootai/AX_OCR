@@ -17,6 +17,7 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
+  FileDown,
 } from 'lucide-react';
 import {
   projectApi,
@@ -28,6 +29,7 @@ import {
 import { BOMHierarchyTree } from './BOMHierarchyTree';
 import { DrawingMatchTable } from './DrawingMatchTable';
 import { QuotationDashboard } from './QuotationDashboard';
+import { Tooltip } from '../../../components/ui/Tooltip';
 
 interface BOMWorkflowSectionProps {
   projectId: string;
@@ -36,11 +38,11 @@ interface BOMWorkflowSectionProps {
 }
 
 const STEPS = [
-  { label: 'BOM 업로드', icon: Upload },
-  { label: 'BOM 계층', icon: GitBranch },
-  { label: '도면 매칭', icon: Link2 },
-  { label: '세션 생성', icon: PlusCircle },
-  { label: '견적 현황', icon: BarChart3 },
+  { label: 'BOM 업로드', icon: Upload, tooltip: 'BOM(부품 목록) PDF 파일을 업로드하면 부품 계층 구조를 자동으로 파싱합니다' },
+  { label: 'BOM 계층', icon: GitBranch, tooltip: '파싱된 BOM을 Assembly → Sub-assembly → Part 트리 구조로 시각화합니다' },
+  { label: '도면 매칭', icon: Link2, tooltip: 'BOM 항목의 Drawing Number를 도면 폴더의 파일명과 자동으로 매칭합니다' },
+  { label: '세션 생성', icon: PlusCircle, tooltip: '매칭된 도면 항목별로 BlueprintFlow 분석 세션을 일괄 생성합니다' },
+  { label: '견적 현황', icon: BarChart3, tooltip: '재질별·어셈블리별 견적 현황과 전체 금액을 대시보드로 확인합니다' },
 ];
 
 function detectInitialStep(project: ProjectDetail): number {
@@ -122,6 +124,21 @@ export function BOMWorkflowSection({
     }
   };
 
+  const handleLoadSampleBOM = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/samples/sample_bom_dsebearing.pdf');
+      if (!res.ok) throw new Error('샘플 BOM 파일을 찾을 수 없습니다.');
+      const blob = await res.blob();
+      const file = new File([blob], 'sample_bom_dsebearing.pdf', { type: 'application/pdf' });
+      await handleBOMUpload(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '샘플 BOM 로드에 실패했습니다.');
+      setIsLoading(false);
+    }
+  };
+
   const canGoNext = (): boolean => {
     switch (currentStep) {
       case 0: return !!bomData;
@@ -132,8 +149,76 @@ export function BOMWorkflowSection({
     }
   };
 
+  const hasBOM = !!project.bom_source || project.bom_item_count > 0 || project.project_type === 'bom_quotation';
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mb-6">
+      {!hasBOM ? (
+        /* BOM 데이터 없음 — 접힌 상태 */
+        <div className="p-4 flex items-center justify-between">
+          <div>
+            <Tooltip content="BOM PDF를 업로드하면 부품 계층 파싱 → 도면 매칭 → 세션 생성 → 견적 산출까지 5단계 워크플로우를 진행합니다" position="bottom">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-0.5">BOM 견적 워크플로우</h2>
+            </Tooltip>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              BOM 견적이 필요하면 부품 목록(BOM) PDF를 업로드하세요.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              ref={bomFileRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleBOMUpload(file);
+                e.target.value = '';
+              }}
+            />
+            <button
+              onClick={handleLoadSampleBOM}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 text-sm rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+              샘플 BOM 로드
+            </button>
+            <button
+              onClick={() => bomFileRef.current?.click()}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              BOM PDF 업로드
+            </button>
+          </div>
+          {error && (
+            <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-600 dark:text-red-400">
+              {error}
+            </div>
+          )}
+        </div>
+      ) : (
+      /* BOM 데이터 있음 — 풀 워크플로우 */
+      <>
+      {/* 섹션 제목 + 설명 */}
+      <div className="px-4 pt-4 pb-2">
+        <Tooltip content="BOM PDF를 업로드하면 부품 계층 파싱 → 도면 매칭 → 세션 생성 → 견적 산출까지 5단계 워크플로우를 진행합니다" position="bottom">
+          <h2 className="font-semibold text-gray-900 dark:text-white mb-1">BOM 견적 워크플로우</h2>
+        </Tooltip>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          부품 목록(BOM) PDF를 업로드하면 계층 구조를 파싱하고, 도면 파일과 자동 매칭한 뒤, 세션을 일괄 생성하여 견적을 산출합니다.
+        </p>
+      </div>
       {/* 스테퍼 */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
@@ -143,23 +228,25 @@ export function BOMWorkflowSection({
             const isActive = idx === currentStep;
             return (
               <div key={idx} className="flex items-center">
-                <button
-                  onClick={() => {
-                    if (idx <= currentStep || (bomData && idx <= 4)) {
-                      setCurrentStep(idx);
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-500 dark:bg-blue-600 text-white'
-                      : isCompleted
-                        ? 'bg-green-500 dark:bg-green-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
-                </button>
+                <Tooltip content={step.tooltip} position="bottom">
+                  <button
+                    onClick={() => {
+                      if (idx <= currentStep || (bomData && idx <= 4)) {
+                        setCurrentStep(idx);
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-blue-500 dark:bg-blue-600 text-white'
+                        : isCompleted
+                          ? 'bg-green-500 dark:bg-green-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
+                  </button>
+                </Tooltip>
                 {idx < STEPS.length - 1 && (
                   <div
                     className={`w-8 h-0.5 mx-1 ${
@@ -184,9 +271,12 @@ export function BOMWorkflowSection({
         {/* Step 0: BOM 업로드 */}
         {currentStep === 0 && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">BOM PDF 업로드</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              BOM(Bill of Materials) PDF 파일을 업로드하면 계층 구조를 자동으로 파싱합니다.
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">BOM PDF 업로드</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+              BOM(Bill of Materials) PDF 파일을 업로드하면 부품 계층 구조를 자동으로 파싱합니다.
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+              Item No, Drawing No, Description, Material, Qty 등이 포함된 부품 목록표 PDF를 선택하세요.
             </p>
             <div className="flex items-center gap-3">
               <input
@@ -199,6 +289,18 @@ export function BOMWorkflowSection({
                   if (file) handleBOMUpload(file);
                 }}
               />
+              <button
+                onClick={handleLoadSampleBOM}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FileDown className="w-4 h-4" />
+                )}
+                샘플 BOM 로드
+              </button>
               <button
                 onClick={() => bomFileRef.current?.click()}
                 disabled={isLoading}
@@ -364,6 +466,8 @@ export function BOMWorkflowSection({
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }
