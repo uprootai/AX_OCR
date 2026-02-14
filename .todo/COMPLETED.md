@@ -7,6 +7,27 @@
 
 ## 2026-02-14 완료
 
+### 동서기연 터빈 베어링 납품 패키지 생성
+
+**상태**: ✅ **완료**
+
+| 항목 | 내용 |
+|------|------|
+| 패키지 위치 | `blueprint-ai-bom/exports/dsebearing-delivery/` |
+| 총 크기 | 4.5GB (비압축 9.1GB → 50% 절감) |
+| Backend 이미지 | 4.5GB (gzip) |
+| Frontend 이미지 | 25MB (gzip) |
+| 프로젝트 데이터 | 546KB (53 세션, BOM 326개) |
+| 설치 스크립트 | setup.sh (Linux/macOS) + setup.ps1 (Windows) |
+| 체크섬 | CHECKSUMS.sha256 (SHA-256) |
+
+**클린 환경 테스트 결과**:
+- Docker compose up: backend healthy → frontend 200 OK
+- Import: 53 세션 / 0 실패, BOM 326개 확인
+- 발견 수정: Import API가 multipart/form-data 방식 → setup.sh/ps1 수정
+
+---
+
 ### Self-contained Export에 프로젝트 데이터 + GT 라벨 포함
 
 **상태**: ✅ **완료**

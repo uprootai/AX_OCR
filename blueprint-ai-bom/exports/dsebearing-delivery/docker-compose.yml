@@ -1,0 +1,38 @@
+# Blueprint AI BOM - DSE Bearing Delivery Package
+# 동서기연 터빈 베어링 프로젝트 납품용
+
+services:
+  blueprint-ai-bom-backend:
+    image: blueprint-ai-bom-backend:latest
+    container_name: blueprint-ai-bom-backend
+    ports:
+      - "5020:5020"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - dsebearing-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  blueprint-ai-bom-frontend:
+    image: blueprint-ai-bom-frontend:latest
+    container_name: blueprint-ai-bom-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      blueprint-ai-bom-backend:
+        condition: service_healthy
+    networks:
+      - dsebearing-network
+    restart: unless-stopped
+
+networks:
+  dsebearing-network:
+    driver: bridge

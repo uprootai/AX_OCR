@@ -1,11 +1,18 @@
 # 진행 중인 작업
 
 > **마지막 업데이트**: 2026-02-14
-> **기준 커밋**: 7532379 (refactor: web-ui 1000줄 초과 파일 분리 + 기능 확장)
+> **기준 커밋**: dae8787 (feat: Export/Import 완전성 개선)
 
 ---
 
 ## 2026-02-14 완료 작업
+
+### 동서기연 터빈 베어링 납품 패키지 생성 ✅
+- **패키지**: `blueprint-ai-bom/exports/dsebearing-delivery/` (4.5GB)
+- **내용**: Docker 이미지 2개 + 프로젝트 JSON + 설치 스크립트 (Linux/Windows)
+- **테스트**: 클린 환경 포트 변경(5030/3010) → Import 53세션 성공, BOM 326개 확인
+- **수정**: Import API multipart/form-data 방식 반영, docker-compose version 제거
+- **체크섬**: CHECKSUMS.sha256 생성
 
 ### Self-contained Export에 프로젝트 데이터 + GT 라벨 포함 ✅
 - **문제**: 외부 환경에서 Import 시 `project_id=None`이 되어 GT 비교 섹션 미표시
