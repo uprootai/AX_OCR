@@ -19,6 +19,7 @@ from fastapi.responses import StreamingResponse
 
 from services.project_service import get_project_service
 from services.bom_pdf_parser import BOMPDFParser
+from services.template_service import get_template_service
 from routers.session_io_router import build_session_export_dict
 
 logger = logging.getLogger(__name__)
@@ -121,9 +122,51 @@ async def export_project(
     total_quotation = project.get("total_quotation", 0)
     bom_item_count = project.get("bom_item_count", 0)
 
+    # 견적 상세 로드 (quotation.json)
+    quotation_data = None
+    quotation_file = project_dir / "quotation.json"
+    if quotation_file.exists():
+        try:
+            with open(quotation_file, "r", encoding="utf-8") as f:
+                quotation_data = json.load(f)
+            logger.info(f"[Project Export] quotation.json loaded ({len(quotation_data.get('items', []))} items)")
+        except Exception as e:
+            logger.warning(f"[Project Export] quotation.json 로드 실패: {e}")
+
+    # 단가 설정 로드 (pricing_config.json)
+    pricing_config = None
+    pricing_file = project_dir / "pricing_config.json"
+    if pricing_file.exists():
+        try:
+            with open(pricing_file, "r", encoding="utf-8") as f:
+                pricing_config = json.load(f)
+            logger.info(f"[Project Export] pricing_config.json loaded")
+        except Exception as e:
+            logger.warning(f"[Project Export] pricing_config.json 로드 실패: {e}")
+
+    # 템플릿 로드 (세션에서 참조하는 템플릿 + 프로젝트 기본 템플릿)
+    templates_data = []
+    try:
+        template_service = get_template_service(data_dir)
+        exported_template_ids = set()
+        # 프로젝트 기본 템플릿
+        if project.get("default_template_id"):
+            exported_template_ids.add(project["default_template_id"])
+        # 모든 템플릿 포함 (소수이므로 전체 포함)
+        for tid, tpl in template_service.templates.items():
+            exported_template_ids.add(tid)
+        for tid in exported_template_ids:
+            tpl = template_service.get_template(tid)
+            if tpl:
+                templates_data.append(tpl)
+        if templates_data:
+            logger.info(f"[Project Export] {len(templates_data)} templates included")
+    except Exception as e:
+        logger.warning(f"[Project Export] 템플릿 로드 실패: {e}")
+
     # Export 데이터 구성
     export_data = {
-        "export_version": "2.0",
+        "export_version": "2.1",
         "export_type": "project",
         "export_timestamp": datetime.now().isoformat(),
         "project_metadata": {
@@ -143,6 +186,9 @@ async def export_project(
             "total_quotation": total_quotation,
         },
         "bom_data": bom_data,
+        "quotation_data": quotation_data,
+        "pricing_config": pricing_config,
+        "templates": templates_data,
         "sessions": session_exports,
     }
 
@@ -210,10 +256,10 @@ async def import_project(
     export_version = export_data.get("export_version")
     export_type = export_data.get("export_type")
 
-    if export_version != "2.0" or export_type != "project":
+    if export_version not in ("2.0", "2.1") or export_type != "project":
         raise HTTPException(
             status_code=400,
-            detail=f"지원하지 않는 형식입니다. export_version=2.0, export_type=project 필요 "
+            detail=f"지원하지 않는 형식입니다. export_version=2.0/2.1, export_type=project 필요 "
                    f"(받은 값: version={export_version}, type={export_type})"
         )
 
@@ -235,11 +281,11 @@ async def import_project(
 
     project = project_service.create_project(project_create)
     new_project_id = project["project_id"]
+    project_dir = project_service.projects_dir / new_project_id
 
     # BOM 데이터 복원
     bom_data = export_data.get("bom_data")
     if bom_data:
-        project_dir = project_service.projects_dir / new_project_id
         bom_parser = BOMPDFParser()
         bom_parser.save_bom_items(project_dir, bom_data)
 
@@ -250,6 +296,47 @@ async def import_project(
         elif isinstance(bom_data, list):
             project["bom_item_count"] = len(bom_data)
         project_service._save_project(new_project_id)
+
+    # 견적 상세 복원 (quotation.json)
+    quotation_data = export_data.get("quotation_data")
+    if quotation_data:
+        quotation_file = project_dir / "quotation.json"
+        try:
+            # project_id를 새 ID로 업데이트
+            quotation_data["project_id"] = new_project_id
+            with open(quotation_file, "w", encoding="utf-8") as f:
+                json.dump(quotation_data, f, ensure_ascii=False, indent=2, default=str)
+            logger.info(f"[Project Import] quotation.json restored ({len(quotation_data.get('items', []))} items)")
+        except Exception as e:
+            logger.warning(f"[Project Import] quotation.json 복원 실패: {e}")
+
+    # 단가 설정 복원 (pricing_config.json)
+    pricing_config_data = export_data.get("pricing_config")
+    if pricing_config_data:
+        pricing_file = project_dir / "pricing_config.json"
+        try:
+            with open(pricing_file, "w", encoding="utf-8") as f:
+                json.dump(pricing_config_data, f, ensure_ascii=False, indent=2, default=str)
+            logger.info(f"[Project Import] pricing_config.json restored")
+        except Exception as e:
+            logger.warning(f"[Project Import] pricing_config.json 복원 실패: {e}")
+
+    # 템플릿 복원
+    templates_data = export_data.get("templates", [])
+    if templates_data:
+        try:
+            template_service = get_template_service(data_dir)
+            restored_count = 0
+            for tpl in templates_data:
+                tid = tpl.get("template_id")
+                if tid and tid not in template_service.templates:
+                    template_service.templates[tid] = tpl
+                    template_service._save_template(tid)
+                    restored_count += 1
+            if restored_count:
+                logger.info(f"[Project Import] {restored_count} templates restored (skipped {len(templates_data) - restored_count} existing)")
+        except Exception as e:
+            logger.warning(f"[Project Import] 템플릿 복원 실패: {e}")
 
     # 세션 복원
     session_exports = export_data.get("sessions", [])
@@ -347,14 +434,15 @@ async def import_project(
             logger.error(f"[Project Import] Session import failed: {e}")
             failed_sessions.append(str(e))
 
-    # BOM session_id 리맵 (원본 ID → 새 ID) + 고아 세션 스텁 생성
+    # session_id 리맵 테이블 (원본 ID → 새 ID)
+    session_id_map = {
+        s["original_session_id"]: s["new_session_id"]
+        for s in imported_sessions if s.get("original_session_id")
+    }
+
+    # BOM session_id 리맵 + 고아 세션 스텁 생성
     stub_count = 0
     if bom_data and isinstance(bom_data, dict) and bom_data.get("items"):
-        session_id_map = {
-            s["original_session_id"]: s["new_session_id"]
-            for s in imported_sessions if s.get("original_session_id")
-        }
-        project_dir = project_service.projects_dir / new_project_id
         bom_parser = BOMPDFParser()
         saved_bom = bom_parser.load_bom_items(project_dir)
 
@@ -425,6 +513,55 @@ async def import_project(
                 f"stub sessions: {stub_count}"
             )
 
+    # quotation.json session_id 리맵 (drawing_number 기준)
+    # quotation의 session_id가 BOM/세션과 다를 수 있으므로 drawing_number로 매칭
+    quotation_file = project_dir / "quotation.json"
+    if quotation_file.exists():
+        try:
+            with open(quotation_file, "r", encoding="utf-8") as f:
+                q_data = json.load(f)
+
+            # drawing_number → new_session_id 맵 구축 (BOM 리맵 후 최종 상태)
+            drawing_sid_map = {}
+            if bom_data and isinstance(bom_data, dict):
+                bom_parser_q = BOMPDFParser()
+                final_bom = bom_parser_q.load_bom_items(project_dir)
+                if isinstance(final_bom, dict):
+                    for item in final_bom.get("items", []):
+                        dn = item.get("drawing_number")
+                        sid = item.get("session_id")
+                        if dn and sid:
+                            drawing_sid_map[dn] = sid
+
+            # session_id_map + drawing_number 양쪽으로 리맵 시도
+            remapped_q = 0
+            for items_source in [q_data.get("items", [])]:
+                for item in items_source:
+                    old_sid = item.get("session_id")
+                    # 1순위: session_id_map 직접 매칭
+                    if old_sid and old_sid in session_id_map:
+                        item["session_id"] = session_id_map[old_sid]
+                        remapped_q += 1
+                    # 2순위: drawing_number → BOM session_id 매칭
+                    elif item.get("drawing_number") in drawing_sid_map:
+                        item["session_id"] = drawing_sid_map[item["drawing_number"]]
+                        remapped_q += 1
+            for group_key in ("assembly_groups", "material_groups"):
+                for group in q_data.get(group_key, []):
+                    for item in group.get("items", []):
+                        old_sid = item.get("session_id")
+                        if old_sid and old_sid in session_id_map:
+                            item["session_id"] = session_id_map[old_sid]
+                        elif item.get("drawing_number") in drawing_sid_map:
+                            item["session_id"] = drawing_sid_map[item["drawing_number"]]
+
+            with open(quotation_file, "w", encoding="utf-8") as f:
+                json.dump(q_data, f, ensure_ascii=False, indent=2, default=str)
+            if remapped_q:
+                logger.info(f"[Project Import] quotation session_id remapped: {remapped_q}/{len(q_data.get('items', []))} items")
+        except Exception as e:
+            logger.warning(f"[Project Import] quotation session_id 리맵 실패: {e}")
+
     # 프로젝트 통계 업데이트
     project_service.update_session_counts(new_project_id, session_service)
 
@@ -440,6 +577,9 @@ async def import_project(
         "project_type": project.get("project_type"),
         "imported_sessions": len(imported_sessions),
         "failed_sessions": len(failed_sessions),
+        "quotation_restored": quotation_data is not None,
+        "pricing_config_restored": pricing_config_data is not None,
+        "templates_restored": len(templates_data),
         "sessions": imported_sessions,
         "message": f"프로젝트가 성공적으로 Import되었습니다. ({len(imported_sessions)}개 세션)",
     }
