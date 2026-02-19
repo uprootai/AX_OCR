@@ -124,12 +124,12 @@ class CropService:
         if not examples_dir.exists():
             return []
 
-        # class_name을 소문자로 변환하여 매칭
-        target = class_name.lower().replace(" ", "_")
+        # class_name을 소문자로 변환하여 매칭 (공백/언더스코어 모두 통일)
+        target = class_name.lower().replace("_", " ")
         results = []
 
         for f in sorted(examples_dir.glob("*.jpg")):
-            fname = f.stem.lower()
+            fname = f.stem.lower().replace("_", " ")
             if target in fname:
                 img = self._load_image(str(f))
                 if img:
