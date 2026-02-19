@@ -33,6 +33,7 @@ from routers.analysis import (
     set_gdt_services,
 )
 from routers.verification_router import router as verification_router_api, set_verification_services
+from routers.agent_verification_router import router as agent_verification_router_api, set_agent_verification_services
 from routers.classification_router import router as classification_router_api, set_classification_services
 from routers.relation_router import router as relation_router_api, set_relation_services
 from routers.feedback_router import router as feedback_router_api, set_feedback_services
@@ -77,6 +78,7 @@ from services.connectivity_analyzer import ConnectivityAnalyzer  # Phase 6: P&ID
 from services.region_segmenter import RegionSegmenter  # Phase 5: 영역 분할
 from services.gdt_parser import GDTParser  # Phase 7: GD&T 파싱
 from services.table_service import TableService  # 테이블 추출
+from services.crop_service import CropService  # Agent Verification 크롭 서비스
 from services.export_service import get_export_service  # Phase 2E: Export
 from services.project_service import get_project_service  # 프로젝트 서비스
 
@@ -154,6 +156,8 @@ set_line_services(line_detector_service, connectivity_analyzer)
 set_region_services(region_segmenter)
 set_gdt_services(gdt_parser)
 set_verification_services(session_service)  # v3: Active Learning 검증
+crop_service = CropService(session_service)
+set_agent_verification_services(session_service, crop_service)  # Agent Verification
 set_classification_services(session_service)  # v4: VLM 분류
 set_relation_services(session_service, line_detector_service)  # Phase 2: 치수선 기반 관계
 set_feedback_services(session_service)  # Phase 8: 피드백 루프
@@ -189,6 +193,7 @@ app.include_router(region_router, tags=["Regions"])
 app.include_router(gdt_router, tags=["GD&T & Title Block"])
 app.include_router(batch_router, tags=["Batch Analysis"])
 app.include_router(verification_router_api, tags=["Verification"])  # v3: Active Learning
+app.include_router(agent_verification_router_api, tags=["Verification - Agent"])  # Agent Verification
 app.include_router(classification_router_api, tags=["Classification"])  # v4: VLM 분류
 app.include_router(relation_router_api, tags=["Relations"])  # Phase 2: 치수선 기반 관계
 app.include_router(feedback_router_api, tags=["Feedback"])  # Phase 8: 피드백 루프

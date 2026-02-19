@@ -1,7 +1,19 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-14
-> **기준 커밋**: dae8787 (feat: Export/Import 완전성 개선)
+> **마지막 업데이트**: 2026-02-19
+> **기준 커밋**: e488072 (docs: Agent-Native Verification UI 기획 문서 추가)
+
+---
+
+## 2026-02-19 완료 작업
+
+### Agent-Native Verification UI (Phase 1+2) ✅
+- **백엔드**: `CropService` (PIL 크롭/컨텍스트/참조 이미지) + `agent_verification_router` (3 엔드포인트)
+- **프론트엔드**: `AgentVerificationPage.tsx` (standalone 라우트 `/verification/agent`)
+- **신규 파일**: `crop_service.py` (141줄), `agent_verification_router.py` (242줄), `AgentVerificationPage.tsx` (411줄)
+- **수정 파일**: `api_server.py` (+4줄), `App.tsx` (+2줄), `pages/index.ts` (+1줄)
+- **Agent-Friendly**: `data-action` 속성, `id` 속성, 키보드 단축키 (A/R/S/←→), 고정 레이아웃
+- **검증**: Python ast ✅, tsc --noEmit ✅, npm run build ✅
 
 ---
 
