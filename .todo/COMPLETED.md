@@ -1,7 +1,35 @@
 # 완료된 작업 아카이브
 
-> 마지막 업데이트: 2026-02-14
+> 마지막 업데이트: 2026-02-19
 > 완료된 작업들의 기록 (참조용)
+
+---
+
+## 2026-02-19 완료
+
+### Agent-Native Verification UI (Phase 1+2) + Dimension 검증 개선
+
+**상태**: ✅ **완료**
+
+| 항목 | 내용 |
+|------|------|
+| 백엔드 신규 | `crop_service.py` (142줄), `agent_verification_router.py` (311줄) |
+| 프론트엔드 신규 | `AgentVerificationPage.tsx` (535줄) |
+| 백엔드 수정 | `api_server.py` (라우터 등록 + CropService DI) |
+| 프론트엔드 수정 | `App.tsx` (라우트), `pages/index.ts` (export) |
+| 라우트 | `/verification/agent?session={sid}&type=symbol|dimension` |
+
+**Agent-Friendly 설계**:
+- Playwright 셀렉터: `#btn-approve`, `#btn-reject`, `[data-action="reject-not-dimension"]`, `[data-action="reject-garbage"]`
+- 키보드 단축키: A=승인, R=거부, N=치수아님, S=건너뛰기, ←→=이동
+- 구조화 수정: `#input-modify-value`, `#select-modify-unit`, `#select-modify-type`, `#input-modify-tolerance`
+
+**Dimension 검증 개선 (50개 전수 분석 기반)**:
+- 에러 카테고리 7가지 식별 (GD&T 7건, 가비지 8건, 비치수 4건, 공차절단 3건, 표면거칠기 2건, 각도 2건)
+- 백엔드: AgentDecisionRequest 확장 (modified_unit/type/tolerance, reject_reason)
+- 프론트엔드: 10가지 dimension_type, 4가지 unit, 컬러코드 배지, 퀵리젝트 버튼
+
+**E2E 검증**: 7가지 에러 카테고리 × Playwright 테스트 → 백엔드 데이터 저장 확인 ✅
 
 ---
 

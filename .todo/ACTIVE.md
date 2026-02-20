@@ -10,10 +10,26 @@
 ### Agent-Native Verification UI (Phase 1+2) ✅
 - **백엔드**: `CropService` (PIL 크롭/컨텍스트/참조 이미지) + `agent_verification_router` (3 엔드포인트)
 - **프론트엔드**: `AgentVerificationPage.tsx` (standalone 라우트 `/verification/agent`)
-- **신규 파일**: `crop_service.py` (141줄), `agent_verification_router.py` (242줄), `AgentVerificationPage.tsx` (411줄)
+- **신규 파일**: `crop_service.py` (142줄), `agent_verification_router.py` (311줄), `AgentVerificationPage.tsx` (535줄)
 - **수정 파일**: `api_server.py` (+4줄), `App.tsx` (+2줄), `pages/index.ts` (+1줄)
-- **Agent-Friendly**: `data-action` 속성, `id` 속성, 키보드 단축키 (A/R/S/←→), 고정 레이아웃
-- **검증**: Python ast ✅, tsc --noEmit ✅, npm run build ✅
+- **Agent-Friendly**: `data-action` 속성, `id` 속성, 키보드 단축키 (A/R/S/N/←→), 고정 레이아웃
+
+### Dimension 검증 개선 (50개 전수 분석 기반) ✅
+- **분석**: 동서기연 세션 50개 치수 전수 검사 → 48% 에러율 발견 (7가지 카테고리)
+- **백엔드 개선** (`agent_verification_router.py`):
+  - `AgentDecisionRequest` 확장: `modified_unit`, `modified_type`, `modified_tolerance`, `reject_reason` 추가
+  - modify 시 value/unit/type/tolerance 개별 수정 가능
+  - reject 시 reject_reason 저장 (not_dimension, garbage, duplicate)
+  - Active Learning 로그에 전체 수정 내역 포함
+- **프론트엔드 개선** (`AgentVerificationPage.tsx`):
+  - 10가지 dimension_type (length/diameter/radius/chamfer/angle/gdt/surface_roughness/note/label/unknown)
+  - 4가지 unit (mm/°/μm/없음)
+  - 컬러코드 타입 배지 (blue=길이, purple=GD&T, pink=표면거칠기 등)
+  - 구조화된 수정 폼: value + unit + type + tolerance 개별 입력
+  - 퀵리젝트: "치수아님(N)" + "가비지" 전용 버튼
+  - N키 단축키 (not_dimension 즉시 리젝트)
+- **E2E 테스트**: 7가지 에러 카테고리 모두 확인 (GD&T/표면거칠기/비치수/각도/공차절단/가비지/정상)
+- **검증**: Python ast ✅, npm run build ✅, Docker rebuild ✅, 줄수 311+535 (모두 600줄 이하)
 
 ---
 

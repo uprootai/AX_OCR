@@ -25,17 +25,18 @@ class CropService:
     def __init__(self, session_service):
         self.session_service = session_service
 
-    def _get_session_and_detection(
-        self, session_id: str, detection_id: str
+    def _get_session_and_item(
+        self, session_id: str, item_id: str, item_type: str = "symbol"
     ) -> tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
-        """세션과 검출 항목 조회"""
+        """세션과 항목 조회 (detections 또는 dimensions)"""
         session = self.session_service.get_session(session_id)
         if not session:
             return None, None
 
-        for det in session.get("detections", []):
-            if det.get("id") == detection_id:
-                return session, det
+        key = "dimensions" if item_type == "dimension" else "detections"
+        for item in session.get(key, []):
+            if item.get("id") == item_id:
+                return session, item
         return session, None
 
     def _load_image(self, file_path: str) -> Optional[Image.Image]:
@@ -53,10 +54,10 @@ class CropService:
         return buf.getvalue()
 
     def get_detection_crop(
-        self, session_id: str, detection_id: str, padding: int = 20
+        self, session_id: str, detection_id: str, padding: int = 20, item_type: str = "symbol"
     ) -> Optional[bytes]:
-        """검출 영역 크롭 -> JPEG bytes (400x400 max 리사이즈)"""
-        session, detection = self._get_session_and_detection(session_id, detection_id)
+        """검출/치수 영역 크롭 -> JPEG bytes (400x400 max 리사이즈)"""
+        session, detection = self._get_session_and_item(session_id, detection_id, item_type)
         if not session or not detection:
             return None
 
@@ -78,10 +79,10 @@ class CropService:
         return self._to_jpeg_bytes(cropped)
 
     def get_context_image(
-        self, session_id: str, detection_id: str
+        self, session_id: str, detection_id: str, item_type: str = "symbol"
     ) -> Optional[bytes]:
         """전체 도면 축소 + 검출 위치 빨간 박스 표시 -> JPEG bytes"""
-        session, detection = self._get_session_and_detection(session_id, detection_id)
+        session, detection = self._get_session_and_item(session_id, detection_id, item_type)
         if not session or not detection:
             return None
 
