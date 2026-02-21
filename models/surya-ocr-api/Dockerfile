@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Application
 COPY api_server.py .
+COPY schemas.py .
 COPY routers/ ./routers/
 COPY services/ ./services/
 

@@ -1,7 +1,88 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-19
-> **기준 커밋**: e488072 (docs: Agent-Native Verification UI 기획 문서 추가)
+> **마지막 업데이트**: 2026-02-21
+> **기준 커밋**: 9e7bfda (fix: Agent 검증 status 버그 수정 + dimension 검증 지원)
+
+---
+
+## 2026-02-21 완료 작업
+
+### Agent Verification Pipeline (Phase 3) ✅
+- **목적**: LLM Agent가 검출/OCR 결과를 자동 검증하는 Python 스크립트
+- **아키텍처**: 3-Level Hybrid (L1: auto-approve, L2: Claude Sonnet vision, L3: 스텁)
+- **신규 파일**:
+  - `scripts/agent_verify_prompts.py` (116줄) - Symbol/Dimension 검증 프롬프트 템플릿
+  - `scripts/agent_verify.py` (613줄) - AgentVerifier 클래스 + CLI
+- **기능**:
+  - L1: confidence >= threshold 자동 승인
+  - L2: Anthropic API로 크롭/컨텍스트/참조 이미지 분석 → approve/reject/modify
+  - dry-run 모드: LLM 호출만 하고 결정 전송 생략, JSON 결과 저장
+  - API 키: CLI → 환경변수 → BOM API Settings 순 해결
+  - 에러 처리: Rate limit backoff, 개별 item 실패 시 uncertain 분류
+- **검증**: Python ast ✅, 줄수 ✅ (116 + 621, 모두 1000줄 이하)
+- **E2E 테스트**: L1-only 실행 → 116/147 auto-approve 성공, 0 에러
+- **L2 시각 검증 (수동)**: 147/147 전체 검증 완료
+  - L1 auto-approve: 116건 (conf >= 0.9)
+  - Hatching artifact reject: 26건 (UI 4 + Batch API 22)
+  - L2 시각 reject: 3건 (제목란/주석 영역 텍스트 오인식)
+  - L2 시각 approve: 2건 (Ø2768, 30 - 실제 치수 확인)
+
+### Agent Verification Phase 4: P&ID/치수 전용 뷰 ✅
+- **drawing_type 뱃지**: 헤더에 도면 유형 표시 (P&ID/전기/치수BOM/기계/자동)
+- **Dimension linked_to 패널**: 연결된 심볼 ID 표시 + Agent 검증 배지
+- **P&ID 전용 패널**: 심볼 클래스 + 클래스 ID 표시 (drawing_type=pid일 때)
+- **verified_by 필드**: ItemDetail 인터페이스에 추가
+- **수정 파일**: `AgentVerificationPage.tsx` (535→588줄)
+- **검증**: tsc ✅, npm run build ✅, Playwright 스크린샷 확인 ✅
+
+### [별첨3] AI솔루션 세부 설명자료 — 솔루션5(도면 AI) 추가 ✅
+
+**목적**: 기존 별첨3 (예측모델/신호처리/멀티모달 4개 솔루션)에 솔루션5 "제조 도면 기반 AI 자동 분석 및 견적 생성 시스템" 추가
+
+**작업 내역**:
+
+1. **HTML 전면 재구성**
+   - 기존 PDF 기반 이미지 HTML → 텍스트 선택/복사 가능한 HTML 테이블로 재작성
+   - 파일 크기: 5.5MB → 39KB (이미지 외부 분리)
+   - p.10~11 신규 추가 (빨간 테두리 + NEW 뱃지)
+
+2. **데이터 보유·수집 현황 검증 및 수정** (p.10)
+   - 실제 코드/데이터와 대조하여 모든 수치 검증
+   - 기계도면 YOLO: 14클래스, 합성 10,000장 (model_registry.yaml)
+   - P&ID: 32클래스, 999장 (rnd/benchmarks/pid2graph/)
+   - 전력설비: 27클래스, 참조이미지 26장 (blueprint-ai-bom/class_examples/)
+   - 수요기업 기계: 부품도면 87장 + BOM/사양서 7장 (apply-company/dsebearing/)
+   - 수요기업 P&ID: P&ID 16장 + 표준도면 24장 (apply-company/techloss/)
+
+3. **성능 수치 검증 및 교체**
+   - ✅ 근거 있음: mAP50 68.5%, Recall 66.0%, OCR 가중치 40/35/15/10, 21 마이크로서비스, 73 검출 클래스
+   - ❌ 근거 없음 → 수정:
+     - OCR 94.2% → "4엔진 앙상블 구축 완료, 목표 95%+ 최적화 개발 중"
+     - 2.5초 → "~15-20초 (파이프라인 구현 완료), GPU 최적화 목표 5초"
+     - 96.9% 시간절감 → "53세션 전량 자동 분석, 수작업 대비 대폭 단축 실현"
+     - 99.6% 비용절감 → "Docker 온프레미스 구축 완료, API 비용 최소화 아키텍처 확보"
+     - 98%+ 정확도 → "98%+ 목표, Active Learning 고도화 진행 중"
+
+4. **파이프라인 다이어그램 HTML 교체** (p.11)
+   - 기존 PNG 이미지(근거 없는 수치 포함) → HTML 다이어그램으로 재구성
+   - 모든 수치를 실측 기반으로 교체
+
+5. **복사/편의 기능 추가**
+   - 전체 데이터 테이블(11개)에 "📋 복사" 버튼 추가 (탭 구분자 → 엑셀/워드 붙여넣기)
+   - base64 이미지 7개 → `images/` 폴더 별도 PNG 파일로 분리
+   - HWP 삽입용 p.10~11 고해상도 캡처 (2x, 1588px 폭)
+
+**산출물 위치**: `/home/uproot/ax/AI-boucher/`
+```
+AI-boucher/
+├── [별첨3] AI솔루션 세부 설명자료_전체.html  (39KB)
+└── images/
+    ├── p10_솔루션5_메인테이블_2x.png         (531KB, HWP용)
+    ├── p11_솔루션5_파이프라인_2x.png         (560KB, HWP용)
+    ├── p06_diagram.png
+    ├── p09_screenshots.png
+    └── p11_02~05_*.png                       (스크린샷 4장)
+```
 
 ---
 

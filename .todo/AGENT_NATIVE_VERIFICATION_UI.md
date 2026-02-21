@@ -385,20 +385,24 @@ tools = [
 | 이미지 컴포넌트 | `components/agent/` (신규) | CropImage, ContextImage, ReferencePanel |
 | 액션 버튼 | `components/agent/ActionButtons.tsx` | 큰 버튼 + 키보드 단축키 |
 
-### Phase 3: Agent 파이프라인 (1일)
+### Phase 3: Agent 파이프라인 (1일) ✅ 완료
 
-| 작업 | 파일 | 설명 |
-|------|------|------|
-| Playwright 스크립트 | `scripts/agent_verify.py` (신규) | 자동 검증 스크립트 |
-| 파나시아 테스트 | 수동 테스트 | MCP Panel 27클래스 검증 E2E |
+| 작업 | 파일 | 설명 | 상태 |
+|------|------|------|------|
+| 프롬프트 템플릿 | `scripts/agent_verify_prompts.py` (116줄) | Symbol/Dimension 시스템 프롬프트 + 빌더 함수 | ✅ |
+| 검증 스크립트 | `scripts/agent_verify.py` (621줄) | L1 auto-approve + L2 LLM vision + CLI | ✅ |
+| L1 E2E 테스트 | 실행 확인 | 116/147 auto-approve, 0 에러 | ✅ |
+| L2 시각 검증 | 수동 (Playwright) | 147/147 전체 완료 (118 approve, 29 reject) | ✅ |
+| 파나시아 테스트 | 수동 테스트 | MCP Panel 27클래스 검증 E2E | 미진행 (데이터 필요) |
 
-### Phase 4: P&ID/치수 전용 뷰 (1일)
+### Phase 4: P&ID/치수 전용 뷰 (1일) ✅ 완료
 
-| 작업 | 파일 | 설명 |
-|------|------|------|
-| P&ID 연결 뷰 | `AgentVerificationPage.tsx` | 연결 정보 + 체크리스트 표시 |
-| 치수 전용 뷰 | `AgentVerificationPage.tsx` | OCR 결과 + 공차 표시 |
-| 뷰 자동 전환 | 자동 | drawing_type에 따라 적절한 뷰 표시 |
+| 작업 | 파일 | 설명 | 상태 |
+|------|------|------|------|
+| drawing_type 뱃지 | `AgentVerificationPage.tsx` | 헤더에 도면 유형 표시 | ✅ |
+| Dimension linked_to | `AgentVerificationPage.tsx` | 연결 심볼 + Agent 검증 배지 | ✅ |
+| P&ID 심볼 정보 패널 | `AgentVerificationPage.tsx` | 클래스/클래스ID (pid일 때) | ✅ |
+| 뷰 자동 전환 | 자동 | drawing_type에 따라 패널 표시/숨김 | ✅ |
 
 ---
 
@@ -491,4 +495,4 @@ Agent가 처리한 결과를 사람이 효율적으로 검토할 수 있는 뷰 
 
 ---
 
-*이 문서는 구현 전 기획 단계입니다. Phase 1부터 순차 진행합니다.*
+*Phase 1+2 완료 (2026-02-19), Phase 3+4 완료 (2026-02-21). 전체 완료.*

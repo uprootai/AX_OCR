@@ -36,6 +36,7 @@ COPY routers/ ./routers/
 COPY models/ ./models/
 COPY services/ ./services/
 COPY utils/ ./utils/
+COPY config/ ./config/
 
 # Create directories and clean pycache
 RUN mkdir -p /tmp/edgnet/uploads /tmp/edgnet/results && \

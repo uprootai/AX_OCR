@@ -28,6 +28,15 @@ interface QueueItem {
   bbox: { x1: number; y1: number; x2: number; y2: number };
 }
 
+// drawing_type별 뱃지 색상과 라벨
+const DRAWING_TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  pid: { label: 'P&ID', color: 'bg-emerald-100 text-emerald-800' },
+  electrical: { label: '전기', color: 'bg-blue-100 text-blue-800' },
+  dimension_bom: { label: '치수/BOM', color: 'bg-violet-100 text-violet-800' },
+  mechanical: { label: '기계', color: 'bg-slate-100 text-slate-800' },
+  auto: { label: '자동', color: 'bg-gray-100 text-gray-600' },
+};
+
 interface ItemDetail {
   item_id: string;
   item_type: string;
@@ -45,6 +54,7 @@ interface ItemDetail {
   context_image: string | null;
   reference_images: string[];
   metadata: { model_id: string; drawing_type: string; class_id?: number };
+  verified_by?: string;
 }
 
 interface Stats {
@@ -110,6 +120,7 @@ export function AgentVerificationPage() {
   const [showModify, setShowModify] = useState(false);
   const [allClassNames, setAllClassNames] = useState<string[]>([]);
   const [completed, setCompleted] = useState(false);
+  const [drawingType, setDrawingType] = useState('auto');
 
   // 수정 폼 state (dimension)
   const [modValue, setModValue] = useState('');
@@ -150,6 +161,7 @@ export function AgentVerificationPage() {
       const data = res.data;
       setQueue(data.queue || []);
       setStats(data.stats || null);
+      if (data.drawing_type) setDrawingType(data.drawing_type);
 
       if (!isDimension) {
         const names = [...new Set((data.queue || []).map((q: QueueItem) => q.class_name))].sort();
@@ -309,6 +321,10 @@ export function AgentVerificationPage() {
           <span id="progress-indicator" className="text-lg font-mono font-bold text-gray-700">
             [{currentIndex + 1}/{queue.length}]
           </span>
+          {(() => {
+            const dt = DRAWING_TYPE_LABELS[drawingType] || { label: drawingType, color: 'bg-gray-100 text-gray-600' };
+            return <span id="drawing-type-badge" className={`px-2 py-0.5 rounded text-xs font-medium ${dt.color}`}>{dt.label}</span>;
+          })()}
           <span className="text-xl font-semibold text-gray-900">
             {getItemLabel(current)}
           </span>
@@ -395,6 +411,43 @@ export function AgentVerificationPage() {
           </div>
         </div>
       </div>
+
+      {/* Dimension: linked_to + OCR detail panel */}
+      {isDimension && detail && (detail.linked_to || detail.verified_by === 'agent') && (
+        <div id="dimension-detail-panel" className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4 text-sm">
+          {detail.linked_to && (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 font-medium">연결 심볼:</span>
+              <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded font-mono">{detail.linked_to}</span>
+            </div>
+          )}
+          {detail.verified_by === 'agent' && (
+            <span className="bg-cyan-50 text-cyan-700 px-2 py-1 rounded text-xs font-medium">Agent 검증</span>
+          )}
+        </div>
+      )}
+
+      {/* P&ID: 심볼 태그/연결 정보 */}
+      {!isDimension && drawingType === 'pid' && detail && (
+        <div id="pid-info-panel" className="bg-white rounded-lg shadow-sm p-4">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">P&ID 심볼 정보</h3>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">클래스:</span>
+              <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-medium">{detail.class_name}</span>
+            </div>
+            {detail.metadata?.class_id != null && (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">클래스 ID:</span>
+                <span className="font-mono text-gray-700">{detail.metadata.class_id}</span>
+              </div>
+            )}
+            <div className="text-gray-400 text-xs italic">
+              연결 정보는 메인 검증 페이지에서 확인 가능
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reference Images (symbol only) */}
       {!isDimension && (
