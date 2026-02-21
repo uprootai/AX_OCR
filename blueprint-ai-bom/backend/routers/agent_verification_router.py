@@ -310,3 +310,150 @@ async def agent_decide(
         remaining_count=len(pending),
         stats=stats,
     )
+
+
+# ==================== Dashboard / Stats ====================
+
+@router.get("/dashboard/{session_id}")
+async def get_agent_dashboard(session_id: str):
+    """
+    Agent 검증 결과 대시보드 (세션 단위)
+
+    approve/reject/modify 분포, Agent vs Human 비교,
+    reject 이유 분석, 타입별 통계
+    """
+    session_service, crop_service = _get_services()
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    drawing_type = session.get("drawing_type", "auto")
+    filename = session.get("filename", "")
+    result = {"session_id": session_id, "filename": filename, "drawing_type": drawing_type}
+
+    for itype in ("symbol", "dimension"):
+        items = _get_items(session, itype)
+        if not items:
+            result[itype] = {"total": 0}
+            continue
+
+        stats = active_learning_service.get_verification_stats(items, itype)
+
+        # Action 분포
+        action_counts = {"approved": 0, "rejected": 0, "modified": 0, "pending": 0}
+        agent_count = 0
+        human_count = 0
+        reject_reasons: dict[str, int] = {}
+        modify_fields: list[dict] = []
+        confidence_by_action: dict[str, list[float]] = {"approved": [], "rejected": [], "modified": []}
+
+        for item in items:
+            vs = item.get("verification_status", "pending")
+            action_counts[vs] = action_counts.get(vs, 0) + 1
+
+            if item.get("verified_by") == "agent":
+                agent_count += 1
+            elif vs != "pending":
+                human_count += 1
+
+            conf = item.get("confidence", 0)
+            if vs in confidence_by_action:
+                confidence_by_action[vs].append(conf)
+
+            if vs == "rejected":
+                reason = item.get("reject_reason", "unspecified")
+                reject_reasons[reason] = reject_reasons.get(reason, 0) + 1
+
+            if vs == "modified":
+                mod = {}
+                if itype == "dimension":
+                    if item.get("modified_value"):
+                        mod["value"] = f"{item.get('value','')} → {item['modified_value']}"
+                    if item.get("modified_unit"):
+                        mod["unit"] = item["modified_unit"]
+                    if item.get("dimension_type"):
+                        mod["type"] = item["dimension_type"]
+                else:
+                    if item.get("modified_class_name"):
+                        mod["class"] = f"{item.get('class_name','')} → {item['modified_class_name']}"
+                if mod:
+                    mod["id"] = item.get("id", "")
+                    modify_fields.append(mod)
+
+        # 평균 confidence 계산
+        avg_conf = {}
+        for action, confs in confidence_by_action.items():
+            if confs:
+                avg_conf[action] = round(sum(confs) / len(confs), 3)
+
+        result[itype] = {
+            **stats,
+            "actions": action_counts,
+            "verified_by": {"agent": agent_count, "human": human_count},
+            "reject_reasons": reject_reasons,
+            "modifications": modify_fields,
+            "avg_confidence_by_action": avg_conf,
+        }
+
+    return result
+
+
+@router.get("/dashboard/project/{project_id}")
+async def get_project_agent_dashboard(project_id: str):
+    """
+    프로젝트 전체 Agent 검증 대시보드
+
+    모든 세션의 검증 결과를 집계하여 반환
+    """
+    session_service, crop_service = _get_services()
+
+    sessions = session_service.list_sessions_by_project(project_id)
+    if not sessions:
+        raise HTTPException(status_code=404, detail="프로젝트 세션이 없습니다")
+
+    totals = {
+        "project_id": project_id,
+        "session_count": len(sessions),
+        "sessions": [],
+        "aggregate": {
+            "symbol": {"total": 0, "approved": 0, "rejected": 0, "modified": 0, "pending": 0, "agent": 0, "human": 0},
+            "dimension": {"total": 0, "approved": 0, "rejected": 0, "modified": 0, "pending": 0, "agent": 0, "human": 0},
+        },
+    }
+
+    for sess in sessions:
+        sid = sess.get("session_id", "")
+        session = session_service.get_session(sid)
+        if not session:
+            continue
+
+        entry = {"session_id": sid, "filename": sess.get("filename", ""), "status": sess.get("status", "")}
+
+        for itype in ("symbol", "dimension"):
+            items = _get_items(session, itype)
+            counts = {"total": len(items), "approved": 0, "rejected": 0, "modified": 0, "pending": 0, "agent": 0}
+            for item in items:
+                vs = item.get("verification_status", "pending")
+                counts[vs] = counts.get(vs, 0) + 1
+                if item.get("verified_by") == "agent":
+                    counts["agent"] += 1
+            entry[itype] = counts
+
+            # 집계
+            agg = totals["aggregate"][itype]
+            for key in ("total", "approved", "rejected", "modified", "pending", "agent"):
+                agg[key] += counts.get(key, 0)
+
+        totals["sessions"].append(entry)
+
+    # 완료율
+    for itype in ("symbol", "dimension"):
+        agg = totals["aggregate"][itype]
+        if agg["total"] > 0:
+            agg["completion_rate"] = round((agg["total"] - agg["pending"]) / agg["total"] * 100, 1)
+            agg["agent_rate"] = round(agg["agent"] / agg["total"] * 100, 1)
+        else:
+            agg["completion_rate"] = 0
+            agg["agent_rate"] = 0
+
+    return totals

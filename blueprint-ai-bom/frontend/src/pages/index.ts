@@ -5,3 +5,4 @@ export { BOMPage } from './BOMPage';
 export { WorkflowPage } from './WorkflowPage';
 export { GuidePage } from './GuidePage';
 export { AgentVerificationPage } from './AgentVerificationPage';
+export { default as AgentDashboardPage } from './AgentDashboardPage';

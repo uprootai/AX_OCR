@@ -101,6 +101,103 @@ class AgentVerifier:
         self.dry_run = dry_run
         self.l1_only = l1_only
 
+    # ── Project batch ────────────────────────
+
+    async def run_project(self, project_id: str, item_type: str, max_items: int = 0) -> dict:
+        """프로젝트 내 모든 세션을 순회하며 검증한다."""
+        sessions = await self._fetch_project_sessions(project_id)
+        if not sessions:
+            logger.error(f"프로젝트 {project_id}에 세션이 없습니다.")
+            return {"project_id": project_id, "sessions": [], "error": "no sessions"}
+
+        logger.info(f"프로젝트 {project_id}: {len(sessions)}개 세션 배치 검증 시작")
+
+        all_results = []
+        types = ["symbol", "dimension"] if item_type == "both" else [item_type]
+
+        for idx, sess in enumerate(sessions):
+            sid = sess.get("session_id", "")
+            fname = sess.get("filename", "unknown")
+            logger.info(f"\n{'─'*50}")
+            logger.info(f"[{idx+1}/{len(sessions)}] {fname} ({sid[:8]}..)")
+
+            session_stats = {"session_id": sid, "filename": fname}
+            for itype in types:
+                stats = await self.run(sid, itype, max_items)
+                session_stats[itype] = {
+                    "total": stats.total,
+                    "auto_approved": stats.auto_approved,
+                    "llm_approved": stats.llm_approved,
+                    "llm_rejected": stats.llm_rejected,
+                    "llm_modified": stats.llm_modified,
+                    "uncertain": stats.uncertain,
+                    "errors": stats.errors,
+                }
+            all_results.append(session_stats)
+
+        # 집계
+        agg = {t: {"total": 0, "auto_approved": 0, "llm_approved": 0, "llm_rejected": 0, "llm_modified": 0, "errors": 0} for t in types}
+        for sess_result in all_results:
+            for t in types:
+                if t in sess_result:
+                    for k in agg[t]:
+                        agg[t][k] += sess_result[t].get(k, 0)
+
+        # 대시보드 조회
+        dashboard = await self._fetch_project_dashboard(project_id)
+
+        self._print_project_summary(project_id, len(sessions), agg, types)
+
+        return {
+            "project_id": project_id,
+            "session_count": len(sessions),
+            "sessions": all_results,
+            "aggregate": agg,
+            "dashboard": dashboard,
+        }
+
+    async def _fetch_project_sessions(self, project_id: str) -> list[dict]:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(f"{self.api_base}/projects/{project_id}")
+                resp.raise_for_status()
+                data = resp.json()
+                return data.get("sessions", [])
+        except Exception as e:
+            logger.error(f"프로젝트 세션 조회 실패: {e}")
+            return []
+
+    async def _fetch_project_dashboard(self, project_id: str) -> Optional[dict]:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(f"{self.api_base}/verification/agent/dashboard/project/{project_id}")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+        return None
+
+    def _print_project_summary(self, project_id: str, session_count: int, agg: dict, types: list):
+        print(f"\n{'='*60}")
+        print(f"Project Batch Verification Summary")
+        print(f"{'='*60}")
+        print(f"  Project:    {project_id}")
+        print(f"  Sessions:   {session_count}")
+        for t in types:
+            a = agg[t]
+            total = a["total"]
+            approved = a["auto_approved"] + a["llm_approved"]
+            print(f"\n  [{t.upper()}]")
+            print(f"    Total:          {total}")
+            print(f"    L1 Auto:        {a['auto_approved']}")
+            print(f"    L2 Approved:    {a['llm_approved']}")
+            print(f"    L2 Rejected:    {a['llm_rejected']}")
+            print(f"    L2 Modified:    {a['llm_modified']}")
+            print(f"    Errors:         {a['errors']}")
+            if total > 0:
+                print(f"    Approve rate:   {approved/total*100:.1f}%")
+        print(f"{'='*60}")
+
     # ── Main entry ──────────────────────────
 
     async def run(self, session_id: str, item_type: str, max_items: int = 0) -> VerifyStats:
@@ -559,10 +656,11 @@ Examples:
   python scripts/agent_verify.py --session-id abc123 --item-type symbol --max-items 20
 """,
     )
-    parser.add_argument("--session-id", required=True, help="검증 대상 세션 ID")
+    parser.add_argument("--session-id", default=None, help="검증 대상 세션 ID (project-id 미지정 시 필수)")
+    parser.add_argument("--project-id", default=None, help="프로젝트 전체 배치 검증 (세션 자동 순회)")
     parser.add_argument(
-        "--item-type", required=True, choices=["symbol", "dimension"],
-        help="검증 항목 타입",
+        "--item-type", required=True, choices=["symbol", "dimension", "both"],
+        help="검증 항목 타입 (both: symbol+dimension 순차)",
     )
     parser.add_argument("--dry-run", action="store_true", help="LLM 호출만 하고 결정 전송 생략")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help=f"L1 auto-approve 임계값 (기본: {DEFAULT_THRESHOLD})")
@@ -586,6 +684,11 @@ async def main():
         datefmt="%H:%M:%S",
     )
 
+    # Validate args
+    if not args.session_id and not args.project_id:
+        logger.error("--session-id 또는 --project-id 중 하나를 지정하세요.")
+        sys.exit(1)
+
     # Resolve API key
     api_key = await _resolve_api_key(args.api_key, args.api_base)
     if not api_key and not args.l1_only:
@@ -606,15 +709,31 @@ async def main():
         l1_only=args.l1_only,
     )
 
-    stats = await verifier.run(
-        session_id=args.session_id,
-        item_type=args.item_type,
-        max_items=args.max_items,
-    )
-
-    # Exit code
-    if stats.errors > 0 and stats.errors == stats.total:
-        sys.exit(1)
+    if args.project_id:
+        # Project batch mode
+        result = await verifier.run_project(
+            project_id=args.project_id,
+            item_type=args.item_type,
+            max_items=args.max_items,
+        )
+        # Save batch results
+        if args.dry_run:
+            out_dir = Path("./dry_run_results")
+            out_dir.mkdir(exist_ok=True)
+            ts = int(time.time())
+            fname = out_dir / f"batch_{args.project_id}_{ts}.json"
+            fname.write_text(json.dumps(result, ensure_ascii=False, indent=2))
+            logger.info(f"배치 결과 저장: {fname}")
+    else:
+        # Single session mode
+        if args.item_type == "both":
+            for itype in ("symbol", "dimension"):
+                logger.info(f"\n{'─'*40} {itype.upper()} {'─'*40}")
+                await verifier.run(args.session_id, itype, args.max_items)
+        else:
+            stats = await verifier.run(args.session_id, args.item_type, args.max_items)
+            if stats.errors > 0 and stats.errors == stats.total:
+                sys.exit(1)
 
 
 if __name__ == "__main__":

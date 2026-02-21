@@ -4,7 +4,7 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/layout';
-import { HomePage, DetectionPage, VerificationPage, BOMPage, WorkflowPage, GuidePage, AgentVerificationPage } from './pages';
+import { HomePage, DetectionPage, VerificationPage, BOMPage, WorkflowPage, GuidePage, AgentVerificationPage, AgentDashboardPage } from './pages';
 import { ProjectListPage, ProjectDetailPage } from './pages/project';
 import { CustomerWorkflowPage, CustomerImageReviewPage, CustomerSessionPage } from './pages/customer';
 
@@ -23,6 +23,7 @@ function App() {
 
         {/* Agent Verification (standalone, Layout 없음) */}
         <Route path="/verification/agent" element={<AgentVerificationPage />} />
+        <Route path="/verification/dashboard" element={<AgentDashboardPage />} />
 
         {/* Phase 2F: 고객용 UI (프로젝트 기반) */}
         <Route path="/customer/:projectId" element={<CustomerWorkflowPage />} />
