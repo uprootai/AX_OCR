@@ -71,6 +71,16 @@ def get_session_options():
     return _session_options
 
 
+# VLM 도면 분류 결과 → 심볼 검출 모델 자동 매핑
+_DRAWING_TYPE_MODEL_MAP = {
+    "mechanical_part": "engineering",
+    "assembly": "engineering",
+    "pid": "pid_symbol",
+    "electrical": "panasia",
+    "architectural": "engineering",
+}
+
+
 def _resolve_options(session_id: str, session: dict) -> AnalysisOptions:
     """세션의 분석 옵션 결정 (캐시 → features 기반 자동 생성)"""
     cached = _session_options.get(session_id)
@@ -107,6 +117,13 @@ def _resolve_options(session_id: str, session: dict) -> AnalysisOptions:
             data["enable_relation_extraction"] = True
         options = AnalysisOptions(**data)
         logger.info(f"세션 features에서 옵션 자동 생성: {features}")
+
+    # VLM drawing_type에 따라 심볼 모델 자동 선택 (기본값일 때만)
+    drawing_type = session.get("drawing_type", "")
+    if drawing_type in _DRAWING_TYPE_MODEL_MAP:
+        if options.symbol_model_type == "panasia":
+            options.symbol_model_type = _DRAWING_TYPE_MODEL_MAP[drawing_type]
+            logger.info(f"도면 유형 '{drawing_type}' → 모델 '{options.symbol_model_type}' 자동 선택")
 
     _session_options[session_id] = options
     return options

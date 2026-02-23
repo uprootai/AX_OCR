@@ -8,40 +8,22 @@
 - 영역별 처리 전략 적용
 
 통합 일자: 2025-12-31
+리팩토링: 2026-02-23 (배럴 re-export 패턴으로 모듈 분리)
 DocLayout-YOLO 테스트: rnd/experiments/doclayout_yolo/REPORT.md
+
+모듈 구조:
+- _region_constants.py: 공유 상수 및 RegionDetectionResult 데이터클래스
+- region_analysis.py: 엣지 검출, 마스크 생성, 개별 영역 검출 함수
+- region_merging.py: 영역 병합, 중복 제거, IoU 계산, DocLayout/VLM 검출
+- region_segmenter.py (이 파일): RegionSegmenter 클래스 + 오케스트레이션 + re-export
 """
 
-import os
 import uuid
 import time
 import logging
-from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
-from pathlib import Path
-from dataclasses import dataclass, field
+from typing import Optional, List, Dict
 
 from PIL import Image
-import numpy as np
-
-logger = logging.getLogger(__name__)
-
-# 영역 분할 설정 (환경변수로 커스터마이징 가능)
-TITLE_BLOCK_X_RATIO = float(os.environ.get("REGION_TITLE_BLOCK_X", "0.6"))
-TITLE_BLOCK_Y_RATIO = float(os.environ.get("REGION_TITLE_BLOCK_Y", "0.8"))
-BOM_TABLE_X_RATIO = float(os.environ.get("REGION_BOM_TABLE_X", "0.65"))
-BOM_TABLE_Y_END_RATIO = float(os.environ.get("REGION_BOM_TABLE_Y_END", "0.35"))
-LEGEND_X_END_RATIO = float(os.environ.get("REGION_LEGEND_X_END", "0.2"))
-LEGEND_Y_END_RATIO = float(os.environ.get("REGION_LEGEND_Y_END", "0.3"))
-NOTE_X_END_RATIO = float(os.environ.get("REGION_NOTE_X_END", "0.4"))
-NOTE_Y_RATIO = float(os.environ.get("REGION_NOTE_Y", "0.75"))
-BRIGHTNESS_THRESHOLD = int(os.environ.get("REGION_BRIGHTNESS_THRESHOLD", "10"))
-LINE_DIFF_THRESHOLD = int(os.environ.get("REGION_LINE_DIFF_THRESHOLD", "30"))
-MIN_TABLE_LINES = int(os.environ.get("REGION_MIN_TABLE_LINES", "3"))
-VARIANCE_THRESHOLD = int(os.environ.get("REGION_VARIANCE_THRESHOLD", "2000"))
-
-# DocLayout-YOLO 설정
-USE_DOCLAYOUT = os.environ.get("USE_DOCLAYOUT", "true").lower() == "true"
-DOCLAYOUT_FALLBACK_TO_HEURISTIC = os.environ.get("DOCLAYOUT_FALLBACK_TO_HEURISTIC", "true").lower() == "true"
 
 from schemas.detection import BoundingBox, VerificationStatus
 from schemas.region import (
@@ -59,14 +41,48 @@ from schemas.region import (
     TableCell,
 )
 
+# 배럴 re-export: 기존 import 경로 유지
+from services._region_constants import (  # noqa: F401
+    RegionDetectionResult,
+    TITLE_BLOCK_X_RATIO,
+    TITLE_BLOCK_Y_RATIO,
+    BOM_TABLE_X_RATIO,
+    BOM_TABLE_Y_END_RATIO,
+    LEGEND_X_END_RATIO,
+    LEGEND_Y_END_RATIO,
+    NOTE_X_END_RATIO,
+    NOTE_Y_RATIO,
+    BRIGHTNESS_THRESHOLD,
+    LINE_DIFF_THRESHOLD,
+    MIN_TABLE_LINES,
+    VARIANCE_THRESHOLD,
+    USE_DOCLAYOUT,
+    DOCLAYOUT_FALLBACK_TO_HEURISTIC,
+)
 
-@dataclass
-class RegionDetectionResult:
-    """내부 영역 검출 결과"""
-    region_type: RegionType
-    bbox: Tuple[float, float, float, float]  # x1, y1, x2, y2 in pixels
-    confidence: float
-    source: str = "heuristic"  # heuristic, vlm, manual
+# 분석 함수 re-export
+from services.region_analysis import (  # noqa: F401
+    detect_regions_heuristic,
+    detect_title_block,
+    detect_bom_table,
+    detect_main_view,
+    detect_legend,
+    detect_notes,
+    get_area,
+)
+
+# 병합 함수 re-export
+from services.region_merging import (  # noqa: F401
+    detect_regions_doclayout,
+    map_doclayout_to_region_type,
+    needs_vlm_fallback,
+    detect_regions_vlm,
+    merge_regions,
+    merge_overlapping_regions,
+    calculate_iou,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class RegionSegmenter:
@@ -125,7 +141,7 @@ class RegionSegmenter:
         # 1. DocLayout-YOLO 기반 영역 검출 (우선 시도)
         if USE_DOCLAYOUT:
             try:
-                doclayout_regions = self._detect_regions_doclayout(image_path, image_width, image_height)
+                doclayout_regions = detect_regions_doclayout(image_path, image_width, image_height)
                 if doclayout_regions:
                     detected_regions.extend(doclayout_regions)
                     detection_source = "doclayout"
@@ -135,26 +151,26 @@ class RegionSegmenter:
 
         # 2. 휴리스틱 폴백 (DocLayout 결과 없거나 비활성화된 경우)
         if not detected_regions or (not USE_DOCLAYOUT and DOCLAYOUT_FALLBACK_TO_HEURISTIC):
-            heuristic_regions = self._detect_regions_heuristic(
-                image, image_width, image_height, config
+            heuristic_regions = detect_regions_heuristic(
+                image, image_width, image_height, config,
+                self.title_block_hints, self.bom_table_hints
             )
             if not detected_regions:
                 detected_regions.extend(heuristic_regions)
                 detection_source = "heuristic"
             else:
                 # DocLayout + 휴리스틱 병합
-                detected_regions = self._merge_regions(detected_regions, heuristic_regions)
+                detected_regions = merge_regions(detected_regions, heuristic_regions)
                 detection_source = "hybrid"
 
         # 3. VLM 기반 영역 검출 (옵션 - 저신뢰도 영역 검증)
         if use_vlm:
             try:
                 # VLM 폴백 필요 여부 확인
-                needs_vlm = self._needs_vlm_fallback(detected_regions)
-                if needs_vlm:
-                    vlm_regions = await self._detect_regions_vlm(image_path)
+                if needs_vlm_fallback(detected_regions):
+                    vlm_regions = await detect_regions_vlm(image_path)
                     # VLM 결과 병합 (높은 신뢰도 우선)
-                    detected_regions = self._merge_regions(detected_regions, vlm_regions)
+                    detected_regions = merge_regions(detected_regions, vlm_regions)
                     detection_source = f"{detection_source}+vlm"
                     logger.info(f"[RegionSegmenter] VLM 폴백 적용: {len(vlm_regions)}개 영역")
             except Exception as e:
@@ -162,7 +178,7 @@ class RegionSegmenter:
 
         # 3. 겹치는 영역 처리
         if config.merge_overlapping:
-            detected_regions = self._merge_overlapping_regions(
+            detected_regions = merge_overlapping_regions(
                 detected_regions, config.overlap_threshold
             )
 
@@ -223,419 +239,6 @@ class RegionSegmenter:
             processing_time_ms=processing_time_ms,
             region_stats=region_stats,
         )
-
-    def _detect_regions_heuristic(
-        self,
-        image: Image.Image,
-        width: int,
-        height: int,
-        config: RegionSegmentationConfig
-    ) -> List[RegionDetectionResult]:
-        """휴리스틱 기반 영역 검출"""
-        regions = []
-        min_area = config.min_region_area * width * height
-
-        # 1. 표제란 검출 (우하단)
-        if config.detect_title_block:
-            title_block = self._detect_title_block(image, width, height)
-            if title_block and self._get_area(title_block.bbox) >= min_area:
-                regions.append(title_block)
-
-        # 2. BOM 테이블 검출
-        if config.detect_bom_table:
-            bom_table = self._detect_bom_table(image, width, height)
-            if bom_table and self._get_area(bom_table.bbox) >= min_area:
-                regions.append(bom_table)
-
-        # 3. 메인 뷰 (나머지 영역)
-        main_view = self._detect_main_view(
-            width, height, regions
-        )
-        if main_view and self._get_area(main_view.bbox) >= min_area:
-            regions.append(main_view)
-
-        # 4. 범례 검출 (P&ID 도면용)
-        if config.detect_legend:
-            legend = self._detect_legend(image, width, height)
-            if legend and self._get_area(legend.bbox) >= min_area:
-                regions.append(legend)
-
-        # 5. 노트/주석 영역 검출
-        if config.detect_notes:
-            notes = self._detect_notes(image, width, height)
-            for note in notes:
-                if self._get_area(note.bbox) >= min_area:
-                    regions.append(note)
-
-        return regions
-
-    def _detect_regions_doclayout(
-        self,
-        image_path: str,
-        width: int,
-        height: int
-    ) -> List[RegionDetectionResult]:
-        """DocLayout-YOLO 기반 영역 검출 (ML 기반, 빠른 추론)"""
-        try:
-            from services.layout_analyzer import get_layout_analyzer
-
-            analyzer = get_layout_analyzer()
-            if not analyzer.is_available:
-                logger.warning("[RegionSegmenter] DocLayout-YOLO 사용 불가")
-                return []
-
-            # DocLayout-YOLO 추론
-            detections = analyzer.detect(image_path)
-
-            regions = []
-            for det in detections:
-                # DocLayout 클래스 → RegionType 매핑
-                region_type = self._map_doclayout_to_region_type(det.region_type)
-
-                regions.append(RegionDetectionResult(
-                    region_type=region_type,
-                    bbox=det.bbox,
-                    confidence=det.confidence,
-                    source="doclayout"
-                ))
-
-            return regions
-
-        except ImportError as e:
-            logger.warning(f"[RegionSegmenter] layout_analyzer 모듈 없음: {e}")
-            return []
-        except Exception as e:
-            logger.error(f"[RegionSegmenter] DocLayout-YOLO 검출 실패: {e}")
-            return []
-
-    def _map_doclayout_to_region_type(self, doclayout_type: str) -> RegionType:
-        """DocLayout 클래스명을 RegionType으로 매핑"""
-        mapping = {
-            "TITLE_BLOCK": RegionType.TITLE_BLOCK,
-            "BOM_TABLE": RegionType.BOM_TABLE,
-            "MAIN_VIEW": RegionType.MAIN_VIEW,
-            "NOTES": RegionType.NOTES,
-            "OTHER": RegionType.UNKNOWN,
-            "LEGEND": RegionType.LEGEND,
-            "DETAIL_VIEW": RegionType.DETAIL_VIEW,
-            "SECTION_VIEW": RegionType.SECTION_VIEW,
-        }
-        return mapping.get(doclayout_type, RegionType.UNKNOWN)
-
-    def _needs_vlm_fallback(self, regions: List[RegionDetectionResult]) -> bool:
-        """VLM 폴백이 필요한지 확인"""
-        if not regions:
-            return True
-
-        # 평균 신뢰도가 0.5 미만이면 VLM 폴백
-        avg_confidence = sum(r.confidence for r in regions) / len(regions)
-        if avg_confidence < 0.5:
-            return True
-
-        # 메인 뷰가 없으면 VLM 폴백
-        has_main_view = any(r.region_type == RegionType.MAIN_VIEW for r in regions)
-        if not has_main_view:
-            return True
-
-        return False
-
-    def _detect_title_block(
-        self,
-        image: Image.Image,
-        width: int,
-        height: int
-    ) -> Optional[RegionDetectionResult]:
-        """표제란 검출 (우하단 영역 분석)"""
-        # 일반적인 표제란 위치: 우하단 30% x 20% 영역
-        # 또는 하단 전체 15% 영역
-
-        # 방법 1: 고정 비율 기반 (환경변수로 커스터마이징 가능)
-        x1 = int(width * TITLE_BLOCK_X_RATIO)
-        y1 = int(height * TITLE_BLOCK_Y_RATIO)
-        x2 = width
-        y2 = height
-
-        # 이미지 분석으로 실제 경계 찾기 (간단한 엣지 검출)
-        try:
-            # PIL을 numpy로 변환
-            img_array = np.array(image.convert('L'))
-
-            # 우하단 영역 분석
-            region = img_array[y1:y2, x1:x2]
-
-            # 수평/수직 라인 검출로 표제란 경계 확인
-            # 간단한 휴리스틱: 평균 밝기가 주변과 다르면 표제란으로 판단
-            avg_brightness = np.mean(region)
-            main_brightness = np.mean(img_array[:y1, :x1])
-
-            if abs(avg_brightness - main_brightness) > BRIGHTNESS_THRESHOLD:  # 밝기 차이가 있으면
-                return RegionDetectionResult(
-                    region_type=RegionType.TITLE_BLOCK,
-                    bbox=(x1, y1, x2, y2),
-                    confidence=0.8,
-                    source="heuristic"
-                )
-        except Exception:
-            pass
-
-        # 기본 영역 반환
-        return RegionDetectionResult(
-            region_type=RegionType.TITLE_BLOCK,
-            bbox=(x1, y1, x2, y2),
-            confidence=0.6,
-            source="heuristic"
-        )
-
-    def _detect_bom_table(
-        self,
-        image: Image.Image,
-        width: int,
-        height: int
-    ) -> Optional[RegionDetectionResult]:
-        """BOM 테이블 검출 (우상단 또는 우측)"""
-        # BOM 테이블은 보통 우상단 또는 표제란 위에 위치 (환경변수로 커스터마이징 가능)
-        x1 = int(width * BOM_TABLE_X_RATIO)
-        y1 = 0
-        x2 = width
-        y2 = int(height * BOM_TABLE_Y_END_RATIO)
-
-        try:
-            img_array = np.array(image.convert('L'))
-            region = img_array[y1:y2, x1:x2]
-
-            # 테이블 패턴 감지: 수평선이 여러 개 있는지 확인
-            # 간단한 휴리스틱: 수평 그래디언트 분석
-            if len(region) > 0:
-                row_means = np.mean(region, axis=1)
-                # 급격한 변화 횟수 계산 (테이블 라인)
-                diff = np.abs(np.diff(row_means))
-                line_count = np.sum(diff > LINE_DIFF_THRESHOLD)
-
-                if line_count >= MIN_TABLE_LINES:  # 최소 라인 수
-                    return RegionDetectionResult(
-                        region_type=RegionType.BOM_TABLE,
-                        bbox=(x1, y1, x2, y2),
-                        confidence=0.7,
-                        source="heuristic"
-                    )
-        except Exception:
-            pass
-
-        return None
-
-    def _detect_main_view(
-        self,
-        width: int,
-        height: int,
-        existing_regions: List[RegionDetectionResult]
-    ) -> RegionDetectionResult:
-        """메인 뷰 영역 계산 (다른 영역 제외)"""
-        # 기본: 전체 이미지에서 표제란 영역 제외
-        x1, y1 = 0, 0
-        x2, y2 = width, height
-
-        for region in existing_regions:
-            if region.region_type == RegionType.TITLE_BLOCK:
-                # 표제란이 우하단이면 메인 뷰는 그 위쪽
-                if region.bbox[1] > height * 0.5:
-                    y2 = min(y2, region.bbox[1])
-                # 표제란이 우측이면 메인 뷰는 그 왼쪽
-                if region.bbox[0] > width * 0.5:
-                    x2 = min(x2, region.bbox[0])
-
-            elif region.region_type == RegionType.BOM_TABLE:
-                # BOM 테이블이 우상단이면 그 아래쪽도 제외
-                if region.bbox[1] < height * 0.5 and region.bbox[0] > width * 0.5:
-                    pass  # 메인 뷰에 영향 없음 (우상단은 이미 작음)
-
-        return RegionDetectionResult(
-            region_type=RegionType.MAIN_VIEW,
-            bbox=(x1, y1, x2, y2),
-            confidence=0.9,
-            source="heuristic"
-        )
-
-    def _detect_legend(
-        self,
-        image: Image.Image,
-        width: int,
-        height: int
-    ) -> Optional[RegionDetectionResult]:
-        """범례 검출 (P&ID 도면용)"""
-        # 범례는 보통 좌상단 또는 우하단에 위치
-        # 표제란과 구분하기 어려우므로 낮은 신뢰도로 반환
-
-        # 좌상단 영역 확인 (환경변수로 커스터마이징 가능)
-        x1 = 0
-        y1 = 0
-        x2 = int(width * LEGEND_X_END_RATIO)
-        y2 = int(height * LEGEND_Y_END_RATIO)
-
-        try:
-            img_array = np.array(image.convert('L'))
-            region = img_array[y1:y2, x1:x2]
-
-            # 범례 패턴: 작은 심볼들이 반복되는 패턴
-            if len(region) > 0:
-                # 분산이 높으면 다양한 심볼이 있을 가능성
-                variance = np.var(region)
-                if variance > VARIANCE_THRESHOLD:  # 높은 분산
-                    return RegionDetectionResult(
-                        region_type=RegionType.LEGEND,
-                        bbox=(x1, y1, x2, y2),
-                        confidence=0.5,
-                        source="heuristic"
-                    )
-        except Exception:
-            pass
-
-        return None
-
-    def _detect_notes(
-        self,
-        image: Image.Image,
-        width: int,
-        height: int
-    ) -> List[RegionDetectionResult]:
-        """노트/주석 영역 검출"""
-        notes = []
-
-        # 일반적인 노트 위치: 좌하단 (환경변수로 커스터마이징 가능)
-        x1 = 0
-        y1 = int(height * NOTE_Y_RATIO)
-        x2 = int(width * NOTE_X_END_RATIO)
-        y2 = int(height * 0.95)
-
-        try:
-            img_array = np.array(image.convert('L'))
-            region = img_array[y1:y2, x1:x2]
-
-            if len(region) > 0:
-                # 텍스트가 많은 영역: 중간 밝기 분산
-                mean_val = np.mean(region)
-                if 100 < mean_val < 200:  # 텍스트가 있으면 중간 밝기
-                    notes.append(RegionDetectionResult(
-                        region_type=RegionType.NOTES,
-                        bbox=(x1, y1, x2, y2),
-                        confidence=0.5,
-                        source="heuristic"
-                    ))
-        except Exception:
-            pass
-
-        return notes
-
-    async def _detect_regions_vlm(
-        self,
-        image_path: str
-    ) -> List[RegionDetectionResult]:
-        """VLM 기반 영역 검출 (Phase 4 VLMClassifier 활용)"""
-        try:
-            from services.vlm_classifier import vlm_classifier
-
-            result = await vlm_classifier.classify_drawing(image_path=image_path)
-
-            vlm_regions = []
-            for region in result.regions:
-                # 정규화 좌표를 픽셀 좌표로 변환
-                # VLM은 정규화 좌표 반환, 여기서는 임시로 저장
-                vlm_regions.append(RegionDetectionResult(
-                    region_type=RegionType(region.region_type.value),
-                    bbox=tuple(region.bbox),  # 정규화 좌표 그대로
-                    confidence=region.confidence,
-                    source="vlm"
-                ))
-
-            return vlm_regions
-
-        except Exception as e:
-            logger.error(f"[RegionSegmenter] VLM 연동 실패: {e}")
-            return []
-
-    def _merge_regions(
-        self,
-        heuristic_regions: List[RegionDetectionResult],
-        vlm_regions: List[RegionDetectionResult]
-    ) -> List[RegionDetectionResult]:
-        """휴리스틱과 VLM 결과 병합"""
-        merged = list(heuristic_regions)
-
-        for vlm_region in vlm_regions:
-            # 같은 타입의 영역이 있는지 확인
-            found = False
-            for i, h_region in enumerate(merged):
-                if h_region.region_type == vlm_region.region_type:
-                    # VLM 신뢰도가 더 높으면 교체
-                    if vlm_region.confidence > h_region.confidence:
-                        merged[i] = vlm_region
-                    found = True
-                    break
-
-            if not found:
-                merged.append(vlm_region)
-
-        return merged
-
-    def _merge_overlapping_regions(
-        self,
-        regions: List[RegionDetectionResult],
-        overlap_threshold: float
-    ) -> List[RegionDetectionResult]:
-        """겹치는 영역 병합"""
-        if len(regions) <= 1:
-            return regions
-
-        merged = []
-        used = set()
-
-        for i, r1 in enumerate(regions):
-            if i in used:
-                continue
-
-            best_region = r1
-            for j, r2 in enumerate(regions):
-                if i == j or j in used:
-                    continue
-
-                iou = self._calculate_iou(r1.bbox, r2.bbox)
-                if iou > overlap_threshold:
-                    # 신뢰도가 높은 쪽 선택
-                    if r2.confidence > best_region.confidence:
-                        best_region = r2
-                    used.add(j)
-
-            merged.append(best_region)
-            used.add(i)
-
-        return merged
-
-    def _calculate_iou(
-        self,
-        bbox1: Tuple[float, float, float, float],
-        bbox2: Tuple[float, float, float, float]
-    ) -> float:
-        """IoU 계산"""
-        x1 = max(bbox1[0], bbox2[0])
-        y1 = max(bbox1[1], bbox2[1])
-        x2 = min(bbox1[2], bbox2[2])
-        y2 = min(bbox1[3], bbox2[3])
-
-        if x2 <= x1 or y2 <= y1:
-            return 0.0
-
-        intersection = (x2 - x1) * (y2 - y1)
-        area1 = (bbox1[2] - bbox1[0]) * (bbox1[3] - bbox1[1])
-        area2 = (bbox2[2] - bbox2[0]) * (bbox2[3] - bbox2[1])
-        union = area1 + area2 - intersection
-
-        return intersection / union if union > 0 else 0.0
-
-    def _get_area(
-        self,
-        bbox: Tuple[float, float, float, float]
-    ) -> float:
-        """영역 면적 계산"""
-        return (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
 
     # =========== 영역 관리 ===========
 
@@ -811,8 +414,6 @@ class RegionSegmenter:
     ) -> RegionProcessingResult:
         """YOLO + OCR 처리 (미구현 - Phase 6에서 구현 예정)"""
         logger.info(f"[RegionSegmenter] YOLO_OCR 처리 요청 (region: {region.id}) - 현재 스텁 반환")
-        # 영역별 YOLO/OCR 처리는 현재 메인 파이프라인에서 수행
-        # 이 메서드는 향후 영역 단위 세부 처리 시 구현 예정
         return RegionProcessingResult(
             region_id=region.id,
             region_type=region.region_type,
@@ -829,7 +430,6 @@ class RegionSegmenter:
     ) -> RegionProcessingResult:
         """OCR 전용 처리 (미구현 - Phase 6에서 구현 예정)"""
         logger.info(f"[RegionSegmenter] OCR_ONLY 처리 요청 (region: {region.id}) - 현재 스텁 반환")
-        # 영역별 OCR 처리는 현재 메인 파이프라인에서 수행
         return RegionProcessingResult(
             region_id=region.id,
             region_type=region.region_type,
@@ -845,7 +445,6 @@ class RegionSegmenter:
     ) -> RegionProcessingResult:
         """테이블 파싱 처리 (미구현 - Phase 6에서 구현 예정)"""
         logger.info(f"[RegionSegmenter] TABLE_PARSE 처리 요청 (region: {region.id}) - 현재 스텁 반환")
-        # BOM 테이블 파싱은 별도 테이블 OCR 모델 연동 필요
         return RegionProcessingResult(
             region_id=region.id,
             region_type=region.region_type,
@@ -861,7 +460,6 @@ class RegionSegmenter:
     ) -> RegionProcessingResult:
         """메타데이터 추출 처리 (표제란) - 미구현: Phase 6에서 구현 예정"""
         logger.info(f"[RegionSegmenter] METADATA_EXTRACT 처리 요청 (region: {region.id}) - 현재 스텁 반환")
-        # 표제란 OCR + 필드 파싱은 레이아웃 분석 모델 연동 필요
         metadata = {
             "drawing_number": None,
             "title": None,
@@ -885,7 +483,6 @@ class RegionSegmenter:
     ) -> RegionProcessingResult:
         """심볼 매칭 처리 (범례) - 미구현: Phase 6에서 구현 예정"""
         logger.info(f"[RegionSegmenter] SYMBOL_MATCH 처리 요청 (region: {region.id}) - 현재 스텁 반환")
-        # 범례 심볼 검출 및 클래스 매핑은 별도 모델 필요
         return RegionProcessingResult(
             region_id=region.id,
             region_type=region.region_type,

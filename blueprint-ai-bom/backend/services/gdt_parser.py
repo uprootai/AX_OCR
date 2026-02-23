@@ -5,37 +5,48 @@
 - 기하 특성 심볼 인식 (14종)
 - 데이텀 참조 추출
 - 공차 값 파싱
+
+Barrel re-export: gdt_symbols, gdt_pattern_matcher 모듈의 공개 API를 재수출
 """
 
 import uuid
-import re
 import time
 import os
 import logging
 import traceback
 import httpx
-from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
-from dataclasses import dataclass, field
+from typing import Optional, List, Dict, Any
 
 from PIL import Image
-import numpy as np
 
-# Logger 설정
-logger = logging.getLogger(__name__)
-
-# eDOCr2 OCR API 설정
-EDOCR2_API_URL = os.getenv("EDOCR2_API_URL", "http://edocr2-v2-api:5002")
-OCR_TIMEOUT = 120.0  # seconds
+# Barrel re-exports (기존 import 경로 호환)
+from services.gdt_symbols import (  # noqa: F401
+    GDT_SYMBOL_PATTERNS,
+    SURFACE_ROUGHNESS_PATTERNS,
+    DIMENSION_TOLERANCE_PATTERNS,
+    MATERIAL_CONDITION_PATTERNS,
+    DATUM_LABEL_PATTERN,
+    TOLERANCE_PATTERN,
+    DetectedGDTElement,
+)
+from services.gdt_pattern_matcher import (  # noqa: F401
+    match_gdt_symbol,
+    match_material_condition,
+    extract_datum_references,
+    determine_datum_type,
+    detect_fcf,
+    detect_datums,
+    create_fcf,
+    create_datum,
+    bbox_distance,
+    merge_nearby_fcf,
+)
 
 from schemas.detection import BoundingBox, VerificationStatus
 from schemas.gdt import (
     GeometricCharacteristic,
     MaterialCondition,
-    GDTCategory,
     CHARACTERISTIC_CATEGORY_MAP,
-    CHARACTERISTIC_SYMBOLS,
-    CHARACTERISTIC_LABELS,
     DatumReference,
     ToleranceZone,
     FeatureControlFrame,
@@ -48,70 +59,12 @@ from schemas.gdt import (
     GDTSummary,
 )
 
+# Logger 설정
+logger = logging.getLogger(__name__)
 
-# GD&T 심볼 패턴 (OCR 텍스트에서 검출)
-GDT_SYMBOL_PATTERNS = {
-    # Form (형상 공차)
-    GeometricCharacteristic.STRAIGHTNESS: [r'[-─—]', r'직진도', r'straightness'],
-    GeometricCharacteristic.FLATNESS: [r'[▱◇□]', r'평면도', r'flatness', r'flat'],
-    GeometricCharacteristic.CIRCULARITY: [r'[○◯⚪]', r'진원도', r'circularity', r'roundness'],
-    GeometricCharacteristic.CYLINDRICITY: [r'[⌭]', r'원통도', r'cylindricity'],
-
-    # Profile (윤곽 공차)
-    GeometricCharacteristic.PROFILE_LINE: [r'[⌒]', r'선.*윤곽', r'profile.*line'],
-    GeometricCharacteristic.PROFILE_SURFACE: [r'[⌓]', r'면.*윤곽', r'profile.*surface', r'Ra\d', r'R[az]\s*\d'],
-
-    # Orientation (방향 공차)
-    GeometricCharacteristic.ANGULARITY: [r'[∠]', r'경사도', r'angularity', r'\d+°'],
-    GeometricCharacteristic.PERPENDICULARITY: [r'[⊥]', r'직각도', r'perpendicularity', r'perp'],
-    GeometricCharacteristic.PARALLELISM: [r'[∥‖//]', r'평행도', r'parallelism'],
-
-    # Location (위치 공차)
-    GeometricCharacteristic.POSITION: [r'[⌖⊕⊙\+]', r'위치도', r'position', r'true.*position', r'TP'],
-    GeometricCharacteristic.CONCENTRICITY: [r'[◎⊚]', r'동심도', r'concentricity', r'coaxiality', r'conc'],
-    GeometricCharacteristic.SYMMETRY: [r'[⌯≡]', r'대칭도', r'symmetry', r'sym'],
-
-    # Runout (흔들림 공차)
-    GeometricCharacteristic.CIRCULAR_RUNOUT: [r'[↗→]', r'원주.*흔들림', r'circular.*runout', r'TIR'],
-    GeometricCharacteristic.TOTAL_RUNOUT: [r'[⇗⟹]', r'전체.*흔들림', r'total.*runout'],
-}
-
-# 표면 거칠기 패턴 (Ra, Rz, Rt 등)
-SURFACE_ROUGHNESS_PATTERNS = [
-    r'R[aztp]\s*\d+\.?\d*',  # Ra3.2, Rz6.3
-    r'√\s*\d+\.?\d*',        # √3.2
-    r'∇\s*\d+\.?\d*',        # ∇표기
-]
-
-# 공차 표기 패턴 (치수 공차)
-DIMENSION_TOLERANCE_PATTERNS = [
-    r'[±]\s*\d+\.?\d*',           # ±0.1
-    r'\+\d+\.?\d*\s*[-/]\s*\d+\.?\d*',  # +0.2/-0.1
-    r'\(\d+\.?\d*\)',              # (177) 참조 치수
-]
-
-# 재료 조건 수정자 패턴
-MATERIAL_CONDITION_PATTERNS = {
-    MaterialCondition.MMC: [r'[Ⓜ]', r'\(M\)', r'MMC', r'최대.*실체'],
-    MaterialCondition.LMC: [r'[Ⓛ]', r'\(L\)', r'LMC', r'최소.*실체'],
-    MaterialCondition.RFS: [r'[Ⓢ]', r'\(S\)', r'RFS'],
-}
-
-# 데이텀 레이블 패턴
-DATUM_LABEL_PATTERN = r'[A-Z](?:\s*-\s*[A-Z])?'
-
-# 공차 값 패턴 (예: 0.05, ⌀0.1, 0.02 A B)
-TOLERANCE_PATTERN = r'(?:⌀|φ|Ø)?\s*(\d+(?:\.\d+)?)\s*(mm|in)?'
-
-
-@dataclass
-class DetectedGDTElement:
-    """검출된 GD&T 요소"""
-    element_type: str  # 'fcf', 'datum', 'symbol'
-    bbox: Tuple[float, float, float, float]
-    text: str
-    confidence: float
-    parsed_data: Dict[str, Any] = field(default_factory=dict)
+# eDOCr2 OCR API 설정
+EDOCR2_API_URL = os.getenv("EDOCR2_API_URL", "http://edocr2-v2-api:5002")
+OCR_TIMEOUT = 120.0  # seconds
 
 
 class GDTParser:
@@ -164,28 +117,28 @@ class GDTParser:
 
         # 1. FCF 검출
         if config.detect_fcf:
-            fcf_elements = self._detect_fcf(ocr_results, image_width, image_height, config)
+            fcf_elements = detect_fcf(ocr_results, image_width, image_height, config)
             detected_elements.extend(fcf_elements)
 
         # 2. 데이텀 검출
         if config.detect_datums:
-            datum_elements = self._detect_datums(ocr_results, image_width, image_height, config)
+            datum_elements = detect_datums(ocr_results, image_width, image_height, config)
             detected_elements.extend(datum_elements)
 
         # 3. FCF 객체 생성
         fcf_list = []
         for elem in detected_elements:
             if elem.element_type == 'fcf':
-                fcf = self._create_fcf(elem, image_width, image_height)
+                fcf = create_fcf(elem, image_width, image_height)
                 if fcf and fcf.confidence >= config.confidence_threshold:
                     fcf_list.append(fcf)
 
         # 4. 데이텀 객체 생성
         datums = []
-        datum_elements = [e for e in detected_elements if e.element_type == 'datum']
-        logger.info(f"[GDT] Processing {len(datum_elements)} datum elements (threshold: {config.confidence_threshold})")
-        for elem in datum_elements:
-            datum = self._create_datum(elem, image_width, image_height)
+        datum_elems = [e for e in detected_elements if e.element_type == 'datum']
+        logger.info(f"[GDT] Processing {len(datum_elems)} datum elements (threshold: {config.confidence_threshold})")
+        for elem in datum_elems:
+            datum = create_datum(elem, image_width, image_height)
             if datum:
                 logger.debug(f"[GDT] Datum '{datum.label}' confidence: {datum.confidence:.2f}")
                 if datum.confidence >= config.confidence_threshold:
@@ -195,7 +148,7 @@ class GDTParser:
 
         # 5. 근접 심볼 병합
         if config.merge_nearby_symbols:
-            fcf_list = self._merge_nearby_fcf(fcf_list, config.merge_distance)
+            fcf_list = merge_nearby_fcf(fcf_list, config.merge_distance)
 
         # 세션에 저장
         self.session_fcf[session_id] = fcf_list
@@ -335,411 +288,6 @@ class GDTParser:
             logger.debug(f"[GDT] Traceback: {traceback.format_exc()}")
 
         return ocr_results
-
-    def _detect_fcf(
-        self,
-        ocr_results: List[Dict[str, Any]],
-        image_width: int,
-        image_height: int,
-        config: GDTParsingConfig
-    ) -> List[DetectedGDTElement]:
-        """FCF 검출 (Feature Control Frame)"""
-        elements = []
-
-        for result in ocr_results:
-            text = result.get('text', '')
-            bbox = result.get('bbox', [0, 0, 0, 0])
-            confidence = result.get('confidence', 0.5)
-            result_type = result.get('type', 'unknown')
-
-            # 1. 표면 거칠기 검출 (Ra, Rz 등)
-            for pattern in SURFACE_ROUGHNESS_PATTERNS:
-                roughness_match = re.search(pattern, text, re.IGNORECASE)
-                if roughness_match:
-                    # 표면 거칠기 값 추출
-                    value_match = re.search(r'(\d+\.?\d*)', roughness_match.group())
-                    roughness_value = float(value_match.group(1)) if value_match else 0.0
-
-                    elements.append(DetectedGDTElement(
-                        element_type='fcf',
-                        bbox=tuple(bbox),
-                        text=text,
-                        confidence=confidence * 0.9,  # 약간 낮은 신뢰도
-                        parsed_data={
-                            'characteristic': GeometricCharacteristic.PROFILE_SURFACE,
-                            'tolerance_value': roughness_value,
-                            'tolerance_unit': 'μm',
-                            'is_diameter': False,
-                            'material_condition': MaterialCondition.NONE,
-                            'datum_refs': [],
-                            'is_surface_roughness': True,
-                        }
-                    ))
-                    break  # 하나의 OCR 결과에서 하나만 추출
-
-            # 2. GD&T 심볼 패턴 매칭
-            characteristic = self._match_gdt_symbol(text)
-            if characteristic:
-                # 공차 값 추출
-                tolerance_match = re.search(TOLERANCE_PATTERN, text)
-                tolerance_value = float(tolerance_match.group(1)) if tolerance_match else 0.0
-                tolerance_unit = tolerance_match.group(2) if tolerance_match and tolerance_match.group(2) else "mm"
-
-                # 직경 공차 여부
-                is_diameter = bool(re.search(r'[⌀φØ]', text))
-
-                # 재료 조건
-                material_condition = self._match_material_condition(text)
-
-                # 데이텀 참조 추출
-                datum_refs = self._extract_datum_references(text)
-
-                elements.append(DetectedGDTElement(
-                    element_type='fcf',
-                    bbox=tuple(bbox),
-                    text=text,
-                    confidence=confidence,
-                    parsed_data={
-                        'characteristic': characteristic,
-                        'tolerance_value': tolerance_value,
-                        'tolerance_unit': tolerance_unit,
-                        'is_diameter': is_diameter,
-                        'material_condition': material_condition,
-                        'datum_refs': datum_refs,
-                    }
-                ))
-
-            # 3. 치수 공차 패턴 (dimension 타입에서)
-            if result_type == 'dimension':
-                for pattern in DIMENSION_TOLERANCE_PATTERNS:
-                    if re.search(pattern, text):
-                        tol_match = re.search(r'(\d+\.?\d*)', text)
-                        tol_value = float(tol_match.group(1)) if tol_match else 0.0
-
-                        elements.append(DetectedGDTElement(
-                            element_type='fcf',
-                            bbox=tuple(bbox),
-                            text=text,
-                            confidence=confidence * 0.8,
-                            parsed_data={
-                                'characteristic': GeometricCharacteristic.POSITION,  # 기본값
-                                'tolerance_value': tol_value,
-                                'tolerance_unit': 'mm',
-                                'is_diameter': False,
-                                'material_condition': MaterialCondition.NONE,
-                                'datum_refs': [],
-                                'is_dimension_tolerance': True,
-                            }
-                        ))
-                        break
-
-        logger.info(f"[GDT] Detected {len(elements)} FCF elements")
-        return elements
-
-    def _detect_datums(
-        self,
-        ocr_results: List[Dict[str, Any]],
-        image_width: int,
-        image_height: int,
-        config: GDTParsingConfig
-    ) -> List[DetectedGDTElement]:
-        """데이텀 검출 (기준면/기준점)"""
-        elements = []
-        seen_labels = set()
-
-        # 제외할 패턴 (데이텀이 아닌 것들)
-        exclude_patterns = [
-            r'^R[aztp]',          # 표면 거칠기 (Ra, Rz)
-            r'^\d',               # 숫자로 시작
-            r'^[A-Z]\d{2,}',      # 도면번호 패턴 (A12-311197)
-            r'Rev\.',             # 리비전
-            r'DWG',               # 도면
-        ]
-
-        # 1단계: 단독 데이텀 패턴 (정확한 매칭)
-        exact_datum_patterns = [
-            r'^[A-Z]$',                    # 단일 대문자 (A, B, C)
-            r'^[A-Z]\d?$',                 # 대문자 또는 대문자+숫자 (A, A1)
-            r'^[-△▽▲▼][A-Z][-△▽▲▼]?$',    # 데이텀 심볼 (-A-, △A, ▲B)
-            r'^\[[A-Z]\]$',                # 대괄호 ([A], [B])
-            r'^[A-Z]\s*[-–—]\s*[A-Z]$',    # 복합 데이텀 (A-B)
-        ]
-
-        # 2단계: 텍스트 내 데이텀 참조 패턴 (공차 뒤에 오는 데이텀)
-        embedded_datum_patterns = [
-            r'(?:±|\+|-|\/)\s*[\d.]+\s+([A-Z])(?:\s+([A-Z]))?(?:\s+([A-Z]))?$',  # ±0.1 A B C
-            r'(?:⌀|φ|Ø)\s*[\d.]+\s+([A-Z])(?:\s+([A-Z]))?(?:\s+([A-Z]))?$',      # ⌀0.05 A B
-            r'\)\s*([A-Z])(?:\s+([A-Z]))?(?:\s+([A-Z]))?$',                        # (M) A B
-        ]
-
-        for result in ocr_results:
-            text = result.get('text', '').strip()
-            bbox = result.get('bbox', [0, 0, 0, 0])
-            confidence = result.get('confidence', 0.5)
-            result_type = result.get('type', 'unknown')
-
-            # 제외 패턴 체크
-            should_exclude = False
-            for pattern in exclude_patterns:
-                if re.search(pattern, text, re.IGNORECASE):
-                    should_exclude = True
-                    break
-            if should_exclude:
-                continue
-
-            # 1단계: 정확한 데이텀 패턴 매칭
-            for pattern in exact_datum_patterns:
-                if re.match(pattern, text):
-                    labels = re.findall(r'[A-Z]', text)
-                    for label in labels:
-                        if label not in seen_labels:
-                            seen_labels.add(label)
-                            elements.append(DetectedGDTElement(
-                                element_type='datum',
-                                bbox=tuple(bbox),
-                                text=text,
-                                confidence=confidence,
-                                parsed_data={
-                                    'label': label,
-                                    'datum_type': self._determine_datum_type(len(seen_labels)),
-                                }
-                            ))
-                    break
-
-            # 2단계: 텍스트 내 데이텀 참조 추출
-            for pattern in embedded_datum_patterns:
-                match = re.search(pattern, text)
-                if match:
-                    # 그룹에서 데이텀 레이블 추출
-                    for group in match.groups():
-                        if group and group not in seen_labels:
-                            # 단일 대문자인지 확인 (M, L, S는 재료 조건이므로 제외)
-                            if len(group) == 1 and group not in ['M', 'L', 'S']:
-                                seen_labels.add(group)
-                                elements.append(DetectedGDTElement(
-                                    element_type='datum',
-                                    bbox=tuple(bbox),
-                                    text=text,
-                                    confidence=confidence * 0.9,  # 내장 패턴은 신뢰도 약간 낮춤
-                                    parsed_data={
-                                        'label': group,
-                                        'datum_type': self._determine_datum_type(len(seen_labels)),
-                                        'extracted_from': 'embedded',
-                                    }
-                                ))
-                    break
-
-        # 3단계: 도면에서 일반적인 데이텀 위치 기반 추정
-        # (OCR에서 검출되지 않은 경우 이미지 하단/우측 영역의 단독 문자 확인)
-        if len(elements) == 0:
-            for result in ocr_results:
-                text = result.get('text', '').strip()
-                bbox = result.get('bbox', [0, 0, 0, 0])
-                confidence = result.get('confidence', 0.5)
-
-                # 2-3 글자 텍스트에서 대문자만 있는 경우 (예: "A", "AB", "B1")
-                if 1 <= len(text) <= 3 and text.isalnum():
-                    labels = [c for c in text if c.isupper() and c not in ['M', 'L', 'S', 'R']]
-                    for label in labels:
-                        if label not in seen_labels:
-                            seen_labels.add(label)
-                            elements.append(DetectedGDTElement(
-                                element_type='datum',
-                                bbox=tuple(bbox),
-                                text=text,
-                                confidence=max(confidence * 0.85, 0.6),  # 최소 0.6 보장
-                                parsed_data={
-                                    'label': label,
-                                    'datum_type': self._determine_datum_type(len(seen_labels)),
-                                    'extracted_from': 'inferred',
-                                }
-                            ))
-
-        # 디버그: 검출된 데이텀 출력
-        if elements:
-            logger.info(f"[GDT] Detected {len(elements)} datums: {[e.parsed_data.get('label') for e in elements]}")
-        else:
-            logger.debug(f"[GDT] No datums detected from {len(ocr_results)} OCR items")
-            # 디버그: 짧은 텍스트 출력
-            short_texts = [r.get('text', '')[:20] for r in ocr_results if len(r.get('text', '')) <= 10]
-            if short_texts:
-                logger.debug(f"[GDT] Short texts found: {short_texts[:10]}")
-
-        return elements
-
-    def _determine_datum_type(self, order: int) -> str:
-        """데이텀 순서에 따른 타입 결정"""
-        if order == 1:
-            return 'primary'
-        elif order == 2:
-            return 'secondary'
-        else:
-            return 'tertiary'
-
-    def _match_gdt_symbol(self, text: str) -> Optional[GeometricCharacteristic]:
-        """텍스트에서 GD&T 심볼 매칭"""
-        text_lower = text.lower()
-
-        for characteristic, patterns in GDT_SYMBOL_PATTERNS.items():
-            for pattern in patterns:
-                if re.search(pattern, text_lower, re.IGNORECASE):
-                    return characteristic
-
-        return None
-
-    def _match_material_condition(self, text: str) -> MaterialCondition:
-        """재료 조건 수정자 매칭"""
-        for condition, patterns in MATERIAL_CONDITION_PATTERNS.items():
-            for pattern in patterns:
-                if re.search(pattern, text, re.IGNORECASE):
-                    return condition
-
-        return MaterialCondition.NONE
-
-    def _extract_datum_references(self, text: str) -> List[Dict[str, Any]]:
-        """데이텀 참조 추출"""
-        datum_refs = []
-
-        # 패턴: A B C 또는 A-B-C
-        matches = re.findall(r'([A-Z])(?:\s*[-]?\s*)?', text)
-
-        for i, label in enumerate(matches[:3]):  # 최대 3개
-            # 재료 조건 확인 (레이블 다음에 있을 수 있음)
-            mc = MaterialCondition.NONE
-            datum_refs.append({
-                'label': label,
-                'material_condition': mc.value,
-                'order': i + 1,
-            })
-
-        return datum_refs
-
-    def _create_fcf(
-        self,
-        element: DetectedGDTElement,
-        image_width: int,
-        image_height: int
-    ) -> Optional[FeatureControlFrame]:
-        """FCF 객체 생성"""
-        data = element.parsed_data
-        characteristic = data.get('characteristic')
-
-        if not characteristic:
-            return None
-
-        # 데이텀 참조 변환
-        datum_refs = []
-        for ref in data.get('datum_refs', []):
-            datum_refs.append(DatumReference(
-                label=ref['label'],
-                material_condition=MaterialCondition(ref['material_condition']),
-                order=ref['order'],
-            ))
-
-        # 정규화 좌표
-        bbox_normalized = [
-            element.bbox[0] / image_width,
-            element.bbox[1] / image_height,
-            element.bbox[2] / image_width,
-            element.bbox[3] / image_height,
-        ]
-
-        return FeatureControlFrame(
-            id=str(uuid.uuid4()),
-            characteristic=characteristic,
-            category=CHARACTERISTIC_CATEGORY_MAP.get(characteristic),
-            tolerance=ToleranceZone(
-                value=data.get('tolerance_value', 0.0),
-                unit=data.get('tolerance_unit', 'mm'),
-                diameter=data.get('is_diameter', False),
-                material_condition=MaterialCondition(data.get('material_condition', 'none')),
-            ),
-            datums=datum_refs,
-            bbox=BoundingBox(
-                x1=element.bbox[0],
-                y1=element.bbox[1],
-                x2=element.bbox[2],
-                y2=element.bbox[3],
-            ),
-            bbox_normalized=bbox_normalized,
-            confidence=element.confidence,
-            raw_text=element.text,
-        )
-
-    def _create_datum(
-        self,
-        element: DetectedGDTElement,
-        image_width: int,
-        image_height: int
-    ) -> Optional[DatumFeature]:
-        """데이텀 객체 생성"""
-        data = element.parsed_data
-
-        bbox_normalized = [
-            element.bbox[0] / image_width,
-            element.bbox[1] / image_height,
-            element.bbox[2] / image_width,
-            element.bbox[3] / image_height,
-        ]
-
-        return DatumFeature(
-            id=str(uuid.uuid4()),
-            label=data.get('label', 'A'),
-            bbox=BoundingBox(
-                x1=element.bbox[0],
-                y1=element.bbox[1],
-                x2=element.bbox[2],
-                y2=element.bbox[3],
-            ),
-            bbox_normalized=bbox_normalized,
-            datum_type=data.get('datum_type', 'primary'),
-            confidence=element.confidence,
-        )
-
-    def _merge_nearby_fcf(
-        self,
-        fcf_list: List[FeatureControlFrame],
-        merge_distance: float
-    ) -> List[FeatureControlFrame]:
-        """근접 FCF 병합"""
-        if len(fcf_list) <= 1:
-            return fcf_list
-
-        # 간단한 구현: 같은 특성의 근접 FCF 병합
-        merged = []
-        used = set()
-
-        for i, fcf1 in enumerate(fcf_list):
-            if i in used:
-                continue
-
-            best_fcf = fcf1
-            for j, fcf2 in enumerate(fcf_list):
-                if i == j or j in used:
-                    continue
-
-                # 같은 특성이고 근접한 경우
-                if fcf1.characteristic == fcf2.characteristic:
-                    distance = self._bbox_distance(fcf1.bbox, fcf2.bbox)
-                    if distance < merge_distance:
-                        # 신뢰도가 높은 쪽 선택
-                        if fcf2.confidence > best_fcf.confidence:
-                            best_fcf = fcf2
-                        used.add(j)
-
-            merged.append(best_fcf)
-            used.add(i)
-
-        return merged
-
-    def _bbox_distance(self, bbox1: BoundingBox, bbox2: BoundingBox) -> float:
-        """두 bbox 중심 간 거리"""
-        cx1 = (bbox1.x1 + bbox1.x2) / 2
-        cy1 = (bbox1.y1 + bbox1.y2) / 2
-        cx2 = (bbox2.x1 + bbox2.x2) / 2
-        cy2 = (bbox2.y1 + bbox2.y2) / 2
-
-        return ((cx2 - cx1) ** 2 + (cy2 - cy1) ** 2) ** 0.5
 
     # =========== FCF 관리 ===========
 

@@ -313,6 +313,28 @@ class DetectionService:
             logger.error(f"검출 오류: {e}")
             raise
 
+        # 도면 마진/제목란/리비전 영역 심볼 confidence 페널티
+        # 표준 도면: 제목란(하단우측), 리비전블록(상단우측), 외곽 마진
+        for det in detections:
+            bbox = det["bbox"]
+            cx = (bbox["x1"] + bbox["x2"]) / 2
+            cy = (bbox["y1"] + bbox["y2"]) / 2
+            xr = cx / image_width if image_width else 0
+            yr = cy / image_height if image_height else 0
+            in_margin = (
+                xr > 0.65 and yr > 0.85           # 하단우측 제목란
+                or xr > 0.75 and yr < 0.15         # 상단우측 리비전블록 (보수적)
+                or yr < 0.03 or yr > 0.97           # 상하단 외곽 마진
+                or xr < 0.03 or xr > 0.97           # 좌우 외곽 마진
+            )
+            if in_margin:
+                det["confidence"] *= 0.5
+                logger.info(
+                    f"마진 영역 페널티: {det['class_name']} "
+                    f"conf {det['confidence'] / 0.5:.2f} → {det['confidence']:.2f} "
+                    f"pos=({xr:.1%},{yr:.1%})"
+                )
+
         processing_time = (time.time() - start_time) * 1000  # ms
 
         return {
