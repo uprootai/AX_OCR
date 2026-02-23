@@ -76,6 +76,7 @@ const sidebars: SidebarsConfig = {
         'batch-delivery/batch-processing',
         'batch-delivery/project-management',
         'batch-delivery/export-package',
+        'batch-delivery/onboarding-guide',
       ],
     },
     {
