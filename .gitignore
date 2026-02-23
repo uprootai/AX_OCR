@@ -125,3 +125,7 @@ offline_models/
 
 apply-company/techloss/test_output/
 test-results/
+
+# Onboarding CLI (runtime artifacts)
+**/dry_run_results/
+onboard_state_*.json
