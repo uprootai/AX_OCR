@@ -1,0 +1,55 @@
+---
+sidebar_position: 1
+title: Agent Verification
+description: 3-Level hybrid verification system for ML detection quality assurance
+---
+
+import VerificationFlow from '@site/src/components/VerificationFlow';
+
+# Agent Verification
+
+The Agent Verification system ensures quality assurance for ML-based detection results through a 3-level hybrid approach that balances automation efficiency with human oversight.
+
+## Problem
+
+ML-based object detection and OCR extraction produce results with varying confidence levels. High-confidence detections are generally accurate, but borderline and low-confidence results require review. Manual verification of every detection is impractical at scale -- a single engineering drawing can produce 50+ detections and 100+ dimension extractions.
+
+## Solution: 3-Level Hybrid Verification
+
+The system routes each detection through one of three verification levels based on confidence score and contextual signals, achieving an optimal balance between speed and accuracy.
+
+| Level | Name | Confidence Range | Handler | Typical Volume |
+|-------|------|-----------------|---------|----------------|
+| **L1** | Auto-Approve | >= 0.9 | System | ~60-70% of items |
+| **L2** | Agent Review | 0.7 - 0.9 | Claude Sonnet (Vision) | ~20-25% of items |
+| **L3** | Human Review | < 0.7 | Human operator | ~5-15% of items |
+
+Combined, over 80% of items are processed without human intervention, while maintaining high accuracy through AI agent review of borderline cases.
+
+## Verification Flow
+
+<VerificationFlow />
+
+## Key Features
+
+- **Priority-based Queue**: Critical (low confidence) items surface first for review
+- **Active Learning**: All verification decisions (approve/reject/modify) are logged for model retraining
+- **Dual Item Types**: Supports both symbol detections and dimension extractions
+- **Batch Operations**: Bulk approve high-confidence items in one click
+- **Configurable Thresholds**: Adjust auto-approve and critical thresholds per deployment
+- **Dashboard Analytics**: Real-time verification progress, agent vs human distribution, and accuracy metrics
+
+## Architecture Components
+
+| Component | Description |
+|-----------|-------------|
+| **Active Learning Service** | Priority queue, threshold management, retraining data collection |
+| **Verification Router** | Human verification UI endpoints (queue, verify, bulk-approve) |
+| **Agent Verification Router** | LLM Agent-specific endpoints (base64 images, Playwright-friendly) |
+| **Dashboard** | Real-time statistics, action distribution, confidence analysis |
+
+## Next Steps
+
+- [3-Level Architecture](./three-level-architecture.md) -- Detailed architecture and threshold tuning
+- [API Reference](./api-reference.md) -- Complete endpoint documentation
+- [Dashboard](./dashboard.md) -- Monitoring and analytics

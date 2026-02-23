@@ -1,0 +1,60 @@
+---
+sidebar_position: 4
+title: Port & Network
+description: 포트 할당 및 네트워크 토폴로지
+---
+
+import PortMap from '@site/src/components/PortMap';
+import ArchitectureDiagram from '@site/src/components/ArchitectureDiagram';
+
+# Port & Network Map
+
+## Port Allocation
+
+<PortMap />
+
+## Docker Network
+
+모든 서비스는 `ax_poc_network` (bridge) 네트워크를 공유합니다.
+
+<ArchitectureDiagram />
+
+## Service Dependencies
+
+```mermaid
+flowchart TD
+    GW["Gateway API"] --> YOLO & EDOCR & VL
+    GW --> PADDLE & TESS & TROCR
+    GW --> ENS & SURYA & DOCTR & EASY
+    GW --> EDGE & LINE & ESRGAN
+    GW --> SKIN & PID & DC & COMP
+    GW --> BOM & KN
+
+    KN["Knowledge"] --> NEO["Neo4j"]
+    ENS["OCR Ensemble"] --> EDOCR & PADDLE & TESS & TROCR
+
+    BOM["BOM Backend"] --> YOLO
+    BOM --> EDOCR
+    BOM --> VL["Vision-Language"]
+```
+
+## Health Check Endpoints
+
+모든 서비스는 표준 헬스체크를 제공합니다:
+
+```bash
+# Gateway
+GET http://localhost:8000/api/v1/health
+
+# Individual services
+GET http://localhost:<port>/health
+
+# BOM Backend
+GET http://localhost:5020/health
+```
+
+| Service | Health Endpoint | Expected Response |
+|---------|----------------|-------------------|
+| Gateway | `/api/v1/health` | `{"status": "healthy"}` |
+| All ML APIs | `/health` | `{"status": "healthy"}` |
+| Neo4j | `:7474` (HTTP) | Browser UI |

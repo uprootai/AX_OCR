@@ -19,6 +19,7 @@
 | **프론트엔드** | http://localhost:5173 |
 | **백엔드** | http://localhost:8000 |
 | **Blueprint AI BOM** | http://localhost:5020 (v10.5) |
+| **Docs Site** | http://localhost:3001 (Docusaurus) |
 | **상태** | ✅ 전체 정상 (18/18 API healthy) |
 | **테스트** | 549개 통과 (gateway 364, web-ui 185) |
 | **디자인 점수** | 100/100 (모듈화 완료) |
@@ -147,6 +148,7 @@ curl -s http://localhost:5005/health
 | `project-reference` | R&D 논문, API 스펙, 문서 구조 | "논문", "스펙", "R&D" |
 | `version-history` | 버전 히스토리, BOM, Design Checker | "버전", "BOM", "Design Checker" |
 | `devops-guide` | CI/CD, Docker, 배포, 환경설정 | "CI", "CD", "배포", "Docker" |
+| `docs-site-guide` | 문서 사이트 관리, 페이지 추가 | "문서", "docs-site" |
 
 **위치**: `.claude/skills/`
 
@@ -389,6 +391,29 @@ pytest tests/test_specific.py -v
 - **confidence_threshold**: 기본값 0.4 사용 (0.5 아님)
 - **Docker 서비스명**: `blueprint-ai-bom-backend` (backend 아님)
 - **Gateway 헬스체크**: `/api/v1/health` (루트 아님)
+
+---
+
+## 문서 사이트 동기화 규칙
+
+### 필수: 코드 변경 시 문서 사이트도 업데이트
+
+| 변경 유형 | 업데이트 대상 |
+|----------|-------------|
+| 새 API 서비스 추가 | `docs-site/docs/system-overview/` + `devops/` |
+| 새 노드 타입 추가 | `docs-site/docs/blueprintflow/node-catalog.md` |
+| 파이프라인 흐름 변경 | `docs-site/docs/analysis-pipeline/` 다이어그램 |
+| 새 검증 레벨 추가 | `docs-site/docs/agent-verification/` |
+| Docker 서비스 변경 | `docs-site/docs/devops/docker-compose.md` |
+| 프론트엔드 라우트 추가 | `docs-site/docs/frontend/routing.md` |
+
+### 문서 사이트 빌드 확인
+
+```bash
+cd docs-site && npm run build
+```
+
+### 상세 가이드: `.claude/skills/docs-site-guide.md`
 
 ---
 

@@ -1,11 +1,61 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-21
-> **기준 커밋**: 9e7bfda (fix: Agent 검증 status 버그 수정 + dimension 검증 지원)
+> **마지막 업데이트**: 2026-02-22
+> **기준 커밋**: 76409c1 (feat: Agent 배치 자동화 + 검증 결과 대시보드)
+
+---
+
+## 2026-02-22 진행 중
+
+### 학습/문서화 사이트 (Docusaurus) 구축 ✅
+- **목적**: 10가지 주요 흐름을 인터랙티브 문서 사이트로 시각화
+- **프레임워크**: Docusaurus 3.9 + MDX + Mermaid + React
+- **산출물**:
+  - `docs-site/` - Docusaurus 프로젝트 (48 MDX 페이지, 10 섹션)
+  - `.todo/2026-02-22_docs-site/` - 10개 계획 MD 파일
+  - `.claude/skills/docs-site-guide.md` - 문서 사이트 관리 스킬
+  - `CLAUDE.md` - 문서 동기화 규칙 추가
+- **10개 섹션**: 시스템개요, 분석파이프라인, BlueprintFlow, Agent검증, BOM견적, P&ID, 배치납품, QA, 프론트엔드, DevOps
+- **7개 React 컴포넌트**: ArchitectureDiagram, PipelineDiagram, PortMap, ServiceTable, VerificationFlow, MetricCard, StatusBadge
+- **콘텐츠 감사**: 48개 페이지 중 16개 우수, 10개 양호, 16개 보강 완료
+- **보강 대상** (9개 파일, 소스코드 기반 상세화):
+  - Frontend: routing.md, component-library.md, bom-frontend.md
+  - QA: active-learning.md, gt-comparison.md, ocr-metrics.md, feedback-pipeline.md
+  - Batch: project-management.md, export-package.md
+- **빌드**: `cd docs-site && npm run build` ✅
+- **실행**: `cd docs-site && npm run start` (http://localhost:3001)
+
+---
+
+## 2026-02-22 완료 작업
+
+### 심볼 검출 도면 마진/제목란 필터 확장 ✅
+- **목적**: P&ID 심볼 오탐(제목란 텍스트 → 밸브 오인식) 제거
+- **수정 파일**:
+  - `detection_service.py` (436줄) - 심볼 검출 마진 영역 conf×0.5 페널티
+  - `dimension_service.py` (421줄) - 치수 검출 동일 마진 로직 동기화
+- **마진 영역 정의**: 하단우측(x>65%,y>85%), 상단우측(x>75%,y<15%), 외곽(3%)
+- **E2E 결과**: 오탐 "HKD" 0.638→0.319 (conf<0.4 자동 제거), 실제 밸브 0.965 유지
+- **검증**: Docker --no-cache 재빌드 ✅, 헬스체크 ✅
 
 ---
 
 ## 2026-02-21 완료 작업
+
+### Agent 검증 4가지 오탐/오분류 수정 + dimension_service 분할 ✅
+- **목적**: E2E 248항목 검증에서 발견된 4가지 반복 오류 파이프라인 레벨 수정
+- **수정 내역**:
+  1. **해칭 패턴 필터**: bbox<200px² + 반복 0/1/4 숫자 → 자동 거부 (`dimension_parser.py`)
+  2. **제목란/헤더 confidence 페널티**: 하단우측(x>65%,y>85%) 또는 상단(y<5%) → conf×0.5 (`dimension_service.py`)
+  3. **표면거칠기 Ra 분류**: ISO 4287 표준값(0.2, 6.3 등) → SURFACE_FINISH 분류 (`dimension_parser.py`)
+  4. **도면유형별 모델 자동선택**: VLM drawing_type → symbol_model_type 매핑 (`core_router.py`)
+- **파일 분할** (1000줄 → 3파일):
+  - `dimension_parser.py` (426줄) - 파싱, 검증, 패턴 매칭
+  - `dimension_merger.py` (174줄) - IoU, 가중 투표, 중복 제거
+  - `dimension_service.py` (421줄) - 메인 클래스 + OCR 호출 + 배럴 re-export
+- **검증**: 단위테스트 23케이스 전체 통과, E2E 2세션(기계도면+P&ID) 성공, Docker 재빌드 ✅
+
+
 
 ### Agent Verification Pipeline (Phase 3) ✅
 - **목적**: LLM Agent가 검출/OCR 결과를 자동 검증하는 Python 스크립트

@@ -1,0 +1,104 @@
+---
+sidebar_position: 1
+title: BOM & Quoting
+description: End-to-end BOM generation pipeline from detection to manufacturing quotation
+---
+
+import PipelineDiagram from '@site/src/components/PipelineDiagram';
+
+# BOM & Quoting
+
+The Blueprint AI BOM system (v10.5) transforms engineering drawings into structured Bills of Materials with manufacturing cost estimates. The pipeline processes electrical single-line diagrams, mechanical drawings, and P&ID diagrams through a series of ML-based stages with Human-in-the-Loop verification.
+
+## Pipeline Overview
+
+<PipelineDiagram type="bom" />
+
+## Pipeline Stages
+
+### 1. Drawing Classification (VLM)
+
+The Vision-Language model (Qwen2-VL, port 5004) classifies the uploaded drawing to determine the appropriate detection model:
+
+| Drawing Type | Detection Model | Classes |
+|-------------|----------------|---------|
+| Electrical (single-line) | `bom_detector` | 27 BOM classes |
+| P&ID | `pid_symbol` | 60 symbol classes |
+| Mechanical | `engineering` | 14 symbol classes |
+
+### 2. Object Detection (YOLO)
+
+YOLO v11 (port 5005) detects components and symbols in the drawing. The system supports multiple specialized models. For BOM generation, the `bom_detector` model identifies 27 electrical equipment classes.
+
+**Key settings**:
+- Confidence threshold: 0.40
+- IOU threshold: 0.50
+- Image size: 1024px
+- Margin penalty: Detections in title block / revision block areas receive a 50% confidence reduction
+
+### 3. OCR Dimension Extraction
+
+eDOCr2 (port 5002) extracts dimensions, tolerances, and text annotations from the drawing. Extracted dimensions are linked to nearby detected symbols for BOM enrichment.
+
+### 4. Human-in-the-Loop Verification
+
+All detections and dimensions pass through the [3-Level Verification System](../agent-verification/index.mdx):
+
+- **L1 Auto-Approve**: High-confidence detections (>= 0.9) are automatically approved
+- **L2 Agent Review**: Borderline items (0.7-0.9) are reviewed by Claude Sonnet
+- **L3 Human Review**: Low-confidence items (< 0.7) require human verification
+
+### 5. BOM Generation
+
+Verified detections are aggregated into a structured BOM with:
+
+- Part number / description
+- Quantity (counted from detections)
+- Material specification
+- Dimensions (OD, ID, Length from OCR)
+- Size specification
+
+### 6. Cost Calculation
+
+The [Pricing Engine](./pricing-engine.md) calculates manufacturing costs:
+
+- Material cost (weight x unit price)
+- Machining cost (base rate x size factor x difficulty factor)
+- Heat treatment / surface treatment costs
+- Setup cost (for small quantities)
+- Standard parts catalog pricing (bolts, nuts, washers, pins)
+
+### 7. Quotation Export
+
+Final output as [PDF quotation](./pdf-report.md), [Excel BOM](./export-formats.md), or [JSON API response](./export-formats.md).
+
+## Detection Classes
+
+The system recognizes 73 total classes across all models:
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| **BOM-relevant** | 27 | Transformers, circuit breakers, arresters |
+| **Annotation** | 46+ | Dimensions, tolerances, surface finish, GD&T |
+
+See [Detection Classes](./detection-classes.md) for the complete class list.
+
+## Key Capabilities
+
+- **Multi-model support**: Separate YOLO models for electrical, P&ID, and mechanical drawings
+- **Dual backend**: YOLO (fast, ~40ms) and Detectron2 (instance segmentation, ~200-500ms)
+- **Standard parts catalog**: Automatic pricing for bolts, nuts, washers, pins, and plugs
+- **Dimension parsing**: Supports OD/ID/Length, rectangular, NPT, and metric thread specifications
+- **Cost breakdown**: Material + machining + treatment + setup + inspection + transport
+- **Quantity discounts**: Tier-based pricing (10+ units: 5%, 50+: 10%, 100+: 15%)
+
+## System Architecture
+
+| Component | Port | Description |
+|-----------|------|-------------|
+| BOM Backend | 5020 | FastAPI application, analysis and verification |
+| BOM Frontend | 3000 | React UI, interactive BOM editing |
+| YOLO API | 5005 | Object detection service |
+| eDOCr2 API | 5002 | OCR and dimension extraction |
+| VL API | 5004 | Drawing classification |
+| Gateway API | 8000 | Pipeline orchestration |

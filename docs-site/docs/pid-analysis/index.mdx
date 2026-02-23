@@ -1,0 +1,99 @@
+---
+sidebar_position: 1
+title: P&ID Analysis
+description: P&ID diagram analysis pipeline - symbol detection, line detection, connectivity, and design verification
+---
+
+import PipelineDiagram from '@site/src/components/PipelineDiagram';
+
+# P&ID Analysis
+
+The P&ID (Piping & Instrumentation Diagram) analysis pipeline processes industrial process diagrams through symbol detection, line detection, connectivity analysis, and automated design rule verification. The system is specialized for BWMS (Ballast Water Management System) P&ID diagrams.
+
+## Pipeline Overview
+
+<PipelineDiagram type="pid" />
+
+## Pipeline Stages
+
+### 1. Drawing Classification
+
+The VLM (Qwen2-VL) classifies the uploaded drawing. When identified as a P&ID diagram, the system activates P&ID-specific detection models with optimized parameters (lower confidence threshold, SAHI enabled).
+
+### 2. Symbol Detection
+
+YOLO v11 with the `pid_symbol` model detects up to 60 classes of P&ID symbols:
+
+| Category | Examples | Count |
+|----------|---------|-------|
+| Valves | Gate, Globe, Ball, Butterfly, Check, Relief | 10+ |
+| Equipment | Pumps, Compressors, Heat Exchangers, Tanks | 8+ |
+| Instruments | PI, TI, FI, LI, PT, TT, FT, LT | 16+ |
+| Piping | Reducers, Tees, Elbows, Flanges, Orifices | 6+ |
+
+See [Symbol Detection](./symbol-detection.md) for the complete class list and model configuration.
+
+### 3. Line Detection
+
+The Line Detector API (port 5016) identifies piping and instrumentation lines with style and color classification:
+
+| Line Style | Meaning |
+|-----------|---------|
+| Solid | Process piping |
+| Dashed | Instrument signal |
+| Dash-dot | Boundary/center line |
+| Double | Major piping/casing |
+
+See [Line Detection](./line-detection.md) for detailed API documentation.
+
+### 4. Connectivity Analysis
+
+The Connectivity Analyzer combines symbol detections and line detections to build a graph of equipment connections:
+
+- **Direct connections**: Symbols within proximity threshold
+- **Line-based connections**: Symbols connected via detected lines
+- **Intersection analysis**: Connections through line crossings
+
+See [Connectivity Analysis](./connectivity.md) for the graph algorithm details.
+
+### 5. Design Verification
+
+The Design Checker API (port 5019) evaluates the P&ID against 50+ design rules:
+
+| Severity | Description |
+|----------|-------------|
+| Pass | Rule satisfied |
+| Warning | Potential issue |
+| Violation | Design rule broken |
+
+See [Design Checker](./design-checker.md) for the rule engine and BWMS-specific rules.
+
+## BWMS Specialization
+
+The pipeline is optimized for Ballast Water Management System (BWMS) P&ID diagrams from TECHCROSS:
+
+- **Specialized model**: `pid_symbol` trained on BWMS-specific symbol variants
+- **BWMS design rules**: 50+ rules covering equipment requirements, piping standards, and safety
+- **Region detection**: Automatic detection of "SIGNAL FOR BWMS" and equipment boundary regions
+- **Equipment checklist**: Verify required BWMS components (UV reactor, filter, sensors, etc.)
+
+## System Architecture
+
+| Service | Port | Role | GPU |
+|---------|------|------|-----|
+| YOLO API | 5005 | Symbol detection (pid_symbol model) | Yes |
+| Line Detector | 5016 | Line and region detection | No (CPU) |
+| PID Analyzer | 5018 | Connectivity analysis | No |
+| Design Checker | 5019 | Rule-based verification | No |
+| PID Composer | 5021 | SVG overlay visualization | No |
+| BOM Backend | 5020 | P&ID features orchestration | No |
+
+## Key Capabilities
+
+- **60-class symbol detection** with SAHI for small symbol handling
+- **6 line style classifications** (solid, dashed, dotted, dash-dot, double, wavy)
+- **Color-based line classification** (process, cooling, steam, instrument)
+- **Graph-based connectivity** with orphan detection
+- **50+ automated design rules** with pass/warning/violation classification
+- **SVG overlay visualization** for annotated P&ID output
+- **Equipment-to-equipment flow tracing** for process verification

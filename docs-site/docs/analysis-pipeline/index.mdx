@@ -1,0 +1,35 @@
+---
+sidebar_position: 1
+title: Analysis Pipeline
+description: Upload from drawing image to manufacturing quote - end-to-end analysis pipeline overview
+---
+
+import PipelineDiagram from '@site/src/components/PipelineDiagram';
+
+# Analysis Pipeline
+
+The AX POC analysis pipeline transforms raw engineering drawings into structured manufacturing data through a series of specialized ML stages.
+
+## Pipeline Overview
+
+<PipelineDiagram type="main" />
+
+## Pipeline Stages
+
+Each stage is implemented as an independent microservice, allowing horizontal scaling and independent deployment.
+
+| Stage | Service | Port | Description | Sub-page |
+|-------|---------|------|-------------|----------|
+| **1. Classification** | VL (Qwen2-VL) | 5004 | Drawing type classification (mechanical, P&ID, table, text, photo) | [VLM Classification](./vlm-classification.md) |
+| **2. Detection** | YOLO v11 | 5005 | Symbol and component detection with 73 classes | [YOLO Detection](./yolo-detection.md) |
+| **3. OCR** | eDOCr2 + 7 engines | 5002-5015 | Dimension, text, and GD&T extraction | [OCR Processing](./ocr-processing.md) |
+| **4. Tolerance** | SkinModel Shapes | 5003 | GD&T tolerance analysis and stack-up | [Tolerance Analysis](./tolerance-analysis.md) |
+| **5. Revision** | Gateway API | 8000 | Side-by-side revision comparison and delta tracking | [Revision Comparison](./revision-comparison.md) |
+
+## Key Characteristics
+
+- **Microservice Architecture**: Each ML model runs in its own Docker container with independent GPU allocation.
+- **Gateway Orchestration**: The Gateway API (port 8000) coordinates all service calls and aggregates results.
+- **Human-in-the-Loop**: Agent verification at critical stages ensures accuracy before final output.
+- **Ensemble Methods**: OCR uses 4-engine weighted voting for maximum accuracy.
+- **DAG Execution**: BlueprintFlow enables custom pipeline composition via visual workflow builder.
