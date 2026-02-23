@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: 기술 스택
-description: 기술 스택 상세
+description: 기술 스택 및 아키텍처 패턴 상세
 ---
 
 # 기술 스택
@@ -52,30 +52,471 @@ description: 기술 스택 상세
 | **Nginx** | 리버스 프록시 (프로덕션 환경) |
 | **GitHub Actions** | CI/CD 파이프라인 |
 
+---
+
 ## 아키텍처 패턴
+
+이 시스템은 6가지 핵심 아키텍처 패턴으로 구성됩니다. 각 패턴이 실제로 어떤 코드에서 어떻게 동작하는지 상세히 설명합니다.
+
+```mermaid
+flowchart TB
+    subgraph 패턴["6가지 핵심 패턴"]
+        GW["1. API 게이트웨이"]
+        MS["2. 마이크로서비스"]
+        ENS["3. 앙상블 투표"]
+        DAG["4. DAG 실행"]
+        HITL["5. Human-in-the-Loop"]
+        AL["6. 능동 학습"]
+    end
+
+    GW -->|"21개 서비스 라우팅"| MS
+    MS -->|"4개 OCR 엔진"| ENS
+    DAG -->|"노드 실행 순서"| MS
+    MS -->|"검증 필요 항목"| HITL
+    HITL -->|"교정 데이터"| AL
+    AL -->|"재학습"| MS
+
+    style GW fill:#e1f5fe
+    style MS fill:#e8f5e9
+    style ENS fill:#fff3e0
+    style DAG fill:#f3e5f5
+    style HITL fill:#fce4ec
+    style AL fill:#fffde7
+```
+
+---
+
+### 1. API 게이트웨이 (API Gateway)
+
+**한 줄 요약**: 프론트엔드의 모든 요청은 Gateway API(:8000)를 거쳐 21개 서비스로 분배됩니다.
 
 ```mermaid
 flowchart LR
-    subgraph 패턴
-        MS["마이크로서비스"]
-        GW["API 게이트웨이"]
-        CQRS["이벤트 기반"]
-        HITL["Human-in-the-Loop"]
-    end
+    FE["프론트엔드\n:5173"] -->|"HTTP"| GW["Gateway API\n:8000"]
 
-    MS --> |"컨테이너 21개"| Docker
-    GW --> |"Gateway API :8000"| FastAPI
-    CQRS --> |"비동기 처리"| Queue
-    HITL --> |"에이전트 검증"| Claude
+    GW -->|"YAML 스펙"| SR["서비스 레지스트리\n21개 API 등록"]
+    SR --> YOLO[":5005"]
+    SR --> OCR[":5002"]
+    SR --> SM[":5003"]
+    SR --> ETC["..."]
+
+    style GW fill:#e1f5fe,stroke:#0288d1
 ```
 
-### 핵심 패턴
+**동작 원리**:
 
-| 패턴 | 구현 방식 |
-|------|-----------|
-| **API 게이트웨이(API Gateway)** | Gateway API가 모든 서비스 라우팅 담당 |
-| **마이크로서비스(Microservices)** | 각 ML 모델이 독립 컨테이너로 운영 |
-| **Human-in-the-Loop** | 3단계 검증 (자동/에이전트/사람) |
-| **앙상블(Ensemble)** | OCR 4엔진 가중 투표 방식 |
-| **DAG 실행(DAG Execution)** | BlueprintFlow 토폴로지 정렬 실행 |
-| **능동 학습(Active Learning)** | 불확실한 샘플 우선 학습 |
+1. **YAML 스펙 기반 라우팅** - `gateway-api/api_specs/` 디렉토리에 21개 YAML 파일이 각 서비스의 URL, 포트, 엔드포인트, 파라미터를 정의합니다
+2. **Docker 호스트 매핑** - `yolo` → `yolo-api:5005`, `edocr2` → `edocr2-v2-api:5002` 식으로 컨테이너명을 자동 변환합니다
+3. **3단계 실행기 탐색** - 요청이 들어오면 (1) 전용 Executor → (2) YAML 스펙 → (3) 런타임 설정 순서로 실행기를 찾습니다
+
+**서비스 탐색 흐름**:
+
+```
+요청 도착 (POST /api/v1/workflow/execute)
+    │
+    ├─ 1순위: 전용 Executor 등록되어 있나? (예: YoloExecutor)
+    │         → 있으면 즉시 실행
+    │
+    ├─ 2순위: YAML 스펙 파일이 있나? (api_specs/yolo.yaml)
+    │         → 있으면 GenericAPIExecutor로 실행
+    │
+    └─ 3순위: 런타임 API 설정이 있나?
+              → 있으면 GenericAPIExecutor로 실행
+              → 없으면 에러
+```
+
+**미들웨어**:
+- **CORS** - 모든 도메인 허용 (`allow_origins=["*"]`)
+- **요청 로깅** - 모든 요청에 UUID 부여, `X-Request-ID` 헤더로 반환
+- **느린 요청 감지** - 5초 이상 걸리면 경고 로그
+- **재시도** - 5xx 에러 시 최대 3회, 지수 백오프 (1초 → 2초 → 4초)
+
+**핵심 파일**:
+
+| 파일 | 역할 |
+|------|------|
+| `gateway-api/api_server.py` | 메인 서버, 헬스체크, 미들웨어 |
+| `gateway-api/api_registry.py` | 서비스 등록/발견/상태 관리 |
+| `gateway-api/api_specs/*.yaml` | 21개 서비스 스펙 정의 |
+| `gateway-api/blueprintflow/executors/executor_registry.py` | 3단계 실행기 탐색 |
+| `gateway-api/blueprintflow/executors/generic_api_executor.py` | 범용 API 호출 |
+
+---
+
+### 2. 마이크로서비스 (Microservices)
+
+**한 줄 요약**: 각 ML 모델이 독립 Docker 컨테이너로 운영되며, HTTP REST로 통신합니다.
+
+```mermaid
+flowchart TB
+    subgraph 네트워크["ax_poc_network (Docker Bridge)"]
+        direction TB
+        subgraph 검출["검출(Detection)"]
+            Y["YOLO :5005"]
+            TD["Table Detector :5022"]
+        end
+        subgraph OCR
+            E["eDOCr2 :5002"]
+            P["PaddleOCR :5006"]
+            T["Tesseract :5008"]
+            TR["TrOCR :5009"]
+            ENS["OCR Ensemble :5011"]
+        end
+        subgraph 분석["분석(Analysis)"]
+            SK["SkinModel :5003"]
+            PID["PID Analyzer :5018"]
+            DC["Design Checker :5019"]
+        end
+    end
+
+    style 검출 fill:#e8f5e9
+    style OCR fill:#e1f5fe
+    style 분석 fill:#fff3e0
+```
+
+**모든 서비스가 따르는 공통 패턴**:
+
+```python
+# 1. FastAPI 앱 + CORS + 헬스체크 (모든 서비스 동일)
+app = FastAPI(title="서비스명", version="1.0.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+# 2. 헬스체크 엔드포인트 (Gateway가 30초마다 호출)
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "gpu_available": True}
+
+# 3. 처리 엔드포인트 (multipart/form-data로 이미지 수신)
+@app.post("/api/v1/process")
+async def process(file: UploadFile):
+    result = model.predict(file)
+    return {"success": True, "results": result}
+```
+
+**서비스 격리 원칙**:
+- 각 컨테이너는 **독립 프로세스 공간** (메모리, 파일시스템 분리)
+- **HTTP REST만으로 통신** (메시지 큐 없음, 단순 명료)
+- **독립 배포 가능** - YOLO만 재시작해도 다른 서비스에 영향 없음
+- **헬스체크** - 30초 간격, 3회 실패 시 자동 재시작
+
+**GPU 서비스 시작 시간**:
+
+| 분류 | 서비스 | 시작 대기 |
+|------|--------|----------|
+| GPU 무거움 | TrOCR, Surya, DocTR, EasyOCR | 120초 |
+| GPU 보통 | YOLO, eDOCr2, VL, EDGNet | 40초 |
+| CPU 전용 | Blueprint AI BOM, PID Composer | 10~15초 |
+
+---
+
+### 3. 앙상블 투표 (OCR Ensemble)
+
+**한 줄 요약**: 4개 OCR 엔진이 동시에 텍스트를 읽고, 가중 투표로 가장 정확한 결과를 선택합니다.
+
+```mermaid
+flowchart LR
+    IMG["도면 이미지"] --> E1["eDOCr2\n가중치 40%"]
+    IMG --> E2["PaddleOCR\n가중치 35%"]
+    IMG --> E3["Tesseract\n가중치 15%"]
+    IMG --> E4["TrOCR\n가중치 10%"]
+
+    E1 --> VOTE["가중 투표\n+ 합의 보너스"]
+    E2 --> VOTE
+    E3 --> VOTE
+    E4 --> VOTE
+
+    VOTE --> RESULT["최종 결과\n신뢰도 ~98%"]
+
+    style VOTE fill:#fff3e0,stroke:#f57c00
+    style RESULT fill:#e8f5e9,stroke:#388e3c
+```
+
+**구체적 예시 - 도면에서 "M12x1.75"를 읽을 때**:
+
+| 엔진 | 인식 결과 | 신뢰도 | 가중치 | 투표값 |
+|------|----------|--------|--------|--------|
+| eDOCr2 | M12x1.75 | 0.95 | 0.40 | 0.380 |
+| PaddleOCR | M12x1.75 | 0.90 | 0.35 | 0.315 |
+| Tesseract | M12x1.75 | 0.80 | 0.15 | 0.120 |
+| TrOCR | M12x1.7S | 0.60 | 0.10 | 0.060 |
+
+**투표 과정**:
+
+1. **텍스트 정규화** - 대소문자, 공백을 통일하여 비교 가능하게 만듦
+2. **유사도 클러스터링** - Jaccard 유사도 0.7 이상이면 "같은 텍스트"로 묶음
+   - "M12x1.75" 클러스터: eDOCr2 + PaddleOCR + Tesseract (3개 동의)
+   - "M12x1.7S" 클러스터: TrOCR만 (1개)
+3. **가중 투표** - `투표값 = 엔진 가중치 x 신뢰도`
+4. **합의 보너스** - 3개 이상 동의 시 `+0.15` (최대 +0.20)
+5. **최종 신뢰도** = 가중 평균 + 합의 보너스 = **0.96**
+
+**용도별 프로필 7가지**:
+
+| 프로필 | eDOCr2 | Paddle | Tesseract | TrOCR | 사용 상황 |
+|--------|--------|--------|-----------|-------|----------|
+| **general** | 40% | 35% | 15% | 10% | 기본 (대부분의 도면) |
+| **dimension** | 55% | 25% | 15% | 5% | 치수 숫자 인식 (Ø45, M12 등) |
+| **korean** | 30% | 50% | 10% | 10% | 한국어가 많은 문서 |
+| **engineering** | 45% | 30% | 20% | 5% | 기계/전기 도면 전용 |
+| **handwritten** | 20% | 25% | 15% | 40% | 필기체가 섞인 도면 |
+| **fast** | 50% | 50% | 0% | 0% | 2엔진만 사용 (속도 우선) |
+| **accurate** | 35% | 35% | 20% | 10% | 최고 정확도 (임계값 0.85) |
+
+**BlueprintFlow에서 사용하는 법**: 노드 팔레트 → OCR 카테고리 → `OCR Ensemble` 노드를 캔버스에 드래그 → 파라미터에서 프로필 선택
+
+**이 패턴을 사용하는 템플릿**:
+- **Complete Analysis** - 전체 분석 파이프라인의 OCR 단계
+- **OCR Ensemble Pipeline** - OCR 앙상블 + 공차 분석 특화
+- **Multi-OCR Comparison** - 신뢰도가 낮을 때 자동 앙상블 전환
+
+**핵심 파일**:
+
+| 파일 | 역할 |
+|------|------|
+| `models/ocr-ensemble-api/services/ensemble.py` | 투표 로직 (클러스터링 + 가중 합산) |
+| `models/ocr-ensemble-api/services/clients.py` | 4개 엔진 동시 호출 (async) |
+| `models/ocr-ensemble-api/config/defaults.py` | 7가지 프로필 정의 |
+| `web-ui/src/config/nodes/ocrNodes.ts` | 빌더 노드 정의 (442~570줄) |
+| `gateway-api/api_specs/ocr_ensemble.yaml` | API 스펙 |
+
+---
+
+### 4. DAG 실행 (DAG Execution)
+
+**한 줄 요약**: BlueprintFlow 워크플로우를 방향성 비순환 그래프(DAG)로 해석하고, 토폴로지 정렬로 실행 순서를 결정합니다.
+
+```mermaid
+flowchart LR
+    subgraph 실행순서["토폴로지 정렬 → 병렬 그룹"]
+        L0["Level 0\nImageInput"]
+        L1["Level 1\nYOLO + eDOCr2"]
+        L2["Level 2\nSkinModel"]
+        L3["Level 3\nPDF Export"]
+    end
+
+    L0 -->|"순차"| L1
+    L1 -->|"병렬 실행"| L2
+    L2 -->|"순차"| L3
+
+    style L1 fill:#e8f5e9,stroke:#388e3c
+```
+
+**실행 과정 (6단계)**:
+
+```
+1. DAG 검증
+   ├─ 순환(사이클) 있는지 DFS로 검사
+   ├─ 고립된 노드 없는지 확인
+   └─ 루트/리프 노드 존재 확인
+
+2. 토폴로지 정렬 (Kahn 알고리즘)
+   ├─ 진입 차수(in-degree) = 0인 노드부터 시작
+   ├─ 큐에서 꺼내면서 이웃 노드의 진입 차수 감소
+   └─ 결과: [ImageInput, YOLO, eDOCr2, SkinModel, PDFExport]
+
+3. 병렬 그룹 식별 (BFS 레벨 할당)
+   └─ 같은 레벨 = 동시 실행 가능
+      Level 0: [ImageInput]
+      Level 1: [YOLO, eDOCr2]  ← 병렬 실행
+      Level 2: [SkinModel]
+      Level 3: [PDFExport]
+
+4. 노드별 실행
+   ├─ 상태: pending → running → completed/failed
+   ├─ 입력 수집: 부모 노드 출력을 자동으로 전달
+   └─ 실패 시: _node_failed 플래그 → 하위 노드가 판단
+
+5. 실시간 스트리밍 (SSE)
+   ├─ node_start → node_complete 이벤트를 프론트엔드로 전송
+   └─ 5초마다 heartbeat (타임아웃 방지)
+
+6. 결과 수집
+   └─ 리프 노드 출력을 최종 결과로 반환
+```
+
+**3가지 실행 모드**:
+
+| 모드 | 동작 | 사용 시점 |
+|------|------|----------|
+| **Sequential** | 토폴로지 순서대로 하나씩 실행 | 기본값, 안정적 |
+| **Parallel** | 같은 레벨의 노드를 동시에 실행, 그룹 단위 대기 | 속도 중시 |
+| **Eager** | 의존성 충족되는 즉시 실행 (가장 공격적 병렬화) | 최대 성능 |
+
+**Eager 모드의 차이점**: Parallel 모드는 그룹 전체가 끝나야 다음 그룹 시작. Eager 모드는 개별 노드가 끝나는 즉시 다음 노드 시작 → 더 빠르지만 리소스 사용량 높음.
+
+**조건 분기 (IF 노드)**:
+
+```
+ImageInput → IF (신뢰도 < 0.8?)
+              ├─ true → OCR Ensemble (정밀 분석)
+              └─ false → eDOCr2 (빠른 분석)
+```
+
+IF 노드는 조건을 평가하고 `branch: "true"` 또는 `"false"`를 출력 → 다음 엣지가 분기를 따라 라우팅합니다.
+
+**핵심 파일**:
+
+| 파일 | 역할 |
+|------|------|
+| `gateway-api/blueprintflow/validators/dag_algorithms.py` | 토폴로지 정렬, 사이클 검출, 병렬 그룹 |
+| `gateway-api/blueprintflow/engine/pipeline_engine.py` | 파이프라인 실행 엔진 (3가지 모드) |
+| `gateway-api/blueprintflow/engine/input_collector.py` | 부모 노드 출력 → 자식 노드 입력 전달 |
+| `gateway-api/blueprintflow/engine/execution_context.py` | 노드 상태 + 출력 관리 |
+| `web-ui/src/store/workflowStore.ts` | 프론트엔드 SSE 스트림 수신 + UI 업데이트 |
+
+---
+
+### 5. Human-in-the-Loop (사람 참여 검증)
+
+**한 줄 요약**: AI 결과를 3단계(자동 → 에이전트 → 사람)로 검증하여, 높은 신뢰도는 자동 승인하고 낮은 신뢰도만 사람이 확인합니다.
+
+```mermaid
+flowchart TB
+    DET["검출/OCR 결과\n(95개 항목)"]
+
+    DET --> L1{"L1: 신뢰도 >= 0.9?"}
+    L1 -->|"예 (62개)"| AUTO["자동 승인\n~1초"]
+    L1 -->|"아니오 (33개)"| L2["L2: Claude 분석\n크롭 + 컨텍스트 이미지"]
+
+    L2 -->|"승인 (28개)"| AGENT["에이전트 승인"]
+    L2 -->|"거부 (3개)"| REJ["거부"]
+    L2 -->|"불확실 (2개)"| L3["L3: 사람 검토\n웹 UI 대시보드"]
+
+    L3 --> HUMAN["사람 최종 판단"]
+
+    style AUTO fill:#e8f5e9
+    style AGENT fill:#e1f5fe
+    style HUMAN fill:#fce4ec
+    style REJ fill:#ffcdd2
+```
+
+**각 단계 상세**:
+
+**L1 - 자동 승인 (Threshold-based)**
+- 신뢰도 0.9 이상인 항목은 즉시 승인 (LLM 호출 없음)
+- 처리 시간: 항목당 ~1초
+- 전체의 약 65% 처리
+
+**L2 - 에이전트 검증 (Claude Sonnet)**
+- 크롭된 이미지 + 주변 컨텍스트 이미지를 Claude에 전송
+- Claude가 JSON으로 판단 결과 반환: `{action: "approve", confidence: 0.92}`
+- 심볼 검증: 크롭 + 컨텍스트 + 레퍼런스 이미지 3장 비교
+- 치수 검증: 크롭 이미지에서 텍스트를 직접 읽어 OCR 값과 비교
+- 처리 시간: 항목당 ~5초
+
+**L3 - 사람 검토 (Web UI)**
+- L2에서도 불확실한 항목만 사람에게 전달 (전체의 ~2%)
+- 웹 대시보드에서 크롭/컨텍스트 이미지를 보고 승인/거부/수정
+- 수정된 데이터는 능동 학습 파이프라인으로 전달
+
+**결과**: 약 95%는 L1+L2에서 자동 처리, 사람은 5%만 확인 → 대규모 도면 분석에서 시간 절약
+
+**핵심 파일**:
+
+| 파일 | 역할 |
+|------|------|
+| `blueprint-ai-bom/scripts/agent_verify.py` | L1+L2 실행 스크립트 (CLI) |
+| `blueprint-ai-bom/scripts/agent_verify_prompts.py` | Claude 프롬프트 (심볼/치수) |
+| `blueprint-ai-bom/backend/routers/agent_verification_router.py` | 검증 API 엔드포인트 |
+| `blueprint-ai-bom/backend/services/active_learning_service.py` | 우선순위 큐 관리 |
+
+---
+
+### 6. 능동 학습 (Active Learning)
+
+**한 줄 요약**: 모델이 불확실해하는 샘플을 우선적으로 사람이 검토하고, 교정된 데이터로 모델을 재학습시켜 점점 더 정확해지는 선순환 구조입니다.
+
+```mermaid
+flowchart TB
+    PRED["모델 예측\n(신뢰도 포함)"]
+    PRED --> SCORE["불확실도 점수 계산"]
+
+    SCORE --> Q["우선순위 큐"]
+    Q --> |"CRITICAL < 0.7"| C["긴급 검토\n(30초/항목)"]
+    Q --> |"HIGH: 연결 없음"| H["높은 우선순위\n(20초/항목)"]
+    Q --> |"MEDIUM 0.7~0.9"| M["일반 검토\n(10초/항목)"]
+    Q --> |"LOW >= 0.9"| L["자동 승인\n(2초/항목)"]
+
+    C --> LOG["검증 로그\nJSONL 파일"]
+    H --> LOG
+    M --> LOG
+    L --> LOG
+
+    LOG --> EXPORT["YOLO 데이터셋\n내보내기"]
+    EXPORT --> RETRAIN["모델 재학습"]
+    RETRAIN --> PRED
+
+    style PRED fill:#e1f5fe
+    style Q fill:#fff3e0
+    style LOG fill:#e8f5e9
+    style RETRAIN fill:#f3e5f5
+```
+
+**4단계 우선순위**:
+
+| 우선순위 | 조건 | 예상 검토 시간 | 의미 |
+|---------|------|-------------|------|
+| **CRITICAL** | 신뢰도 < 0.7 | 30초/항목 | 모델이 매우 불확실 → 사람이 꼭 봐야 함 |
+| **HIGH** | 심볼 연결 없음 | 20초/항목 | 관계가 누락됨 → 구조적 오류 가능성 |
+| **MEDIUM** | 0.7 ≤ 신뢰도 < 0.9 | 10초/항목 | 어느 정도 확실하지만 확인 필요 |
+| **LOW** | 신뢰도 ≥ 0.9 | 2초/항목 | 자동 승인 후보 |
+
+큐 정렬: CRITICAL → HIGH → MEDIUM → LOW (각 그룹 내에서는 신뢰도 낮은 순)
+
+**피드백 파이프라인**:
+
+1. **검증 로그 수집** - 매 승인/거부/수정 결정이 JSONL 파일로 기록
+   ```json
+   {"item_id": "dim_001", "original": {"value": "Ø45.2"},
+    "user_action": "modified", "modified": {"value": "Ø45.0"}}
+   ```
+2. **세션 필터링** - 검증 완료율 100% + 승인율 50% 이상인 세션만 선별
+3. **YOLO 데이터셋 내보내기** - 교정된 bbox/class를 YOLO 정규화 좌표로 변환
+   ```
+   feedback_dataset/
+   ├── images/      # 원본 이미지
+   ├── labels/      # YOLO TXT (class_id x_center y_center width height)
+   ├── classes.txt  # 클래스 목록
+   └── data.yaml    # 학습 설정
+   ```
+4. **핵심**: 사람이 수정한 값(`modified_class_name`, `modified_bbox`)이 원본보다 우선 적용
+
+**GT(Ground Truth) 비교**:
+- 사용자가 정답 라벨(JSON/XML/YOLO TXT)을 업로드
+- IoU(Intersection over Union) 기반 매칭으로 TP/FP/FN 분류
+- Precision, Recall, F1 스코어 산출 → 모델 성능 추적
+
+**핵심 파일**:
+
+| 파일 | 역할 |
+|------|------|
+| `blueprint-ai-bom/backend/services/active_learning_service.py` | 우선순위 계산 + 큐 관리 |
+| `blueprint-ai-bom/backend/services/feedback_pipeline.py` | 세션 수집 + YOLO 데이터셋 내보내기 |
+| `blueprint-ai-bom/backend/routers/feedback_router.py` | 피드백 API |
+
+---
+
+## 패턴 간 연결 관계
+
+이 6가지 패턴은 독립적이 아니라 **서로 맞물려** 동작합니다:
+
+```
+사용자가 BlueprintFlow에서 워크플로우 실행 버튼 클릭
+    │
+    ▼
+[4. DAG 실행] 토폴로지 정렬로 노드 실행 순서 결정
+    │
+    ▼
+[1. API 게이트웨이] 각 노드를 해당 서비스로 라우팅
+    │
+    ▼
+[2. 마이크로서비스] YOLO, OCR 등 개별 컨테이너에서 처리
+    │
+    ├─ OCR 단계에서 → [3. 앙상블 투표] 4엔진 동시 처리
+    │
+    ▼
+[5. Human-in-the-Loop] 결과를 3단계 검증
+    │
+    ▼
+[6. 능동 학습] 교정 데이터 수집 → 재학습 → 다음 분석 정확도 향상
+```
