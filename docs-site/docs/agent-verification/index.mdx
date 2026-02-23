@@ -1,55 +1,55 @@
 ---
 sidebar_position: 1
-title: Agent Verification
-description: 3-Level hybrid verification system for ML detection quality assurance
+title: 에이전트 검증
+description: ML 검출 품질 보증을 위한 3단계 하이브리드 검증 시스템
 ---
 
 import VerificationFlow from '@site/src/components/VerificationFlow';
 
-# Agent Verification
+# 에이전트 검증 (Agent Verification)
 
-The Agent Verification system ensures quality assurance for ML-based detection results through a 3-level hybrid approach that balances automation efficiency with human oversight.
+에이전트 검증 시스템은 자동화 효율성과 사람의 감독 사이에서 균형을 맞추는 3단계 하이브리드 접근 방식을 통해 ML 기반 검출 결과의 품질을 보증합니다.
 
-## Problem
+## 문제
 
-ML-based object detection and OCR extraction produce results with varying confidence levels. High-confidence detections are generally accurate, but borderline and low-confidence results require review. Manual verification of every detection is impractical at scale -- a single engineering drawing can produce 50+ detections and 100+ dimension extractions.
+ML 기반 객체 검출 및 OCR 추출은 다양한 신뢰도 수준의 결과를 생성합니다. 높은 신뢰도의 검출은 일반적으로 정확하지만, 경계선 및 낮은 신뢰도의 결과는 검토가 필요합니다. 모든 검출을 수동으로 검증하는 것은 대규모에서 비현실적입니다 -- 단일 기계 도면에서 50개 이상의 검출과 100개 이상의 치수 추출이 발생할 수 있습니다.
 
-## Solution: 3-Level Hybrid Verification
+## 솔루션: 3단계 하이브리드 검증
 
-The system routes each detection through one of three verification levels based on confidence score and contextual signals, achieving an optimal balance between speed and accuracy.
+시스템은 신뢰도 점수와 문맥 신호를 기반으로 각 검출을 세 가지 검증 레벨 중 하나로 라우팅하여, 속도와 정확도 사이의 최적 균형을 달성합니다.
 
-| Level | Name | Confidence Range | Handler | Typical Volume |
-|-------|------|-----------------|---------|----------------|
-| **L1** | Auto-Approve | >= 0.9 | System | ~60-70% of items |
-| **L2** | Agent Review | 0.7 - 0.9 | Claude Sonnet (Vision) | ~20-25% of items |
-| **L3** | Human Review | < 0.7 | Human operator | ~5-15% of items |
+| 레벨 | 이름 | 신뢰도 범위 | 처리 주체 | 일반적 비중 |
+|------|------|------------|-----------|------------|
+| **L1** | 자동 승인 (Auto-Approve) | >= 0.9 | 시스템 | 전체 항목의 ~60-70% |
+| **L2** | 에이전트 검토 (Agent Review) | 0.7 - 0.9 | Claude Sonnet (Vision) | 전체 항목의 ~20-25% |
+| **L3** | 사람 검토 (Human Review) | < 0.7 | 사람 운영자 | 전체 항목의 ~5-15% |
 
-Combined, over 80% of items are processed without human intervention, while maintaining high accuracy through AI agent review of borderline cases.
+전체적으로 80% 이상의 항목이 사람의 개입 없이 처리되며, AI 에이전트의 경계선 사례 검토를 통해 높은 정확도를 유지합니다.
 
-## Verification Flow
+## 검증 흐름
 
 <VerificationFlow />
 
-## Key Features
+## 주요 기능
 
-- **Priority-based Queue**: Critical (low confidence) items surface first for review
-- **Active Learning**: All verification decisions (approve/reject/modify) are logged for model retraining
-- **Dual Item Types**: Supports both symbol detections and dimension extractions
-- **Batch Operations**: Bulk approve high-confidence items in one click
-- **Configurable Thresholds**: Adjust auto-approve and critical thresholds per deployment
-- **Dashboard Analytics**: Real-time verification progress, agent vs human distribution, and accuracy metrics
+- **우선순위 기반 큐**: 중요 항목(낮은 신뢰도)이 검토를 위해 먼저 표시됩니다
+- **능동 학습 (Active Learning)**: 모든 검증 결정(승인/거부/수정)이 모델 재학습을 위해 기록됩니다
+- **이중 항목 유형**: 심볼 검출과 치수 추출 모두 지원합니다
+- **일괄 작업**: 높은 신뢰도 항목을 한 번의 클릭으로 일괄 승인합니다
+- **설정 가능한 임계값**: 배포 환경별로 자동 승인 및 중요 임계값을 조정할 수 있습니다
+- **대시보드 분석**: 실시간 검증 진행 상황, 에이전트 대 사람 분포 및 정확도 지표를 제공합니다
 
-## Architecture Components
+## 아키텍처 구성 요소
 
-| Component | Description |
-|-----------|-------------|
-| **Active Learning Service** | Priority queue, threshold management, retraining data collection |
-| **Verification Router** | Human verification UI endpoints (queue, verify, bulk-approve) |
-| **Agent Verification Router** | LLM Agent-specific endpoints (base64 images, Playwright-friendly) |
-| **Dashboard** | Real-time statistics, action distribution, confidence analysis |
+| 구성 요소 | 설명 |
+|-----------|------|
+| **능동 학습 서비스 (Active Learning Service)** | 우선순위 큐, 임계값 관리, 재학습 데이터 수집 |
+| **검증 라우터 (Verification Router)** | 사람 검증 UI 엔드포인트 (큐, 검증, 일괄 승인) |
+| **에이전트 검증 라우터 (Agent Verification Router)** | LLM 에이전트 전용 엔드포인트 (base64 이미지, Playwright 호환) |
+| **대시보드 (Dashboard)** | 실시간 통계, 작업 분포, 신뢰도 분석 |
 
-## Next Steps
+## 다음 단계
 
-- [3-Level Architecture](./three-level-architecture.md) -- Detailed architecture and threshold tuning
-- [API Reference](./api-reference.md) -- Complete endpoint documentation
-- [Dashboard](./dashboard.md) -- Monitoring and analytics
+- [3단계 아키텍처](./three-level-architecture.md) -- 상세 아키텍처 및 임계값 튜닝
+- [API 레퍼런스](./api-reference.md) -- 전체 엔드포인트 문서
+- [대시보드](./dashboard.md) -- 모니터링 및 분석

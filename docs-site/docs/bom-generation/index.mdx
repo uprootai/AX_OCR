@@ -1,104 +1,104 @@
 ---
 sidebar_position: 1
-title: BOM & Quoting
-description: End-to-end BOM generation pipeline from detection to manufacturing quotation
+title: BOM 및 견적
+description: 검출부터 제조 견적까지의 엔드투엔드 BOM 생성 파이프라인
 ---
 
 import PipelineDiagram from '@site/src/components/PipelineDiagram';
 
-# BOM & Quoting
+# BOM 및 견적
 
-The Blueprint AI BOM system (v10.5) transforms engineering drawings into structured Bills of Materials with manufacturing cost estimates. The pipeline processes electrical single-line diagrams, mechanical drawings, and P&ID diagrams through a series of ML-based stages with Human-in-the-Loop verification.
+Blueprint AI BOM 시스템 (v10.5)은 기계 도면을 구조화된 BOM(Bill of Materials, 부품 목록)과 제조 원가 견적으로 변환합니다. 이 파이프라인은 전기 단선도, 기계 도면, P&ID(배관계장도) 다이어그램을 ML 기반 단계들과 HITL(Human-in-the-Loop, 사람 참여 검증)을 통해 처리합니다.
 
-## Pipeline Overview
+## 파이프라인 개요
 
 <PipelineDiagram type="bom" />
 
-## Pipeline Stages
+## 파이프라인 단계
 
-### 1. Drawing Classification (VLM)
+### 1. 도면 분류 (VLM)
 
-The Vision-Language model (Qwen2-VL, port 5004) classifies the uploaded drawing to determine the appropriate detection model:
+VLM(Vision-Language Model, 비전-언어 모델, Qwen2-VL, 포트 5004)이 업로드된 도면을 분류하여 적합한 검출 모델을 결정합니다:
 
-| Drawing Type | Detection Model | Classes |
-|-------------|----------------|---------|
-| Electrical (single-line) | `bom_detector` | 27 BOM classes |
-| P&ID | `pid_symbol` | 60 symbol classes |
-| Mechanical | `engineering` | 14 symbol classes |
+| 도면 유형 | 검출 모델 | 클래스 수 |
+|----------|----------|----------|
+| 전기 (단선도) | `bom_detector` | 27개 BOM 클래스 |
+| P&ID | `pid_symbol` | 60개 심볼 클래스 |
+| 기계 | `engineering` | 14개 심볼 클래스 |
 
-### 2. Object Detection (YOLO)
+### 2. 객체 검출 (YOLO)
 
-YOLO v11 (port 5005) detects components and symbols in the drawing. The system supports multiple specialized models. For BOM generation, the `bom_detector` model identifies 27 electrical equipment classes.
+YOLO v11 (포트 5005)이 도면에서 부품 및 심볼을 검출합니다. 시스템은 여러 전문 모델을 지원합니다. BOM 생성 시에는 `bom_detector` 모델이 27개의 전기 장비 클래스를 식별합니다.
 
-**Key settings**:
-- Confidence threshold: 0.40
-- IOU threshold: 0.50
-- Image size: 1024px
-- Margin penalty: Detections in title block / revision block areas receive a 50% confidence reduction
+**주요 설정**:
+- 신뢰도 임계값(Confidence threshold): 0.40
+- IOU 임계값: 0.50
+- 이미지 크기: 1024px
+- 마진 페널티(Margin penalty): 표제란/리비전 블록 영역의 검출에 50% 신뢰도 감소 적용
 
-### 3. OCR Dimension Extraction
+### 3. OCR 치수 추출
 
-eDOCr2 (port 5002) extracts dimensions, tolerances, and text annotations from the drawing. Extracted dimensions are linked to nearby detected symbols for BOM enrichment.
+eDOCr2 (포트 5002)가 도면에서 치수, 공차 및 텍스트 주석을 추출합니다. 추출된 치수는 인접한 검출 심볼과 연결되어 BOM을 보강합니다.
 
-### 4. Human-in-the-Loop Verification
+### 4. HITL(Human-in-the-Loop) 검증
 
-All detections and dimensions pass through the [3-Level Verification System](../agent-verification/index.mdx):
+모든 검출 결과와 치수는 [3단계 검증 시스템](../agent-verification/index.mdx)을 거칩니다:
 
-- **L1 Auto-Approve**: High-confidence detections (>= 0.9) are automatically approved
-- **L2 Agent Review**: Borderline items (0.7-0.9) are reviewed by Claude Sonnet
-- **L3 Human Review**: Low-confidence items (< 0.7) require human verification
+- **L1 자동 승인**: 높은 신뢰도 검출(>= 0.9)은 자동으로 승인됩니다
+- **L2 에이전트 검토**: 경계 항목(0.7-0.9)은 Claude Sonnet이 검토합니다
+- **L3 사람 검토**: 낮은 신뢰도 항목(< 0.7)은 사람의 검증이 필요합니다
 
-### 5. BOM Generation
+### 5. BOM 생성
 
-Verified detections are aggregated into a structured BOM with:
+검증된 검출 결과가 구조화된 BOM으로 집계됩니다:
 
-- Part number / description
-- Quantity (counted from detections)
-- Material specification
-- Dimensions (OD, ID, Length from OCR)
-- Size specification
+- 품번 / 설명
+- 수량 (검출 결과로부터 카운팅)
+- 재질 사양
+- 치수 (OCR에서 추출한 OD, ID, Length)
+- 규격 사양
 
-### 6. Cost Calculation
+### 6. 원가 계산
 
-The [Pricing Engine](./pricing-engine.md) calculates manufacturing costs:
+[견적 엔진](./pricing-engine.md)이 제조 원가를 계산합니다:
 
-- Material cost (weight x unit price)
-- Machining cost (base rate x size factor x difficulty factor)
-- Heat treatment / surface treatment costs
-- Setup cost (for small quantities)
-- Standard parts catalog pricing (bolts, nuts, washers, pins)
+- 재료비 (중량 x 단가)
+- 가공비 (기본 요율 x 크기 계수 x 난이도 계수)
+- 열처리 / 표면 처리 비용
+- 셋업 비용 (소량 주문 시)
+- 표준 부품 카탈로그 단가 (볼트, 너트, 와셔, 핀)
 
-### 7. Quotation Export
+### 7. 견적 출력
 
-Final output as [PDF quotation](./pdf-report.md), [Excel BOM](./export-formats.md), or [JSON API response](./export-formats.md).
+최종 결과물은 [PDF 견적서](./pdf-report.md), [Excel BOM](./export-formats.md) 또는 [JSON API 응답](./export-formats.md)으로 출력됩니다.
 
-## Detection Classes
+## 검출 클래스
 
-The system recognizes 73 total classes across all models:
+시스템은 모든 모델에 걸쳐 총 73개의 클래스를 인식합니다:
 
-| Category | Count | Examples |
-|----------|-------|---------|
-| **BOM-relevant** | 27 | Transformers, circuit breakers, arresters |
-| **Annotation** | 46+ | Dimensions, tolerances, surface finish, GD&T |
+| 카테고리 | 개수 | 예시 |
+|---------|------|------|
+| **BOM 관련** | 27 | 변압기, 차단기, 피뢰기 |
+| **주석(Annotation)** | 46+ | 치수, 공차, 표면 거칠기, GD&T |
 
-See [Detection Classes](./detection-classes.md) for the complete class list.
+전체 클래스 목록은 [검출 클래스](./detection-classes.md)를 참조하세요.
 
-## Key Capabilities
+## 주요 기능
 
-- **Multi-model support**: Separate YOLO models for electrical, P&ID, and mechanical drawings
-- **Dual backend**: YOLO (fast, ~40ms) and Detectron2 (instance segmentation, ~200-500ms)
-- **Standard parts catalog**: Automatic pricing for bolts, nuts, washers, pins, and plugs
-- **Dimension parsing**: Supports OD/ID/Length, rectangular, NPT, and metric thread specifications
-- **Cost breakdown**: Material + machining + treatment + setup + inspection + transport
-- **Quantity discounts**: Tier-based pricing (10+ units: 5%, 50+: 10%, 100+: 15%)
+- **다중 모델 지원**: 전기, P&ID, 기계 도면별 전용 YOLO 모델
+- **듀얼 백엔드**: YOLO (고속, ~40ms) 및 Detectron2 (인스턴스 세그멘테이션, ~200-500ms)
+- **표준 부품 카탈로그**: 볼트, 너트, 와셔, 핀, 플러그 자동 단가 산출
+- **치수 파싱**: OD/ID/Length, 직사각형, NPT, 미터 나사 규격 지원
+- **원가 내역**: 재료비 + 가공비 + 처리비 + 셋업비 + 검사비 + 운송비
+- **수량 할인**: 단계별 할인 (10개 이상: 5%, 50개 이상: 10%, 100개 이상: 15%)
 
-## System Architecture
+## 시스템 아키텍처
 
-| Component | Port | Description |
-|-----------|------|-------------|
-| BOM Backend | 5020 | FastAPI application, analysis and verification |
-| BOM Frontend | 3000 | React UI, interactive BOM editing |
-| YOLO API | 5005 | Object detection service |
-| eDOCr2 API | 5002 | OCR and dimension extraction |
-| VL API | 5004 | Drawing classification |
-| Gateway API | 8000 | Pipeline orchestration |
+| 구성 요소 | 포트 | 설명 |
+|----------|------|------|
+| BOM 백엔드 | 5020 | FastAPI 애플리케이션, 분석 및 검증 |
+| BOM 프론트엔드 | 3000 | React UI, 대화형 BOM 편집 |
+| YOLO API | 5005 | 객체 검출 서비스 |
+| eDOCr2 API | 5002 | OCR 및 치수 추출 |
+| VL API | 5004 | 도면 분류 |
+| Gateway API | 8000 | 파이프라인 오케스트레이션 |

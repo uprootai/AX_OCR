@@ -1,41 +1,41 @@
 ---
 sidebar_position: 3
-title: Connectivity Analysis
-description: Graph-based connectivity analysis for P&ID symbol-to-symbol flow tracing
+title: 연결성 분석
+description: P&ID 심볼 간 흐름 추적을 위한 그래프 기반 연결성 분석
 ---
 
-# Connectivity Analysis
+# 연결성 분석
 
-The Connectivity Analyzer builds a graph of equipment connections from symbol detections and line detections. It determines which symbols are connected to each other, traces flow paths, and identifies orphan (disconnected) symbols.
+연결성 분석기(Connectivity Analyzer)는 심볼 검출과 라인 검출 결과를 기반으로 장비 연결 그래프를 구축합니다. 어떤 심볼이 서로 연결되어 있는지 판별하고, 흐름 경로를 추적하며, 고립(Orphan) 심볼(연결되지 않은 심볼)을 식별합니다.
 
-## Analysis Approach
+## 분석 방식
 
-The analyzer uses three strategies to establish connections, applied in order of precision:
+분석기는 정밀도 순서에 따라 세 가지 전략을 사용하여 연결을 수립합니다:
 
-| Strategy | Method | Confidence | When Used |
-|----------|--------|-----------|-----------|
-| **Line-based** | Trace lines between symbols | High (0.8+) | Lines detected |
-| **Intersection-based** | Connect through line crossings | Medium (0.6) | Complex routing |
-| **Proximity-based** | Connect nearby symbols | Lower (0.5) | No line data available |
+| 전략 | 방법 | 신뢰도 | 사용 시점 |
+|------|------|--------|-----------|
+| **라인 기반** | 심볼 간 라인 추적 | 높음 (0.8+) | 라인이 검출된 경우 |
+| **교차점 기반** | 라인 교차를 통한 연결 | 중간 (0.6) | 복잡한 라우팅 |
+| **근접 기반** | 가까운 심볼 연결 | 낮음 (0.5) | 라인 데이터 없는 경우 |
 
-## Connection Graph
+## 연결 그래프
 
 ```mermaid
 graph LR
-    P1["Pump\nP-101"]
-    V1["Gate Valve\nV-101"]
-    HX["Heat Exchanger\nHX-101"]
-    V2["Control Valve\nCV-101"]
-    T1["Tank\nT-101"]
-    PT["Pressure\nTransmitter\nPT-101"]
-    FT["Flow\nTransmitter\nFT-101"]
+    P1["펌프\nP-101"]
+    V1["게이트 밸브\nV-101"]
+    HX["열교환기\nHX-101"]
+    V2["제어 밸브\nCV-101"]
+    T1["탱크\nT-101"]
+    PT["압력\n전송기\nPT-101"]
+    FT["유량\n전송기\nFT-101"]
 
-    P1 -->|"solid line"| V1
-    V1 -->|"solid line"| HX
-    HX -->|"solid line"| V2
-    V2 -->|"solid line"| T1
-    PT -.->|"instrument"| V1
-    FT -.->|"instrument"| V2
+    P1 -->|"실선"| V1
+    V1 -->|"실선"| HX
+    HX -->|"실선"| V2
+    V2 -->|"실선"| T1
+    PT -.->|"계기 신호"| V1
+    FT -.->|"계기 신호"| V2
 
     style P1 fill:#e3f2fd,stroke:#1565c0
     style T1 fill:#e3f2fd,stroke:#1565c0
@@ -46,11 +46,11 @@ graph LR
     style FT fill:#f3e5f5,stroke:#7b1fa2
 ```
 
-## Algorithm
+## 알고리즘
 
-### Step 1: Create Symbol Nodes
+### 1단계: 심볼 노드 생성
 
-Each detected symbol becomes a node in the graph:
+검출된 각 심볼은 그래프의 노드가 됩니다:
 
 ```json
 {
@@ -64,16 +64,16 @@ Each detected symbol becomes a node in the graph:
 }
 ```
 
-### Step 2: Line-Based Connection Analysis
+### 2단계: 라인 기반 연결 분석
 
-When line detection data is available, the analyzer:
+라인 검출 데이터가 있는 경우, 분석기는 다음을 수행합니다:
 
-1. For each line, check if either endpoint is within `line_endpoint_threshold` (30px) of a symbol's bounding box
-2. When two symbols share a common line, create a connection
-3. Record the line IDs used in each connection for traceability
+1. 각 라인에 대해, 양쪽 끝점이 심볼의 바운딩 박스로부터 `line_endpoint_threshold`(30px) 이내인지 확인
+2. 두 심볼이 공통 라인을 공유하면 연결 생성
+3. 추적 가능성을 위해 각 연결에 사용된 라인 ID를 기록
 
 ```python
-# Pseudocode
+# 의사코드
 for line in detected_lines:
     symbols_touching_start = find_symbols_near(line.start, threshold=30px)
     symbols_touching_end = find_symbols_near(line.end, threshold=30px)
@@ -83,38 +83,38 @@ for line in detected_lines:
             create_connection(source, target, via=line)
 ```
 
-### Step 3: Intersection-Based Connection
+### 3단계: 교차점 기반 연결
 
-Lines that cross at intersection points may indicate indirect connections:
+교차점에서 만나는 라인은 간접 연결을 나타낼 수 있습니다:
 
-1. For each intersection, find which lines meet
-2. For each pair of lines at an intersection, trace back to their connected symbols
-3. Create indirect connections between symbols connected through shared intersections
+1. 각 교차점에서 어떤 라인이 만나는지 확인
+2. 교차점의 각 라인 쌍에 대해, 연결된 심볼까지 역추적
+3. 공유 교차점을 통해 연결된 심볼 간 간접 연결 생성
 
-### Step 4: Proximity-Based Fallback
+### 4단계: 근접 기반 폴백
 
-When no line data is available, the analyzer falls back to proximity:
+라인 데이터가 없는 경우, 분석기는 근접 기반으로 대체합니다:
 
-- Symbols within `proximity_threshold` (50px) of each other are considered directly connected
-- Only pairs within `max_path_length` (500px) are considered
+- `proximity_threshold`(50px) 이내의 심볼은 직접 연결된 것으로 간주
+- `max_path_length`(500px) 이내의 쌍만 고려
 
-### Step 5: Orphan Detection
+### 5단계: 고립 심볼 검출
 
-Symbols not connected to any other symbol are flagged as orphans. High orphan counts may indicate:
+다른 심볼과 연결되지 않은 심볼은 고립(Orphan)으로 표시됩니다. 고립 심볼 수가 많으면 다음을 나타낼 수 있습니다:
 
-- Incomplete line detection
-- Symbols in notes or legend areas
-- Disconnected instrumentation
+- 불완전한 라인 검출
+- 노트 또는 범례 영역의 심볼
+- 연결 해제된 계기
 
-## Configuration Parameters
+## 설정 파라미터
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `proximity_threshold` | 50 px | Max distance for direct proximity connection |
-| `line_endpoint_threshold` | 30 px | Max distance from line endpoint to symbol |
-| `max_path_length` | 500 px | Maximum connection path length |
+| 파라미터 | 기본값 | 설명 |
+|----------|--------|------|
+| `proximity_threshold` | 50 px | 직접 근접 연결의 최대 거리 |
+| `line_endpoint_threshold` | 30 px | 라인 끝점에서 심볼까지의 최대 거리 |
+| `max_path_length` | 500 px | 최대 연결 경로 길이 |
 
-## Output Format
+## 출력 형식
 
 ```json
 {
@@ -156,48 +156,48 @@ Symbols not connected to any other symbol are flagged as orphans. High orphan co
 }
 ```
 
-## Connection Types
+## 연결 타입
 
-| Type | Description | Confidence |
-|------|-------------|-----------|
-| `direct` | Symbols within proximity threshold | 0.5 |
-| `through_lines` | Connected via detected line segments | 0.8 |
-| `inferred` | Connected through intersection analysis | 0.6 |
+| 타입 | 설명 | 신뢰도 |
+|------|------|--------|
+| `direct` | 근접 임계값 내의 심볼 | 0.5 |
+| `through_lines` | 검출된 라인 세그먼트를 통한 연결 | 0.8 |
+| `inferred` | 교차점 분석을 통한 연결 | 0.6 |
 
-## Flow Tracing
+## 흐름 추적
 
-The connection graph enables equipment-to-equipment flow tracing:
+연결 그래프는 장비 간 흐름 추적을 가능하게 합니다:
 
 ```
-Start: Pump P-101
-Path: P-101 → V-101 (gate valve) → HX-101 (heat exchanger)
-       → CV-101 (control valve) → T-101 (tank)
-Distance: 485 px total path length
-Lines: line-012, line-015, line-022, line-031
+시작: 펌프 P-101
+경로: P-101 → V-101 (게이트 밸브) → HX-101 (열교환기)
+       → CV-101 (제어 밸브) → T-101 (탱크)
+거리: 총 경로 길이 485 px
+라인: line-012, line-015, line-022, line-031
 ```
 
-Flow tracing is used by:
-- **Design Checker**: Verify required equipment in flow path
-- **BOM Generation**: Generate equipment list from flow analysis
-- **Process Verification**: Confirm process logic integrity
+흐름 추적은 다음에서 사용됩니다:
+- **설계 검사기**: 흐름 경로 내 필수 장비 확인
+- **BOM 생성**: 흐름 분석에서 장비 목록 생성
+- **공정 검증**: 공정 로직 무결성 확인
 
-## BOM Generation from P&ID
+## P&ID로부터의 BOM 생성
 
-Connectivity data enriches BOM generation:
+연결성 데이터는 BOM(자재 명세서, Bill of Materials) 생성을 풍부하게 합니다:
 
-1. **Component counting**: Each unique symbol = BOM line item
-2. **Quantity**: Symbols with same class and tag pattern are counted
-3. **Relationships**: Connected instruments are associated with their equipment
-4. **Line specs**: Line style and size feed into piping BOM
-5. **Valve schedule**: All valves extracted with their connection context
+1. **구성요소 집계**: 각 고유 심볼 = BOM 항목
+2. **수량**: 동일한 클래스와 태그 패턴을 가진 심볼 집계
+3. **관계**: 연결된 계기가 해당 장비와 연관됨
+4. **라인 사양**: 라인 스타일과 크기가 배관 BOM에 반영
+5. **밸브 일람표**: 모든 밸브가 연결 컨텍스트와 함께 추출됨
 
-## Statistics
+## 통계
 
-The connectivity analysis produces summary statistics useful for quality assessment:
+연결성 분석은 품질 평가에 유용한 요약 통계를 생성합니다:
 
-| Metric | Description | Healthy Range |
-|--------|-------------|:------------:|
-| Orphan count | Disconnected symbols | < 5% of total |
-| Avg connections/node | Graph density | 1.5 - 3.0 |
-| Max connections | Hub node degree | 3 - 8 |
-| Line-based ratio | Connections from lines | > 70% |
+| 지표 | 설명 | 정상 범위 |
+|------|------|:---------:|
+| 고립 수 | 연결되지 않은 심볼 | 전체의 < 5% |
+| 노드당 평균 연결 수 | 그래프 밀도 | 1.5 - 3.0 |
+| 최대 연결 수 | 허브 노드 차수 | 3 - 8 |
+| 라인 기반 비율 | 라인으로부터의 연결 | > 70% |

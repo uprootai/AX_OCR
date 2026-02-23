@@ -1,75 +1,75 @@
 ---
 sidebar_position: 3
-title: Export Formats
-description: BOM and quotation export formats - Excel, JSON, and PDF
+title: 내보내기 형식
+description: BOM 및 견적 내보내기 형식 - Excel, JSON, PDF
 ---
 
-# Export Formats
+# 내보내기 형식 (Export Formats)
 
-The BOM system supports multiple export formats for different use cases. Each format contains the complete BOM data with detection results, dimensions, pricing, and verification status.
+BOM 시스템은 다양한 용도에 맞는 여러 내보내기 형식을 지원합니다. 각 형식에는 검출 결과, 치수, 단가 및 검증 상태를 포함한 전체 BOM 데이터가 담겨 있습니다.
 
-## Format Comparison
+## 형식 비교
 
-| Feature | Excel (.xlsx) | JSON (.json) | PDF (.pdf) |
-|---------|:------------:|:------------:|:----------:|
-| Structured BOM table | Yes | Yes | Yes |
-| Pricing breakdown | Yes | Yes | Yes |
-| Drawing image | No | No | Yes |
-| Detection overlay | No | No | Yes |
-| Machine-readable | Partial | Yes | No |
-| Human-readable | Yes | Partial | Yes |
-| Editable | Yes | Yes | No |
-| Self-contained | Yes | Yes | Yes |
-| Typical file size | 50-200 KB | 20-100 KB | 500 KB - 2 MB |
-| Primary use case | Procurement | API integration | Customer quotation |
+| 기능 | Excel (.xlsx) | JSON (.json) | PDF (.pdf) |
+|------|:------------:|:------------:|:----------:|
+| 구조화된 BOM 테이블 | 예 | 예 | 예 |
+| 단가 내역 | 예 | 예 | 예 |
+| 도면 이미지 | 아니오 | 아니오 | 예 |
+| 검출 오버레이 | 아니오 | 아니오 | 예 |
+| 기계 판독 가능 | 부분적 | 예 | 아니오 |
+| 사람 판독 가능 | 예 | 부분적 | 예 |
+| 편집 가능 | 예 | 예 | 아니오 |
+| 자체 완결형 | 예 | 예 | 예 |
+| 일반적 파일 크기 | 50-200 KB | 20-100 KB | 500 KB - 2 MB |
+| 주요 용도 | 구매/조달 | API 연동 | 고객용 견적서 |
 
-## Excel Export
+## Excel 내보내기
 
-The Excel export produces a structured workbook with BOM data organized for procurement and manufacturing workflows.
+Excel 내보내기는 구매 및 제조 워크플로에 맞게 구성된 BOM 데이터 워크북을 생성합니다.
 
-### Sheet Structure
+### 시트 구조
 
-**Sheet 1: BOM**
+**시트 1: BOM**
 
-| Column | Description | Example |
-|--------|-------------|---------|
-| No. | Item number | 1 |
-| Part Number | Drawing part number | T1-001 |
-| Description | Part name | T1 BEARING ASSY |
-| Material | Material specification | SCM440+QT |
-| Size | Dimension specification | OD670XID440X29.5T |
-| Quantity | Count | 2 |
-| Unit | Unit of measure | EA |
-| Unit Price | Per-unit cost | 485,000 |
-| Total Price | Quantity x Unit Price | 970,000 |
-| Verification | Status | Approved |
+| 컬럼 | 설명 | 예시 |
+|------|------|------|
+| No. | 항목 번호 | 1 |
+| Part Number | 도면 품번 | T1-001 |
+| Description | 부품명 | T1 BEARING ASSY |
+| Material | 재질 사양 | SCM440+QT |
+| Size | 치수 사양 | OD670XID440X29.5T |
+| Quantity | 수량 | 2 |
+| Unit | 단위 | EA |
+| Unit Price | 단가 | 485,000 |
+| Total Price | 수량 x 단가 | 970,000 |
+| Verification | 검증 상태 | Approved |
 
-**Sheet 2: Cost Breakdown (when pricing is included)**
+**시트 2: 원가 내역 (단가 포함 시)**
 
-| Column | Description |
-|--------|-------------|
-| Description | Part name |
-| Weight (kg) | Calculated weight |
-| Material Cost | Raw material cost |
-| Machining Cost | Manufacturing cost |
-| Treatment Cost | Heat/surface treatment |
-| Setup Cost | Setup/tooling cost |
-| Inspection Cost | QC cost |
-| Transport Cost | Logistics cost |
-| Subtotal | Total item cost |
+| 컬럼 | 설명 |
+|------|------|
+| Description | 부품명 |
+| Weight (kg) | 계산된 중량 |
+| Material Cost | 원재료비 |
+| Machining Cost | 가공비 |
+| Treatment Cost | 열처리/표면 처리비 |
+| Setup Cost | 셋업/공구비 |
+| Inspection Cost | 품질 검사비 |
+| Transport Cost | 물류비 |
+| Subtotal | 항목 합계 |
 | Cost Source | calculated / estimated / catalog |
 
-### Export Endpoint
+### 내보내기 엔드포인트
 
 ```
 GET /export/excel/{session_id}
 ```
 
-## JSON Export
+## JSON 내보내기
 
-The JSON format provides the complete BOM data structure for API integration and programmatic processing.
+JSON 형식은 API 연동 및 프로그래밍 방식 처리를 위한 전체 BOM 데이터 구조를 제공합니다.
 
-### Response Structure
+### 응답 구조
 
 ```json
 {
@@ -124,52 +124,52 @@ The JSON format provides the complete BOM data structure for API integration and
 }
 ```
 
-### Export Endpoint
+### 내보내기 엔드포인트
 
 ```
 GET /export/json/{session_id}
 ```
 
-## PDF Export
+## PDF 내보내기
 
-The PDF format produces a formatted quotation document suitable for customer delivery. See [PDF Report](./pdf-report.md) for detailed layout information.
+PDF 형식은 고객에게 전달할 수 있는 포맷된 견적서를 생성합니다. 상세 레이아웃 정보는 [PDF 보고서](./pdf-report.md)를 참조하세요.
 
-### Export Endpoint
+### 내보내기 엔드포인트
 
 ```
 GET /export/pdf/{session_id}
 POST /quotation/generate/{session_id}
 ```
 
-## Self-Contained Export Package
+## 자체 완결형 내보내기 패키지
 
-For archival and offline review, the system can generate a self-contained export package:
+보관 및 오프라인 검토를 위해 시스템은 자체 완결형 내보내기 패키지를 생성할 수 있습니다:
 
 ```
 export-package/
-  ├── bom.xlsx           # BOM spreadsheet
-  ├── bom.json           # Machine-readable BOM
-  ├── quotation.pdf      # Formatted quotation
-  ├── drawing.png        # Original drawing image
-  ├── detection.png      # Drawing with detection overlay
-  └── metadata.json      # Session and analysis metadata
+  ├── bom.xlsx           # BOM 스프레드시트
+  ├── bom.json           # 기계 판독용 BOM
+  ├── quotation.pdf      # 포맷된 견적서
+  ├── drawing.png        # 원본 도면 이미지
+  ├── detection.png      # 검출 오버레이가 포함된 도면
+  └── metadata.json      # 세션 및 분석 메타데이터
 ```
 
-### Package Export Endpoint
+### 패키지 내보내기 엔드포인트
 
 ```
 POST /export/package/{session_id}
 ```
 
-Returns a ZIP archive containing all export files.
+모든 내보내기 파일이 포함된 ZIP 아카이브를 반환합니다.
 
-## Session I/O
+## 세션 입출력
 
-Beyond export, the system supports session import/export for backup and transfer:
+내보내기 외에도, 시스템은 백업 및 이관을 위한 세션 가져오기/내보내기를 지원합니다:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/session/export/{session_id}` | GET | Export complete session state |
-| `/session/import` | POST | Import session from exported data |
-| `/project/export/{project_id}` | GET | Export all sessions in a project |
-| `/project/import` | POST | Import project with all sessions |
+| 엔드포인트 | 메서드 | 설명 |
+|-----------|--------|------|
+| `/session/export/{session_id}` | GET | 전체 세션 상태 내보내기 |
+| `/session/import` | POST | 내보낸 데이터에서 세션 가져오기 |
+| `/project/export/{project_id}` | GET | 프로젝트 내 모든 세션 내보내기 |
+| `/project/import` | POST | 모든 세션 포함 프로젝트 가져오기 |

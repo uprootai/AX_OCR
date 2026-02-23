@@ -1,64 +1,64 @@
 ---
 sidebar_position: 4
-title: BOM Frontend
+title: BOM 프론트엔드
 description: Blueprint AI BOM 프론트엔드
 ---
 
-# BOM Frontend
+# BOM 프론트엔드
 
-별도의 React 앱으로 구동되는 Blueprint AI BOM 전용 프론트엔드입니다 (port 3000).
+별도의 React 앱으로 구동되는 Blueprint AI BOM 전용 프론트엔드입니다 (포트 3000).
 
-## Architecture
+## 아키텍처
 
 ```mermaid
 flowchart TD
-    subgraph BOM_FE["BOM Frontend :3000"]
-        APP["React App\n(React Router)"]
+    subgraph BOM_FE["BOM 프론트엔드 :3000"]
+        APP["React 앱\n(React Router)"]
         STORE["sessionStore\n(Zustand)"]
-        API_LIB["API Client Layer\n(Axios)"]
+        API_LIB["API 클라이언트 레이어\n(Axios)"]
 
         APP --> STORE
         STORE --> API_LIB
     end
 
-    subgraph BOM_BE["BOM Backend :5020"]
-        API["FastAPI Server"]
-        SSTORE["Session Store"]
+    subgraph BOM_BE["BOM 백엔드 :5020"]
+        API["FastAPI 서버"]
+        SSTORE["세션 저장소"]
     end
 
     subgraph GW["Gateway :8000"]
-        GW_API["Pipeline API"]
+        GW_API["파이프라인 API"]
     end
 
-    API_LIB -->|"api instance"| API
-    API_LIB -->|"gatewayApi instance"| GW_API
+    API_LIB -->|"api 인스턴스"| API
+    API_LIB -->|"gatewayApi 인스턴스"| GW_API
     API --> SSTORE
 ```
 
-## Page Structure
+## 페이지 구조
 
 총 **52개** 페이지/섹션 컴포넌트로 구성됩니다:
 
-| Category | Pages | Description |
-|----------|-------|-------------|
-| **Workflow** | `WorkflowPage`, `WorkflowSidebar` | 통합 분석 워크플로우 (기본 페이지) |
-| **Project** | `ProjectListPage`, `ProjectDetailPage`, `ProjectCard` | 프로젝트 CRUD 관리 |
-| **Agent Verification** | `AgentVerificationPage`, `AgentDashboardPage` | Agent 검증 큐 + 결과 대시보드 |
-| **Customer** | `CustomerWorkflowPage`, `CustomerImageReviewPage`, `CustomerSessionPage` | 고객 전용 리뷰 UI |
-| **Detection** | `DetectionPage`, `DetectionResultsSection`, `DetectionRow` | 검출 결과 표시/편집 |
-| **Dimension/GDT** | `DimensionSection`, `GDTSection` | 치수값 및 기하공차 편집 |
+| 카테고리 | 페이지 | 설명 |
+|----------|--------|------|
+| **워크플로우** | `WorkflowPage`, `WorkflowSidebar` | 통합 분석 워크플로우 (기본 페이지) |
+| **프로젝트** | `ProjectListPage`, `ProjectDetailPage`, `ProjectCard` | 프로젝트 CRUD 관리 |
+| **Agent 검증** | `AgentVerificationPage`, `AgentDashboardPage` | Agent 검증 큐 + 결과 대시보드 |
+| **고객** | `CustomerWorkflowPage`, `CustomerImageReviewPage`, `CustomerSessionPage` | 고객 전용 리뷰 UI |
+| **검출** | `DetectionPage`, `DetectionResultsSection`, `DetectionRow` | 검출 결과 표시/편집 |
+| **치수/GDT** | `DimensionSection`, `GDTSection` | 치수값 및 기하공차(GDT) 편집 |
 | **BOM** | `BOMPage`, `BOMSection`, `BOMHierarchyTree`, `AssemblyBreakdown` | BOM 계층 구조 + 자재 분류 |
 | **P&ID** | `PIDFeaturesSection`, `PIDWorkflowSection`, `ConnectivitySection` | P&ID 분석 결과 |
-| **Legacy** | `HomePage`, `VerificationPage` | 호환성 유지용 레거시 페이지 |
+| **레거시** | `HomePage`, `VerificationPage` | 호환성 유지용 레거시 페이지 |
 
-## Session Lifecycle
+## 세션 생명주기(Session Lifecycle)
 
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant FE as BOM Frontend
+    participant U as 사용자
+    participant FE as BOM 프론트엔드
     participant Store as sessionStore
-    participant BE as BOM Backend :5020
+    participant BE as BOM 백엔드 :5020
 
     U->>FE: 이미지 업로드
     FE->>Store: uploadImage(file)
@@ -71,22 +71,22 @@ sequenceDiagram
     Note over Store: AbortController로 취소 가능
     BE-->>Store: Detection[]
 
-    U->>FE: 검증 (Approve/Reject)
+    U->>FE: 검증 (승인/거부)
     FE->>Store: verifyDetection(id, status)
     Store->>BE: PATCH /api/detections/{id}
-    BE-->>Store: Updated detection
+    BE-->>Store: 업데이트된 검출 결과
 
     U->>FE: BOM 내보내기
     FE->>BE: POST /api/export
     BE-->>FE: Excel/PDF/JSON 다운로드
 ```
 
-## State Management (Zustand)
+## 상태 관리 (Zustand)
 
 단일 `sessionStore`로 모든 상태를 관리합니다:
 
-| State | Type | Description |
-|-------|------|-------------|
+| 상태 | 타입 | 설명 |
+|------|------|------|
 | `currentSession` | `SessionDetail \| null` | 현재 활성 세션 정보 |
 | `sessions` | `Session[]` | 세션 목록 |
 | `detections` | `Detection[]` | 검출 결과 배열 |
@@ -95,10 +95,10 @@ sequenceDiagram
 | `imageData` | `string \| null` | 현재 표시 중인 이미지 |
 | `currentImageId` | `string \| null` | 다중 이미지 세션의 현재 이미지 |
 
-### Key Actions
+### 주요 액션
 
-| Action | Description |
-|--------|-------------|
+| 액션 | 설명 |
+|------|------|
 | `uploadImage(file)` | 이미지 업로드 후 세션 ID 반환 |
 | `runDetection(config?)` | YOLO 검출 실행 (AbortController 지원) |
 | `cancelDetection()` | 진행 중인 검출 취소 |
@@ -107,29 +107,29 @@ sequenceDiagram
 | `loadSession(id)` | 세션 상세 로드 |
 | `deleteSession(id)` | 세션 삭제 |
 
-## Verification Keyboard Shortcuts
+## 검증 키보드 단축키
 
-| Key | Action |
-|-----|--------|
-| `A` | Approve (승인) |
-| `R` | Reject (거부) |
-| `S` | Skip (건너뛰기) |
-| `E` | Edit (수정 모드 진입) |
-| `←` / `→` | Previous / Next item |
+| 키 | 동작 |
+|----|------|
+| `A` | 승인 (Approve) |
+| `R` | 거부 (Reject) |
+| `S` | 건너뛰기 (Skip) |
+| `E` | 수정 모드 진입 (Edit) |
+| `←` / `→` | 이전 / 다음 항목 |
 
-## API Client Layer
+## API 클라이언트 레이어
 
 두 개의 Axios 인스턴스로 백엔드와 통신합니다:
 
-| Instance | Target | Timeout | Usage |
-|----------|--------|---------|-------|
-| `api` | BOM Backend (:5020) | 60s | 세션, 검출, BOM, 내보내기 |
-| `gatewayApi` | Gateway (:8000) | 10s | BlueprintFlow 파이프라인 연동 |
+| 인스턴스 | 대상 | 타임아웃 | 용도 |
+|----------|------|----------|------|
+| `api` | BOM 백엔드 (:5020) | 60초 | 세션, 검출, BOM, 내보내기 |
+| `gatewayApi` | Gateway (:8000) | 10초 | BlueprintFlow 파이프라인 연동 |
 
 API 모듈 구조 (`lib/api/`):
 
-| Module | Endpoints |
-|--------|-----------|
+| 모듈 | 엔드포인트 |
+|------|-----------|
 | `analysis.ts` | 분석 실행 및 결과 조회 |
 | `detection.ts` | 검출 CRUD + 검증 상태 변경 |
 | `bom.ts` | BOM 생성/편집/계층 구조 |
@@ -138,17 +138,17 @@ API 모듈 구조 (`lib/api/`):
 | `feedback.ts` | 사용자 피드백 수집 |
 | `blueprintFlow.ts` / `longterm.ts` | Gateway 연동 및 장기 세션 |
 
-## Key Components
+## 주요 컴포넌트
 
-| Component | Description |
-|-----------|-------------|
+| 컴포넌트 | 설명 |
+|----------|------|
 | `WorkflowPage` | 단계별 분석 워크플로우 (업로드 > 검출 > 검증 > BOM > 내보내기) |
 | `VerificationQueue` | Agent 검증 큐 (키보드 단축키 기반 빠른 검증) |
 | `DimensionOverlay` | 이미지 위에 치수값 오버레이 표시 |
 | `DrawingCanvas` | 도면 이미지 뷰어 (확대/축소/패닝) |
-| `GDTEditor` | 기하공차 인라인 편집기 |
+| `GDTEditor` | 기하공차(GDT) 인라인 편집기 |
 | `ReferencePanel` | 참조 도면 비교 패널 |
 
-## Verification Thresholds
+## 검증 임계값
 
 자동 검증 판정 기준 (`constants.ts`): `AUTO_APPROVE` 0.9 (자동 승인), `HIGH_CONFIDENCE` 0.7 (녹색), `LOW_CONFIDENCE` 0.5 (경고).

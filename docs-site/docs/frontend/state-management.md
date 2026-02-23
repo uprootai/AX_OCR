@@ -1,41 +1,41 @@
 ---
 sidebar_position: 2
-title: State Management
-description: Zustand 상태 관리
+title: 상태 관리
+description: Zustand 기반 상태 관리
 ---
 
-# State Management
+# 상태 관리
 
 Zustand를 사용한 경량 상태 관리입니다.
 
-## Store Architecture
+## 스토어 아키텍처
 
 ```mermaid
 flowchart LR
-    subgraph Stores
+    subgraph 스토어
         WS["workflowStore\n워크플로우 상태"]
         AS["apiConfigStore\nAPI 설정"]
     end
 
-    subgraph Components
+    subgraph 컴포넌트
         BF["BlueprintFlow"]
-        DASH["Dashboard"]
-        SET["Settings"]
+        DASH["대시보드"]
+        SET["설정"]
     end
 
     BF --> WS & AS
     DASH --> AS
     SET --> AS
 
-    subgraph API["API Layer"]
-        LIB["api.ts\nHTTP Client"]
+    subgraph API["API 레이어"]
+        LIB["api.ts\nHTTP 클라이언트"]
     end
 
     WS & AS --> LIB
     LIB --> GW["Gateway :8000"]
 ```
 
-## Stores
+## 스토어 목록
 
 ### workflowStore
 
@@ -49,7 +49,7 @@ interface WorkflowState {
   isExecuting: boolean;
   executionResults: Record<string, NodeResult>;
 
-  // Actions
+  // 액션
   addNode: (node: Node) => void;
   removeNode: (id: string) => void;
   updateNodeData: (id: string, data: any) => void;
@@ -67,27 +67,27 @@ interface ApiConfigState {
   services: ServiceConfig[];
   healthStatus: Record<string, HealthStatus>;
 
-  // Actions
+  // 액션
   updateServiceConfig: (id: string, config: Partial<ServiceConfig>) => void;
   checkHealth: (serviceId: string) => Promise<void>;
   checkAllHealth: () => Promise<void>;
 }
 ```
 
-## Patterns
+## 패턴
 
-### Selector Pattern
+### 셀렉터 패턴 (Selector Pattern)
 
 ```typescript
-// Fine-grained subscription to avoid unnecessary re-renders
+// 불필요한 리렌더링을 방지하기 위한 세밀한 구독
 const nodes = useWorkflowStore(state => state.nodes);
 const isExecuting = useWorkflowStore(state => state.isExecuting);
 ```
 
-### Async Actions
+### 비동기 액션 (Async Actions)
 
 ```typescript
-// API calls integrated into store actions
+// 스토어 액션에 통합된 API 호출
 executeWorkflow: async () => {
   set({ isExecuting: true });
   try {

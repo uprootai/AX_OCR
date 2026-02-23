@@ -1,38 +1,38 @@
 ---
 sidebar_position: 2
-title: CI Pipeline
+title: CI 파이프라인
 description: 지속적 통합 파이프라인
 ---
 
-# CI Pipeline
+# CI 파이프라인
 
-## Workflow
+## 워크플로우
 
 ```mermaid
 flowchart TD
-    PUSH["Git Push / PR"] --> CI["CI Workflow"]
+    PUSH["Git Push / PR"] --> CI["CI 워크플로우"]
 
-    CI --> FE["Frontend Jobs"]
-    CI --> BE["Backend Jobs"]
+    CI --> FE["프론트엔드 작업"]
+    CI --> BE["백엔드 작업"]
 
-    FE --> LINT["ESLint\nzero errors"]
-    FE --> BUILD["npm run build\nproduction build"]
-    FE --> TEST_FE["Vitest\n185 tests"]
+    FE --> LINT["ESLint\n에러 0건"]
+    FE --> BUILD["npm run build\n프로덕션 빌드"]
+    FE --> TEST_FE["Vitest\n185개 테스트"]
 
-    BE --> RUFF["Ruff Linter\nPython lint"]
-    BE --> PYTEST["Pytest\n364 tests"]
+    BE --> RUFF["Ruff 린터\nPython 린트"]
+    BE --> PYTEST["Pytest\n364개 테스트"]
 
-    LINT --> SUM["Summary"]
+    LINT --> SUM["요약"]
     BUILD --> SUM
     TEST_FE --> SUM
     RUFF --> SUM
     PYTEST --> SUM
 
-    SUM -->|All Pass| READY["Ready to Merge"]
-    SUM -->|Fail| BLOCK["Block PR"]
+    SUM -->|모두 통과| READY["머지 준비 완료"]
+    SUM -->|실패| BLOCK["PR 차단"]
 ```
 
-## Trigger
+## 트리거
 
 ```yaml
 on:
@@ -42,39 +42,39 @@ on:
     branches: [main, develop]
 ```
 
-## Jobs
+## 작업(Jobs)
 
-### Frontend
+### 프론트엔드
 
-| Step | Command | Duration |
-|------|---------|----------|
-| Install | `npm ci` | ~30s |
-| Lint | `npm run lint` | ~10s |
-| Build | `npm run build` | ~30s |
-| Test | `npm run test:run` | ~15s |
+| 단계 | 명령어 | 소요 시간 |
+|------|--------|----------|
+| 설치 | `npm ci` | ~30초 |
+| 린트 | `npm run lint` | ~10초 |
+| 빌드 | `npm run build` | ~30초 |
+| 테스트 | `npm run test:run` | ~15초 |
 
-### Backend
+### 백엔드
 
-| Step | Command | Duration |
-|------|---------|----------|
-| Install | `pip install -r requirements.txt` | ~30s |
-| Lint | `ruff check .` | ~5s |
-| Test | `pytest tests/ -v` | ~60s |
+| 단계 | 명령어 | 소요 시간 |
+|------|--------|----------|
+| 설치 | `pip install -r requirements.txt` | ~30초 |
+| 린트 | `ruff check .` | ~5초 |
+| 테스트 | `pytest tests/ -v` | ~60초 |
 
-## Test Summary
+## 테스트 요약
 
-| Suite | Tests | Framework |
-|-------|-------|-----------|
-| Frontend (web-ui) | 185 | Vitest |
-| Backend (gateway-api) | 364 | Pytest |
-| **Total** | **549** | - |
+| 테스트 스위트 | 테스트 수 | 프레임워크 |
+|--------------|----------|-----------|
+| 프론트엔드 (web-ui) | 185 | Vitest |
+| 백엔드 (gateway-api) | 364 | Pytest |
+| **합계** | **549** | - |
 
-## Quality Gates
+## 품질 게이트(Quality Gates)
 
-| Gate | Criteria | Status |
-|------|----------|--------|
-| TypeScript Build | 0 errors | Required |
-| ESLint | 0 errors | Required |
-| Frontend Tests | All pass | Required |
-| Ruff | 0 errors | Required |
-| Backend Tests | All pass | Required |
+| 게이트 | 기준 | 상태 |
+|--------|------|------|
+| TypeScript 빌드 | 에러 0건 | 필수 |
+| ESLint | 에러 0건 | 필수 |
+| 프론트엔드 테스트 | 전체 통과 | 필수 |
+| Ruff | 에러 0건 | 필수 |
+| 백엔드 테스트 | 전체 통과 | 필수 |

@@ -1,81 +1,81 @@
 ---
 sidebar_position: 3
-title: Tech Stack
+title: 기술 스택
 description: 기술 스택 상세
 ---
 
-# Tech Stack
+# 기술 스택
 
-## Frontend
+## 프론트엔드
 
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| **React** | 19 | UI Framework |
-| **TypeScript** | 5.x | Type safety |
-| **Vite** | 6.x | Build tool |
-| **Tailwind CSS** | 3.x | Styling |
-| **Zustand** | 4.x | State management |
-| **React Flow** | 11.x | Workflow canvas |
-| **React Router** | 6.x | Routing |
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| **React** | 19 | UI 프레임워크 |
+| **TypeScript** | 5.x | 타입 안정성(Type Safety) |
+| **Vite** | 6.x | 빌드 도구 |
+| **Tailwind CSS** | 3.x | 스타일링 |
+| **Zustand** | 4.x | 상태 관리(State Management) |
+| **React Flow** | 11.x | 워크플로우 캔버스 |
+| **React Router** | 6.x | 라우팅 |
 
-## Backend
+## 백엔드
 
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| **FastAPI** | 0.100+ | API Framework |
-| **Python** | 3.11 | Runtime |
-| **Uvicorn** | 0.23+ | ASGI Server |
-| **Pydantic** | 2.x | Data validation |
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| **FastAPI** | 0.100+ | API 프레임워크 |
+| **Python** | 3.11 | 런타임 |
+| **Uvicorn** | 0.23+ | ASGI 서버 |
+| **Pydantic** | 2.x | 데이터 유효성 검증 |
 
-## ML / AI
+## 머신러닝 / 인공지능(ML / AI)
 
-| Technology | Purpose |
-|-----------|---------|
-| **PyTorch** | Deep learning framework |
-| **Ultralytics YOLOv11** | Object detection |
-| **eDOCr2** | Engineering drawing OCR |
-| **PaddleOCR** | Multi-language OCR |
-| **Tesseract** | General OCR |
-| **TrOCR** | Handwriting recognition |
-| **Surya OCR** | Layout-aware OCR |
-| **DocTR** | Document text recognition |
-| **EasyOCR** | Easy-to-use OCR |
-| **Qwen2-VL** | Vision-Language model |
-| **ESRGAN** | Image super-resolution |
+| 기술 | 용도 |
+|------|------|
+| **PyTorch** | 딥러닝 프레임워크 |
+| **Ultralytics YOLOv11** | 객체 검출(Object Detection) |
+| **eDOCr2** | 설계 도면 전용 OCR |
+| **PaddleOCR** | 다국어 OCR |
+| **Tesseract** | 범용 OCR |
+| **TrOCR** | 필기체 인식(Handwriting Recognition) |
+| **Surya OCR** | 레이아웃 인식 OCR |
+| **DocTR** | 문서 텍스트 인식 |
+| **EasyOCR** | 간편 OCR |
+| **Qwen2-VL** | 비전-언어 모델(Vision-Language Model) |
+| **ESRGAN** | 이미지 초해상도(Super-Resolution) |
 
-## Infrastructure
+## 인프라
 
-| Technology | Purpose |
-|-----------|---------|
-| **Docker Compose** | Container orchestration |
-| **Neo4j** | Knowledge graph database |
-| **Nginx** | Reverse proxy (production) |
-| **GitHub Actions** | CI/CD |
+| 기술 | 용도 |
+|------|------|
+| **Docker Compose** | 컨테이너 오케스트레이션 |
+| **Neo4j** | 지식 그래프 데이터베이스 |
+| **Nginx** | 리버스 프록시 (프로덕션 환경) |
+| **GitHub Actions** | CI/CD 파이프라인 |
 
-## Architecture Patterns
+## 아키텍처 패턴
 
 ```mermaid
 flowchart LR
-    subgraph Patterns
-        MS["Microservices"]
-        GW["API Gateway"]
-        CQRS["Event-Driven"]
+    subgraph 패턴
+        MS["마이크로서비스"]
+        GW["API 게이트웨이"]
+        CQRS["이벤트 기반"]
         HITL["Human-in-the-Loop"]
     end
 
-    MS --> |"21 containers"| Docker
+    MS --> |"컨테이너 21개"| Docker
     GW --> |"Gateway API :8000"| FastAPI
-    CQRS --> |"Async Processing"| Queue
-    HITL --> |"Agent Verification"| Claude
+    CQRS --> |"비동기 처리"| Queue
+    HITL --> |"에이전트 검증"| Claude
 ```
 
-### Key Patterns
+### 핵심 패턴
 
-| Pattern | Implementation |
-|---------|---------------|
-| **API Gateway** | Gateway API가 모든 서비스 라우팅 |
-| **Microservices** | 각 ML 모델이 독립 컨테이너 |
-| **Human-in-the-Loop** | 3-Level 검증 (Auto/Agent/Human) |
-| **Ensemble** | OCR 4엔진 가중 투표 |
-| **DAG Execution** | BlueprintFlow 토폴로지 정렬 실행 |
-| **Active Learning** | 불확실한 샘플 우선 학습 |
+| 패턴 | 구현 방식 |
+|------|-----------|
+| **API 게이트웨이(API Gateway)** | Gateway API가 모든 서비스 라우팅 담당 |
+| **마이크로서비스(Microservices)** | 각 ML 모델이 독립 컨테이너로 운영 |
+| **Human-in-the-Loop** | 3단계 검증 (자동/에이전트/사람) |
+| **앙상블(Ensemble)** | OCR 4엔진 가중 투표 방식 |
+| **DAG 실행(DAG Execution)** | BlueprintFlow 토폴로지 정렬 실행 |
+| **능동 학습(Active Learning)** | 불확실한 샘플 우선 학습 |

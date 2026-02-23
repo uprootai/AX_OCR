@@ -1,31 +1,31 @@
 ---
 sidebar_position: 1
-title: Architecture Map
+title: 아키텍처 맵
 description: 전체 시스템 아키텍처 인터랙티브 맵
 ---
 
-# Architecture Map
+# 아키텍처 맵
 
-AX POC는 21개의 Docker 컨테이너로 구성된 마이크로서비스 아키텍처입니다.
+AX POC는 21개의 Docker 컨테이너로 구성된 마이크로서비스(Microservices) 아키텍처입니다.
 
-## Service Topology
+## 서비스 토폴로지(Topology)
 
 import ArchitectureDiagram from '@site/src/components/ArchitectureDiagram';
 
 <ArchitectureDiagram />
 
-## Service Communication
+## 서비스 간 통신
 
 모든 서비스 간 통신은 Docker 네트워크 `ax_poc_network`를 통해 이루어집니다.
 
-| Pattern | Description |
-|---------|-------------|
+| 패턴 | 설명 |
+|------|------|
 | **Gateway → Service** | HTTP REST (JSON/multipart) |
-| **Frontend → Gateway** | HTTP REST via Vite proxy |
-| **BOM Frontend → BOM Backend** | Direct HTTP |
-| **Knowledge → Neo4j** | Bolt protocol (:7687) |
+| **프론트엔드 → Gateway** | Vite 프록시를 통한 HTTP REST |
+| **BOM 프론트엔드 → BOM 백엔드** | 직접 HTTP 통신 |
+| **Knowledge → Neo4j** | Bolt 프로토콜 (:7687) |
 
-## Port Allocation
+## 포트 할당
 
 import PortMap from '@site/src/components/PortMap';
 

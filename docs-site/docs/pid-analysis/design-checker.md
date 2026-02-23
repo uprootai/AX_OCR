@@ -1,42 +1,42 @@
 ---
 sidebar_position: 4
-title: Design Checker
-description: Rule-based P&ID design verification with BWMS-specific rules
+title: 설계 검사기
+description: BWMS 전용 규칙을 포함한 규칙 기반 P&ID 설계 검증
 ---
 
-# Design Checker
+# 설계 검사기
 
-The Design Checker API (port 5019) evaluates P&ID diagrams against predefined design rules. It automatically verifies equipment presence, piping standards, instrumentation requirements, and safety compliance. The system includes 50+ rules with specialization for BWMS (Ballast Water Management System) equipment.
+설계 검사기 API(Design Checker API, 포트 5019)는 사전 정의된 설계 규칙에 따라 P&ID 도면을 평가합니다. 장비 존재 여부, 배관 표준, 계기 요구사항 및 안전 준수 사항을 자동으로 검증합니다. 이 시스템은 BWMS(선박평형수 처리 시스템, Ballast Water Management System) 장비에 특화된 50개 이상의 규칙을 포함합니다.
 
-## Overview
+## 개요
 
-| Property | Value |
-|----------|-------|
-| Service | `design-checker-api` |
-| Port | 5019 |
-| Version | 1.0.0 |
-| GPU Required | No |
-| Rule Count | 50+ (including BWMS-specific) |
-| Rule Profiles | `default`, `bwms`, `chemical` |
+| 속성 | 값 |
+|------|-----|
+| 서비스 | `design-checker-api` |
+| 포트 | 5019 |
+| 버전 | 1.0.0 |
+| GPU 필요 | 아니오 |
+| 규칙 수 | 50개 이상 (BWMS 전용 포함) |
+| 규칙 프로필 | `default`, `bwms`, `chemical` |
 
-## Rule Engine Architecture
+## 규칙 엔진 아키텍처
 
 ```mermaid
 flowchart TD
-    Input["P&ID Data\n(Symbols + Connections + Text)"]
-    Profile{"Rule\nProfile?"}
+    Input["P&ID 데이터\n(심볼 + 연결 + 텍스트)"]
+    Profile{"규칙\n프로필?"}
 
-    Default["Default Rules\n(General P&ID)"]
-    BWMS["BWMS Rules\n(50+ specialized)"]
-    Chemical["Chemical Rules\n(Process safety)"]
+    Default["기본 규칙\n(일반 P&ID)"]
+    BWMS["BWMS 규칙\n(50개 이상 전용)"]
+    Chemical["화학 규칙\n(공정 안전)"]
 
-    Engine["Rule Evaluation Engine"]
+    Engine["규칙 평가 엔진"]
 
-    Pass["PASS\n(Rule satisfied)"]
-    Warning["WARNING\n(Potential issue)"]
-    Violation["VIOLATION\n(Rule broken)"]
+    Pass["통과(PASS)\n(규칙 충족)"]
+    Warning["경고(WARNING)\n(잠재적 문제)"]
+    Violation["위반(VIOLATION)\n(규칙 위반)"]
 
-    Report["Design Check Report"]
+    Report["설계 검사 보고서"]
 
     Input --> Profile
     Profile -->|"default"| Default
@@ -61,100 +61,100 @@ flowchart TD
     style Engine fill:#e3f2fd,stroke:#1565c0
 ```
 
-## Rule Categories
+## 규칙 카테고리
 
-### Equipment Rules
+### 장비 규칙
 
-Verify that required equipment is present in the P&ID:
+P&ID에 필수 장비가 존재하는지 확인합니다:
 
-| Rule | Description | Severity |
-|------|-------------|----------|
-| Required equipment check | All mandatory equipment detected | Violation |
-| Equipment tag format | Tags follow naming convention | Warning |
-| Redundancy check | Critical equipment has backup | Warning |
-| Equipment sizing | Equipment count matches spec | Violation |
+| 규칙 | 설명 | 심각도 |
+|------|------|--------|
+| 필수 장비 확인 | 모든 필수 장비가 검출되었는지 확인 | 위반 |
+| 장비 태그 형식 | 태그가 명명 규칙을 따르는지 확인 | 경고 |
+| 이중화 확인 | 중요 장비에 백업이 있는지 확인 | 경고 |
+| 장비 규모 확인 | 장비 수가 사양과 일치하는지 확인 | 위반 |
 
-### Piping Rules
+### 배관 규칙
 
-Verify piping standards and configuration:
+배관 표준 및 구성을 확인합니다:
 
-| Rule | Description | Severity |
-|------|-------------|----------|
-| Dead-end detection | No pipe segments end without connection | Warning |
-| Valve placement | Isolation valves at required locations | Violation |
-| Check valve direction | Check valves oriented in flow direction | Violation |
-| Drain/vent provision | Low points have drains, high points have vents | Warning |
+| 규칙 | 설명 | 심각도 |
+|------|------|--------|
+| 데드엔드 검출 | 연결 없이 끝나는 배관 세그먼트가 없는지 확인 | 경고 |
+| 밸브 배치 | 필수 위치에 차단 밸브가 있는지 확인 | 위반 |
+| 체크 밸브 방향 | 체크 밸브가 흐름 방향으로 설치되었는지 확인 | 위반 |
+| 드레인/벤트 설치 | 저점에 드레인, 고점에 벤트가 있는지 확인 | 경고 |
 
-### Instrumentation Rules
+### 계기 규칙
 
-Verify instrument coverage and configuration:
+계기 설치 및 구성을 확인합니다:
 
-| Rule | Description | Severity |
-|------|-------------|----------|
-| Required instruments | Mandatory measurement points present | Violation |
-| Instrument tagging | All instruments have proper ISA tags | Warning |
-| Control loop integrity | Controllers connected to transmitters | Warning |
-| Alarm points | Safety alarms on critical parameters | Violation |
+| 규칙 | 설명 | 심각도 |
+|------|------|--------|
+| 필수 계기 확인 | 필수 측정 포인트가 존재하는지 확인 | 위반 |
+| 계기 태그 규칙 | 모든 계기에 적절한 ISA 태그가 있는지 확인 | 경고 |
+| 제어 루프 무결성 | 제어기가 전송기에 연결되어 있는지 확인 | 경고 |
+| 경보 포인트 | 주요 파라미터에 안전 경보가 있는지 확인 | 위반 |
 
-### Safety Rules
+### 안전 규칙
 
-Verify safety-related design requirements:
+안전 관련 설계 요구사항을 확인합니다:
 
-| Rule | Description | Severity |
-|------|-------------|----------|
-| Relief valve presence | Pressure vessels have relief valves | Violation |
-| Emergency shutdown | ESD valves on critical lines | Violation |
-| Fire protection | Fire-safe valves in hazardous zones | Warning |
-| Isolation capability | Equipment can be isolated for maintenance | Warning |
+| 규칙 | 설명 | 심각도 |
+|------|------|--------|
+| 릴리프 밸브 존재 | 압력 용기에 릴리프 밸브가 있는지 확인 | 위반 |
+| 비상 차단 | 주요 라인에 ESD 밸브가 있는지 확인 | 위반 |
+| 소방 보호 | 위험 구역에 방화 밸브가 있는지 확인 | 경고 |
+| 격리 가능성 | 유지보수를 위해 장비를 격리할 수 있는지 확인 | 경고 |
 
-## BWMS-Specific Rules
+## BWMS 전용 규칙
 
-The BWMS (Ballast Water Management System) rule set includes 50+ specialized rules for TECHCROSS BWMS P&ID verification:
+BWMS(선박평형수 처리 시스템) 규칙 세트에는 TECHCROSS BWMS P&ID 검증을 위한 50개 이상의 전용 규칙이 포함되어 있습니다:
 
-### Required BWMS Equipment
+### 필수 BWMS 장비
 
-| Equipment | Rule Description |
-|-----------|-----------------|
-| UV Reactor | Must be present in treatment loop |
-| Filter | Pre-treatment filter before UV reactor |
-| Ballast Pump | Main ballast water pump |
-| Flow Meter | Flow measurement for treatment verification |
-| Salinity Sensor | Seawater/freshwater detection |
-| Control Panel | BWMS control system |
-| Sampling Point | Water quality sampling provision |
-| Bypass Valve | Emergency bypass capability |
+| 장비 | 규칙 설명 |
+|------|-----------|
+| UV 반응기(UV Reactor) | 처리 루프에 존재해야 함 |
+| 필터(Filter) | UV 반응기 전 전처리 필터 |
+| 밸러스트 펌프(Ballast Pump) | 주 밸러스트 수 펌프 |
+| 유량계(Flow Meter) | 처리 검증용 유량 측정 |
+| 염분 센서(Salinity Sensor) | 해수/담수 감지 |
+| 제어 패널(Control Panel) | BWMS 제어 시스템 |
+| 샘플링 포인트(Sampling Point) | 수질 샘플링 설비 |
+| 바이패스 밸브(Bypass Valve) | 비상 바이패스 기능 |
 
-### BWMS Piping Rules
+### BWMS 배관 규칙
 
-| Rule | Description |
-|------|-------------|
-| Treatment loop integrity | Complete flow path through treatment system |
-| Bypass isolation | Bypass line has proper isolation valves |
-| Backflow prevention | Check valves prevent reverse flow |
-| Drain provision | All low points drainable |
-| Flushing capability | Freshwater flushing connection |
+| 규칙 | 설명 |
+|------|------|
+| 처리 루프 무결성 | 처리 시스템을 통과하는 완전한 흐름 경로 |
+| 바이패스 격리 | 바이패스 라인에 적절한 차단 밸브 설치 |
+| 역류 방지 | 체크 밸브로 역류 방지 |
+| 드레인 설치 | 모든 저점에서 배수 가능 |
+| 세척 기능 | 담수 세척 연결 |
 
-### BWMS Instrumentation Rules
+### BWMS 계기 규칙
 
-| Rule | Description |
-|------|-------------|
-| Flow monitoring | Flow transmitter on each treatment line |
-| UV intensity | UV intensity sensor on each UV reactor |
-| Temperature | Temperature monitoring at key points |
-| Pressure | Differential pressure across filter |
-| TRO (Total Residual Oxidant) | Discharge compliance monitoring |
+| 규칙 | 설명 |
+|------|------|
+| 유량 모니터링 | 각 처리 라인에 유량 전송기 설치 |
+| UV 강도 | 각 UV 반응기에 UV 강도 센서 설치 |
+| 온도 | 주요 지점에서의 온도 모니터링 |
+| 압력 | 필터 전후 차압 측정 |
+| TRO(총 잔류 산화제) | 배출 준수 모니터링 |
 
-## Severity Levels
+## 심각도 수준
 
-| Level | Icon | Description | Action Required |
-|-------|------|-------------|----------------|
-| **Pass** | Green | Rule fully satisfied | None |
-| **Warning** | Yellow | Potential design issue | Review recommended |
-| **Violation** | Red | Design rule broken | Must be resolved |
+| 수준 | 아이콘 | 설명 | 필요 조치 |
+|------|--------|------|-----------|
+| **통과(Pass)** | 초록 | 규칙 완전 충족 | 없음 |
+| **경고(Warning)** | 노랑 | 잠재적 설계 문제 | 검토 권장 |
+| **위반(Violation)** | 빨강 | 설계 규칙 위반 | 반드시 해결 |
 
-## API Endpoints
+## API 엔드포인트
 
-### Check P&ID Design
+### P&ID 설계 검사
 
 ```
 POST /api/v1/check
@@ -168,7 +168,7 @@ Parameters:
   enabled_rules: comma-separated rule IDs (optional)
 ```
 
-### Check BWMS Design
+### BWMS 설계 검사
 
 ```
 POST /api/v1/check/bwms
@@ -180,14 +180,14 @@ Parameters:
   texts: JSON string of OCR-extracted text
 ```
 
-### Get Available Rules
+### 사용 가능한 규칙 조회
 
 ```
 GET /api/v1/rules
 GET /api/v1/rules/bwms
 ```
 
-### Response Format
+### 응답 형식
 
 ```json
 {
@@ -236,9 +236,9 @@ GET /api/v1/rules/bwms
 }
 ```
 
-## Rule Definition Format
+## 규칙 정의 형식
 
-Rules are defined in a structured format:
+규칙은 구조화된 형식으로 정의됩니다:
 
 ```python
 {
@@ -248,27 +248,27 @@ Rules are defined in a structured format:
     "description": "BWMS 처리 루프에 UV 반응기가 존재해야 합니다",
     "category": "equipment",       # equipment, piping, instrumentation, safety
     "severity": "violation",       # pass, warning, violation
-    "standard": "TECHCROSS BWMS",  # Reference standard
-    "auto_checkable": True,        # Can be checked automatically
+    "standard": "TECHCROSS BWMS",  # 참조 표준
+    "auto_checkable": True,        # 자동 검사 가능 여부
     "check_function": "check_uv_reactor_presence"
 }
 ```
 
-## Dynamic Rule Loading
+## 동적 규칙 로딩
 
-The Design Checker supports dynamic rule loading from external JSON files, allowing:
+설계 검사기는 외부 JSON 파일에서 동적으로 규칙을 로딩하는 기능을 지원하여 다음을 가능하게 합니다:
 
-- Custom rule sets per customer/project
-- Rule updates without code deployment
-- Rule versioning and audit trail
+- 고객/프로젝트별 커스텀 규칙 세트
+- 코드 배포 없이 규칙 업데이트
+- 규칙 버전 관리 및 감사 추적
 
 ```
 GET /api/v1/rules/bwms?include_dynamic=true
 ```
 
-## Integration with BOM Backend
+## BOM 백엔드와의 통합
 
-The BOM Backend orchestrates design checks through the P&ID Features module:
+BOM 백엔드는 P&ID 기능 모듈을 통해 설계 검사를 조율합니다:
 
 ```
 POST /pid-features/{session_id}/checklist/check
@@ -277,22 +277,22 @@ Query Parameters:
   enabled_rules: "BWMS-EQ-001,BWMS-PIPE-003"
 ```
 
-This endpoint:
-1. Retrieves session data (symbols, connections, OCR text)
-2. Calls the Design Checker API
-3. Stores results in the session for verification tracking
-4. Returns a structured checklist response
+이 엔드포인트는 다음을 수행합니다:
+1. 세션 데이터(심볼, 연결, OCR 텍스트)를 조회
+2. 설계 검사기 API를 호출
+3. 검증 추적을 위해 세션에 결과를 저장
+4. 구조화된 체크리스트 응답을 반환
 
-## Checklist Verification
+## 체크리스트 검증
 
-Design check results support a verification workflow:
+설계 검사 결과는 검증 워크플로우를 지원합니다:
 
-| Status | Description |
-|--------|-------------|
-| `pass` | Automatically verified as compliant |
-| `warning` | Flagged for human review |
-| `violation` | Requires resolution before approval |
-| `override` | Human override of a rule result |
-| `not_applicable` | Rule not applicable to this drawing |
+| 상태 | 설명 |
+|------|------|
+| `pass` | 준수 사항으로 자동 검증됨 |
+| `warning` | 사람 검토 대상으로 표시됨 |
+| `violation` | 승인 전 해결 필수 |
+| `override` | 규칙 결과에 대한 사람의 재정의 |
+| `not_applicable` | 이 도면에 해당 규칙이 적용되지 않음 |
 
-Engineers can override individual rule results with justification, creating an audit trail of design decisions.
+엔지니어는 근거를 기재하여 개별 규칙 결과를 재정의할 수 있으며, 이를 통해 설계 결정에 대한 감사 추적이 생성됩니다.

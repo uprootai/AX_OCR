@@ -1,35 +1,35 @@
 ---
 sidebar_position: 1
-title: Analysis Pipeline
-description: Upload from drawing image to manufacturing quote - end-to-end analysis pipeline overview
+title: 분석 파이프라인
+description: 도면 이미지 업로드부터 제조 견적까지 - 엔드투엔드 분석 파이프라인 개요
 ---
 
 import PipelineDiagram from '@site/src/components/PipelineDiagram';
 
-# Analysis Pipeline
+# 분석 파이프라인
 
-The AX POC analysis pipeline transforms raw engineering drawings into structured manufacturing data through a series of specialized ML stages.
+AX POC 분석 파이프라인은 원본 엔지니어링 도면을 일련의 특화된 ML 단계를 거쳐 구조화된 제조 데이터로 변환합니다.
 
-## Pipeline Overview
+## 파이프라인 개요
 
 <PipelineDiagram type="main" />
 
-## Pipeline Stages
+## 파이프라인 단계
 
-Each stage is implemented as an independent microservice, allowing horizontal scaling and independent deployment.
+각 단계는 독립적인 마이크로서비스(Microservice)로 구현되어 수평 확장과 독립 배포가 가능합니다.
 
-| Stage | Service | Port | Description | Sub-page |
-|-------|---------|------|-------------|----------|
-| **1. Classification** | VL (Qwen2-VL) | 5004 | Drawing type classification (mechanical, P&ID, table, text, photo) | [VLM Classification](./vlm-classification.md) |
-| **2. Detection** | YOLO v11 | 5005 | Symbol and component detection with 73 classes | [YOLO Detection](./yolo-detection.md) |
-| **3. OCR** | eDOCr2 + 7 engines | 5002-5015 | Dimension, text, and GD&T extraction | [OCR Processing](./ocr-processing.md) |
-| **4. Tolerance** | SkinModel Shapes | 5003 | GD&T tolerance analysis and stack-up | [Tolerance Analysis](./tolerance-analysis.md) |
-| **5. Revision** | Gateway API | 8000 | Side-by-side revision comparison and delta tracking | [Revision Comparison](./revision-comparison.md) |
+| 단계 | 서비스 | 포트 | 설명 | 하위 페이지 |
+|------|--------|------|------|------------|
+| **1. 분류** | VL (Qwen2-VL) | 5004 | 도면 유형 분류 (기계, P&ID, 표, 텍스트, 사진) | [VLM 분류](./vlm-classification.md) |
+| **2. 검출** | YOLO v11 | 5005 | 73개 클래스의 심볼 및 부품 검출 | [YOLO 검출](./yolo-detection.md) |
+| **3. OCR** | eDOCr2 + 7개 엔진 | 5002-5015 | 치수, 텍스트, GD&T 추출 | [OCR 처리](./ocr-processing.md) |
+| **4. 공차** | SkinModel Shapes | 5003 | GD&T 공차 분석 및 누적 공차(Stack-up) | [공차 분석](./tolerance-analysis.md) |
+| **5. 리비전** | Gateway API | 8000 | 리비전 간 비교 및 변경 사항 추적 | [리비전 비교](./revision-comparison.md) |
 
-## Key Characteristics
+## 주요 특성
 
-- **Microservice Architecture**: Each ML model runs in its own Docker container with independent GPU allocation.
-- **Gateway Orchestration**: The Gateway API (port 8000) coordinates all service calls and aggregates results.
-- **Human-in-the-Loop**: Agent verification at critical stages ensures accuracy before final output.
-- **Ensemble Methods**: OCR uses 4-engine weighted voting for maximum accuracy.
-- **DAG Execution**: BlueprintFlow enables custom pipeline composition via visual workflow builder.
+- **마이크로서비스 아키텍처**: 각 ML 모델은 독립적인 GPU 할당을 가진 개별 Docker 컨테이너에서 실행됩니다.
+- **게이트웨이 오케스트레이션(Gateway Orchestration)**: Gateway API(포트 8000)가 모든 서비스 호출을 조정하고 결과를 집계합니다.
+- **휴먼 인 더 루프(Human-in-the-Loop)**: 주요 단계에서 에이전트 검증을 통해 최종 출력 전 정확성을 보장합니다.
+- **앙상블 기법(Ensemble Methods)**: OCR은 4개 엔진의 가중 투표(Weighted Voting)를 사용하여 최대 정확도를 달성합니다.
+- **DAG 실행**: BlueprintFlow를 통해 시각적 워크플로우 빌더에서 커스텀 파이프라인 구성이 가능합니다.

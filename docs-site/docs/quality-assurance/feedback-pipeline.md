@@ -1,37 +1,37 @@
 ---
 sidebar_position: 3
-title: Feedback Pipeline
-description: 사용자 피드백 처리
+title: 피드백 파이프라인
+description: 사용자 피드백 처리 파이프라인
 ---
 
-# Feedback Pipeline
+# 피드백 파이프라인 (Feedback Pipeline)
 
-## Overview
+## 개요
 
 사용자 피드백을 수집하고 검증 완료된 데이터를 YOLO 재학습용 데이터셋으로 변환하여 모델을 지속적으로 개선합니다.
 
 ```mermaid
 flowchart TD
-    USER["User Verification"] --> TYPE{"Feedback Type"}
-    TYPE -->|approved| APP["Positive Sample"]
-    TYPE -->|rejected| REJ["Negative Sample"]
-    TYPE -->|modified| MOD["Corrected GT"]
+    USER["사용자 검증"] --> TYPE{"피드백 유형"}
+    TYPE -->|승인| APP["긍정 샘플"]
+    TYPE -->|거부| REJ["부정 샘플"]
+    TYPE -->|수정| MOD["수정된 정답 데이터"]
 
-    APP --> STORE["Session Store"]
+    APP --> STORE["세션 저장소"]
     REJ --> STORE
     MOD --> STORE
-    STORE --> COLLECT["collect_verified_sessions()\nmin_approved_rate >= 50%"]
+    STORE --> COLLECT["collect_verified_sessions()\n최소 승인율 >= 50%"]
     COLLECT --> EXPORT["export_yolo_dataset()"]
-    EXPORT --> YOLO["YOLO Training Data\nimages/ + labels/ + data.yaml"]
+    EXPORT --> YOLO["YOLO 학습 데이터\nimages/ + labels/ + data.yaml"]
 ```
 
-## Feedback Types
+## 피드백 유형 (Feedback Types)
 
-| Type | `verification_status` | 의미 | 재학습 활용 |
+| 유형 | `verification_status` | 의미 | 재학습 활용 |
 |------|----------------------|------|------------|
-| **Approve** | `approved` | 검출 정확함 | 원본 bbox + class를 positive sample로 사용 |
-| **Reject** | `rejected` | 오검출 | 기본 제외 (`include_rejected=True` 로 포함 가능) |
-| **Modify** | `modified` | 수정 필요 | `modified_class_name`, `modified_bbox` 사용 |
+| **승인** | `approved` | 검출 정확함 | 원본 bbox + class를 긍정 샘플로 사용 |
+| **거부** | `rejected` | 오검출 | 기본 제외 (`include_rejected=True` 로 포함 가능) |
+| **수정** | `modified` | 수정 필요 | `modified_class_name`, `modified_bbox` 사용 |
 
 수정된 항목은 원본 대신 수정된 값을 학습 데이터로 사용합니다:
 
@@ -42,21 +42,21 @@ class_name = det.get("modified_class_name") or det.get("class_name")
 bbox = det.get("modified_bbox") or det.get("bbox")
 ```
 
-## Data Collection
+## 데이터 수집 (Data Collection)
 
 `collect_verified_sessions()` 는 다음 조건으로 학습 가능한 세션을 필터링합니다:
 
-| Filter | Default | Description |
-|--------|---------|-------------|
+| 필터 | 기본값 | 설명 |
+|------|--------|------|
 | `min_approved_rate` | `0.5` (50%) | 최소 승인율 |
 | `days_back` | `None` (전체) | 최근 N일 내 세션만 |
 | `pending == 0` | 필수 | 모든 항목 검증 완료 필수 |
 
-## YOLO Dataset Export
+## YOLO 데이터셋 내보내기 (YOLO Dataset Export)
 
 `export_yolo_dataset()` 는 검증된 세션을 YOLO 형식으로 내보냅니다:
 
-### Output Structure
+### 출력 구조
 
 ```
 feedback_dataset_20260222_103000/
@@ -67,7 +67,7 @@ feedback_dataset_20260222_103000/
   metadata.json    # 내보내기 메타데이터
 ```
 
-### YOLO Label Format
+### YOLO 라벨 형식
 
 검출 bbox를 정규화된 YOLO 좌표로 변환합니다:
 
@@ -79,17 +79,17 @@ height   = (y2 - y1) / image_height
 # 유효성: 0 <= x_center <= 1, width > 0, height > 0
 ```
 
-## API Endpoints
+## API 엔드포인트
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+| 메서드 | 엔드포인트 | 설명 |
+|--------|----------|------|
 | `GET` | `/feedback/stats` | 피드백 통계 (승인/거부/수정 비율) |
 | `GET` | `/feedback/sessions` | 검증 완료 세션 목록 |
 | `POST` | `/feedback/export/yolo` | YOLO 데이터셋 내보내기 |
 | `GET` | `/feedback/exports` | 이전 내보내기 목록 |
 | `GET` | `/feedback/health` | 서비스 상태 |
 
-### Export Request
+### 내보내기 요청
 
 ```json
 {
@@ -100,7 +100,7 @@ height   = (y2 - y1) / image_height
 }
 ```
 
-### Stats Response
+### 통계 응답
 
 ```json
 {
@@ -115,29 +115,29 @@ height   = (y2 - y1) / image_height
 }
 ```
 
-## Integration with Active Learning
+## 능동 학습과의 연동 (Integration with Active Learning)
 
-피드백 파이프라인은 Active Learning 서비스와 상호 보완적으로 동작합니다:
+피드백 파이프라인은 능동 학습(Active Learning) 서비스와 상호 보완적으로 동작합니다:
 
 ```mermaid
 flowchart LR
-    AL["Active Learning\nPriority Queue"] --> REVIEW["Human/Agent\nReview"]
-    REVIEW --> LOG["VerificationLog\n(JSONL, per-item)"]
-    REVIEW --> SESSION["Session Store\n(per-session)"]
-    SESSION --> FP["Feedback Pipeline\ncollect + export"]
-    FP --> YOLO["YOLO Dataset"]
-    YOLO --> RETRAIN["Model Retrain"]
-    RETRAIN --> BETTER["Improved Model"]
+    AL["능동 학습\n우선순위 큐"] --> REVIEW["사람/에이전트\n검토"]
+    REVIEW --> LOG["검증 로그\n(JSONL, 항목별)"]
+    REVIEW --> SESSION["세션 저장소\n(세션별)"]
+    SESSION --> FP["피드백 파이프라인\n수집 + 내보내기"]
+    FP --> YOLO["YOLO 데이터셋"]
+    YOLO --> RETRAIN["모델 재학습"]
+    RETRAIN --> BETTER["개선된 모델"]
     BETTER --> AL
 ```
 
-- **Active Learning**: 항목 레벨 로그 (`VerificationLog` JSONL) - 개별 판단 기록
-- **Feedback Pipeline**: 세션 레벨 수집 - 검증 완료된 전체 세션을 YOLO 데이터셋으로 변환
+- **능동 학습**: 항목 레벨 로그 (`VerificationLog` JSONL) - 개별 판단 기록
+- **피드백 파이프라인**: 세션 레벨 수집 - 검증 완료된 전체 세션을 YOLO 데이터셋으로 변환
 
-## Conflict Resolution
+## 충돌 해결 (Conflict Resolution)
 
 동일 세션에서 다수의 검토자가 있을 경우:
 
-- 각 detection의 `verification_status`는 마지막 검토 결과를 반영
+- 각 검출 결과의 `verification_status`는 마지막 검토 결과를 반영
 - 세션 내 모든 항목이 `pending`이 아닐 때 수집 대상이 됨
 - `min_approved_rate` 필터로 품질이 낮은 세션(거부 비율 높음)은 자동 제외

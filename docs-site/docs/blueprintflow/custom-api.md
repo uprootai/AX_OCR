@@ -1,28 +1,28 @@
 ---
 sidebar_position: 4
-title: Custom API
-description: Guide to adding custom API nodes, executor registration, and node definitions in BlueprintFlow
+title: 커스텀 API
+description: BlueprintFlow에서 커스텀 API 노드 추가, 실행기 등록 및 노드 정의 가이드
 ---
 
-# Custom API
+# 커스텀 API
 
-BlueprintFlow can be extended with custom API nodes. This guide covers the full process: scaffolding a new service, registering an executor, and defining the node in the frontend.
+BlueprintFlow는 커스텀 API 노드로 확장할 수 있습니다. 이 가이드에서는 새 서비스 스캐폴딩, 실행기(Executor) 등록, 프론트엔드 노드 정의까지의 전체 과정을 다룹니다.
 
-## Overview
+## 개요
 
-Adding a custom API node requires changes in three layers:
+커스텀 API 노드를 추가하려면 세 개의 레이어에서 변경이 필요합니다:
 
 ```mermaid
 flowchart LR
-    subgraph Backend
-        API["1. API Service\n(FastAPI container)"]
-        Spec["2. API Spec\n(YAML)"]
-        Exec["3. Executor\n(Gateway)"]
+    subgraph 백엔드
+        API["1. API 서비스\n(FastAPI 컨테이너)"]
+        Spec["2. API 스펙\n(YAML)"]
+        Exec["3. 실행기\n(Gateway)"]
     end
 
-    subgraph Frontend
-        NodeDef["4. Node Definition\n(TypeScript)"]
-        Reg["5. API Registry\n(TypeScript)"]
+    subgraph 프론트엔드
+        NodeDef["4. 노드 정의\n(TypeScript)"]
+        Reg["5. API 레지스트리\n(TypeScript)"]
     end
 
     API --> Spec --> Exec --> NodeDef --> Reg
@@ -32,28 +32,28 @@ flowchart LR
     style NodeDef fill:#e8f5e9,stroke:#2e7d32
 ```
 
-## Step 1: Scaffold the API Service
+## 1단계: API 서비스 스캐폴딩
 
-Use the `create_api.py` script to generate a new service with Docker support:
+`create_api.py` 스크립트를 사용하여 Docker 지원이 포함된 새 서비스를 생성합니다:
 
 ```bash
 python scripts/create_api.py my-custom-api --port 5025 --category detection
 ```
 
-This creates:
+생성되는 파일 구조:
 
 ```
 models/my-custom-api-api/
-  api_server.py          # FastAPI application
-  Dockerfile             # Container definition
-  requirements.txt       # Python dependencies
+  api_server.py          # FastAPI 애플리케이션
+  Dockerfile             # 컨테이너 정의
+  requirements.txt       # Python 의존성
   tests/
-    test_api.py          # Basic test suite
+    test_api.py          # 기본 테스트 스위트
 ```
 
-### API Server Template
+### API 서버 템플릿
 
-The generated `api_server.py` follows the standard pattern:
+생성되는 `api_server.py`는 표준 패턴을 따릅니다:
 
 ```python
 from fastapi import FastAPI, File, UploadFile
@@ -67,15 +67,15 @@ async def health():
 
 @app.post("/process")
 async def process(file: UploadFile = File(...)):
-    # Your processing logic here
+    # 처리 로직을 여기에 작성합니다
     contents = await file.read()
     result = run_inference(contents)
     return JSONResponse(content=result)
 ```
 
-## Step 2: Define the API Spec
+## 2단계: API 스펙 정의
 
-Create a YAML spec in `gateway-api/api_specs/`:
+`gateway-api/api_specs/`에 YAML 스펙을 생성합니다:
 
 ```yaml
 # gateway-api/api_specs/my-custom-api.yaml
@@ -97,9 +97,9 @@ parameters:
     description: Processing mode
 ```
 
-## Step 3: Register the Executor
+## 3단계: 실행기 등록
 
-Create an executor in `gateway-api/blueprintflow/executors/`:
+`gateway-api/blueprintflow/executors/`에 실행기를 생성합니다:
 
 ```python
 # gateway-api/blueprintflow/executors/my_custom_api_executor.py
@@ -110,7 +110,7 @@ class MyCustomAPIExecutor(BaseExecutor):
     ENDPOINT = "/process"
 
     async def execute(self, params: dict, inputs: dict) -> dict:
-        """Execute the custom API node."""
+        """커스텀 API 노드를 실행합니다."""
         file_data = inputs.get("image")
         form_data = {
             "threshold": params.get("threshold", 0.5),
@@ -123,21 +123,21 @@ class MyCustomAPIExecutor(BaseExecutor):
         return response
 ```
 
-Register it in the executor registry:
+실행기 레지스트리에 등록합니다:
 
 ```python
 # gateway-api/blueprintflow/executors/executor_registry.py
 from .my_custom_api_executor import MyCustomAPIExecutor
 
 registry = {
-    # ... existing executors ...
+    # ... 기존 실행기 ...
     "my_custom_api": MyCustomAPIExecutor(),
 }
 ```
 
-## Step 4: Define the Node
+## 4단계: 노드 정의
 
-Add the node definition in the frontend:
+프론트엔드에 노드 정의를 추가합니다:
 
 ```typescript
 // web-ui/src/config/nodeDefinitions.ts
@@ -170,9 +170,9 @@ Add the node definition in the frontend:
 }
 ```
 
-## Step 5: Register the API Endpoint
+## 5단계: API 엔드포인트 등록
 
-Add the endpoint to the API registry:
+API 레지스트리에 엔드포인트를 추가합니다:
 
 ```typescript
 // web-ui/src/config/apiRegistry.ts
@@ -186,9 +186,9 @@ Add the endpoint to the API registry:
 }
 ```
 
-## Docker Integration
+## Docker 통합
 
-Add the service to `docker-compose.yml`:
+`docker-compose.yml`에 서비스를 추가합니다:
 
 ```yaml
 my-custom-api:
@@ -210,21 +210,21 @@ my-custom-api:
     retries: 3
 ```
 
-## Checklist
+## 체크리스트
 
-After completing all steps, verify:
+모든 단계를 완료한 후 다음을 확인합니다:
 
-| Step | Verification |
-|------|-------------|
-| API Service | `curl http://localhost:5025/health` returns `{"status": "healthy"}` |
-| API Spec | File exists at `gateway-api/api_specs/my-custom-api.yaml` |
-| Executor | Registered in `executor_registry.py` |
-| Node Definition | Appears in BlueprintFlow sidebar under correct category |
-| API Registry | Health status shows green in Dashboard |
-| Docker | Container runs and passes healthcheck |
+| 단계 | 검증 방법 |
+|------|----------|
+| API 서비스 | `curl http://localhost:5025/health`가 `{"status": "healthy"}`를 반환하는지 확인 |
+| API 스펙 | `gateway-api/api_specs/my-custom-api.yaml` 파일이 존재하는지 확인 |
+| 실행기 | `executor_registry.py`에 등록되었는지 확인 |
+| 노드 정의 | BlueprintFlow 사이드바에서 올바른 카테고리에 표시되는지 확인 |
+| API 레지스트리 | 대시보드에서 헬스 상태가 녹색으로 표시되는지 확인 |
+| Docker | 컨테이너가 실행되고 헬스체크를 통과하는지 확인 |
 
-## Notes
+## 참고 사항
 
-- Always define parameters in the API spec YAML first, then mirror them in the node definition. Never add parameters to the frontend that do not exist in the spec.
-- The `category` must be one of: `input`, `detection`, `ocr`, `segmentation`, `preprocessing`, `analysis`, `knowledge`, `ai`, `control`. Do not use `api` as a category.
-- GPU allocation can be configured dynamically through the Dashboard without modifying Docker files.
+- 항상 API 스펙 YAML에 파라미터를 먼저 정의한 후, 노드 정의에 반영하십시오. 스펙에 없는 파라미터를 프론트엔드에 추가하지 마십시오.
+- `category`는 `input`, `detection`, `ocr`, `segmentation`, `preprocessing`, `analysis`, `knowledge`, `ai`, `control` 중 하나여야 합니다. `api`를 카테고리로 사용하지 마십시오.
+- GPU 할당은 Docker 파일을 수정하지 않고도 대시보드를 통해 동적으로 설정할 수 있습니다.

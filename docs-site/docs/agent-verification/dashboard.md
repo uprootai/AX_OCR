@@ -1,33 +1,33 @@
 ---
 sidebar_position: 3
-title: Dashboard
-description: Real-time verification dashboard with metrics and analytics
+title: 대시보드
+description: 실시간 검증 대시보드의 지표 및 분석
 ---
 
-# Dashboard
+# 대시보드
 
-The verification dashboard provides real-time insights into verification progress, accuracy metrics, and performance analytics at both session and project levels.
+검증 대시보드는 세션 및 프로젝트 수준에서 검증 진행 상황, 정확도 지표, 성능 분석에 대한 실시간 인사이트를 제공합니다.
 
-## Session Dashboard
+## 세션 대시보드
 
-**Endpoint**: `GET /verification/agent/dashboard/{session_id}`
+**엔드포인트**: `GET /verification/agent/dashboard/{session_id}`
 
-The session dashboard shows verification status for a single drawing analysis session, broken down by item type (symbol and dimension).
+세션 대시보드는 단일 도면 분석 세션의 검증 상태를 항목 유형(심볼 및 치수)별로 분류하여 보여줍니다.
 
-### Verification Status Distribution
+### 검증 상태 분포
 
-The dashboard tracks the distribution of verification actions:
+대시보드는 검증 작업의 분포를 추적합니다:
 
-| Status | Description | Indicator |
-|--------|-------------|-----------|
-| **Approved** | Confirmed correct | Green |
-| **Modified** | Corrected by reviewer | Yellow |
-| **Rejected** | False positive removed | Red |
-| **Pending** | Awaiting review | Gray |
+| 상태 | 설명 | 표시 색상 |
+|------|------|----------|
+| **승인 (Approved)** | 올바름이 확인됨 | 녹색 |
+| **수정 (Modified)** | 검토자에 의해 수정됨 | 노란색 |
+| **거부 (Rejected)** | 오탐이 제거됨 | 빨간색 |
+| **대기 (Pending)** | 검토 대기 중 | 회색 |
 
-### Action Distribution by Type
+### 유형별 작업 분포
 
-For each item type (symbol, dimension), the dashboard provides:
+각 항목 유형(심볼, 치수)에 대해 대시보드는 다음을 제공합니다:
 
 ```json
 {
@@ -67,33 +67,33 @@ For each item type (symbol, dimension), the dashboard provides:
 }
 ```
 
-### Key Metrics
+### 주요 지표
 
-| Metric | Formula | Description |
-|--------|---------|-------------|
-| **Completion Rate** | `(total - pending) / total * 100` | Percentage of items verified |
-| **Agent Rate** | `agent_count / total * 100` | Percentage handled by AI agent |
-| **Approval Rate** | `approved / verified * 100` | Accuracy of ML detections |
-| **Modification Rate** | `modified / verified * 100` | Rate of corrections needed |
-| **Rejection Rate** | `rejected / verified * 100` | False positive rate |
+| 지표 | 공식 | 설명 |
+|------|------|------|
+| **완료율 (Completion Rate)** | `(total - pending) / total * 100` | 검증된 항목의 백분율 |
+| **에이전트 비율 (Agent Rate)** | `agent_count / total * 100` | AI 에이전트가 처리한 백분율 |
+| **승인율 (Approval Rate)** | `approved / verified * 100` | ML 검출의 정확도 |
+| **수정율 (Modification Rate)** | `modified / verified * 100` | 수정이 필요한 비율 |
+| **거부율 (Rejection Rate)** | `rejected / verified * 100` | 오탐율 (False positive rate) |
 
-### Average Confidence by Action
+### 작업별 평균 신뢰도
 
-This metric reveals the confidence distribution across different verification outcomes:
+이 지표는 다양한 검증 결과에 걸친 신뢰도 분포를 보여줍니다:
 
-- **Approved items**: Typically confidence > 0.85 (model was correct)
-- **Modified items**: Typically confidence 0.6-0.85 (model was close but needed correction)
-- **Rejected items**: Typically confidence < 0.5 (false positives)
+- **승인된 항목**: 일반적으로 신뢰도 > 0.85 (모델이 올바름)
+- **수정된 항목**: 일반적으로 신뢰도 0.6-0.85 (모델이 근접했지만 수정이 필요)
+- **거부된 항목**: 일반적으로 신뢰도 < 0.5 (오탐)
 
-These statistics help identify optimal threshold values for future deployments.
+이 통계는 향후 배포를 위한 최적 임계값 결정에 도움이 됩니다.
 
-## Project Dashboard
+## 프로젝트 대시보드
 
-**Endpoint**: `GET /verification/agent/dashboard/project/{project_id}`
+**엔드포인트**: `GET /verification/agent/dashboard/project/{project_id}`
 
-The project dashboard aggregates verification results across all sessions in a project, providing a bird's-eye view of verification efficiency.
+프로젝트 대시보드는 프로젝트 내 모든 세션의 검증 결과를 집계하여 검증 효율성에 대한 전체적인 뷰를 제공합니다.
 
-### Aggregated Metrics
+### 집계 지표
 
 ```json
 {
@@ -135,75 +135,75 @@ The project dashboard aggregates verification results across all sessions in a p
 }
 ```
 
-## Accuracy Metrics
+## 정확도 지표
 
-### Precision
+### 정밀도 (Precision)
 
-Measures how many approved items are actually correct (requires ground truth comparison):
+승인된 항목 중 실제로 올바른 항목의 비율을 측정합니다 (정답 데이터와의 비교가 필요):
 
 ```
 Precision = True Positives / (True Positives + False Positives)
 ```
 
-Tracked through the GT Comparison feature (`/gt/compare/{session_id}`), which compares detected items against manually labeled ground truth.
+GT 비교 기능 (`/gt/compare/{session_id}`)을 통해 추적되며, 검출된 항목을 수동으로 레이블링된 정답 데이터(Ground Truth)와 비교합니다.
 
-### Recall
+### 재현율 (Recall)
 
-Measures how many real items were detected:
+실제 항목 중 얼마나 많이 검출되었는지를 측정합니다:
 
 ```
 Recall = True Positives / (True Positives + False Negatives)
 ```
 
-### F1 Score
+### F1 점수 (F1 Score)
 
-Harmonic mean of precision and recall:
+정밀도와 재현율의 조화 평균:
 
 ```
 F1 = 2 * (Precision * Recall) / (Precision + Recall)
 ```
 
-## Processing Speed
+## 처리 속도
 
-The dashboard tracks verification throughput:
+대시보드는 검증 처리량을 추적합니다:
 
-| Metric | Description | Target |
-|--------|-------------|--------|
-| **Items per minute** | Average verification throughput | > 10 items/min |
-| **Estimated review time** | Time to complete remaining pending items | Displayed in minutes |
-| **Agent response time** | LLM agent decision latency | < 5 sec/item |
+| 지표 | 설명 | 목표 |
+|------|------|------|
+| **분당 항목 수 (Items per minute)** | 평균 검증 처리량 | > 10 항목/분 |
+| **예상 검토 시간 (Estimated review time)** | 남은 대기 항목 완료까지의 시간 | 분 단위로 표시 |
+| **에이전트 응답 시간 (Agent response time)** | LLM 에이전트 결정 지연 시간 | < 5초/항목 |
 
-### Estimated Review Time Calculation
+### 예상 검토 시간 계산
 
-The system estimates remaining review time based on priority distribution:
+시스템은 우선순위 분포를 기반으로 남은 검토 시간을 추정합니다:
 
-| Priority | Estimated Time per Item |
-|----------|------------------------|
-| CRITICAL | 30 seconds |
-| HIGH | 20 seconds |
-| MEDIUM | 10 seconds |
-| LOW | 2 seconds (auto-approve) |
+| 우선순위 | 항목당 예상 시간 |
+|---------|----------------|
+| CRITICAL | 30초 |
+| HIGH | 20초 |
+| MEDIUM | 10초 |
+| LOW | 2초 (자동 승인) |
 
-## Reject Reason Analysis
+## 거부 사유 분석
 
-When items are rejected, the dashboard categorizes the reasons:
+항목이 거부되면 대시보드가 사유를 분류합니다:
 
-| Reason | Description |
-|--------|-------------|
-| `not_dimension` | OCR extracted text that is not a dimension |
-| `not_symbol` | False positive detection |
-| `garbage` | Noise or artifact |
-| `duplicate` | Same item detected multiple times |
-| `unspecified` | No reason provided |
+| 사유 | 설명 |
+|------|------|
+| `not_dimension` | OCR이 치수가 아닌 텍스트를 추출함 |
+| `not_symbol` | 오탐 검출 |
+| `garbage` | 노이즈 또는 아티팩트 |
+| `duplicate` | 동일 항목이 여러 번 검출됨 |
+| `unspecified` | 사유가 제공되지 않음 |
 
-This analysis helps identify systematic issues in the ML pipeline and guides model improvement efforts.
+이 분석은 ML 파이프라인의 체계적인 문제를 식별하고 모델 개선 방향을 안내하는 데 도움이 됩니다.
 
-## Modification Tracking
+## 수정 추적
 
-For modified items, the dashboard tracks what was changed:
+수정된 항목에 대해 대시보드는 변경 내용을 추적합니다:
 
-- **Symbol modifications**: Class label changes (e.g., "CT" -> "PT")
-- **Dimension modifications**: Value corrections, unit changes, type reclassification, tolerance updates
+- **심볼 수정**: 클래스 레이블 변경 (예: "CT" -> "PT")
+- **치수 수정**: 값 수정, 단위 변경, 유형 재분류, 공차 업데이트
 
 ```json
 {
@@ -214,4 +214,4 @@ For modified items, the dashboard tracks what was changed:
 }
 ```
 
-These modifications provide high-value training examples for model improvement, as they represent cases where the model was close but not quite correct.
+이러한 수정 사항은 모델이 근접했지만 정확하지 않았던 사례를 나타내므로, 모델 개선을 위한 높은 가치의 학습 예제를 제공합니다.

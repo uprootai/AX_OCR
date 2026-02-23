@@ -1,10 +1,10 @@
 ---
 sidebar_position: 1
-title: System Overview
+title: 시스템 개요
 description: AX POC 전체 시스템 아키텍처 개요
 ---
 
-# System Overview / 시스템 개요
+# 시스템 개요
 
 AX POC는 **기계 도면 자동 분석 및 제조 견적 생성 시스템**입니다.
 
@@ -12,32 +12,32 @@ AX POC는 **기계 도면 자동 분석 및 제조 견적 생성 시스템**입�
 도면 이미지 → VLM 분류 → YOLO 검출 → OCR 추출 → 공차 분석 → 리비전 비교 → 견적 PDF
 ```
 
-## Key Metrics
+## 핵심 지표
 
-| Metric | Value |
-|--------|-------|
-| **Microservices** | 21 Docker containers |
-| **API Endpoints** | 24 services |
-| **GPU Services** | 10 |
-| **CPU Services** | 11 |
-| **Detection Classes** | 73 |
-| **Node Types** | 29+ |
-| **Tests** | 549 (364 backend + 185 frontend) |
+| 지표 | 값 |
+|------|-----|
+| **마이크로서비스(Microservices)** | Docker 컨테이너 21개 |
+| **API 엔드포인트(Endpoints)** | 서비스 24개 |
+| **GPU 서비스** | 10개 |
+| **CPU 서비스** | 11개 |
+| **검출 클래스(Detection Classes)** | 73개 |
+| **노드 타입(Node Types)** | 29개 이상 |
+| **테스트** | 549개 (백엔드 364 + 프론트엔드 185) |
 
-## High-Level Architecture
+## 상위 아키텍처
 
 import ArchitectureDiagram from '@site/src/components/ArchitectureDiagram';
 
 <ArchitectureDiagram />
 
-## Data Flow
+## 데이터 흐름
 
 ```mermaid
 flowchart LR
     IMG["도면 이미지"] --> VLM["VLM 분류"]
     VLM --> |기계도면| YOLO["YOLO 검출"]
     VLM --> |P&ID| PID["P&ID 파이프라인"]
-    VLM --> |테이블| TABLE["Table Detector"]
+    VLM --> |테이블| TABLE["테이블 검출기"]
 
     YOLO --> OCR["OCR 추출"]
     OCR --> DIM["치수 분석"]
@@ -46,21 +46,21 @@ flowchart LR
     BOMB --> QUOTE["견적 PDF"]
 
     PID --> CONN["연결성 분석"]
-    CONN --> DCH["Design Check"]
+    CONN --> DCH["설계 검증"]
     DCH --> REPORT["보고서"]
 ```
 
-## Sections
+## 섹션 안내
 
-| # | Section | Description |
-|---|---------|-------------|
-| 1 | [System Overview](./architecture-map) | 아키텍처, 서비스 카탈로그, 기술스택 |
-| 2 | [Analysis Pipeline](/docs/analysis-pipeline) | VLM → YOLO → OCR → 분석 파이프라인 |
+| # | 섹션 | 설명 |
+|---|------|------|
+| 1 | [시스템 개요](./architecture-map) | 아키텍처, 서비스 카탈로그, 기술 스택 |
+| 2 | [분석 파이프라인](/docs/analysis-pipeline) | VLM → YOLO → OCR → 분석 파이프라인 |
 | 3 | [BlueprintFlow](/docs/blueprintflow) | 비주얼 워크플로우 빌더 |
-| 4 | [Agent Verification](/docs/agent-verification) | 3-Level 하이브리드 검증 |
-| 5 | [BOM & Quoting](/docs/bom-generation) | BOM 생성 및 견적 |
-| 6 | [P&ID Analysis](/docs/pid-analysis) | P&ID 분석 파이프라인 |
-| 7 | [Batch & Delivery](/docs/batch-delivery) | 배치 처리 및 납품 |
-| 8 | [Quality Assurance](/docs/quality-assurance) | 품질 보증 체계 |
-| 9 | [Frontend](/docs/frontend) | 프론트엔드 아키텍처 |
+| 4 | [에이전트 검증](/docs/agent-verification) | 3단계 하이브리드 검증 |
+| 5 | [BOM 및 견적](/docs/bom-generation) | BOM 생성 및 견적 |
+| 6 | [P&ID 분석](/docs/pid-analysis) | P&ID 분석 파이프라인 |
+| 7 | [배치 및 납품](/docs/batch-delivery) | 배치 처리 및 납품 |
+| 8 | [품질 보증](/docs/quality-assurance) | 품질 보증 체계 |
+| 9 | [프론트엔드](/docs/frontend) | 프론트엔드 아키텍처 |
 | 10 | [DevOps](/docs/devops) | DevOps 및 인프라 |

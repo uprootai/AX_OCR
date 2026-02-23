@@ -1,103 +1,103 @@
 ---
 sidebar_position: 4
-title: PDF Report
-description: Formatted PDF quotation report with company branding and multi-page support
+title: PDF 보고서
+description: 회사 브랜딩과 다중 페이지 지원이 포함된 포맷된 PDF 견적 보고서
 ---
 
-# PDF Report
+# PDF 보고서 (PDF Report)
 
-The PDF report generates a professional manufacturing quotation document from verified BOM data. The report includes company branding, structured pricing tables, and optional drawing images.
+PDF 보고서는 검증된 BOM 데이터를 기반으로 전문적인 제조 견적서를 생성합니다. 보고서에는 회사 브랜딩, 구조화된 단가 테이블, 선택적 도면 이미지가 포함됩니다.
 
-## Report Layout
+## 보고서 레이아웃
 
-### Page 1: Cover / Summary
+### 1페이지: 표지 / 요약
 
-| Section | Content |
-|---------|---------|
-| **Header** | Company logo, company name, document title |
-| **Document Info** | Quotation number, date, validity period |
-| **Customer Info** | Customer name, project name, contact details |
-| **Summary Table** | Total items, total cost, currency, payment terms |
-| **Footer** | Page number, confidentiality notice |
+| 섹션 | 내용 |
+|------|------|
+| **헤더** | 회사 로고, 회사명, 문서 제목 |
+| **문서 정보** | 견적 번호, 날짜, 유효 기간 |
+| **고객 정보** | 고객명, 프로젝트명, 연락처 |
+| **요약 테이블** | 총 항목 수, 총 비용, 통화, 결제 조건 |
+| **푸터** | 페이지 번호, 기밀 고지 |
 
-### Page 2+: BOM Table
+### 2페이지 이후: BOM 테이블
 
-The BOM table spans multiple pages with automatic pagination:
+BOM 테이블은 자동 페이지 나눔으로 여러 페이지에 걸쳐 표시됩니다:
 
-| Column | Width | Description |
-|--------|-------|-------------|
-| No. | 5% | Sequential item number |
-| Description | 25% | Part name and specification |
-| Material | 12% | Material grade |
-| Size | 15% | Dimensional specification |
-| Qty | 5% | Quantity |
-| Unit Price | 15% | Per-unit cost (KRW) |
-| Total | 15% | Line total |
-| Status | 8% | Verification status |
+| 컬럼 | 너비 | 설명 |
+|------|------|------|
+| No. | 5% | 순번 |
+| Description | 25% | 부품명 및 사양 |
+| Material | 12% | 재질 등급 |
+| Size | 15% | 치수 사양 |
+| Qty | 5% | 수량 |
+| Unit Price | 15% | 단가 (KRW) |
+| Total | 15% | 항목 합계 |
+| Status | 8% | 검증 상태 |
 
-### Cost Summary Section
+### 원가 요약 섹션
 
-Appears at the bottom of the last BOM page:
+마지막 BOM 페이지 하단에 표시됩니다:
 
-| Line | Description |
-|------|-------------|
-| Subtotal (Materials) | Sum of all material costs |
-| Subtotal (Machining) | Sum of all machining costs |
-| Heat Treatment | Sum of treatment costs |
-| Inspection & QC | Quality control costs |
-| Packing & Transport | Logistics costs |
-| **Grand Total** | **Sum of all line items** |
+| 항목 | 설명 |
+|------|------|
+| 소계 (재료비) | 모든 재료비의 합계 |
+| 소계 (가공비) | 모든 가공비의 합계 |
+| 열처리비 | 처리 비용 합계 |
+| 검사 및 품질관리 | 품질관리 비용 |
+| 포장 및 운송 | 물류 비용 |
+| **총합계** | **모든 항목의 합계** |
 
-### Optional: Drawing Appendix
+### 선택 사항: 도면 부록
 
-When enabled, the report includes the original drawing image with detection overlays highlighting identified components.
+활성화 시 보고서에 검출된 부품이 하이라이트된 오버레이가 포함된 원본 도면 이미지가 첨부됩니다.
 
-## Company Branding
+## 회사 브랜딩
 
-The PDF generator supports customizable branding:
+PDF 생성기는 맞춤형 브랜딩을 지원합니다:
 
-| Element | Customizable | Default |
-|---------|:----------:|---------|
-| Company logo | Yes | AX POC logo |
-| Company name | Yes | "AX Engineering" |
-| Address | Yes | Company address |
-| Contact info | Yes | Phone, email |
-| Primary color | Yes | `#1565c0` (blue) |
-| Font | Yes | NanumGothic (Korean support) |
-| Footer text | Yes | Confidentiality notice |
+| 요소 | 사용자 정의 | 기본값 |
+|------|:----------:|--------|
+| 회사 로고 | 가능 | AX POC 로고 |
+| 회사명 | 가능 | "AX Engineering" |
+| 주소 | 가능 | 회사 주소 |
+| 연락처 | 가능 | 전화번호, 이메일 |
+| 메인 색상 | 가능 | `#1565c0` (파란색) |
+| 폰트 | 가능 | NanumGothic (한국어 지원) |
+| 푸터 텍스트 | 가능 | 기밀 고지 |
 
-Branding configuration is stored in the project settings and applied to all generated reports.
+브랜딩 설정은 프로젝트 설정에 저장되며 생성되는 모든 보고서에 적용됩니다.
 
-## Multi-Page Support
+## 다중 페이지 지원
 
-The PDF engine handles BOM tables of any length:
+PDF 엔진은 모든 길이의 BOM 테이블을 처리합니다:
 
-- **Automatic pagination**: Tables split across pages with repeated headers
-- **Page numbering**: "Page X of Y" format in footer
-- **Orphan control**: Minimum 3 rows per page to avoid single-row pages
-- **Summary placement**: Cost summary always appears on the last page after the BOM table
+- **자동 페이지 나눔**: 테이블이 반복 헤더와 함께 여러 페이지로 분할됩니다
+- **페이지 번호 매기기**: 푸터에 "X / Y 페이지" 형식으로 표시됩니다
+- **고립 행 방지(Orphan control)**: 한 행만 남는 페이지를 방지하기 위해 페이지당 최소 3행을 유지합니다
+- **요약 배치**: 원가 요약은 항상 BOM 테이블 다음 마지막 페이지에 표시됩니다
 
-## Number Formatting
+## 숫자 형식
 
-All monetary values use Korean Won (KRW) formatting:
+모든 금액은 원화(KRW) 형식을 사용합니다:
 
-| Format | Example |
-|--------|---------|
-| Unit price | 485,000 |
-| Total price | 8,500,000 |
-| Grand total | 12,350,000 |
+| 형식 | 예시 |
+|------|------|
+| 단가 | 485,000 |
+| 합계 | 8,500,000 |
+| 총합계 | 12,350,000 |
 
-Decimal values (weights, dimensions) use up to 2 decimal places.
+소수값(중량, 치수)은 최대 소수점 2자리까지 표시됩니다.
 
-## Generation Endpoints
+## 생성 엔드포인트
 
-### Generate Quotation PDF
+### 견적 PDF 생성
 
 ```
 POST /quotation/generate/{session_id}
 ```
 
-**Request Body** (optional):
+**요청 본문** (선택 사항):
 
 ```json
 {
@@ -110,34 +110,34 @@ POST /quotation/generate/{session_id}
 }
 ```
 
-**Response**: PDF file download
+**응답**: PDF 파일 다운로드
 
-### Export as PDF
+### PDF로 내보내기
 
 ```
 GET /export/pdf/{session_id}
 ```
 
-Returns the cached PDF if previously generated, or generates a new one.
+이전에 생성된 PDF가 있으면 캐시된 파일을 반환하고, 없으면 새로 생성합니다.
 
-## Page Size and Margins
+## 페이지 크기 및 여백
 
-| Property | Value |
-|----------|-------|
-| Page size | A4 (210 x 297 mm) |
-| Top margin | 25 mm |
-| Bottom margin | 20 mm |
-| Left margin | 20 mm |
-| Right margin | 20 mm |
-| Header height | 35 mm |
-| Footer height | 15 mm |
+| 속성 | 값 |
+|------|-----|
+| 페이지 크기 | A4 (210 x 297 mm) |
+| 상단 여백 | 25 mm |
+| 하단 여백 | 20 mm |
+| 좌측 여백 | 20 mm |
+| 우측 여백 | 20 mm |
+| 헤더 높이 | 35 mm |
+| 푸터 높이 | 15 mm |
 
-## Supported Languages
+## 지원 언어
 
-The PDF report supports bilingual content:
+PDF 보고서는 이중 언어 콘텐츠를 지원합니다:
 
-| Language | Font | Usage |
-|----------|------|-------|
-| Korean | NanumGothic | Part descriptions, headers |
-| English | Helvetica / Arial | Technical specifications, class names |
-| Mixed | Auto-detect | Supports mixed Korean/English text |
+| 언어 | 폰트 | 용도 |
+|------|------|------|
+| 한국어 | NanumGothic | 부품 설명, 헤더 |
+| 영어 | Helvetica / Arial | 기술 사양, 클래스명 |
+| 혼합 | 자동 감지 | 한국어/영어 혼합 텍스트 지원 |

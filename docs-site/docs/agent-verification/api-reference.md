@@ -1,30 +1,30 @@
 ---
 sidebar_position: 2
-title: API Reference
-description: Complete API reference for the Agent Verification system
+title: API 레퍼런스
+description: 에이전트 검증 시스템의 전체 API 레퍼런스
 ---
 
-# API Reference
+# API 레퍼런스
 
-The Agent Verification system exposes two sets of endpoints: the **Verification API** for human/system verification and the **Agent Verification API** optimized for LLM agent automation.
+에이전트 검증 시스템은 두 가지 엔드포인트 세트를 제공합니다: 사람/시스템 검증을 위한 **검증 API (Verification API)**와 LLM 에이전트 자동화에 최적화된 **에이전트 검증 API (Agent Verification API)**.
 
-Base URL: `http://localhost:5020`
+기본 URL: `http://localhost:5020`
 
-## Verification API
+## 검증 API (Verification API)
 
-Prefix: `/verification`
+접두사: `/verification`
 
 ### GET `/verification/queue/{session_id}`
 
-Retrieve the prioritized verification queue for a session.
+세션의 우선순위가 지정된 검증 큐를 조회합니다.
 
-**Query Parameters**:
+**쿼리 파라미터**:
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `item_type` | string | `"dimension"` | Item type: `"dimension"` or `"symbol"` |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|-------|------|
+| `item_type` | string | `"dimension"` | 항목 유형: `"dimension"` 또는 `"symbol"` |
 
-**Response**:
+**응답**:
 
 ```json
 {
@@ -61,9 +61,9 @@ Retrieve the prioritized verification queue for a session.
 
 ### POST `/verification/verify/{session_id}`
 
-Submit a verification decision for a single item.
+단일 항목에 대한 검증 결정을 제출합니다.
 
-**Request Body**:
+**요청 본문**:
 
 ```json
 {
@@ -78,15 +78,15 @@ Submit a verification decision for a single item.
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `item_id` | string | Yes | Target item ID |
-| `item_type` | string | No | `"dimension"` (default) or `"symbol"` |
-| `action` | string | Yes | `"approved"`, `"rejected"`, or `"modified"` |
-| `modified_data` | object | No | Modified fields (required when action is `"modified"`) |
-| `review_time_seconds` | float | No | Time spent reviewing (for analytics) |
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `item_id` | string | 예 | 대상 항목 ID |
+| `item_type` | string | 아니오 | `"dimension"` (기본값) 또는 `"symbol"` |
+| `action` | string | 예 | `"approved"`, `"rejected"`, 또는 `"modified"` |
+| `modified_data` | object | 아니오 | 수정된 필드 (action이 `"modified"`일 때 필수) |
+| `review_time_seconds` | float | 아니오 | 검토에 소요된 시간 (분석용) |
 
-**Response**:
+**응답**:
 
 ```json
 {
@@ -100,9 +100,9 @@ Submit a verification decision for a single item.
 
 ### GET `/verification/stats/{session_id}`
 
-Get verification statistics for a session.
+세션의 검증 통계를 조회합니다.
 
-**Response**:
+**응답**:
 
 ```json
 {
@@ -128,9 +128,9 @@ Get verification statistics for a session.
 
 ### POST `/verification/bulk-approve/{session_id}`
 
-Bulk approve multiple items at once.
+여러 항목을 한 번에 일괄 승인합니다.
 
-**Request Body**:
+**요청 본문**:
 
 ```json
 {
@@ -139,7 +139,7 @@ Bulk approve multiple items at once.
 }
 ```
 
-**Response**:
+**응답**:
 
 ```json
 {
@@ -154,19 +154,19 @@ Bulk approve multiple items at once.
 
 ### POST `/verification/auto-approve/{session_id}`
 
-Auto-approve all items with confidence >= auto_approve_threshold.
+신뢰도 >= auto_approve_threshold인 모든 항목을 자동 승인합니다.
 
-**Query Parameters**:
+**쿼리 파라미터**:
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `item_type` | string | `"dimension"` | Item type to auto-approve |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|-------|------|
+| `item_type` | string | `"dimension"` | 자동 승인할 항목 유형 |
 
 ### PUT /verification/thresholds
 
-Update verification thresholds at runtime.
+검증 임계값을 런타임에 업데이트합니다.
 
-**Request Body**:
+**요청 본문**:
 
 ```json
 {
@@ -175,7 +175,7 @@ Update verification thresholds at runtime.
 }
 ```
 
-**Response**:
+**응답**:
 
 ```json
 {
@@ -192,34 +192,34 @@ Update verification thresholds at runtime.
 
 ### GET /verification/training-data
 
-Export verification logs for model retraining.
+모델 재학습을 위한 검증 로그를 내보냅니다.
 
-**Query Parameters**:
+**쿼리 파라미터**:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `session_id` | string | Filter by session (optional) |
-| `action_filter` | string | Filter by action: `"approved"`, `"rejected"`, `"modified"` (optional) |
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `session_id` | string | 세션별 필터링 (선택 사항) |
+| `action_filter` | string | 작업별 필터링: `"approved"`, `"rejected"`, `"modified"` (선택 사항) |
 
 ---
 
-## Agent Verification API
+## 에이전트 검증 API (Agent Verification API)
 
-Prefix: `/verification/agent`
+접두사: `/verification/agent`
 
-Optimized for LLM agent automation (Playwright-friendly, base64 images included).
+LLM 에이전트 자동화에 최적화되어 있습니다 (Playwright 호환, base64 이미지 포함).
 
 ### GET `/verification/agent/queue/{session_id}`
 
-Get the agent verification queue (pending items only).
+에이전트 검증 큐를 조회합니다 (대기 중인 항목만).
 
-**Query Parameters**:
+**쿼리 파라미터**:
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `item_type` | string | `"symbol"` | `"symbol"` or `"dimension"` |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|-------|------|
+| `item_type` | string | `"symbol"` | `"symbol"` 또는 `"dimension"` |
 
-**Response**:
+**응답**:
 
 ```json
 {
@@ -244,15 +244,15 @@ Get the agent verification queue (pending items only).
 
 ### GET `/verification/agent/item/{session_id}/{item_id}`
 
-Get detailed item information with base64-encoded images.
+base64 인코딩된 이미지와 함께 상세 항목 정보를 조회합니다.
 
-**Query Parameters**:
+**쿼리 파라미터**:
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `item_type` | string | `"symbol"` | `"symbol"` or `"dimension"` |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|-------|------|
+| `item_type` | string | `"symbol"` | `"symbol"` 또는 `"dimension"` |
 
-**Response (symbol)**:
+**응답 (심볼)**:
 
 ```json
 {
@@ -274,7 +274,7 @@ Get detailed item information with base64-encoded images.
 }
 ```
 
-**Response (dimension)**:
+**응답 (치수)**:
 
 ```json
 {
@@ -298,15 +298,15 @@ Get detailed item information with base64-encoded images.
 
 ### POST `/verification/agent/decide/{session_id}/{item_id}`
 
-Submit an agent verification decision.
+에이전트 검증 결정을 제출합니다.
 
-**Query Parameters**:
+**쿼리 파라미터**:
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `item_type` | string | `"symbol"` | `"symbol"` or `"dimension"` |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|-------|------|
+| `item_type` | string | `"symbol"` | `"symbol"` 또는 `"dimension"` |
 
-**Request Body**:
+**요청 본문**:
 
 ```json
 {
@@ -316,17 +316,17 @@ Submit an agent verification decision.
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `action` | string | Yes | `"approve"`, `"reject"`, or `"modify"` |
-| `modified_class` | string | Conditional | Required for symbol modify |
-| `modified_value` | string | Conditional | For dimension value correction |
-| `modified_unit` | string | No | For dimension unit correction |
-| `modified_type` | string | No | For dimension type correction |
-| `modified_tolerance` | string | No | For tolerance correction |
-| `reject_reason` | string | No | Reason: `"not_dimension"`, `"garbage"`, `"duplicate"` |
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `action` | string | 예 | `"approve"`, `"reject"`, 또는 `"modify"` |
+| `modified_class` | string | 조건부 | 심볼 수정 시 필수 |
+| `modified_value` | string | 조건부 | 치수 값 수정용 |
+| `modified_unit` | string | 아니오 | 치수 단위 수정용 |
+| `modified_type` | string | 아니오 | 치수 유형 수정용 |
+| `modified_tolerance` | string | 아니오 | 공차 수정용 |
+| `reject_reason` | string | 아니오 | 사유: `"not_dimension"`, `"garbage"`, `"duplicate"` |
 
-**Response**:
+**응답**:
 
 ```json
 {
@@ -343,49 +343,49 @@ Submit an agent verification decision.
 
 ### GET `/verification/agent/dashboard/{session_id}`
 
-Get verification dashboard for a session (agent vs human breakdown).
+세션의 검증 대시보드를 조회합니다 (에이전트 대 사람 분류).
 
 ### GET `/verification/agent/dashboard/project/{project_id}`
 
-Get aggregated verification dashboard across all sessions in a project.
+프로젝트 내 모든 세션에 대한 집계된 검증 대시보드를 조회합니다.
 
-## Sequence Diagram
+## 시퀀스 다이어그램
 
 ```mermaid
 sequenceDiagram
-    participant Agent as LLM Agent
-    participant API as Verification API
-    participant AL as Active Learning
-    participant Session as Session Store
+    participant Agent as LLM 에이전트
+    participant API as 검증 API
+    participant AL as 능동 학습
+    participant Session as 세션 저장소
 
     Agent->>API: GET /agent/queue/{session_id}
-    API->>Session: Get session data
-    API->>AL: Generate priority queue
-    AL-->>API: Sorted pending items
-    API-->>Agent: Queue with priorities
+    API->>Session: 세션 데이터 조회
+    API->>AL: 우선순위 큐 생성
+    AL-->>API: 정렬된 대기 항목
+    API-->>Agent: 우선순위가 지정된 큐
 
-    loop For each pending item
+    loop 각 대기 항목에 대해
         Agent->>API: GET /agent/item/{session_id}/{item_id}
-        API->>Session: Get item + images
-        API-->>Agent: Crop + Context + Reference (base64)
+        API->>Session: 항목 + 이미지 조회
+        API-->>Agent: 크롭 + 문맥 + 참조 (base64)
 
-        Note over Agent: Vision analysis:<br/>Compare crop vs reference
+        Note over Agent: 비전 분석:<br/>크롭과 참조 이미지 비교
 
         Agent->>API: POST /agent/decide/{session_id}/{item_id}
-        API->>Session: Update verification status
-        API->>AL: Log verification decision
-        AL-->>AL: Save to JSONL
-        API-->>Agent: Success + next_item_id
+        API->>Session: 검증 상태 업데이트
+        API->>AL: 검증 결정 기록
+        AL-->>AL: JSONL에 저장
+        API-->>Agent: 성공 + next_item_id
     end
 
     Agent->>API: GET /agent/dashboard/{session_id}
-    API-->>Agent: Final statistics
+    API-->>Agent: 최종 통계
 ```
 
-## Error Codes
+## 오류 코드
 
-| Status | Meaning | Common Cause |
-|--------|---------|-------------|
-| 400 | Bad Request | Invalid action, missing required field for modify |
-| 404 | Not Found | Session or item ID does not exist |
-| 500 | Internal Error | Services not initialized (DI failure) |
+| 상태 코드 | 의미 | 일반적 원인 |
+|----------|------|-----------|
+| 400 | 잘못된 요청 (Bad Request) | 유효하지 않은 작업, 수정 시 필수 필드 누락 |
+| 404 | 찾을 수 없음 (Not Found) | 세션 또는 항목 ID가 존재하지 않음 |
+| 500 | 내부 오류 (Internal Error) | 서비스 미초기화 (DI 실패) |

@@ -1,33 +1,33 @@
 ---
 sidebar_position: 4
-title: Tolerance Analysis
-description: SkinModel Shapes for GD&T tolerance analysis and manufacturing process evaluation
+title: 공차 분석
+description: GD&T 공차 분석 및 제조 공정 평가를 위한 SkinModel Shapes
 ---
 
-# Tolerance Analysis
+# 공차 분석
 
-The Tolerance Analysis stage uses SkinModel Shapes to analyze Geometric Dimensioning and Tolerancing (GD&T) data extracted from engineering drawings. It evaluates manufacturing feasibility, tolerance stack-ups, and process compatibility.
+공차 분석(Tolerance Analysis) 단계는 SkinModel Shapes를 사용하여 엔지니어링 도면에서 추출된 기하 공차(GD&T, Geometric Dimensioning and Tolerancing) 데이터를 분석합니다. 제조 가능성, 누적 공차(Tolerance Stack-up), 공정 적합성을 평가합니다.
 
-## Overview
+## 개요
 
-| Property | Value |
-|----------|-------|
-| **Model** | SkinModel Shapes |
-| **Service** | SkinModel API |
-| **Port** | 5003 |
-| **GPU** | Required |
-| **Category** | Analysis |
+| 항목 | 값 |
+|------|-----|
+| **모델** | SkinModel Shapes |
+| **서비스** | SkinModel API |
+| **포트** | 5003 |
+| **GPU** | 필수 |
+| **카테고리** | 분석 |
 
-## Workflow
+## 워크플로우
 
 ```mermaid
 flowchart LR
-    OCR["OCR Results\n(dimensions + GD&T)"]
-    Parse["Parse\nTolerance Data"]
-    Material["Material\nProperties"]
-    Process["Manufacturing\nProcess Model"]
-    Analyze["SkinModel\nAnalysis"]
-    Report["Tolerance\nReport"]
+    OCR["OCR 결과\n(치수 + GD&T)"]
+    Parse["공차 데이터\n파싱"]
+    Material["재료\n물성"]
+    Process["제조\n공정 모델"]
+    Analyze["SkinModel\n분석"]
+    Report["공차\n보고서"]
 
     OCR --> Parse
     Parse --> Analyze
@@ -39,45 +39,45 @@ flowchart LR
     style Report fill:#e0f2f1,stroke:#00695c
 ```
 
-## Parameters
+## 파라미터
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `material_type` | string | `"steel"` | Material type for analysis (steel, aluminum, plastic, etc.) |
-| `manufacturing_process` | string | `"milling"` | Manufacturing process (milling, turning, grinding, etc.) |
-| `correlation_length` | float | `1.0` | Spatial correlation length for surface deviation modeling |
-| `task` | string | `"analyze"` | Task type (analyze, simulate, report) |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `material_type` | string | `"steel"` | 분석용 재료 유형 (steel, aluminum, plastic 등) |
+| `manufacturing_process` | string | `"milling"` | 제조 공정 (milling, turning, grinding 등) |
+| `correlation_length` | float | `1.0` | 표면 편차 모델링을 위한 공간 상관 길이 |
+| `task` | string | `"analyze"` | 작업 유형 (analyze, simulate, report) |
 
-## Analysis Capabilities
+## 분석 기능
 
-### GD&T Evaluation
+### GD&T 평가
 
-SkinModel evaluates all standard GD&T characteristics:
+SkinModel은 모든 표준 GD&T 특성을 평가합니다:
 
-| GD&T Type | Symbols | Analysis |
-|-----------|---------|----------|
-| **Form** | Flatness, Straightness, Circularity, Cylindricity | Surface deviation simulation |
-| **Orientation** | Perpendicularity, Parallelism, Angularity | Angular tolerance stack-up |
-| **Location** | Position, Concentricity, Symmetry | Positional tolerance analysis |
-| **Runout** | Circular Runout, Total Runout | Rotational deviation modeling |
+| GD&T 유형 | 심볼 | 분석 |
+|-----------|------|------|
+| **형상(Form)** | 평면도, 직진도, 진원도, 원통도 | 표면 편차 시뮬레이션 |
+| **방향(Orientation)** | 직각도, 평행도, 경사도 | 각도 공차 누적 분석 |
+| **위치(Location)** | 위치도, 동심도, 대칭도 | 위치 공차 분석 |
+| **흔들림(Runout)** | 원주 흔들림, 전체 흔들림 | 회전 편차 모델링 |
 
-### Manufacturing Process Impact
+### 제조 공정 영향
 
-The analysis considers how different manufacturing processes affect achievable tolerances:
+분석 시 다양한 제조 공정이 달성 가능한 공차에 미치는 영향을 고려합니다:
 
 ```mermaid
 flowchart TD
-    subgraph Processes["Manufacturing Processes"]
-        Mill["Milling\nIT7-IT9"]
-        Turn["Turning\nIT6-IT8"]
-        Grind["Grinding\nIT4-IT6"]
-        EDM["EDM\nIT5-IT7"]
+    subgraph Processes["제조 공정"]
+        Mill["밀링\nIT7-IT9"]
+        Turn["선삭\nIT6-IT8"]
+        Grind["연삭\nIT4-IT6"]
+        EDM["방전가공\nIT5-IT7"]
     end
 
-    subgraph Output["Analysis Output"]
-        Feas["Feasibility\nScore"]
-        Cost["Cost\nImpact"]
-        Risk["Risk\nAssessment"]
+    subgraph Output["분석 출력"]
+        Feas["실현 가능성\n점수"]
+        Cost["비용\n영향"]
+        Risk["리스크\n평가"]
     end
 
     Mill --> Feas
@@ -89,24 +89,24 @@ flowchart TD
     style EDM fill:#fff3e0,stroke:#e65100
 ```
 
-## API Endpoint
+## API 엔드포인트
 
 ### POST /api/v1/tolerance
 
-**Request:**
+**요청(Request):**
 
 ```
 Content-Type: multipart/form-data
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `file` | File | Yes | Drawing image with GD&T annotations |
-| `material_type` | string | No | Material (default: `steel`) |
-| `manufacturing_process` | string | No | Process (default: `milling`) |
-| `correlation_length` | float | No | Correlation length (default: `1.0`) |
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `file` | File | 예 | GD&T 주석이 포함된 도면 이미지 |
+| `material_type` | string | 아니오 | 재료 (기본값: `steel`) |
+| `manufacturing_process` | string | 아니오 | 공정 (기본값: `milling`) |
+| `correlation_length` | float | 아니오 | 상관 길이 (기본값: `1.0`) |
 
-**Response:**
+**응답(Response):**
 
 ```json
 {
@@ -126,17 +126,17 @@ Content-Type: multipart/form-data
 }
 ```
 
-## Integration with Pipeline
+## 파이프라인과의 통합
 
-The Tolerance Analysis stage receives structured dimension and GD&T data from the OCR stage:
+공차 분석 단계는 OCR 단계에서 구조화된 치수 및 GD&T 데이터를 전달받습니다:
 
-1. **eDOCr2** extracts dimension values and tolerance annotations.
-2. **Dimension Parser** structures raw OCR output into typed tolerance records.
-3. **SkinModel** evaluates each tolerance against the specified material and process.
-4. Results feed into the BOM generation stage for cost estimation.
+1. **eDOCr2**가 치수 값과 공차 주석을 추출합니다.
+2. **치수 파서(Dimension Parser)**가 원시 OCR 출력을 타입이 지정된 공차 레코드로 구조화합니다.
+3. **SkinModel**이 지정된 재료와 공정에 대해 각 공차를 평가합니다.
+4. 결과는 비용 산출을 위해 BOM 생성 단계로 전달됩니다.
 
-## Notes
+## 참고 사항
 
-- The `correlation_length` parameter controls how surface deviations are spatially correlated; smaller values model finer surface textures.
-- Tolerance analysis results directly influence the manufacturing quote by adjusting cost factors based on process difficulty.
-- For assemblies with multiple mating parts, tolerance stack-up analysis considers the cumulative effect of individual tolerances.
+- `correlation_length` 파라미터는 표면 편차의 공간 상관 방식을 제어합니다. 값이 작을수록 더 미세한 표면 텍스처를 모델링합니다.
+- 공차 분석 결과는 공정 난이도에 따른 비용 계수를 조정하여 제조 견적에 직접적으로 영향을 미칩니다.
+- 여러 결합 부품이 있는 조립체의 경우, 누적 공차 분석이 개별 공차의 누적 효과를 고려합니다.

@@ -1,15 +1,15 @@
 ---
 sidebar_position: 4
-title: GPU Configuration
+title: GPU 설정
 description: GPU 설정 및 할당
 ---
 
-# GPU Configuration
+# GPU 설정
 
-## GPU-Enabled Services
+## GPU 사용 서비스
 
-| Service | Port | Default GPU | VRAM Usage |
-|---------|------|-------------|------------|
+| 서비스 | 포트 | 기본 GPU | VRAM 사용량 |
+|--------|------|----------|------------|
 | YOLO v11 | 5005 | GPU 0 | ~2 GB |
 | eDOCr2 | 5002 | GPU 0 | ~1.5 GB |
 | Vision-Language | 5004 | GPU 1 | ~8 GB |
@@ -20,7 +20,7 @@ description: GPU 설정 및 할당
 | Blueprint AI BOM | 5020 | GPU 0 | ~2 GB |
 | Table Detector | 5022 | GPU 0 | ~2 GB |
 
-## GPU Allocation
+## GPU 할당
 
 ```mermaid
 flowchart LR
@@ -39,14 +39,14 @@ flowchart LR
         TROCR["TrOCR 2GB"]
     end
 
-    CONFIG["Dashboard Config"] --> GPU0 & GPU1
+    CONFIG["대시보드 설정"] --> GPU0 & GPU1
 ```
 
-## Dynamic Configuration
+## 동적 설정(Dynamic Configuration)
 
-GPU 할당은 Dashboard에서 동적으로 변경 가능합니다.
+GPU 할당은 대시보드(Dashboard)에서 동적으로 변경할 수 있습니다.
 
-### API Endpoint
+### API 엔드포인트
 
 ```
 POST /api/v1/gpu/config
@@ -60,15 +60,15 @@ POST /api/v1/gpu/config
 }
 ```
 
-### Dashboard
+### 대시보드
 
-Web UI Dashboard (`/dashboard`) → GPU Monitor 탭에서 시각적으로 관리:
+Web UI 대시보드(`/dashboard`) → GPU Monitor 탭에서 시각적으로 관리할 수 있습니다:
 
 - GPU 사용량 실시간 모니터링
 - 서비스별 GPU 할당 변경
 - 메모리 제한 설정
 
-## Docker Override
+## Docker 오버라이드
 
 ```yaml
 # docker-compose.override.yml
@@ -96,11 +96,11 @@ services:
       - CUDA_VISIBLE_DEVICES=1
 ```
 
-## Troubleshooting
+## 문제 해결(Troubleshooting)
 
-| Issue | Solution |
-|-------|----------|
-| CUDA OOM | Reduce batch size, limit VRAM |
-| GPU not detected | Check `nvidia-smi`, restart Docker |
-| Slow inference | Check GPU utilization, reduce concurrent models |
-| Container crash | Check `docker logs`, VRAM limits |
+| 문제 | 해결 방법 |
+|------|----------|
+| CUDA 메모리 부족 (OOM) | 배치 크기 줄이기, VRAM 제한 설정 |
+| GPU 미감지 | `nvidia-smi` 확인, Docker 재시작 |
+| 추론 속도 저하 | GPU 사용률 확인, 동시 실행 모델 수 줄이기 |
+| 컨테이너 충돌 | `docker logs` 확인, VRAM 제한 조정 |

@@ -1,192 +1,192 @@
 ---
 sidebar_position: 1
-title: Detection Classes
-description: Complete list of 73 detection classes for BOM generation and annotation
+title: 검출 클래스
+description: BOM 생성 및 주석용 73개 검출 클래스 전체 목록
 ---
 
-# Detection Classes
+# 검출 클래스
 
-The system uses specialized YOLO v11 models trained on engineering drawings. Across all models, 73+ classes are recognized, divided into BOM-relevant components and annotation elements.
+시스템은 기계 도면에 특화된 YOLO v11 모델을 사용합니다. 전체 모델에 걸쳐 73개 이상의 클래스가 인식되며, BOM 관련 부품과 주석(Annotation) 요소로 구분됩니다.
 
-## BOM-Relevant Classes (27)
+## BOM 관련 클래스 (27개)
 
-These classes represent physical components detected in electrical single-line diagrams. Each detection contributes to the Bill of Materials with quantity counting and pricing.
+이 클래스들은 전기 단선도에서 검출되는 물리적 부품을 나타냅니다. 각 검출 결과는 수량 집계 및 단가 산출과 함께 BOM에 반영됩니다.
 
-### Electrical Equipment Classes
+### 전기 장비 클래스
 
-The `bom_detector` model detects 27 classes of power distribution equipment:
+`bom_detector` 모델은 27개의 배전 장비 클래스를 검출합니다:
 
-| Class ID | Class Name | Display Name | Category |
-|----------|-----------|-------------|----------|
-| 0 | ARRESTER | Arrester | Protection |
-| 1 | CB DS ASSY | CB DS Assembly | Switching |
-| 2 | CT | Current Transformer | Measurement |
-| 3 | CVT | Capacitive Voltage Transformer | Measurement |
-| 4 | DS ASSY | Disconnector Assembly | Switching |
-| 5 | ES / EST | Earth Switch | Grounding |
-| 6 | GIS | Gas Insulated Switchgear | Switching |
-| 7 | LA | Lightning Arrester | Protection |
-| 8 | LS | Line Switch | Switching |
-| 9 | MOF | Metering Outfit | Measurement |
-| 10 | NGR | Neutral Grounding Resistor | Grounding |
-| 11 | P.Fuse | Power Fuse | Protection |
-| 12 | PI | Power Indicator | Measurement |
-| 13 | PT | Potential Transformer | Measurement |
-| 14 | SA | Surge Arrester | Protection |
-| 15 | SPD | Surge Protection Device | Protection |
-| 16 | T.C | Contactor | Switching |
-| 17 | TR | Transformer | Power |
-| 18 | VT | Voltage Transformer | Measurement |
-| 19 | Branch (U-type) | U-type Branch | Wiring |
-| 20 | Disconnector | Disconnector | Switching |
-| 21 | Motor | Motor | Load |
-| 22 | Power Fuse | Power Fuse | Protection |
-| 23 | Rectifier | Rectifier | Conversion |
-| 24 | Circuit Breaker | Circuit Breaker | Protection |
-| 25 | Capacitor | Capacitor | Power Factor |
-| 26 | Arrester (alt) | Arrester | Protection |
+| 클래스 ID | 클래스명 | 표시명 | 카테고리 |
+|----------|---------|-------|---------|
+| 0 | ARRESTER | Arrester | 보호 |
+| 1 | CB DS ASSY | CB DS Assembly | 개폐 |
+| 2 | CT | Current Transformer | 계측 |
+| 3 | CVT | Capacitive Voltage Transformer | 계측 |
+| 4 | DS ASSY | Disconnector Assembly | 개폐 |
+| 5 | ES / EST | Earth Switch | 접지 |
+| 6 | GIS | Gas Insulated Switchgear | 개폐 |
+| 7 | LA | Lightning Arrester | 보호 |
+| 8 | LS | Line Switch | 개폐 |
+| 9 | MOF | Metering Outfit | 계측 |
+| 10 | NGR | Neutral Grounding Resistor | 접지 |
+| 11 | P.Fuse | Power Fuse | 보호 |
+| 12 | PI | Power Indicator | 계측 |
+| 13 | PT | Potential Transformer | 계측 |
+| 14 | SA | Surge Arrester | 보호 |
+| 15 | SPD | Surge Protection Device | 보호 |
+| 16 | T.C | Contactor | 개폐 |
+| 17 | TR | Transformer | 전력 |
+| 18 | VT | Voltage Transformer | 계측 |
+| 19 | Branch (U-type) | U-type Branch | 배선 |
+| 20 | Disconnector | Disconnector | 개폐 |
+| 21 | Motor | Motor | 부하 |
+| 22 | Power Fuse | Power Fuse | 보호 |
+| 23 | Rectifier | Rectifier | 변환 |
+| 24 | Circuit Breaker | Circuit Breaker | 보호 |
+| 25 | Capacitor | Capacitor | 역률 |
+| 26 | Arrester (alt) | Arrester | 보호 |
 
-### Class Categories Summary
+### 클래스 카테고리 요약
 
-| Category | Count | Classes |
-|----------|-------|---------|
-| **Protection** | 7 | ARRESTER, LA, SA, SPD, P.Fuse, Power Fuse, Circuit Breaker |
-| **Switching** | 6 | CB DS ASSY, DS ASSY, GIS, LS, T.C, Disconnector |
-| **Measurement** | 6 | CT, CVT, MOF, PI, PT, VT |
-| **Power** | 1 | TR |
-| **Grounding** | 2 | ES/EST, NGR |
-| **Load** | 1 | Motor |
-| **Conversion** | 1 | Rectifier |
-| **Power Factor** | 1 | Capacitor |
-| **Wiring** | 1 | Branch (U-type) |
-| **Other** | 1 | Arrester (alt) |
+| 카테고리 | 개수 | 클래스 |
+|---------|------|--------|
+| **보호** | 7 | ARRESTER, LA, SA, SPD, P.Fuse, Power Fuse, Circuit Breaker |
+| **개폐** | 6 | CB DS ASSY, DS ASSY, GIS, LS, T.C, Disconnector |
+| **계측** | 6 | CT, CVT, MOF, PI, PT, VT |
+| **전력** | 1 | TR |
+| **접지** | 2 | ES/EST, NGR |
+| **부하** | 1 | Motor |
+| **변환** | 1 | Rectifier |
+| **역률** | 1 | Capacitor |
+| **배선** | 1 | Branch (U-type) |
+| **기타** | 1 | Arrester (alt) |
 
-## P&ID Symbol Classes (60)
+## P&ID 심볼 클래스 (60개)
 
-The `pid_symbol` model detects P&ID symbols used in process and instrumentation diagrams:
+`pid_symbol` 모델은 공정 및 계장 다이어그램(P&ID)에 사용되는 심볼을 검출합니다:
 
-### Valve Types
+### 밸브 유형
 
-| Class | Description |
-|-------|-------------|
-| Gate Valve | Standard gate valve |
-| Globe Valve | Globe/control valve |
-| Ball Valve | Ball valve |
-| Butterfly Valve | Butterfly valve |
-| Check Valve | Non-return valve |
-| Relief Valve | Pressure relief |
-| Control Valve | Automated control valve |
-| Solenoid Valve | Electrically actuated |
-| 3-Way Valve | Three-way routing valve |
-| Needle Valve | Fine flow control |
+| 클래스 | 설명 |
+|-------|------|
+| Gate Valve | 표준 게이트 밸브 |
+| Globe Valve | 글로브/제어 밸브 |
+| Ball Valve | 볼 밸브 |
+| Butterfly Valve | 버터플라이 밸브 |
+| Check Valve | 역류 방지 밸브 |
+| Relief Valve | 압력 릴리프 밸브 |
+| Control Valve | 자동 제어 밸브 |
+| Solenoid Valve | 전기 구동 밸브 |
+| 3-Way Valve | 3방향 라우팅 밸브 |
+| Needle Valve | 미세 유량 제어 밸브 |
 
-### Equipment
+### 장비
 
-| Class | Description |
-|-------|-------------|
-| Pump | Centrifugal/positive displacement |
-| Compressor | Gas compression |
-| Heat Exchanger | Shell and tube / plate |
-| Tank | Storage vessel |
-| Reactor | Chemical reactor |
-| Filter | Filtration equipment |
-| Separator | Phase separation |
-| Column | Distillation/absorption |
+| 클래스 | 설명 |
+|-------|------|
+| Pump | 원심/용적식 펌프 |
+| Compressor | 가스 압축기 |
+| Heat Exchanger | 셸앤튜브 / 판형 열교환기 |
+| Tank | 저장 용기 |
+| Reactor | 화학 반응기 |
+| Filter | 여과 장비 |
+| Separator | 상분리 장치 |
+| Column | 증류/흡수탑 |
 
-### Instruments
+### 계기류
 
-| Class | Description |
-|-------|-------------|
-| Pressure Indicator | PI |
-| Temperature Indicator | TI |
-| Flow Indicator | FI |
-| Level Indicator | LI |
-| Pressure Transmitter | PT |
-| Temperature Transmitter | TT |
-| Flow Transmitter | FT |
-| Level Transmitter | LT |
-| Controller | PID Controller |
+| 클래스 | 설명 |
+|-------|------|
+| Pressure Indicator | 압력 지시계 (PI) |
+| Temperature Indicator | 온도 지시계 (TI) |
+| Flow Indicator | 유량 지시계 (FI) |
+| Level Indicator | 레벨 지시계 (LI) |
+| Pressure Transmitter | 압력 트랜스미터 (PT) |
+| Temperature Transmitter | 온도 트랜스미터 (TT) |
+| Flow Transmitter | 유량 트랜스미터 (FT) |
+| Level Transmitter | 레벨 트랜스미터 (LT) |
+| Controller | PID 제어기 |
 
-### Piping Elements
+### 배관 요소
 
-| Class | Description |
-|-------|-------------|
-| Reducer | Pipe size reduction |
-| Tee | T-junction |
-| Elbow | Direction change |
-| Flange | Pipe connection |
-| Orifice | Flow measurement |
-| Spectacle Blind | Isolation |
+| 클래스 | 설명 |
+|-------|------|
+| Reducer | 관경 축소 이음 |
+| Tee | T형 분기관 |
+| Elbow | 방향 전환 이음 |
+| Flange | 배관 연결 플랜지 |
+| Orifice | 유량 측정 오리피스 |
+| Spectacle Blind | 차단용 블라인드 |
 
-## Annotation Classes (46+)
+## 주석 클래스 (46개 이상)
 
-Annotation classes are detected across all drawing types and provide supplementary information. These do not contribute directly to the BOM count but enrich the extracted data.
+주석 클래스는 모든 도면 유형에서 검출되며 부가 정보를 제공합니다. 이 클래스들은 BOM 수량에 직접 반영되지 않지만, 추출 데이터를 보강합니다.
 
-### Dimension Types
+### 치수 유형
 
-| Type | Description | Example |
-|------|-------------|---------|
-| Length | Linear dimension | `45.2 mm` |
-| Diameter | Circular dimension | `OD 670 mm` |
-| Radius | Arc dimension | `R 25` |
-| Angle | Angular dimension | `45.0 deg` |
-| Thread | Thread specification | `M24x120L` |
+| 유형 | 설명 | 예시 |
+|------|------|------|
+| Length | 선형 치수 | `45.2 mm` |
+| Diameter | 원형 치수 | `OD 670 mm` |
+| Radius | 호 치수 | `R 25` |
+| Angle | 각도 치수 | `45.0 deg` |
+| Thread | 나사 규격 | `M24x120L` |
 
-### Tolerance Types
+### 공차 유형
 
-| Type | Description | Example |
-|------|-------------|---------|
-| Bilateral | Plus/minus tolerance | `45.2 +/- 0.1` |
-| Unilateral | One-direction tolerance | `45.2 +0.05 / -0.00` |
-| Limit | Min/max range | `45.15 - 45.25` |
+| 유형 | 설명 | 예시 |
+|------|------|------|
+| Bilateral | 양방향 공차 | `45.2 +/- 0.1` |
+| Unilateral | 단방향 공차 | `45.2 +0.05 / -0.00` |
+| Limit | 최소/최대 범위 | `45.15 - 45.25` |
 
-### GD&T Symbols
+### GD&T(기하공차) 심볼
 
-| Symbol | Description |
-|--------|-------------|
-| Straightness | Line straightness |
-| Flatness | Surface flatness |
-| Circularity | Cross-section roundness |
-| Cylindricity | Full cylinder form |
-| Perpendicularity | 90-degree relation |
-| Parallelism | Parallel surfaces |
-| Position | True position |
-| Concentricity | Axis alignment |
-| Runout | Rotation deviation |
-| Total Runout | Full indicator movement |
-| Profile of a Line | Line profile |
-| Profile of a Surface | Surface profile |
+| 심볼 | 설명 |
+|------|------|
+| Straightness | 직진도 |
+| Flatness | 평면도 |
+| Circularity | 진원도 |
+| Cylindricity | 원통도 |
+| Perpendicularity | 직각도 |
+| Parallelism | 평행도 |
+| Position | 위치도 |
+| Concentricity | 동심도 |
+| Runout | 흔들림 |
+| Total Runout | 전체 흔들림 |
+| Profile of a Line | 선의 윤곽도 |
+| Profile of a Surface | 면의 윤곽도 |
 
-### Surface Finish
+### 표면 거칠기
 
-| Class | Description |
-|-------|-------------|
-| Surface Roughness | Ra / Rz values |
-| Machining Symbol | Machining requirement |
-| Welding Symbol | Weld type specification |
+| 클래스 | 설명 |
+|-------|------|
+| Surface Roughness | Ra / Rz 값 |
+| Machining Symbol | 가공 요구 기호 |
+| Welding Symbol | 용접 유형 기호 |
 
-## Model Configuration
+## 모델 설정
 
-Each detection model has specific default parameters:
+각 검출 모델의 기본 파라미터는 다음과 같습니다:
 
-| Model | Confidence | IOU | Image Size | SAHI |
-|-------|-----------|-----|-----------|------|
-| `bom_detector` | 0.40 | 0.50 | 1024 | Off |
-| `pid_symbol` | 0.10 | 0.45 | 1024 | On |
-| `pid_class_aware` | 0.10 | 0.45 | 1024 | On |
-| `pid_class_agnostic` | 0.10 | 0.45 | 1024 | On |
-| `engineering` | 0.50 | 0.45 | 640 | Off |
-| `panasia` | 0.40 | 0.50 | 1024 | Off |
+| 모델 | 신뢰도 | IOU | 이미지 크기 | SAHI |
+|------|--------|-----|-----------|------|
+| `bom_detector` | 0.40 | 0.50 | 1024 | 꺼짐 |
+| `pid_symbol` | 0.10 | 0.45 | 1024 | 켜짐 |
+| `pid_class_aware` | 0.10 | 0.45 | 1024 | 켜짐 |
+| `pid_class_agnostic` | 0.10 | 0.45 | 1024 | 켜짐 |
+| `engineering` | 0.50 | 0.45 | 640 | 꺼짐 |
+| `panasia` | 0.40 | 0.50 | 1024 | 꺼짐 |
 
-**SAHI** (Slicing Aided Hyper Inference) is enabled for P&ID models to improve detection of small symbols by processing the image in overlapping 512x512 slices with 25% overlap.
+**SAHI** (Slicing Aided Hyper Inference)는 P&ID 모델에서 활성화되어, 이미지를 25% 오버랩이 적용된 512x512 슬라이스로 분할 처리함으로써 작은 심볼의 검출 성능을 향상시킵니다.
 
-## Margin Penalty
+## 마진 페널티
 
-Detections in drawing margin areas (title block, revision block, outer edges) receive a 50% confidence penalty to reduce false positives:
+도면 마진 영역(표제란, 리비전 블록, 외곽 테두리)에서의 검출은 오검출을 줄이기 위해 50% 신뢰도 페널티가 적용됩니다:
 
-| Region | Condition | Penalty |
-|--------|-----------|---------|
-| Title block | x > 65% and y > 85% | 0.5x |
-| Revision block | x > 75% and y < 15% | 0.5x |
-| Top/bottom margin | y < 3% or y > 97% | 0.5x |
-| Left/right margin | x < 3% or x > 97% | 0.5x |
+| 영역 | 조건 | 페널티 |
+|------|------|--------|
+| 표제란 | x > 65% 이고 y > 85% | 0.5x |
+| 리비전 블록 | x > 75% 이고 y < 15% | 0.5x |
+| 상/하단 마진 | y < 3% 또는 y > 97% | 0.5x |
+| 좌/우측 마진 | x < 3% 또는 x > 97% | 0.5x |

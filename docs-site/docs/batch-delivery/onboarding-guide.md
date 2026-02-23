@@ -1,12 +1,12 @@
 ---
 sidebar_position: 4
-title: Customer Onboarding
+title: 고객 온보딩
 description: 신규 고객 프로젝트 자동 셋업 CLI 가이드
 ---
 
-# Customer Onboarding Guide
+# 고객 온보딩 가이드
 
-## Overview
+## 개요
 
 신규 고객 프로젝트 셋업에 필요한 8개 API 호출을 자동화하는 CLI 도구입니다.
 프로젝트 생성 → BOM 임포트 → 도면 매칭 → 세션 생성 → 일괄 분석 → 검증 → 견적 내보내기까지 한 번에 수행합니다.
@@ -17,17 +17,17 @@ description: 신규 고객 프로젝트 자동 셋업 CLI 가이드
 - Python 3.10+ (httpx 설치됨)
 - BOM 견적 프로젝트의 경우: BOM PDF 파일 + 도면 폴더
 
-### 8-Phase Pipeline
+### 8단계 파이프라인
 
 ```mermaid
 flowchart LR
-    P1[1. Create\nProject] --> P2[2. Import\nBOM]
-    P2 --> P3[3. Match\nDrawings]
-    P3 --> P4[4. Create\nSessions]
-    P4 --> P5[5. Start\nBatch]
-    P5 --> P6[6. Poll\nStatus]
-    P6 --> P7[7. Agent\nVerify]
-    P7 --> P8[8. Export\nQuotation]
+    P1[1. 프로젝트\n생성] --> P2[2. BOM\n임포트]
+    P2 --> P3[3. 도면\n매칭]
+    P3 --> P4[4. 세션\n생성]
+    P4 --> P5[5. 배치\n시작]
+    P5 --> P6[6. 상태\n폴링]
+    P6 --> P7[7. Agent\n검증]
+    P7 --> P8[8. 견적\n내보내기]
 
     style P1 fill:#e1f5fe
     style P2 fill:#e1f5fe
@@ -39,8 +39,8 @@ flowchart LR
     style P8 fill:#f3e5f5
 ```
 
-| Phase | API Endpoint | 설명 |
-|-------|-------------|------|
+| 단계 | API 엔드포인트 | 설명 |
+|------|---------------|------|
 | 1 | `POST /projects` | 프로젝트 생성 → project_id 획득 |
 | 2 | `POST /projects/{id}/import-bom` | BOM PDF 업로드 (BOM 타입만) |
 | 3 | `POST /projects/{id}/match-drawings` | 도면번호 → 파일 매칭 (BOM 타입만) |
@@ -52,7 +52,7 @@ flowchart LR
 
 ---
 
-## Quick Start
+## 빠른 시작
 
 ### BOM 견적 프로젝트 (TECHCROSS)
 
@@ -88,68 +88,68 @@ python scripts/onboard.py \
 
 ---
 
-## CLI Reference
+## CLI 레퍼런스
 
-### Usage
+### 사용법
 
 ```
 python scripts/onboard.py [OPTIONS]
 ```
 
-### Mode Options
+### 모드 옵션
 
-| Flag | 설명 |
-|------|------|
+| 플래그 | 설명 |
+|--------|------|
 | `--interactive`, `-i` | 단계별 프롬프트로 진행 |
 | `--config FILE` | YAML/JSON 설정 파일 사용 |
 | `--list-presets` | 사용 가능한 프리셋 목록 출력 |
 
-### Project Options
+### 프로젝트 옵션
 
-| Flag | 설명 | 기본값 |
-|------|------|--------|
+| 플래그 | 설명 | 기본값 |
+|--------|------|--------|
 | `--name` | 프로젝트 이름 (필수) | - |
 | `--customer` | 고객사명 (필수) | - |
 | `--type` | `bom_quotation`, `pid_detection`, `general` | `general` |
 | `--description` | 프로젝트 설명 | - |
 | `--preset` | 고객 프리셋 이름 | - |
 
-### BOM Options
+### BOM 옵션
 
-| Flag | 설명 |
-|------|------|
+| 플래그 | 설명 |
+|--------|------|
 | `--bom-pdf` | BOM PDF 파일 경로 |
 | `--drawing-folder` | 도면 폴더 경로 |
 
-### Analysis Options
+### 분석 옵션
 
-| Flag | 설명 | 기본값 |
-|------|------|--------|
+| 플래그 | 설명 | 기본값 |
+|--------|------|--------|
 | `--features` | 활성화할 기능 목록 | 프리셋에 따름 |
 | `--template` | 템플릿 이름 | - |
 | `--root-drawing` | 루트 어셈블리 도면번호 | - |
 | `--force-rerun` | 이미 분석된 세션 재실행 | `false` |
 
-### Verification Options
+### 검증 옵션
 
-| Flag | 설명 | 기본값 |
-|------|------|--------|
+| 플래그 | 설명 | 기본값 |
+|--------|------|--------|
 | `--verify` | Agent 검증 활성화 | `false` |
 | `--verify-item-type` | `symbol`, `dimension`, `both` | `both` |
-| `--verify-threshold` | L1 auto-approve 임계값 | `0.9` |
+| `--verify-threshold` | L1 자동 승인 임계값 | `0.9` |
 | `--verify-l1-only` | L1만 실행 (LLM 미사용) | `false` |
 
-### Export Options
+### 내보내기 옵션
 
-| Flag | 설명 | 기본값 |
-|------|------|--------|
+| 플래그 | 설명 | 기본값 |
+|--------|------|--------|
 | `--export-format` | `pdf` 또는 `excel` | `pdf` |
 | `--export-notes` | 견적서 비고 | - |
 
-### Control Options
+### 제어 옵션
 
-| Flag | 설명 | 기본값 |
-|------|------|--------|
+| 플래그 | 설명 | 기본값 |
+|--------|------|--------|
 | `--dry-run` | API 호출 없이 계획만 출력 | `false` |
 | `--resume-project` | 재개할 프로젝트 ID | - |
 | `--resume-from` | 재개 시작 단계 (1-8) | `0` |
@@ -158,7 +158,7 @@ python scripts/onboard.py [OPTIONS]
 
 ---
 
-## YAML Configuration
+## YAML 설정
 
 설정 파일로 반복 실행을 간소화할 수 있습니다.
 
@@ -186,7 +186,7 @@ export_notes: "2026-Q1 정기 견적"
 python scripts/onboard.py --config project.yaml
 ```
 
-### Schema
+### 스키마
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
@@ -205,9 +205,9 @@ python scripts/onboard.py --config project.yaml
 
 ---
 
-## Project Type Walkthroughs
+## 프로젝트 타입별 안내
 
-### BOM Quotation (BOM 견적)
+### BOM 견적 (BOM Quotation)
 
 1단계 ~ 8단계 전체 수행. BOM PDF에서 파트를 추출하고, 도면을 매칭하여 세션을 생성한 후 일괄 분석합니다.
 
@@ -220,9 +220,9 @@ python scripts/onboard.py \
     --verify --export-format excel
 ```
 
-### P&ID Detection (P&ID 분석)
+### P&ID 분석 (P&ID Detection)
 
-Phase 2~3(BOM)을 건너뛰고 세션 생성부터 시작합니다. P&ID 심볼 검출 + 연결 분석에 특화됩니다.
+단계 2~3(BOM)을 건너뛰고 세션 생성부터 시작합니다. P&ID 심볼 검출 + 연결 분석에 특화됩니다.
 
 ```bash
 python scripts/onboard.py \
@@ -232,7 +232,7 @@ python scripts/onboard.py \
     --verify --verify-item-type symbol
 ```
 
-### General Manufacturing (일반 제조)
+### 일반 제조 (General Manufacturing)
 
 범용 도면 분석. 심볼 검출 + 치수 OCR + 타이틀 블록 OCR을 수행합니다.
 
@@ -245,14 +245,14 @@ python scripts/onboard.py \
 
 ---
 
-## Customer Presets
+## 고객 프리셋
 
-| Preset | Customer | Project Type | Features | Export | Verify |
-|--------|----------|-------------|----------|--------|--------|
-| `techcross_bwms` | TECHCROSS | bom_quotation | dimension_ocr, table_extraction, bom_generation, title_block_ocr | PDF | Yes (both) |
-| `dse_bearing` | DSE | bom_quotation | dimension_ocr, table_extraction, bom_generation, title_block_ocr | Excel | Yes (dimension) |
-| `pid_standard` | - | pid_detection | symbol_detection, pid_connectivity, gt_comparison | PDF | Yes (symbol) |
-| `general_manufacturing` | - | general | symbol_detection, dimension_ocr, title_block_ocr | PDF | No |
+| 프리셋 | 고객 | 프로젝트 타입 | 기능 | 내보내기 | 검증 |
+|--------|------|-------------|------|---------|------|
+| `techcross_bwms` | TECHCROSS | bom_quotation | dimension_ocr, table_extraction, bom_generation, title_block_ocr | PDF | 예 (both) |
+| `dse_bearing` | DSE | bom_quotation | dimension_ocr, table_extraction, bom_generation, title_block_ocr | Excel | 예 (dimension) |
+| `pid_standard` | - | pid_detection | symbol_detection, pid_connectivity, gt_comparison | PDF | 예 (symbol) |
+| `general_manufacturing` | - | general | symbol_detection, dimension_ocr, title_block_ocr | PDF | 아니오 |
 
 프리셋 확인:
 
@@ -262,22 +262,22 @@ python scripts/onboard.py --list-presets
 
 ---
 
-## Resume (재개)
+## 재개 (Resume)
 
 파이프라인이 중간에 실패하면 실패 지점부터 재개할 수 있습니다.
 
 ```bash
-# Phase 5에서 실패한 경우
+# 단계 5에서 실패한 경우
 python scripts/onboard.py \
     --resume-project abc123-def456 \
     --resume-from 5
 ```
 
-상태 파일(`onboard_state_{project_id}.json`)이 자동으로 각 Phase 완료 시 저장됩니다.
+상태 파일(`onboard_state_{project_id}.json`)이 자동으로 각 단계 완료 시 저장됩니다.
 
 ---
 
-## Troubleshooting
+## 문제 해결
 
 ### 서버 연결 실패
 

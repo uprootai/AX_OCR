@@ -1,99 +1,99 @@
 ---
 sidebar_position: 1
-title: P&ID Analysis
-description: P&ID diagram analysis pipeline - symbol detection, line detection, connectivity, and design verification
+title: P&ID 분석
+description: P&ID 도면 분석 파이프라인 - 심볼 검출, 라인 검출, 연결성 분석, 설계 검증
 ---
 
 import PipelineDiagram from '@site/src/components/PipelineDiagram';
 
-# P&ID Analysis
+# P&ID 분석
 
-The P&ID (Piping & Instrumentation Diagram) analysis pipeline processes industrial process diagrams through symbol detection, line detection, connectivity analysis, and automated design rule verification. The system is specialized for BWMS (Ballast Water Management System) P&ID diagrams.
+P&ID(배관 계장 도면, Piping & Instrumentation Diagram) 분석 파이프라인은 산업 공정 도면을 심볼 검출, 라인 검출, 연결성 분석 및 자동 설계 규칙 검증을 통해 처리합니다. 이 시스템은 BWMS(선박평형수 처리 시스템, Ballast Water Management System) P&ID 도면에 특화되어 있습니다.
 
-## Pipeline Overview
+## 파이프라인 개요
 
 <PipelineDiagram type="pid" />
 
-## Pipeline Stages
+## 파이프라인 단계
 
-### 1. Drawing Classification
+### 1. 도면 분류
 
-The VLM (Qwen2-VL) classifies the uploaded drawing. When identified as a P&ID diagram, the system activates P&ID-specific detection models with optimized parameters (lower confidence threshold, SAHI enabled).
+VLM(Qwen2-VL)이 업로드된 도면을 분류합니다. P&ID 도면으로 식별되면, 시스템은 최적화된 파라미터(낮은 신뢰도 임계값, SAHI 활성화)로 P&ID 전용 검출 모델을 활성화합니다.
 
-### 2. Symbol Detection
+### 2. 심볼 검출
 
-YOLO v11 with the `pid_symbol` model detects up to 60 classes of P&ID symbols:
+YOLO v11은 `pid_symbol` 모델을 사용하여 최대 60개 클래스의 P&ID 심볼을 검출합니다:
 
-| Category | Examples | Count |
-|----------|---------|-------|
-| Valves | Gate, Globe, Ball, Butterfly, Check, Relief | 10+ |
-| Equipment | Pumps, Compressors, Heat Exchangers, Tanks | 8+ |
-| Instruments | PI, TI, FI, LI, PT, TT, FT, LT | 16+ |
-| Piping | Reducers, Tees, Elbows, Flanges, Orifices | 6+ |
+| 카테고리 | 예시 | 수량 |
+|----------|------|------|
+| 밸브(Valve) | 게이트, 글로브, 볼, 버터플라이, 체크, 릴리프 | 10+ |
+| 장비(Equipment) | 펌프, 압축기, 열교환기, 탱크 | 8+ |
+| 계기(Instrument) | PI, TI, FI, LI, PT, TT, FT, LT | 16+ |
+| 배관(Piping) | 레듀서, 티, 엘보, 플랜지, 오리피스 | 6+ |
 
-See [Symbol Detection](./symbol-detection.md) for the complete class list and model configuration.
+전체 클래스 목록 및 모델 설정은 [심볼 검출](./symbol-detection.md)을 참조하세요.
 
-### 3. Line Detection
+### 3. 라인 검출
 
-The Line Detector API (port 5016) identifies piping and instrumentation lines with style and color classification:
+라인 검출기 API(포트 5016)는 스타일 및 색상 분류와 함께 배관 및 계장 라인을 식별합니다:
 
-| Line Style | Meaning |
-|-----------|---------|
-| Solid | Process piping |
-| Dashed | Instrument signal |
-| Dash-dot | Boundary/center line |
-| Double | Major piping/casing |
+| 라인 스타일 | 의미 |
+|-------------|------|
+| 실선(Solid) | 공정 배관 |
+| 파선(Dashed) | 계기 신호선 |
+| 일점쇄선(Dash-dot) | 경계/중심선 |
+| 이중선(Double) | 주요 배관/케이싱 |
 
-See [Line Detection](./line-detection.md) for detailed API documentation.
+자세한 API 문서는 [라인 검출](./line-detection.md)을 참조하세요.
 
-### 4. Connectivity Analysis
+### 4. 연결성 분석
 
-The Connectivity Analyzer combines symbol detections and line detections to build a graph of equipment connections:
+연결성 분석기(Connectivity Analyzer)는 심볼 검출과 라인 검출 결과를 결합하여 장비 연결 그래프를 구축합니다:
 
-- **Direct connections**: Symbols within proximity threshold
-- **Line-based connections**: Symbols connected via detected lines
-- **Intersection analysis**: Connections through line crossings
+- **직접 연결**: 근접 임계값 내의 심볼
+- **라인 기반 연결**: 검출된 라인을 통해 연결된 심볼
+- **교차점 분석**: 라인 교차를 통한 연결
 
-See [Connectivity Analysis](./connectivity.md) for the graph algorithm details.
+그래프 알고리즘의 세부 사항은 [연결성 분석](./connectivity.md)을 참조하세요.
 
-### 5. Design Verification
+### 5. 설계 검증
 
-The Design Checker API (port 5019) evaluates the P&ID against 50+ design rules:
+설계 검사기 API(Design Checker, 포트 5019)는 P&ID를 50개 이상의 설계 규칙에 따라 평가합니다:
 
-| Severity | Description |
-|----------|-------------|
-| Pass | Rule satisfied |
-| Warning | Potential issue |
-| Violation | Design rule broken |
+| 심각도 | 설명 |
+|--------|------|
+| 통과(Pass) | 규칙 충족 |
+| 경고(Warning) | 잠재적 문제 |
+| 위반(Violation) | 설계 규칙 위반 |
 
-See [Design Checker](./design-checker.md) for the rule engine and BWMS-specific rules.
+규칙 엔진 및 BWMS 전용 규칙에 대한 자세한 내용은 [설계 검사기](./design-checker.md)를 참조하세요.
 
-## BWMS Specialization
+## BWMS 특화
 
-The pipeline is optimized for Ballast Water Management System (BWMS) P&ID diagrams from TECHCROSS:
+이 파이프라인은 TECHCROSS의 BWMS(선박평형수 처리 시스템) P&ID 도면에 최적화되어 있습니다:
 
-- **Specialized model**: `pid_symbol` trained on BWMS-specific symbol variants
-- **BWMS design rules**: 50+ rules covering equipment requirements, piping standards, and safety
-- **Region detection**: Automatic detection of "SIGNAL FOR BWMS" and equipment boundary regions
-- **Equipment checklist**: Verify required BWMS components (UV reactor, filter, sensors, etc.)
+- **전용 모델**: BWMS 고유 심볼 변형에 대해 학습된 `pid_symbol`
+- **BWMS 설계 규칙**: 장비 요구사항, 배관 표준 및 안전을 다루는 50개 이상의 규칙
+- **영역 검출**: "SIGNAL FOR BWMS" 및 장비 경계 영역의 자동 검출
+- **장비 체크리스트**: 필수 BWMS 구성요소(UV 반응기, 필터, 센서 등) 확인
 
-## System Architecture
+## 시스템 아키텍처
 
-| Service | Port | Role | GPU |
-|---------|------|------|-----|
-| YOLO API | 5005 | Symbol detection (pid_symbol model) | Yes |
-| Line Detector | 5016 | Line and region detection | No (CPU) |
-| PID Analyzer | 5018 | Connectivity analysis | No |
-| Design Checker | 5019 | Rule-based verification | No |
-| PID Composer | 5021 | SVG overlay visualization | No |
-| BOM Backend | 5020 | P&ID features orchestration | No |
+| 서비스 | 포트 | 역할 | GPU |
+|--------|------|------|-----|
+| YOLO API | 5005 | 심볼 검출 (pid_symbol 모델) | 예 |
+| Line Detector | 5016 | 라인 및 영역 검출 | 아니오 (CPU) |
+| PID Analyzer | 5018 | 연결성 분석 | 아니오 |
+| Design Checker | 5019 | 규칙 기반 검증 | 아니오 |
+| PID Composer | 5021 | SVG 오버레이 시각화 | 아니오 |
+| BOM Backend | 5020 | P&ID 기능 오케스트레이션 | 아니오 |
 
-## Key Capabilities
+## 주요 기능
 
-- **60-class symbol detection** with SAHI for small symbol handling
-- **6 line style classifications** (solid, dashed, dotted, dash-dot, double, wavy)
-- **Color-based line classification** (process, cooling, steam, instrument)
-- **Graph-based connectivity** with orphan detection
-- **50+ automated design rules** with pass/warning/violation classification
-- **SVG overlay visualization** for annotated P&ID output
-- **Equipment-to-equipment flow tracing** for process verification
+- **60개 클래스 심볼 검출**: 소형 심볼 처리를 위한 SAHI 지원
+- **6가지 라인 스타일 분류**: 실선, 파선, 점선, 일점쇄선, 이중선, 파형선
+- **색상 기반 라인 분류**: 공정, 냉각, 증기, 계기
+- **그래프 기반 연결성**: 고립 심볼(Orphan) 검출 포함
+- **50개 이상의 자동 설계 규칙**: 통과/경고/위반 분류
+- **SVG 오버레이 시각화**: 주석이 포함된 P&ID 출력
+- **장비 간 흐름 추적**: 공정 검증용

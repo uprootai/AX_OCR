@@ -1,76 +1,76 @@
 ---
 sidebar_position: 2
-title: Service Catalog
+title: 서비스 카탈로그
 description: 24개 마이크로서비스 상세 카탈로그
 ---
 
 import ServiceTable from '@site/src/components/ServiceTable';
 
-# Service Catalog
+# 서비스 카탈로그
 
 AX POC는 24개의 API 서비스로 구성되어 있습니다.
 
 <ServiceTable />
 
-## By Category
+## 카테고리별 서비스
 
-### Detection (2 services)
+### 객체 검출(Detection) (2개 서비스)
 
-| Service | Port | GPU | Description |
-|---------|------|-----|-------------|
-| **YOLO v11** | 5005 | Yes | 73개 클래스 도면 심볼 검출, SAHI 지원 |
-| **Table Detector** | 5022 | Yes | 테이블 검출, 구조 추출, OCR 연동 |
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **YOLO v11** | 5005 | 사용 | 73개 클래스 도면 심볼 검출, SAHI 지원 |
+| **Table Detector** | 5022 | 사용 | 테이블 검출, 구조 추출, OCR 연동 |
 
-### OCR (8 services)
+### 광학 문자 인식(OCR) (8개 서비스)
 
-| Service | Port | GPU | Specialization |
-|---------|------|-----|----------------|
-| **eDOCr2** | 5002 | Yes | 한국어 치수 인식 (주력 엔진) |
-| **PaddleOCR** | 5006 | No | 다국어 OCR, 빠른 속도 |
-| **Tesseract** | 5008 | No | 문서 OCR, 범용 |
-| **TrOCR** | 5009 | Yes | 필기체 OCR, Transformer 기반 |
-| **OCR Ensemble** | 5011 | Yes | 4엔진 가중 투표, 최고 정확도 |
-| **Surya OCR** | 5013 | No | 90+ 언어, 레이아웃 분석 |
-| **DocTR** | 5014 | No | 2단계 파이프라인 OCR |
-| **EasyOCR** | 5015 | No | 80+ 언어, CPU 친화적 |
+| 서비스 | 포트 | GPU | 특화 분야 |
+|--------|------|-----|-----------|
+| **eDOCr2** | 5002 | 사용 | 한국어 치수 인식 (주력 엔진) |
+| **PaddleOCR** | 5006 | 미사용 | 다국어 OCR, 빠른 속도 |
+| **Tesseract** | 5008 | 미사용 | 문서 OCR, 범용 |
+| **TrOCR** | 5009 | 사용 | 필기체 OCR, Transformer 기반 |
+| **OCR Ensemble** | 5011 | 사용 | 4엔진 가중 투표, 최고 정확도 |
+| **Surya OCR** | 5013 | 미사용 | 90개 이상 언어 지원, 레이아웃 분석 |
+| **DocTR** | 5014 | 미사용 | 2단계 파이프라인 OCR |
+| **EasyOCR** | 5015 | 미사용 | 80개 이상 언어 지원, CPU 친화적 |
 
-### Segmentation (2 services)
+### 세그멘테이션(Segmentation) (2개 서비스)
 
-| Service | Port | GPU | Description |
-|---------|------|-----|-------------|
-| **EDGNet** | 5012 | Yes | 엣지 기반 세그멘테이션 |
-| **Line Detector** | 5016 | No | P&ID 라인/배관 검출 |
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **EDGNet** | 5012 | 사용 | 엣지 기반 세그멘테이션 |
+| **Line Detector** | 5016 | 미사용 | P&ID 라인/배관 검출 |
 
-### Preprocessing (1 service)
+### 전처리(Preprocessing) (1개 서비스)
 
-| Service | Port | GPU | Description |
-|---------|------|-----|-------------|
-| **ESRGAN** | 5010 | Yes | 4x 이미지 업스케일링 |
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **ESRGAN** | 5010 | 사용 | 4배 이미지 업스케일링(Super-Resolution) |
 
-### Analysis (5 services)
+### 분석(Analysis) (5개 서비스)
 
-| Service | Port | GPU | Description |
-|---------|------|-----|-------------|
-| **SkinModel** | 5003 | No | GD&T 공차 분석, 제조성 예측 |
-| **PID Analyzer** | 5018 | No | P&ID 연결성 분석, BOM 생성 |
-| **Design Checker** | 5019 | No | P&ID 설계 규칙 검증 (50+ 규칙) |
-| **Blueprint AI BOM** | 5020 | Yes | Human-in-the-Loop 도면 BOM |
-| **PID Composer** | 5021 | No | P&ID 레이어 합성, SVG 오버레이 |
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **SkinModel** | 5003 | 미사용 | GD&T 공차 분석, 제조성 예측 |
+| **PID Analyzer** | 5018 | 미사용 | P&ID 연결성 분석, BOM 생성 |
+| **Design Checker** | 5019 | 미사용 | P&ID 설계 규칙 검증 (50개 이상 규칙) |
+| **Blueprint AI BOM** | 5020 | 사용 | Human-in-the-Loop 도면 BOM |
+| **PID Composer** | 5021 | 미사용 | P&ID 레이어 합성, SVG 오버레이 |
 
-### Knowledge (1 service)
+### 지식 그래프(Knowledge) (1개 서비스)
 
-| Service | Port | GPU | Description |
-|---------|------|-----|-------------|
-| **Knowledge** | 5007 | No | Neo4j + GraphRAG 지식 그래프 |
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **Knowledge** | 5007 | 미사용 | Neo4j + GraphRAG 지식 그래프 |
 
-### AI (1 service)
+### 인공지능(AI) (1개 서비스)
 
-| Service | Port | GPU | Description |
-|---------|------|-----|-------------|
-| **Vision-Language** | 5004 | Yes | Qwen2-VL 멀티모달 분류 |
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **Vision-Language** | 5004 | 사용 | Qwen2-VL 멀티모달 분류 |
 
-### Orchestrator (1 service)
+### 오케스트레이터(Orchestrator) (1개 서비스)
 
-| Service | Port | GPU | Description |
-|---------|------|-----|-------------|
-| **Gateway API** | 8000 | No | API Gateway, 파이프라인 조정 |
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **Gateway API** | 8000 | 미사용 | API 게이트웨이, 파이프라인 조정 |

@@ -1,46 +1,46 @@
 ---
 sidebar_position: 2
-title: Pricing Engine
-description: Cost calculation engine for manufacturing quotation generation
+title: 견적 엔진
+description: 제조 견적 생성을 위한 원가 계산 엔진
 ---
 
-# Pricing Engine
+# 견적 엔진 (Pricing Engine)
 
-The Pricing Engine calculates manufacturing costs for each BOM item based on material weight, machining complexity, heat treatment, and quantity. It supports both custom-machined parts (calculated from dimensions) and standard catalog parts (bolts, nuts, washers).
+견적 엔진은 재료 중량, 가공 복잡도, 열처리 및 수량을 기반으로 각 BOM 항목의 제조 원가를 계산합니다. 치수 기반으로 계산되는 주문 가공품과 카탈로그 기반의 표준 부품(볼트, 너트, 와셔)을 모두 지원합니다.
 
-## Cost Calculation Flow
+## 원가 계산 흐름
 
 ```mermaid
 sequenceDiagram
-    participant BOM as BOM Data
-    participant Engine as Cost Calculator
-    participant Catalog as Standard Parts Catalog
-    participant Config as Pricing Config
+    participant BOM as BOM 데이터
+    participant Engine as 원가 계산기
+    participant Catalog as 표준 부품 카탈로그
+    participant Config as 단가 설정
 
-    BOM->>Engine: Item (description, material, size, qty)
-    Engine->>Catalog: Is standard part?
-    alt Standard Part (bolt, nut, washer, pin, plug)
-        Catalog-->>Engine: Catalog price per unit
-        Engine-->>BOM: unit_price x quantity
-    else Custom Part
-        Engine->>Config: Get material price, machining rates
-        Engine->>Engine: Parse dimensions (OD/ID/L)
-        Engine->>Engine: Apply allowance (+5mm OD, -3mm ID, +3mm L)
-        Engine->>Engine: Calculate weight (hollow cylinder / rectangular)
-        Engine->>Engine: Material cost = weight x unit_price x qty
-        Engine->>Engine: Machining cost = base x size x difficulty x qty
-        Engine->>Engine: Treatment cost (heat treat, plating)
-        Engine->>Engine: Setup + Inspection + Transport
-        Engine-->>BOM: Total breakdown
+    BOM->>Engine: 항목 (설명, 재질, 크기, 수량)
+    Engine->>Catalog: 표준 부품 여부?
+    alt 표준 부품 (볼트, 너트, 와셔, 핀, 플러그)
+        Catalog-->>Engine: 카탈로그 단가
+        Engine-->>BOM: 단가 x 수량
+    else 주문 가공품
+        Engine->>Config: 재료 단가, 가공 요율 조회
+        Engine->>Engine: 치수 파싱 (OD/ID/L)
+        Engine->>Engine: 여유량 적용 (+5mm OD, -3mm ID, +3mm L)
+        Engine->>Engine: 중량 계산 (중공 원통 / 직사각형)
+        Engine->>Engine: 재료비 = 중량 x 단가 x 수량
+        Engine->>Engine: 가공비 = 기본요율 x 크기계수 x 난이도계수 x 수량
+        Engine->>Engine: 처리비 (열처리, 도금)
+        Engine->>Engine: 셋업비 + 검사비 + 운송비
+        Engine-->>BOM: 전체 원가 내역
     end
 ```
 
-## Material Cost Database
+## 재료 단가 데이터베이스
 
-Material prices are stored in `pricing_config.json` with per-kilogram pricing:
+재료 단가는 `pricing_config.json`에 kg당 가격으로 저장되어 있습니다:
 
-| Material | Code | Unit Price (KRW/kg) | Density (g/cm3) |
-|----------|------|--------------------:|-----------------|
+| 재질 | 코드 | 단가 (KRW/kg) | 밀도 (g/cm3) |
+|------|------|-------------:|-------------|
 | SS400 (KS) | SS400 | 1,500 | 7.85 |
 | S45C | S45C | 2,200 | 7.85 |
 | SCM440 | SCM440 | 3,500 | 7.85 |
@@ -48,41 +48,41 @@ Material prices are stored in `pricing_config.json` with per-kilogram pricing:
 | SUS316 | SUS316 | 12,000 | 7.98 |
 | SNCM439 | SNCM439 | 4,500 | 7.85 |
 | Babbitt | BABBITT | 25,000 | 7.27 |
-| DEFAULT | -- | 1,500 | 7.85 |
+| 기본값 | -- | 1,500 | 7.85 |
 
-Material matching supports partial matching and suffix stripping (e.g., `SCM440+QT` matches `SCM440`).
+재질 매칭은 부분 매칭 및 접미사 제거를 지원합니다 (예: `SCM440+QT`는 `SCM440`에 매칭).
 
-## Quantity-Based Pricing Tiers
+## 수량 기반 할인 단계
 
-Quantity discounts are applied to material costs:
+수량 할인은 재료비에 적용됩니다:
 
-| Quantity Range | Discount |
-|---------------|----------|
+| 수량 범위 | 할인율 |
+|----------|--------|
 | 1 - 9 | 0% |
 | 10 - 49 | 5% |
 | 50 - 99 | 10% |
 | 100+ | 15% |
 
-## Manufacturing Process Multipliers
+## 가공 공정 계수
 
-### Size Factor
+### 크기 계수
 
-Based on part weight, a size factor is applied to the base machining rate:
+부품 중량에 따라 기본 가공 요율에 크기 계수가 적용됩니다:
 
-| Weight Range | Size Factor |
-|-------------|------------|
+| 중량 범위 | 크기 계수 |
+|----------|----------|
 | < 1 kg | 0.3x |
 | 1 - 10 kg | 0.5x |
 | 10 - 50 kg | 1.0x |
 | 50 - 200 kg | 1.5x |
 | > 200 kg | 2.0x |
 
-### Difficulty Factor
+### 난이도 계수
 
-The difficulty factor is calculated from part description, material, and dimensions:
+난이도 계수는 부품 설명, 재질 및 치수로부터 산출됩니다:
 
-| Keyword | Additional Factor |
-|---------|-----------------|
+| 키워드 | 추가 계수 |
+|--------|----------|
 | Keyway / Key Way | +0.3 |
 | Groove | +0.2 |
 | Thread / Tapping | +0.2 |
@@ -94,35 +94,35 @@ The difficulty factor is calculated from part description, material, and dimensi
 | Chamfer | +0.05 |
 | Assembly (ASSY) | +0.15 |
 
-**Material difficulty**:
+**재질 난이도**:
 
-| Material Type | Additional Factor |
-|--------------|-----------------|
-| SUS / Stainless | +0.3 |
+| 재질 유형 | 추가 계수 |
+|----------|----------|
+| SUS / 스테인리스 | +0.3 |
 | SCM / SNCM | +0.15 |
 | Babbitt | +0.2 |
 
-**Dimensional difficulty**:
+**치수 난이도**:
 
-| Condition | Additional Factor |
-|-----------|-----------------|
-| Wall ratio > 0.85 (very thin wall) | +0.4 |
-| Wall ratio > 0.75 (thin wall) | +0.2 |
-| OD > 800mm (large part) | +0.15 |
+| 조건 | 추가 계수 |
+|------|----------|
+| 벽 두께 비율 > 0.85 (극박벽) | +0.4 |
+| 벽 두께 비율 > 0.75 (박벽) | +0.2 |
+| OD > 800mm (대형 부품) | +0.15 |
 
-Maximum difficulty factor is capped at 3.0x.
+최대 난이도 계수는 3.0x로 제한됩니다.
 
-## Cost Calculation Formula
+## 원가 계산 수식
 
-For custom-machined parts:
+주문 가공품의 경우:
 
 ```
 Weight = pi/4 * ((OD/10)^2 - (ID/10)^2) * (L/10) * density / 1000  [kg]
 
 Material Cost = Weight * Unit_Price * Quantity * (1 - Qty_Discount/100) * (1 + Scrap_Rate/100)
 Machining Cost = Base_Rate * Size_Factor * Difficulty_Factor * Quantity
-Treatment Cost = SUM(Treatment_Rate * Weight * Quantity)  [for each treatment]
-Setup Cost = Fixed_Amount  [if quantity <= threshold]
+Treatment Cost = SUM(Treatment_Rate * Weight * Quantity)  [각 처리별]
+Setup Cost = Fixed_Amount  [수량이 임계값 이하인 경우]
 Inspection Cost = Base_Subtotal * Inspection_Rate/100
 Transport Cost = Weight * Quantity * Transport_Per_Kg
 
@@ -134,84 +134,84 @@ Subtotal = Material_Cost * (1 + Material_Margin/100)
          + Transport_Cost
 ```
 
-For rectangular/plate parts:
+직사각형/판재 부품의 경우:
 
 ```
 Weight = (L/10) * (W/10) * (T/10) * density / 1000  [kg]
 ```
 
-## Allowance Rules
+## 여유량 규칙
 
-Raw material dimensions include machining allowance added to finished dimensions:
+원자재 치수에는 완성 치수에 대한 가공 여유량이 포함됩니다:
 
-| Dimension | Allowance | Direction |
-|-----------|-----------|-----------|
-| OD (outer diameter) | +5 mm | Oversized |
-| ID (inner diameter) | -3 mm | Undersized |
-| Length | +3 mm | Oversized |
-| Rectangular (each edge) | +3 mm | Oversized |
+| 치수 | 여유량 | 방향 |
+|------|--------|------|
+| OD (외경) | +5 mm | 과대 |
+| ID (내경) | -3 mm | 과소 |
+| 길이 | +3 mm | 과대 |
+| 직사각형 (각 변) | +3 mm | 과대 |
 
-The allowance can be disabled by passing `"no_material_allowance"` in the features list.
+features 목록에 `"no_material_allowance"`를 전달하면 여유량 적용을 비활성화할 수 있습니다.
 
-## Heat Treatment and Surface Treatment
+## 열처리 및 표면 처리
 
-Treatments are automatically detected from part description and material specification:
+처리 방법은 부품 설명과 재질 사양에서 자동으로 감지됩니다:
 
-| Treatment | Rate (KRW/kg) |
-|-----------|-------------:|
-| Quenching + Tempering (QT) | 800 |
-| Tempering | 500 |
-| Normalizing | 400 |
-| Carburizing | 1,200 |
-| Nitriding | 1,500 |
-| Induction Hardening | 1,000 |
-| Chrome Plating | 2,000 |
-| Hard Chrome Plating | 2,500 |
-| Thermal Spray | 3,000 |
-| Babbitt Lining | 5,000 |
+| 처리 | 요율 (KRW/kg) |
+|------|-------------:|
+| 담금질 + 뜨임 (QT) | 800 |
+| 뜨임 (Tempering) | 500 |
+| 노멀라이징 (Normalizing) | 400 |
+| 침탄 (Carburizing) | 1,200 |
+| 질화 (Nitriding) | 1,500 |
+| 고주파 열처리 (Induction Hardening) | 1,000 |
+| 크롬 도금 (Chrome Plating) | 2,000 |
+| 경질 크롬 도금 (Hard Chrome Plating) | 2,500 |
+| 용사 (Thermal Spray) | 3,000 |
+| 배빗 라이닝 (Babbitt Lining) | 5,000 |
 
-## Standard Parts Catalog
+## 표준 부품 카탈로그
 
-Standard fasteners and fittings are priced from a catalog database rather than calculated from dimensions:
+표준 체결류 및 피팅은 치수 기반 계산 대신 카탈로그 데이터베이스에서 단가를 조회합니다:
 
-### Supported Part Types
+### 지원 부품 유형
 
-| Part Type | Size Pattern Examples | Pricing Method |
-|-----------|----------------------|---------------|
-| **Bolt** | M24x120L, M16x80 | base_price + per_mm x length |
-| **Nut** | M16x1.5p, M24 | base_price by diameter |
-| **Washer** | NL16SS, 12x22x... | base_price by diameter |
-| **Pin** | D24x57L, D10 | base_price + per_mm x length |
-| **Plug** | 0.25"NPT, 1/4"NPT | base_price by NPT size |
-| **Clip** | Wire Clip | base_price |
+| 부품 유형 | 규격 패턴 예시 | 단가 산출 방법 |
+|----------|--------------|--------------|
+| **볼트** | M24x120L, M16x80 | base_price + per_mm x 길이 |
+| **너트** | M16x1.5p, M24 | 직경별 base_price |
+| **와셔** | NL16SS, 12x22x... | 직경별 base_price |
+| **핀** | D24x57L, D10 | base_price + per_mm x 길이 |
+| **플러그** | 0.25"NPT, 1/4"NPT | NPT 규격별 base_price |
+| **클립** | Wire Clip | base_price |
 
-### Size Parsing
+### 규격 파싱
 
-The engine parses various size notations:
+견적 엔진은 다양한 규격 표기를 파싱합니다:
 
 ```
 Bolts:    M24X120L  -> diameter=24mm, length=120mm
 Nuts:     M16x1.5p  -> diameter=16mm, pitch=1.5mm
 Washers:  NL16SS    -> diameter=16mm, material=stainless
 Pins:     D24x57L   -> diameter=24mm, length=57mm
-Plugs:    0.25"NPT  -> diameter=10.3mm (NPT nominal)
+Plugs:    0.25"NPT  -> diameter=10.3mm (NPT 공칭)
 ```
 
-## Dimension Extraction from BOM Data
+## BOM 데이터로부터의 치수 추출
 
-The engine extracts dimensions from multiple sources in order of priority:
+견적 엔진은 다음 우선순위에 따라 여러 소스에서 치수를 추출합니다:
 
-1. **BOM data dimensions field**: Explicit OD/ID/Length values from dimension analysis
-2. **Metadata size field**: Parsed from strings like `OD670XID440X29.5T`
-3. **Description field**: Extracted from patterns like `BEARING ASSY(360X190)`
-4. **Weight estimate fallback**: Part-name-based weight lookup when no dimensions available
+1. **BOM 데이터 치수 필드**: 치수 분석에서 얻은 명시적 OD/ID/Length 값
+2. **메타데이터 크기 필드**: `OD670XID440X29.5T` 같은 문자열에서 파싱
+3. **설명 필드**: `BEARING ASSY(360X190)` 같은 패턴에서 추출
+4. **중량 추정 폴백**: 치수 데이터가 없을 때 부품명 기반 중량 조회
 
-### Weight Estimates (Fallback)
+### 중량 추정 (폴백)
 
-When no dimensional data is available, the engine uses part-name-based estimates:
+치수 데이터가 없을 때 엔진은 부품명 기반의 추정 중량을 사용합니다:
 
-| Part Name | Estimated Weight (kg) |
-|-----------|---------------------:|
+| 부품명 | 추정 중량 (kg) |
+|--------|-------------:|
 | Bearing Casing | 80.0 |
 | Bearing Assembly | 120.0 |
 | Housing | 100.0 |
@@ -226,13 +226,13 @@ When no dimensional data is available, the engine uses part-name-based estimates
 | Nut | 0.1 |
 | Washer | 0.05 |
 
-## Cost Source Tracking
+## 원가 출처 추적
 
-Each cost breakdown is tagged with its calculation source:
+각 원가 내역에는 계산 출처가 태깅됩니다:
 
-| Source | Description |
-|--------|-------------|
-| `calculated` | Full calculation from extracted dimensions |
-| `estimated` | Weight estimated from part name (no dimensions) |
-| `standard_catalog` | Standard part catalog price lookup |
-| `none` | No cost data available |
+| 출처 | 설명 |
+|------|------|
+| `calculated` | 추출된 치수를 기반으로 한 완전 계산 |
+| `estimated` | 부품명에서 추정한 중량 (치수 없음) |
+| `standard_catalog` | 표준 부품 카탈로그 단가 조회 |
+| `none` | 원가 데이터 없음 |

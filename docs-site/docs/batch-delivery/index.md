@@ -1,55 +1,55 @@
 ---
 sidebar_position: 1
-title: Batch & Delivery
-description: 대량 도면 일괄 분석 및 납품 패키지
+title: 배치 처리 및 납품
+description: 대량 도면 일괄 분석 및 납품 패키지 시스템
 ---
 
-# Batch Processing & Delivery
+# 배치 처리 및 납품
 
 대량의 도면을 일괄 분석하고 납품 가능한 패키지로 내보내는 시스템입니다.
 
-## Pipeline Overview
+## 파이프라인 개요
 
 ```mermaid
 flowchart LR
     UPLOAD["폴더 업로드\nN개 도면"] --> QUEUE["처리 큐"]
     QUEUE --> PAR{"병렬 처리"}
-    PAR --> S1["Session 1"]
-    PAR --> S2["Session 2"]
-    PAR --> SN["Session N"]
+    PAR --> S1["세션 1"]
+    PAR --> S2["세션 2"]
+    PAR --> SN["세션 N"]
     S1 --> AGG["결과 집계"]
     S2 --> AGG
     SN --> AGG
     AGG --> BOM["통합 BOM"]
-    BOM --> EXPORT["Export Package"]
+    BOM --> EXPORT["내보내기 패키지"]
 ```
 
-## Key Capabilities
+## 주요 기능
 
-| Feature | Description |
-|---------|-------------|
-| **Batch Analysis** | 폴더 단위 도면 일괄 처리 |
-| **Project Management** | 프로젝트 → 세션 계층 관리 |
-| **Export Package** | JSON + Excel + PDF 납품 |
-| **Self-contained Export** | 서버 없이 독립 실행 가능 |
+| 기능 | 설명 |
+|------|------|
+| **배치 분석 (Batch Analysis)** | 폴더 단위 도면 일괄 처리 |
+| **프로젝트 관리 (Project Management)** | 프로젝트 → 세션 계층 관리 |
+| **내보내기 패키지 (Export Package)** | JSON + Excel + PDF 납품 |
+| **독립 실행 내보내기 (Self-contained Export)** | 서버 없이 독립 실행 가능 |
 
-## Real-World Example
+## 실제 사례
 
-**DSE Bearing Turbine Project:**
-- 53 sessions (53개 도면)
-- 2,710 dimensions extracted (평균 51.1/session)
-- 7 assembly groups (T3~T8 + THRUST)
-- 100% batch completion rate
+**DSE Bearing Turbine 프로젝트:**
+- 53개 세션 (53개 도면)
+- 2,710개 치수 추출 (평균 51.1개/세션)
+- 7개 조립 그룹 (T3~T8 + THRUST)
+- 배치 완료율 100%
 
-## Project Hierarchy
+## 프로젝트 계층 구조
 
 ```mermaid
 erDiagram
-    PROJECT ||--o{ SESSION : contains
-    SESSION ||--o{ DETECTION : has
-    SESSION ||--o{ DIMENSION : has
-    SESSION ||--o{ BOM_ITEM : generates
-    PROJECT ||--o{ QUOTATION : produces
+    PROJECT ||--o{ SESSION : "포함"
+    SESSION ||--o{ DETECTION : "보유"
+    SESSION ||--o{ DIMENSION : "보유"
+    SESSION ||--o{ BOM_ITEM : "생성"
+    PROJECT ||--o{ QUOTATION : "생산"
 
     PROJECT {
         string id PK
@@ -65,10 +65,10 @@ erDiagram
     }
 ```
 
-## Sub-pages
+## 하위 페이지
 
-| Page | Description |
-|------|-------------|
-| [Batch Processing](./batch-processing) | 대량 도면 일괄 분석 상세 |
-| [Project Management](./project-management) | 프로젝트 계층 관리 |
-| [Export Package](./export-package) | 납품 패키지 생성 |
+| 페이지 | 설명 |
+|--------|------|
+| [배치 처리](./batch-processing) | 대량 도면 일괄 분석 상세 |
+| [프로젝트 관리](./project-management) | 프로젝트 계층 관리 |
+| [내보내기 패키지](./export-package) | 납품 패키지 생성 |

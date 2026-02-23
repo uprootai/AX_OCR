@@ -1,56 +1,56 @@
 ---
 sidebar_position: 5
-title: Revision Comparison
-description: Side-by-side revision overlay comparison with change detection and dimension delta tracking
+title: 리비전 비교
+description: 변경 감지 및 치수 델타 추적을 통한 리비전 간 오버레이 비교
 ---
 
-# Revision Comparison
+# 리비전 비교
 
-The Revision Comparison stage enables engineers to compare multiple revisions of an engineering drawing, identifying changes in geometry, dimensions, annotations, and BOM data.
+리비전 비교(Revision Comparison) 단계는 엔지니어가 엔지니어링 도면의 여러 리비전을 비교하여 형상, 치수, 주석, BOM 데이터의 변경 사항을 식별할 수 있게 합니다.
 
-## Features
+## 기능
 
-| Feature | Description |
-|---------|-------------|
-| **Side-by-Side Overlay** | Superimpose two revisions with adjustable opacity |
-| **Change Detection** | Automatic identification of added, removed, and modified elements |
-| **Dimension Delta** | Track numerical changes in dimensions across revisions |
-| **Annotation Diff** | Highlight changes in notes, tolerances, and GD&T callouts |
-| **Visual Highlighting** | Color-coded change markers (green=added, red=removed, yellow=modified) |
+| 기능 | 설명 |
+|------|------|
+| **병렬 오버레이(Side-by-Side Overlay)** | 조정 가능한 불투명도로 두 리비전을 겹쳐 표시 |
+| **변경 감지(Change Detection)** | 추가, 삭제, 수정된 요소의 자동 식별 |
+| **치수 델타(Dimension Delta)** | 리비전 간 치수의 수치 변경 추적 |
+| **주석 비교(Annotation Diff)** | 노트, 공차, GD&T 콜아웃의 변경 사항 강조 |
+| **시각적 강조(Visual Highlighting)** | 색상 코드 변경 표시 (녹색=추가, 빨간색=삭제, 노란색=수정) |
 
-## Comparison Flow
+## 비교 흐름
 
 ```mermaid
 sequenceDiagram
-    participant User
+    participant User as 사용자
     participant Gateway as Gateway API :8000
     participant YOLO as YOLO :5005
     participant OCR as eDOCr2 :5002
 
-    User->>Gateway: Upload Revision A + B
-    Gateway->>YOLO: Detect symbols (Rev A)
-    Gateway->>YOLO: Detect symbols (Rev B)
-    YOLO-->>Gateway: Detections A
-    YOLO-->>Gateway: Detections B
-    Gateway->>OCR: Extract dimensions (Rev A)
-    Gateway->>OCR: Extract dimensions (Rev B)
-    OCR-->>Gateway: Dimensions A
-    OCR-->>Gateway: Dimensions B
-    Gateway->>Gateway: Compute deltas
-    Gateway-->>User: Comparison report<br/>+ overlay image
+    User->>Gateway: 리비전 A + B 업로드
+    Gateway->>YOLO: 심볼 검출 (리비전 A)
+    Gateway->>YOLO: 심볼 검출 (리비전 B)
+    YOLO-->>Gateway: 검출 결과 A
+    YOLO-->>Gateway: 검출 결과 B
+    Gateway->>OCR: 치수 추출 (리비전 A)
+    Gateway->>OCR: 치수 추출 (리비전 B)
+    OCR-->>Gateway: 치수 A
+    OCR-->>Gateway: 치수 B
+    Gateway->>Gateway: 델타 계산
+    Gateway-->>User: 비교 보고서<br/>+ 오버레이 이미지
 ```
 
-## Dimension Delta Tracking
+## 치수 델타 추적
 
-Dimension deltas are computed by matching corresponding dimension annotations between revisions using spatial proximity and label similarity.
+치수 델타는 공간적 근접성과 라벨 유사도를 사용하여 리비전 간 대응하는 치수 주석을 매칭함으로써 계산됩니다.
 
 ```mermaid
 flowchart LR
-    RevA["Revision A\nDimensions"]
-    RevB["Revision B\nDimensions"]
-    Match["Spatial\nMatching"]
-    Delta["Delta\nComputation"]
-    Report["Change\nReport"]
+    RevA["리비전 A\n치수"]
+    RevB["리비전 B\n치수"]
+    Match["공간적\n매칭"]
+    Delta["델타\n계산"]
+    Report["변경\n보고서"]
 
     RevA --> Match
     RevB --> Match
@@ -59,16 +59,16 @@ flowchart LR
     style Delta fill:#fffde7,stroke:#f57f17
 ```
 
-### Delta Categories
+### 델타 카테고리
 
-| Category | Criteria | Visual |
-|----------|----------|--------|
-| **Unchanged** | Nominal and tolerance identical | No highlight |
-| **Modified** | Nominal or tolerance changed | Yellow highlight |
-| **Added** | Dimension exists only in Rev B | Green highlight |
-| **Removed** | Dimension exists only in Rev A | Red highlight |
+| 카테고리 | 기준 | 시각 표시 |
+|----------|------|----------|
+| **변경 없음(Unchanged)** | 공칭값과 공차가 동일 | 강조 없음 |
+| **수정됨(Modified)** | 공칭값 또는 공차가 변경됨 | 노란색 강조 |
+| **추가됨(Added)** | 리비전 B에만 치수가 존재 | 녹색 강조 |
+| **삭제됨(Removed)** | 리비전 A에만 치수가 존재 | 빨간색 강조 |
 
-### Example Delta Output
+### 델타 출력 예시
 
 ```json
 {
@@ -98,26 +98,26 @@ flowchart LR
 }
 ```
 
-## Overlay Visualization
+## 오버레이 시각화
 
-The overlay mode superimposes both revisions using color channels:
+오버레이 모드는 색상 채널을 사용하여 두 리비전을 겹쳐 표시합니다:
 
-- **Red channel**: Revision A only (removed elements)
-- **Green channel**: Revision B only (added elements)
-- **White/Gray**: Unchanged elements present in both revisions
+- **빨간색 채널**: 리비전 A에만 존재 (삭제된 요소)
+- **녹색 채널**: 리비전 B에만 존재 (추가된 요소)
+- **흰색/회색**: 두 리비전 모두에 존재하는 변경되지 않은 요소
 
-Users can adjust opacity and toggle individual revision visibility in the BlueprintFlow UI.
+사용자는 BlueprintFlow UI에서 불투명도를 조정하고 개별 리비전의 가시성을 토글할 수 있습니다.
 
-## Integration
+## 통합
 
-Revision comparison is triggered through:
+리비전 비교는 다음을 통해 실행됩니다:
 
-1. **BlueprintFlow**: GT Comparison node in the analysis category
-2. **Gateway API**: Direct API call with two revision images
-3. **BOM UI**: Revision selector in the Blueprint AI BOM interface
+1. **BlueprintFlow**: 분석 카테고리의 GT Comparison 노드
+2. **Gateway API**: 두 리비전 이미지를 사용한 직접 API 호출
+3. **BOM UI**: Blueprint AI BOM 인터페이스의 리비전 선택기
 
-## Notes
+## 참고 사항
 
-- Spatial matching uses a configurable distance threshold to account for minor shifts between revisions.
-- For drawings with different scales or orientations, automatic alignment is performed before comparison.
-- Dimension delta reports can be exported as part of the final quote PDF to document engineering changes.
+- 공간적 매칭은 리비전 간 미세한 위치 이동을 고려하기 위해 설정 가능한 거리 임계값을 사용합니다.
+- 축척이나 방향이 다른 도면의 경우, 비교 전에 자동 정렬이 수행됩니다.
+- 치수 델타 보고서는 엔지니어링 변경 사항을 문서화하기 위해 최종 견적 PDF의 일부로 내보낼 수 있습니다.
