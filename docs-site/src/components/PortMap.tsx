@@ -88,12 +88,12 @@ function PortRow({ entry }: { entry: PortEntry & { gpu?: boolean } }) {
 export default function PortMap() {
   return (
     <div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '16px' }}>
-      <div style={{ fontWeight: 700, marginBottom: '12px', fontSize: '0.9rem' }}>ML Services (5002-5022)</div>
+      <div style={{ fontWeight: 700, marginBottom: '12px', fontSize: '0.9rem' }}>ML 서비스 (5002-5022)</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '6px', marginBottom: '20px' }}>
         {PORTS.map(p => <PortRow key={p.port} entry={p} />)}
       </div>
 
-      <div style={{ fontWeight: 700, marginBottom: '12px', fontSize: '0.9rem' }}>Infrastructure</div>
+      <div style={{ fontWeight: 700, marginBottom: '12px', fontSize: '0.9rem' }}>인프라</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '6px' }}>
         {INFRA.map(p => <PortRow key={p.port} entry={p} />)}
       </div>

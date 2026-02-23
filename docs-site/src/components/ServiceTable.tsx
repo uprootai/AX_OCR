@@ -25,7 +25,7 @@ export default function ServiceTable({ filterCategory }: { filterCategory?: stri
     <div>
       <input
         type="text"
-        placeholder="Search services..."
+        placeholder="서비스 검색..."
         value={search}
         onChange={e => setSearch(e.target.value)}
         style={{ padding: '8px 12px', marginBottom: '12px', width: '100%', maxWidth: '300px', borderRadius: '6px', border: '1px solid var(--ifm-color-emphasis-300)' }}
@@ -34,16 +34,16 @@ export default function ServiceTable({ filterCategory }: { filterCategory?: stri
         <thead>
           <tr>
             <th onClick={() => setSortBy('name')} style={{ cursor: 'pointer' }}>
-              Service {sortBy === 'name' ? '\u25BC' : ''}
+              서비스 {sortBy === 'name' ? '\u25BC' : ''}
             </th>
             <th onClick={() => setSortBy('port')} style={{ cursor: 'pointer' }}>
-              Port {sortBy === 'port' ? '\u25BC' : ''}
+              포트 {sortBy === 'port' ? '\u25BC' : ''}
             </th>
             <th onClick={() => setSortBy('category')} style={{ cursor: 'pointer' }}>
-              Category {sortBy === 'category' ? '\u25BC' : ''}
+              카테고리 {sortBy === 'category' ? '\u25BC' : ''}
             </th>
             <th>GPU</th>
-            <th>Description</th>
+            <th>설명</th>
           </tr>
         </thead>
         <tbody>
@@ -59,7 +59,7 @@ export default function ServiceTable({ filterCategory }: { filterCategory?: stri
         </tbody>
       </table>
       <p style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--ifm-color-emphasis-600)' }}>
-        {filtered.length} services
+        {filtered.length}개 서비스
       </p>
     </div>
   );

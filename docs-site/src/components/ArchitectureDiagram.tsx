@@ -2,7 +2,7 @@ import React from 'react';
 
 const CATEGORIES: Record<string, { label: string; color: string; bg: string; services: { name: string; port: number; gpu?: boolean }[] }> = {
   detection: {
-    label: 'Detection',
+    label: '검출(Detection)',
     color: '#e65100',
     bg: '#fff3e0',
     services: [
@@ -26,7 +26,7 @@ const CATEGORIES: Record<string, { label: string; color: string; bg: string; ser
     ],
   },
   segmentation: {
-    label: 'Segmentation',
+    label: '세그멘테이션(Segmentation)',
     color: '#01579b',
     bg: '#e1f5fe',
     services: [
@@ -35,13 +35,13 @@ const CATEGORIES: Record<string, { label: string; color: string; bg: string; ser
     ],
   },
   preprocessing: {
-    label: 'Preprocessing',
+    label: '전처리(Preprocessing)',
     color: '#4a148c',
     bg: '#f3e5f5',
     services: [{ name: 'ESRGAN', port: 5010, gpu: true }],
   },
   analysis: {
-    label: 'Analysis',
+    label: '분석(Analysis)',
     color: '#311b92',
     bg: '#ede7f6',
     services: [
@@ -53,7 +53,7 @@ const CATEGORIES: Record<string, { label: string; color: string; bg: string; ser
     ],
   },
   knowledge: {
-    label: 'Knowledge',
+    label: '지식(Knowledge)',
     color: '#880e4f',
     bg: '#fce4ec',
     services: [{ name: 'Knowledge', port: 5007 }],
@@ -92,7 +92,7 @@ export default function ArchitectureDiagram() {
       {/* User layer */}
       <div style={{ textAlign: 'center', marginBottom: '12px' }}>
         <div style={{ display: 'inline-block', padding: '8px 24px', background: '#f5f5f5', borderRadius: '20px', fontWeight: 600, fontSize: '0.9rem' }}>
-          User
+          사용자
         </div>
         <div style={{ fontSize: '1.2rem', color: '#999' }}>&#8595;</div>
       </div>
@@ -136,7 +136,7 @@ export default function ArchitectureDiagram() {
 
       {/* Infrastructure */}
       <div style={{ marginTop: '16px', padding: '12px', background: '#eceff1', borderRadius: '8px', border: '2px solid #90a4ae' }}>
-        <div style={{ fontWeight: 700, color: '#37474f', marginBottom: '8px', fontSize: '0.85rem' }}>Infrastructure</div>
+        <div style={{ fontWeight: 700, color: '#37474f', marginBottom: '8px', fontSize: '0.85rem' }}>인프라(Infrastructure)</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           <ServiceBox name="Neo4j" port={7687} />
           <ServiceBox name="Neo4j Browser" port={7474} />
@@ -144,7 +144,7 @@ export default function ArchitectureDiagram() {
       </div>
 
       <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '0.75rem', color: '#999' }}>
-        Network: <code>ax_poc_network</code> (bridge) | GPU: 10 services | CPU: 11 services
+        네트워크: <code>ax_poc_network</code> (bridge) | GPU: 10개 서비스 | CPU: 11개 서비스
       </div>
     </div>
   );

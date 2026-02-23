@@ -38,40 +38,40 @@ function PipelineRow({ steps, title }: { steps: PipelineStep[]; title?: string }
 }
 
 const MAIN_PIPELINE: PipelineStep[] = [
-  { label: 'Upload', sub: 'Image', color: '#37474f', bg: '#eceff1' },
-  { label: 'VLM', sub: 'Classification', color: '#7b1fa2', bg: '#f3e5f5' },
-  { label: 'YOLO', sub: 'Detection', color: '#e65100', bg: '#fff3e0' },
+  { label: '업로드', sub: '이미지', color: '#37474f', bg: '#eceff1' },
+  { label: 'VLM', sub: '분류', color: '#7b1fa2', bg: '#f3e5f5' },
+  { label: 'YOLO', sub: '검출', color: '#e65100', bg: '#fff3e0' },
   { label: 'OCR', sub: 'eDOCr2 + 7', color: '#1b5e20', bg: '#e8f5e9' },
-  { label: 'Dimension', sub: 'Parsing', color: '#00838f', bg: '#e0f7fa' },
-  { label: 'Tolerance', sub: 'SkinModel', color: '#4a148c', bg: '#f3e5f5' },
-  { label: 'BOM', sub: 'Generation', color: '#1565c0', bg: '#e3f2fd' },
-  { label: 'Quote', sub: 'PDF Export', color: '#c62828', bg: '#ffebee' },
+  { label: '치수', sub: '파싱', color: '#00838f', bg: '#e0f7fa' },
+  { label: '공차', sub: 'SkinModel', color: '#4a148c', bg: '#f3e5f5' },
+  { label: 'BOM', sub: '생성', color: '#1565c0', bg: '#e3f2fd' },
+  { label: '견적', sub: 'PDF 내보내기', color: '#c62828', bg: '#ffebee' },
 ];
 
 const PID_PIPELINE: PipelineStep[] = [
-  { label: 'Upload', sub: 'P&ID', color: '#37474f', bg: '#eceff1' },
-  { label: 'VLM', sub: 'Classify', color: '#7b1fa2', bg: '#f3e5f5' },
-  { label: 'Symbol', sub: 'YOLO', color: '#e65100', bg: '#fff3e0' },
-  { label: 'Line', sub: 'Detector', color: '#2e7d32', bg: '#e8f5e9' },
-  { label: 'Connect', sub: 'PID Analyzer', color: '#00838f', bg: '#e0f7fa' },
-  { label: 'Design', sub: 'Checker', color: '#c62828', bg: '#ffebee' },
-  { label: 'Report', sub: 'Generation', color: '#37474f', bg: '#eceff1' },
+  { label: '업로드', sub: 'P&ID', color: '#37474f', bg: '#eceff1' },
+  { label: 'VLM', sub: '분류', color: '#7b1fa2', bg: '#f3e5f5' },
+  { label: '심볼', sub: 'YOLO', color: '#e65100', bg: '#fff3e0' },
+  { label: '라인', sub: '검출', color: '#2e7d32', bg: '#e8f5e9' },
+  { label: '연결', sub: 'PID Analyzer', color: '#00838f', bg: '#e0f7fa' },
+  { label: '설계', sub: '검증', color: '#c62828', bg: '#ffebee' },
+  { label: '리포트', sub: '생성', color: '#37474f', bg: '#eceff1' },
 ];
 
 const BOM_PIPELINE: PipelineStep[] = [
-  { label: 'Detection', sub: '73 classes', color: '#e65100', bg: '#fff3e0' },
-  { label: 'Classify', sub: 'BOM items', color: '#7b1fa2', bg: '#f3e5f5' },
-  { label: 'Dimension', sub: 'eDOCr2', color: '#1b5e20', bg: '#e8f5e9' },
-  { label: 'Verify', sub: 'Agent/Human', color: '#00838f', bg: '#e0f7fa' },
-  { label: 'BOM', sub: 'Generation', color: '#1565c0', bg: '#e3f2fd' },
-  { label: 'Pricing', sub: 'Cost Calc', color: '#4a148c', bg: '#f3e5f5' },
-  { label: 'Export', sub: 'PDF/Excel', color: '#c62828', bg: '#ffebee' },
+  { label: '검출', sub: '73 클래스', color: '#e65100', bg: '#fff3e0' },
+  { label: '분류', sub: 'BOM 항목', color: '#7b1fa2', bg: '#f3e5f5' },
+  { label: '치수', sub: 'eDOCr2', color: '#1b5e20', bg: '#e8f5e9' },
+  { label: '검증', sub: '에이전트/사람', color: '#00838f', bg: '#e0f7fa' },
+  { label: 'BOM', sub: '생성', color: '#1565c0', bg: '#e3f2fd' },
+  { label: '단가', sub: '원가 계산', color: '#4a148c', bg: '#f3e5f5' },
+  { label: '내보내기', sub: 'PDF/Excel', color: '#c62828', bg: '#ffebee' },
 ];
 
 const PIPELINES: Record<string, { title: string; steps: PipelineStep[] }> = {
-  main: { title: 'Mechanical Drawing Pipeline', steps: MAIN_PIPELINE },
-  pid: { title: 'P&ID Pipeline', steps: PID_PIPELINE },
-  bom: { title: 'BOM Pipeline', steps: BOM_PIPELINE },
+  main: { title: '기계 도면 파이프라인', steps: MAIN_PIPELINE },
+  pid: { title: 'P&ID 파이프라인', steps: PID_PIPELINE },
+  bom: { title: 'BOM 파이프라인', steps: BOM_PIPELINE },
 };
 
 interface Props {
