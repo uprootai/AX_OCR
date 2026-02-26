@@ -1,7 +1,70 @@
 # 완료된 작업 아카이브
 
-> 마지막 업데이트: 2026-02-19
+> 마지막 업데이트: 2026-02-26
 > 완료된 작업들의 기록 (참조용)
+
+---
+
+## 2026-02-26 완료
+
+### MoAI-ADK 아이디어 차용 + Hook 시스템 강화
+
+**상태**: ✅ **완료** | **커밋**: `aefc22a`
+
+| 항목 | 내용 |
+|------|------|
+| 신규 Hook 2개 | `post-edit-quality.sh` (Quality Gate), `handle-prompt-submit.sh` (세션 인사) |
+| 버그 수정 6건 | injection, stdout 누수, word splitting, newline, 시크릿 미검출, 하드코딩 경로 |
+| settings.local.json | 누락 훅 3개 등록 → 7개 SSOT |
+| CLAUDE.md | 서브에이전트 모델 배정, AX Tag, Hooks 7개 테이블 (+33줄) |
+| skills/README.md | 10개→15개, Quick Ref 열, Progressive Disclosure L0/L1/L2 |
+
+**MoAI-ADK 분석 결과**: Go 34K줄, 28 에이전트, 52 스킬, 16 Hook 이벤트. GPL 코드 복사 없이 아이디어만 차용.
+
+---
+
+### 문서 통합 마이그레이션 (5173/docs → 3001 Docusaurus)
+
+**상태**: ✅ **완료**
+
+| 항목 | 내용 |
+|------|------|
+| Phase 1 | 4개 신규 섹션 추가 (~48 파일) |
+| Phase 2 | 3개 기존 섹션 보강 (+3 파일) |
+| Phase 3 | web-ui /docs → localhost:3001 리다이렉트 |
+| Phase 4 | sidebars.ts, docusaurus.config.ts 업데이트, 빌드 검증 |
+
+**Phase 1 신규 섹션**:
+- `research/` — 16파일 (index + 15 논문, papers/ 기반)
+- `api-reference/` — 19파일 (index + 18 API 파라미터, api/ 기반)
+- `developer/` — 7파일 (index + 6 가이드, CONTRIBUTING/GIT_WORKFLOW 등)
+- `deployment/` — 6파일 (index + 5 가이드, INSTALLATION/ONPREMISE 등)
+
+**Phase 2 기존 섹션 보강**:
+- `system-overview/architecture-decisions.md` — DECISION_MATRIX + MODEL_SELECTION_CRITERIA 통합
+- `blueprintflow/optimization.md` — 3개 최적화 파일 통합
+- `quality-assurance/evaluation-reports.md` — 2개 보고서 통합
+
+**Phase 3 web-ui 수정**:
+- `Docs.tsx` — 512줄 → 25줄 (리다이렉트 컴포넌트)
+- `Sidebar.tsx` — 외부 링크 지원 추가 (ExternalLink 아이콘)
+- `DocsSection.tsx` — localhost:3001 링크
+- `ExportToBuiltinDialog.tsx` — /docs → localhost:3001/docs
+- `web-ui/public/docs/` — **전체 삭제** (87 파일)
+
+**결과**: 10섹션 48페이지 → **14섹션 101페이지**, 빌드 ✅ (docs-site + web-ui)
+
+---
+
+## 2026-02-23 완료
+
+### 문서 사이트 전체 한글화
+
+**상태**: ✅ **완료**
+
+- 10개 섹션 49개 MDX/MD 파일 한글 번역
+- React TSX 다이어그램 컴포넌트 7개 중 5개 한글화
+- 커밋: c1895d7, a15cda3, 8f5b927
 
 ---
 
