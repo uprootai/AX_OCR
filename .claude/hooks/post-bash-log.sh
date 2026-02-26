@@ -7,7 +7,8 @@
 # - CLAUDE_EXIT_CODE: 종료 코드
 
 EXIT_CODE="${CLAUDE_EXIT_CODE:-0}"
-LOG_DIR="/home/uproot/ax/poc/.claude/logs"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+LOG_DIR="$PROJECT_ROOT/.claude/logs"
 LOG_FILE="$LOG_DIR/bash_$(date +%Y%m%d).log"
 
 # 로그 디렉토리 생성

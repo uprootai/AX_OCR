@@ -1,10 +1,24 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/handle-prompt-submit.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": {
-          "tools": ["Edit", "Write"]
+          "tools": [
+            "Edit",
+            "Write"
+          ]
         },
         "hooks": [
           {
@@ -17,12 +31,32 @@
     "PostToolUse": [
       {
         "matcher": {
-          "tools": ["Bash"]
+          "tools": [
+            "Bash"
+          ]
         },
         "hooks": [
           {
             "type": "command",
             "command": ".claude/hooks/post-bash-log.sh"
+          }
+        ]
+      },
+      {
+        "matcher": {
+          "tools": [
+            "Edit",
+            "Write"
+          ]
+        },
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-edit-format.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-edit-quality.sh"
           }
         ]
       }
@@ -34,9 +68,20 @@
           {
             "type": "command",
             "command": ".claude/hooks/on-stop.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/on-stop-verify.sh"
           }
         ]
       }
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "repomix",
+    "sequential-thinking",
+    "context7",
+    "playwright"
+  ],
+  "enableAllProjectMcpServers": true
 }

@@ -1,6 +1,6 @@
 # AX POC - Claude Code Project Guide
 
-> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2026-02-06
+> **LLM 최적화 프로젝트 가이드** | 마지막 업데이트: 2026-02-26
 > **컨텍스트 효율화**: 상세 가이드는 `.claude/skills/`에서 온디맨드 로드
 
 ---
@@ -141,16 +141,47 @@ curl -s http://localhost:5005/health
 
 필요할 때만 로드되어 컨텍스트 효율 극대화:
 
-| 스킬 | 용도 | 트리거 |
-|------|------|--------|
-| `modularization-guide` | 1000줄 제한, 분리 패턴 | "리팩토링", "분리", "모듈화" |
-| `api-creation-guide` | 새 API 스캐폴딩 전체 가이드 | "새 API", "/add-feature" |
-| `project-reference` | R&D 논문, API 스펙, 문서 구조 | "논문", "스펙", "R&D" |
-| `version-history` | 버전 히스토리, BOM, Design Checker | "버전", "BOM", "Design Checker" |
-| `devops-guide` | CI/CD, Docker, 배포, 환경설정 | "CI", "CD", "배포", "Docker" |
-| `docs-site-guide` | 문서 사이트 관리, 페이지 추가 | "문서", "docs-site" |
+| 스킬 | 용도 | Quick Ref | 트리거 |
+|------|------|-----------|--------|
+| `modularization-guide` | 1000줄 제한, 분리 패턴 | `wc -l` < 1000 | "리팩토링", "분리" |
+| `api-creation-guide` | 새 API 스캐폴딩 가이드 | `create_api.py --port` | "새 API" |
+| `project-reference` | R&D 논문, API 스펙 | 논문 35개, API 21개 | "논문", "스펙" |
+| `version-history` | BOM, Design Checker 버전 | BOM v10.5, DC v1.0 | "버전", "BOM" |
+| `devops-guide` | CI/CD, Docker, 배포 | `docker-compose up -d` | "배포", "Docker" |
+| `docs-site-guide` | 문서 사이트 관리 | `:3001`, Docusaurus | "문서", "docs-site" |
+| `diagram-strategy` | 다이어그램 TSX 컴포넌트 | Mermaid 금지 → TSX | "다이어그램" |
 
-**위치**: `.claude/skills/`
+**위치**: `.claude/skills/` (15개) | **상세**: `.claude/skills/README.md`
+
+---
+
+## 서브에이전트 모델 배정
+
+| 모델 | 용도 | Task 파라미터 |
+|------|------|--------------|
+| **haiku** | 빠른 탐색, 파일 검색 | `model: "haiku"` |
+| **sonnet** | 계획 수립, 중간 복잡도 | `model: "sonnet"` |
+| **opus** | 기본값, 복잡한 구현 | 생략 (기본) |
+
+```
+Explore → haiku (빠른 codebase 검색)
+Plan → sonnet (아키텍처 설계)
+general-purpose → opus (구현, 디버깅)
+```
+
+---
+
+## 코드 주석 태그 (AX Tag)
+
+코드 내 주요 지점을 표시하는 표준 태그:
+
+| 태그 | 용도 | 예시 |
+|------|------|------|
+| `@AX:ANCHOR` | 핵심 진입점, 변경 시 영향 큼 | `// @AX:ANCHOR — 노드 타입 정의` |
+| `@AX:WARN` | 주의 필요, 함정/부작용 있음 | `# @AX:WARN — confidence 기본값 0.4` |
+| `@AX:TODO` | 향후 개선 필요 | `// @AX:TODO — 캐시 레이어 추가` |
+
+검색: `grep -r "@AX:" --include="*.ts" --include="*.py"`
 
 ---
 
@@ -413,6 +444,21 @@ pytest tests/test_specific.py -v
 cd docs-site && npm run build
 ```
 
+### 다이어그램 전략 (Mermaid 사용 금지)
+
+**Mermaid 대신 커스텀 React TSX 컴포넌트 사용** (번들 0, 다크모드 자동, 완전 제어)
+
+| 컴포넌트 | 용도 | 파일 |
+|----------|------|------|
+| `<FlowDiagram>` | 플로우차트 (LR/TD), 상태 다이어그램 | `src/components/diagrams/FlowDiagram.tsx` |
+| `<SequenceDiagram>` | 시퀀스 다이어그램 (API 흐름) | `src/components/diagrams/SequenceDiagram.tsx` |
+
+- 글로벌 등록: `src/theme/MDXComponents.tsx` → import 불필요
+- 다크모드: `color-mix(in srgb, color 55%, var(--ifm-background-color))` 자동 적용
+- **새 다이어그램 추가 시**: Mermaid 블록 대신 TSX 컴포넌트 사용
+
+**상세 가이드**: `.claude/skills/diagram-strategy.md`
+
 ### 상세 가이드: `.claude/skills/docs-site-guide.md`
 
 ---
@@ -471,14 +517,17 @@ playwright_screenshot({ name: "verification" })
 
 > 보리스 체니 전략 #9: Post-tool Hooks로 포매팅
 
-### 활성화된 Hooks
+### 활성화된 Hooks (7개)
 
 | Hook | 시점 | 기능 |
 |------|------|------|
+| `handle-prompt-submit.sh` | 프롬프트 제출 | 세션 인사 (git 상태, .todo 리마인더) |
 | `pre-edit-check.sh` | Edit/Write 전 | 1000줄 이상 파일 경고 |
 | `post-edit-format.sh` | Edit/Write 후 | 자동 포매팅 (prettier, eslint, ruff) |
+| `post-edit-quality.sh` | Edit/Write 후 | Quality Gate (console.log, 시크릿, TODO) |
 | `post-bash-log.sh` | Bash 후 | 실패 명령 로깅 |
 | `on-stop.sh` | 응답 완료 | 작업 완료 알림 |
+| `on-stop-verify.sh` | 응답 완료 | 자동 검증 (빌드, Python 구문, docs-site) |
 
 ### 설정 파일
 
@@ -487,4 +536,4 @@ playwright_screenshot({ name: "verification" })
 
 ---
 
-**Managed By**: Claude Code (Opus 4.5)
+**Managed By**: Claude Code (Opus 4.6)
