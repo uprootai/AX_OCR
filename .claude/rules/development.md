@@ -76,3 +76,22 @@ python scripts/create_api.py my-api --port 5025 --category detection
 ```
 
 **상세 가이드**: `.claude/skills/api-creation-guide.md`, `.claude/skills/devops-guide.md`
+
+## Playwright 브라우저 테스트 패턴
+
+```javascript
+// 1. 브라우저 열기
+playwright_navigate({ url: "http://localhost:5173/blueprintflow/builder" })
+
+// 2. 파일 업로드 (hidden input 처리)
+playwright_evaluate({ script: "document.querySelector('input[type=file]').style.display='block'" })
+playwright_upload_file({ selector: "input[type=file]", filePath: "/path/to/image.png" })
+
+// 3. 스크린샷으로 결과 확인
+playwright_screenshot({ name: "result" })
+```
+
+## GPU 설정
+
+- Dashboard에서 동적 설정 가능
+- `docker-compose.override.yml` 사용

@@ -142,7 +142,7 @@ curl -s http://localhost:5005/health
 
 | Hook | 이벤트 | 기능 |
 |------|--------|------|
-| `handle-prompt-submit.sh` | SessionStart | 세션 인사 (git 상태, .todo 리마인더) |
+| `session-start.sh` | SessionStart | 세션 인사 (git 상태, .todo 리마인더) |
 | `pre-edit-check.sh` | PreToolUse | 1000줄 이상 파일 경고 |
 | `post-edit-format.sh` | PostToolUse | 자동 포매팅 (prettier, ruff) |
 | `post-edit-quality.sh` | PostToolUse | Quality Gate (console.log, 시크릿) |

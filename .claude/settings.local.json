@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/handle-prompt-submit.sh"
+            "command": ".claude/hooks/session-start.sh"
           }
         ]
       }
