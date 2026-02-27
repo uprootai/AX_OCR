@@ -21,22 +21,68 @@ import ArchitectureDiagram from '@site/src/components/ArchitectureDiagram';
 
 ## 서비스 의존성
 
-```mermaid
-flowchart TD
-    GW["Gateway API"] --> YOLO & EDOCR & VL
-    GW --> PADDLE & TESS & TROCR
-    GW --> ENS & SURYA & DOCTR & EASY
-    GW --> EDGE & LINE & ESRGAN
-    GW --> SKIN & PID & DC & COMP
-    GW --> BOM & KN
-
-    KN["Knowledge"] --> NEO["Neo4j"]
-    ENS["OCR Ensemble"] --> EDOCR & PADDLE & TESS & TROCR
-
-    BOM["BOM 백엔드"] --> YOLO
-    BOM --> EDOCR
-    BOM --> VL["Vision-Language"]
-```
+<FlowDiagram
+  direction="TD"
+  title="서비스 의존성"
+  nodes={[
+    { id: 'gw', label: 'Gateway API', color: '#263238', bg: '#eceff1', shape: 'rounded' },
+    { id: 'yolo', label: 'YOLO', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'edocr', label: 'eDOCr2', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'vl', label: 'Vision-Language', color: '#1a237e', bg: '#e8eaf6', shape: 'rect' },
+    { id: 'paddle', label: 'PaddleOCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'tess', label: 'Tesseract', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'trocr', label: 'TrOCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'ens', label: 'OCR Ensemble', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'surya', label: 'Surya', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'doctr', label: 'DocTR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'easy', label: 'EasyOCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'edge', label: 'EDGNet', color: '#01579b', bg: '#e1f5fe', shape: 'rect' },
+    { id: 'line', label: 'Line Det', color: '#01579b', bg: '#e1f5fe', shape: 'rect' },
+    { id: 'esrgan', label: 'ESRGAN', color: '#4a148c', bg: '#f3e5f5', shape: 'rect' },
+    { id: 'skin', label: 'SkinModel', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'pid', label: 'PID Analyzer', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'dc', label: 'Design Checker', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'comp', label: 'Composer', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'bom', label: 'BOM 백엔드', color: '#880e4f', bg: '#fce4ec', shape: 'rect' },
+    { id: 'kn', label: 'Knowledge', color: '#880e4f', bg: '#fce4ec', shape: 'rect' },
+    { id: 'neo', label: 'Neo4j', color: '#37474f', bg: '#eceff1', shape: 'rect' },
+  ]}
+  edges={[
+    { from: 'gw', to: 'yolo' },
+    { from: 'gw', to: 'edocr' },
+    { from: 'gw', to: 'vl' },
+    { from: 'gw', to: 'paddle' },
+    { from: 'gw', to: 'tess' },
+    { from: 'gw', to: 'trocr' },
+    { from: 'gw', to: 'ens' },
+    { from: 'gw', to: 'surya' },
+    { from: 'gw', to: 'doctr' },
+    { from: 'gw', to: 'easy' },
+    { from: 'gw', to: 'edge' },
+    { from: 'gw', to: 'line' },
+    { from: 'gw', to: 'esrgan' },
+    { from: 'gw', to: 'skin' },
+    { from: 'gw', to: 'pid' },
+    { from: 'gw', to: 'dc' },
+    { from: 'gw', to: 'comp' },
+    { from: 'gw', to: 'bom' },
+    { from: 'gw', to: 'kn' },
+    { from: 'kn', to: 'neo' },
+    { from: 'ens', to: 'edocr', dashed: true },
+    { from: 'ens', to: 'paddle', dashed: true },
+    { from: 'ens', to: 'tess', dashed: true },
+    { from: 'ens', to: 'trocr', dashed: true },
+    { from: 'bom', to: 'yolo', dashed: true },
+    { from: 'bom', to: 'edocr', dashed: true },
+    { from: 'bom', to: 'vl', dashed: true },
+  ]}
+  layers={[
+    ['gw'],
+    ['yolo', 'edocr', 'vl', 'paddle', 'tess', 'trocr', 'ens', 'surya', 'doctr', 'easy'],
+    ['edge', 'line', 'esrgan', 'skin', 'pid', 'dc', 'comp', 'bom', 'kn'],
+    ['neo'],
+  ]}
+/>
 
 ## 헬스체크 엔드포인트(Health Check Endpoints)
 

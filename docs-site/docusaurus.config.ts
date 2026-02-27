@@ -23,10 +23,8 @@ const config: Config = {
   },
 
   markdown: {
-    mermaid: true,
+    format: 'detect',
   },
-
-  themes: ['@docusaurus/theme-mermaid'],
 
   presets: [
     [
@@ -49,9 +47,6 @@ const config: Config = {
     colorMode: {
       defaultMode: 'light',
       respectPrefersColorScheme: true,
-    },
-    mermaid: {
-      theme: {light: 'default', dark: 'dark'},
     },
     navbar: {
       title: 'AX POC',
@@ -78,11 +73,12 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Documentation',
+          title: 'Core',
           items: [
             {label: 'System Overview', to: '/docs/system-overview'},
             {label: 'Analysis Pipeline', to: '/docs/analysis-pipeline'},
             {label: 'BlueprintFlow', to: '/docs/blueprintflow'},
+            {label: 'API Reference', to: '/docs/api-reference'},
           ],
         },
         {
@@ -91,14 +87,16 @@ const config: Config = {
             {label: 'Agent Verification', to: '/docs/agent-verification'},
             {label: 'BOM & Quoting', to: '/docs/bom-generation'},
             {label: 'P&ID Analysis', to: '/docs/pid-analysis'},
+            {label: 'R&D Research', to: '/docs/research'},
           ],
         },
         {
           title: 'Operations',
           items: [
-            {label: 'Batch & Delivery', to: '/docs/batch-delivery'},
-            {label: 'Quality Assurance', to: '/docs/quality-assurance'},
             {label: 'DevOps', to: '/docs/devops'},
+            {label: 'Deployment', to: '/docs/deployment'},
+            {label: 'Developer Guide', to: '/docs/developer'},
+            {label: 'Quality Assurance', to: '/docs/quality-assurance'},
           ],
         },
       ],

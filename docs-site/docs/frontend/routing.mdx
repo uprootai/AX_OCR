@@ -1,0 +1,143 @@
+---
+sidebar_position: 1
+title: 라우팅
+description: 라우팅 및 페이지 구성
+---
+
+# 라우팅 및 페이지
+
+## 라우트 맵
+
+<FlowDiagram
+  direction="TD"
+  title="라우트 맵"
+  nodes={[
+    { id: 'root', label: '/', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'landing', label: '랜딩', sub: 'Layout 없음', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'dash', label: '/dashboard', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'guide', label: '/guide', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'docs', label: '/docs', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'bf_b', label: '/blueprintflow/builder', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'bf_l', label: '/blueprintflow/list', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'bf_t', label: '/blueprintflow/templates', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'admin', label: '/admin', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'api_d', label: '/admin/api/:apiId', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'pid', label: '/pid-overlay', color: '#00838f', bg: '#e0f7fa', shape: 'rounded' },
+    { id: 'proj', label: '/projects', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'proj_d', label: '/projects/:projectId', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'root', to: 'landing' },
+    { from: 'root', to: 'dash', label: 'Layout' },
+    { from: 'root', to: 'guide', label: 'Layout' },
+    { from: 'root', to: 'docs', label: 'Layout' },
+    { from: 'root', to: 'bf_b', label: 'Layout' },
+    { from: 'root', to: 'bf_l', label: 'Layout' },
+    { from: 'root', to: 'bf_t', label: 'Layout' },
+    { from: 'root', to: 'admin', label: 'Layout' },
+    { from: 'root', to: 'api_d', label: 'Layout' },
+    { from: 'root', to: 'pid', label: 'Layout' },
+    { from: 'root', to: 'proj', label: 'Layout' },
+    { from: 'root', to: 'proj_d', label: 'Layout' },
+  ]}
+  layers={[['root'], ['landing', 'dash', 'guide', 'docs', 'bf_b', 'bf_l', 'bf_t', 'admin', 'api_d', 'pid', 'proj', 'proj_d']]}
+/>
+
+## Web UI 라우트 테이블 (포트 5173)
+
+| 라우트 | 컴포넌트 | 로딩 방식 | 설명 |
+|--------|----------|----------|------|
+| `/` | `Landing` | **동기** | 랜딩 페이지 (Layout 없음, 독립 렌더링) |
+| `/dashboard` | `Dashboard` | 지연 로딩 | API 상태 + GPU 모니터링 통합 대시보드 |
+| `/guide` | `Guide` | 지연 로딩 | 시스템 사용 가이드 |
+| `/docs` | `Docs` | 지연 로딩 | API 문서 뷰어 |
+| `/blueprintflow/builder` | `BlueprintFlowBuilder` | 지연 로딩 | 워크플로우 빌더 캔버스 (React Flow) |
+| `/blueprintflow/list` | `BlueprintFlowList` | 지연 로딩 | 저장된 워크플로우 목록 |
+| `/blueprintflow/templates` | `BlueprintFlowTemplates` | 지연 로딩 | 워크플로우 템플릿 갤러리 |
+| `/admin` | `Admin` | 지연 로딩 | API 서비스 관리, Docker 컨테이너 관리 |
+| `/admin/api/:apiId` | `APIDetail` | 지연 로딩 | 개별 API 상세 (파라미터, 로그, 테스트) |
+| `/pid-overlay` | `PIDOverlayPage` | 지연 로딩 | P&ID SVG 오버레이 뷰어 |
+| `/projects` | `ProjectList` | 지연 로딩 | 프로젝트 목록 |
+| `/projects/:projectId` | `ProjectDetail` | 지연 로딩 | 프로젝트 상세 + 세션 목록 |
+
+## BOM 프론트엔드 라우트 테이블 (포트 3000)
+
+| 라우트 | 컴포넌트 | 설명 |
+|--------|----------|------|
+| `/` | `WorkflowPage` | 통합 워크플로우 (기본 페이지) |
+| `/workflow` | `WorkflowPage` | `/`와 동일 (명시적 경로) |
+| `/guide` | `GuidePage` | BOM 시스템 사용 가이드 |
+| `/projects` | `ProjectListPage` | 프로젝트 목록 관리 |
+| `/projects/:projectId` | `ProjectDetailPage` | 프로젝트 상세 뷰 |
+| `/verification/agent` | `AgentVerificationPage` | Agent 검증 UI (Layout 없음) |
+| `/verification/dashboard` | `AgentDashboardPage` | 검증 결과 대시보드 |
+| `/customer/:projectId` | `CustomerWorkflowPage` | 고객용 워크플로우 UI |
+| `/customer/:projectId/review/:imageId` | `CustomerImageReviewPage` | 고객용 이미지 리뷰 |
+| `/customer/session/:sessionId` | `CustomerSessionPage` | 고객용 세션 기반 뷰 |
+| `/legacy` | `HomePage` | 레거시 홈 (Layout 포함) |
+| `/detection` | `DetectionPage` | 레거시 검출 뷰 |
+| `/verification` | `VerificationPage` | 레거시 검증 뷰 |
+| `/bom` | `BOMPage` | 레거시 BOM 뷰 |
+
+## 지연 로딩(Lazy Loading) 전략
+
+`Landing`과 `Layout`만 동기 로드하고, 나머지 12개 페이지는 `React.lazy()`로 코드 분할합니다.
+
+```typescript
+// 동기 (항상 필요)
+import Layout from './components/layout/Layout';
+import Landing from './pages/Landing';
+
+// 비동기 (방문 시 로드)
+const BlueprintFlowBuilder = lazy(() => import('./pages/blueprintflow/BlueprintFlowBuilder'));
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
+const Admin = lazy(() => import('./pages/admin/Admin'));
+// ... 총 12개 지연 로딩 컴포넌트
+```
+
+로딩 중에는 `<Suspense fallback={<PageLoader />}>`로 스피너를 표시합니다.
+
+## React Query 설정
+
+`@tanstack/react-query`로 서버 상태를 관리합니다:
+
+| 옵션 | 값 | 설명 |
+|------|-----|------|
+| `refetchOnWindowFocus` | `false` | 탭 전환 시 재요청 방지 |
+| `retry` | `1` | 실패 시 1회 재시도 |
+| `staleTime` | `30000ms` | 30초간 캐시 유지 |
+
+## 레이아웃 구조
+
+<FlowDiagram
+  direction="TD"
+  title="레이아웃 구조"
+  nodes={[
+    { id: 'app', label: 'App', sub: 'ErrorBoundary + QueryClient', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'router', label: 'BrowserRouter', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'suspense', label: 'Suspense', sub: 'PageLoader 폴백', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'landing', label: '/ 랜딩', sub: '독립 렌더링', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'layout', label: 'Layout', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'header', label: 'Header', sub: '내비게이션', color: '#00838f', bg: '#e0f7fa', shape: 'rounded' },
+    { id: 'sidebar', label: 'Sidebar', sub: '컨텍스트 의존', color: '#00838f', bg: '#e0f7fa', shape: 'rounded' },
+    { id: 'outlet', label: 'Outlet', sub: '페이지 콘텐츠', color: '#00838f', bg: '#e0f7fa', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'app', to: 'router' },
+    { from: 'router', to: 'suspense' },
+    { from: 'suspense', to: 'landing' },
+    { from: 'suspense', to: 'layout' },
+    { from: 'layout', to: 'header' },
+    { from: 'layout', to: 'sidebar' },
+    { from: 'layout', to: 'outlet' },
+  ]}
+  layers={[['app'], ['router'], ['suspense'], ['landing', 'layout'], ['header', 'sidebar', 'outlet']]}
+/>
+
+## 테마 시스템
+
+`uiStore`의 `theme` 상태에 따라 `document.documentElement`에 `dark` 클래스를 토글합니다. Tailwind의 `dark:` 접두사를 통해 다크 모드가 적용됩니다.
+
+## 라우트 보호
+
+현재 인증/권한 기반 라우트 보호는 적용되지 않습니다. 모든 라우트는 공개 접근이 가능하며, BOM 프론트엔드의 고객용 라우트(`/customer/*`)는 URL 기반 접근 제어만 사용합니다.
