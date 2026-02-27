@@ -1,7 +1,7 @@
 # 진행 중인 작업
 
 > **마지막 업데이트**: 2026-02-27
-> **기준 커밋**: 2070e1a (feat: BMAD-Lite 워크플로 도입 + PPT S02 디자인 보완)
+> **기준 커밋**: 5fc43e8 (docs: E02 Epic 완료 기록)
 
 ---
 
@@ -30,18 +30,10 @@
 
 **상세**: [.todo/epics/e01-presentation/EPIC.md](epics/e01-presentation/EPIC.md)
 
-### E02: 테크로스 P&ID 자동 설계 검증 (~03-21)
+### E02: 테크로스 P&ID 자동 설계 검증 — ✅ 완료
 
-| Story | 상태 | 요약 |
-|-------|------|------|
-| [S01 파이프라인 테스트](epics/e02-techcross/S01-pipeline-test.md) | ✅ Done | YOLO 257건, OCR 141건, BWMS API 60-70% 기구현 |
-| [S02 BWMS 태그 인식](epics/e02-techcross/S02-bwms-tag-recognition.md) | ✅ Done | 6/10 장비 검출 (NoneType+bbox+OCR 3건 수정) |
-| [S03 Excel 출력](epics/e02-techcross/S03-excel-export.md) | ✅ Done | 버그 3건 수정, Excel 2종 출력 성공 |
-| [S04 BWMS 규칙](epics/e02-techcross/S04-bwms-rules.md) | ✅ Done | 96개 규칙 실행 확인, 1건 위반 감지 |
-| [S05 프리셋 템플릿](epics/e02-techcross/S05-blueprintflow-preset.md) | ✅ Done | 4개 템플릿 OCR Ensemble 보강 |
-| [S06 E2E 검증](epics/e02-techcross/S06-e2e-validation.md) | ✅ Done | 46% 자동화 커버리지 (목표 30%+) |
-
-**상세**: [.todo/epics/e02-techcross/EPIC.md](epics/e02-techcross/EPIC.md)
+> 6 Stories 전체 Done | 커밋: `b3e8c4b`~`8c1eb8d` | 46% 자동화 커버리지
+> **상세**: [.todo/epics/e02-techcross/EPIC.md](epics/e02-techcross/EPIC.md)
 
 ---
 
