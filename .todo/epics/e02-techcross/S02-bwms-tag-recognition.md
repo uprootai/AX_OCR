@@ -1,21 +1,23 @@
-# S02: BWMS 장비 태그 패턴 인식
+# S02: BWMS 장비 인식 파이프라인 수정
 
 > **Epic**: E02 — 테크로스 P&ID 자동 설계 검증
 > **상태**: ⬜ Todo
 > **예상**: 2h
-> **의존**: S01 (베이스라인 결과 필요)
+> **의존**: S01 ✅
 
 ---
 
 ## 설명
 
-PID Analyzer에 BWMS 장비 태그 정규식 패턴 11종을 추가하여 OCR 결과에서 테크로스 전용 장비를 자동 인식한다.
+PID Analyzer BWMS detect-equipment 에러 수정 + OCR 태그 인식률 개선.
+**S01 발견**: 11종 장비 정의는 이미 구현됨, `/bwms/detect-equipment` 실행 시 NoneType 에러.
+OCR에서 10개 중 4개(ANU, GDS, FMU, CPC) 미인식 — 전처리 또는 엔진 조합 개선 필요.
 
 ## 완료 조건
 
-- [ ] BWMS 장비 태그 정규식 11종 구현 (ECU, HGU, DMU, ANU, NIU, TSU, DTS, FMU, GDS, EWU, APU)
-- [ ] 샘플 P&ID OCR 결과에서 태그 매칭 테스트
-- [ ] 인식률 90% 이상 달성
+- [ ] `/bwms/detect-equipment` NoneType 에러 원인 파악 + 수정
+- [ ] OCR 누락 태그(ANU-5T, GDS, FMU, CPC, PDE) 인식 개선
+- [ ] 샘플 P&ID(page 5)로 BWMS 장비 검출 8/10 이상
 
 ## 변경 범위
 

@@ -9,21 +9,16 @@
 
 ## 설명
 
-Design Checker에 BWMS 전용 설계 규칙 5개를 구현한다 (Phase 1).
-위치/수량 기반 규칙 우선, 거리 계산 규칙은 Phase 2로 분리.
+Design Checker의 기존 BWMS 규칙 7개 + 검증 파이프라인을 실행 가능하게 만든다.
+**S01 발견**: 규칙 7개(BWMS-001,004,005,006,007,008,009) 이미 등록됨.
+`/check/bwms`는 `symbols` JSON 필요, `/pipeline/validate`는 타임아웃.
 
 ## 완료 조건
 
-- [ ] BWMS 규칙 파일 생성 (`bwms_rules.py`)
-- [ ] 규칙 5개 구현:
-  - BWMS-001: G-2 Sampling Port → upstream 위치 확인
-  - BWMS-004: FMU → ECU 후단 위치 확인
-  - BWMS-005: GDS → ECU/HGU 상부 위치 확인
-  - BWMS-007: Mixing Pump 용량 = Ballast × 4.3%
-  - BWMS-008: ECS 밸브 위치 검증
-- [ ] rule_loader.py에 BWMS 규칙 등록
-- [ ] 샘플 P&ID로 규칙 실행 테스트
-- [ ] 테스트 코드 작성
+- [ ] `/pipeline/validate` 타임아웃 원인 파악 + 수정
+- [ ] `/check/bwms`에 YOLO+OCR 결과 연동 테스트
+- [ ] 샘플 P&ID로 BWMS 규칙 7개 중 3개 이상 판정 결과 확인
+- [ ] 체크리스트 템플릿 연동 (`/checklist/upload`) 테스트
 
 ## 변경 범위
 

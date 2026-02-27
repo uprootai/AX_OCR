@@ -24,7 +24,7 @@
 
 | ID | Story | 예상 | 상태 |
 |----|-------|------|------|
-| S01 | [샘플 P&ID 파이프라인 테스트](S01-pipeline-test.md) | 2h | ⬜ Todo |
+| S01 | [샘플 P&ID 파이프라인 테스트](S01-pipeline-test.md) | 2h | ✅ Done |
 | S02 | [BWMS 태그 패턴 인식](S02-bwms-tag-recognition.md) | 2h | ⬜ Todo |
 | S03 | [Excel 출력 (Equipment + Valve Signal)](S03-excel-export.md) | 3h | ⬜ Todo |
 | S04 | [Design Checker BWMS 규칙](S04-bwms-rules.md) | 4h | ⬜ Todo |

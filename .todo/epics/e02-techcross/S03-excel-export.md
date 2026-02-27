@@ -9,16 +9,15 @@
 
 ## 설명
 
-PID Analyzer의 분석 결과를 테크로스 요구 형식의 Excel 파일로 자동 생성한다.
-Equipment List(★ 표시 장비 필터링) + Valve Signal List("SIGNAL FOR BWMS" 영역 기반).
+PID Analyzer의 기존 Valve Signal + Equipment 엔드포인트를 디버깅하여 실제 동작시킨다.
+**S01 발견**: 엔드포인트(`/valve-signal/extract`, `/equipment/export-excel`)는 존재하나 매칭 0건.
 
 ## 완료 조건
 
-- [ ] Equipment List Excel 생성 (ID, Type, Spec, Qty 컬럼)
-- [ ] Maker Supply (★) 필터링 로직 구현
-- [ ] Valve Signal List Excel 생성 (Tag, Type, Position, Signal 컬럼)
-- [ ] "SIGNAL FOR BWMS" 점선 박스 영역 기반 밸브 필터링
-- [ ] 샘플 P&ID로 Excel 출력 검증
+- [ ] Valve Signal 규칙 매칭 수정 ("SIGNAL FOR BWMS" 텍스트 + 영역 연동)
+- [ ] Equipment List 추출 동작 확인
+- [ ] 샘플 P&ID(page 4, 5)로 Excel 출력물 2종 생성 검증
+- [ ] Maker Supply (★) 필터링 확인
 
 ## 변경 범위
 

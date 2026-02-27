@@ -34,7 +34,7 @@
 
 | Story | 상태 | 요약 |
 |-------|------|------|
-| [S01 파이프라인 테스트](epics/e02-techcross/S01-pipeline-test.md) | ⬜ Todo | 샘플 P&ID 베이스라인 확인 |
+| [S01 파이프라인 테스트](epics/e02-techcross/S01-pipeline-test.md) | ✅ Done | YOLO 257건, OCR 141건, BWMS API 60-70% 기구현 |
 | [S02 BWMS 태그 인식](epics/e02-techcross/S02-bwms-tag-recognition.md) | ⬜ Todo | 장비 태그 정규식 11종 |
 | [S03 Excel 출력](epics/e02-techcross/S03-excel-export.md) | ⬜ Todo | Equipment + Valve Signal List |
 | [S04 BWMS 규칙](epics/e02-techcross/S04-bwms-rules.md) | ⬜ Todo | Design Checker 규칙 5개 |
