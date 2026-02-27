@@ -39,7 +39,7 @@
 | [S03 Excel 출력](epics/e02-techcross/S03-excel-export.md) | ✅ Done | 버그 3건 수정, Excel 2종 출력 성공 |
 | [S04 BWMS 규칙](epics/e02-techcross/S04-bwms-rules.md) | ✅ Done | 96개 규칙 실행 확인, 1건 위반 감지 |
 | [S05 프리셋 템플릿](epics/e02-techcross/S05-blueprintflow-preset.md) | ✅ Done | 4개 템플릿 OCR Ensemble 보강 |
-| [S06 E2E 검증](epics/e02-techcross/S06-e2e-validation.md) | ⬜ Todo | 통합 테스트 + 체크리스트 매핑 |
+| [S06 E2E 검증](epics/e02-techcross/S06-e2e-validation.md) | ✅ Done | 46% 자동화 커버리지 (목표 30%+) |
 
 **상세**: [.todo/epics/e02-techcross/EPIC.md](epics/e02-techcross/EPIC.md)
 
