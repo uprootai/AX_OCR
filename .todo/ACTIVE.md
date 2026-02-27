@@ -1,7 +1,7 @@
 # 진행 중인 작업
 
 > **마지막 업데이트**: 2026-02-27
-> **기준 커밋**: aefc22a (feat: MoAI-ADK 아이디어 5개 차용 + Hook 시스템 강화)
+> **기준 커밋**: 2070e1a (feat: BMAD-Lite 워크플로 도입 + PPT S02 디자인 보완)
 
 ---
 
@@ -29,6 +29,19 @@
 | [S03 대표자 검토](epics/e01-presentation/S03-ceo-review.md) | ⬜ Todo | 기타의견 작성 + 제출 |
 
 **상세**: [.todo/epics/e01-presentation/EPIC.md](epics/e01-presentation/EPIC.md)
+
+### E02: 테크로스 P&ID 자동 설계 검증 (~03-21)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| [S01 파이프라인 테스트](epics/e02-techcross/S01-pipeline-test.md) | ⬜ Todo | 샘플 P&ID 베이스라인 확인 |
+| [S02 BWMS 태그 인식](epics/e02-techcross/S02-bwms-tag-recognition.md) | ⬜ Todo | 장비 태그 정규식 11종 |
+| [S03 Excel 출력](epics/e02-techcross/S03-excel-export.md) | ⬜ Todo | Equipment + Valve Signal List |
+| [S04 BWMS 규칙](epics/e02-techcross/S04-bwms-rules.md) | ⬜ Todo | Design Checker 규칙 5개 |
+| [S05 프리셋 템플릿](epics/e02-techcross/S05-blueprintflow-preset.md) | ⬜ Todo | BlueprintFlow 테크로스 전용 |
+| [S06 E2E 검증](epics/e02-techcross/S06-e2e-validation.md) | ⬜ Todo | 통합 테스트 + 체크리스트 매핑 |
+
+**상세**: [.todo/epics/e02-techcross/EPIC.md](epics/e02-techcross/EPIC.md)
 
 ---
 

@@ -156,7 +156,7 @@ curl -s http://localhost:5005/health
 | `diagram-strategy` | 다이어그램 TSX 컴포넌트 | Mermaid 금지 → TSX | "다이어그램" |
 | `presentation-guide` | PPT/PDF 산출물 생성 | 메트릭 카드, 3중 검증 | "PPT", "발표자료" |
 
-**위치**: `.claude/skills/` (16개) | **상세**: `.claude/skills/README.md`
+**위치**: `.claude/skills/` (전체 16개 중 핵심 8개) | **상세**: `.claude/skills/README.md`
 
 ---
 

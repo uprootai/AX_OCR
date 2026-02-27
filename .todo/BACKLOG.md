@@ -10,12 +10,12 @@
 | ID | Epic | 고객 | 기간 | Stories | 상태 |
 |----|------|------|------|---------|------|
 | E01 | [성과발표회 PPT 완성](epics/e01-presentation/EPIC.md) | 내부 | ~03-06 | 3 | 🔵 Active |
+| E02 | [테크로스 P&ID 설계 검증](epics/e02-techcross/EPIC.md) | 테크로스 | ~03-21 | 6 | 🔵 Active |
 
 ## Future Epics
 
 | ID | Epic | 고객 | 메모 | 상태 |
 |----|------|------|------|------|
-| E02 | 테크로스 P&ID 납품 | 테크로스 | P&ID 60항목 자동 설계 검증 | ⬜ Draft |
 | E03 | AX 테스트 컴플렉스 온보딩 | 10개 중소기업 | 2025.09~2028.12, 249억 규모 | ⬜ Draft |
 | E04 | SaaS 전환 (Kubernetes) | 내부 | 중장기, 온프레미스→SaaS 병행 | ⬜ Draft |
 
