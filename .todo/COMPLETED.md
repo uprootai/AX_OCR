@@ -7,6 +7,27 @@
 
 ## 2026-02-27 완료
 
+### E02: 테크로스 P&ID 자동 설계 검증 납품
+
+**상태**: ✅ **완료** | **커밋**: `b3e8c4b`~`8c1eb8d` (6 commits)
+
+| Story | 요약 |
+|-------|------|
+| S01 파이프라인 테스트 | YOLO 257건, OCR 141건, BWMS API 60-70% 기구현 확인 |
+| S02 BWMS 태그 인식 | 6/10 장비 검출, NoneType+bbox+OCR 3건 버그 수정 |
+| S03 Excel 출력 | 9건 버그 수정, Equipment(6행)+Valve Signal(2행) Excel 생성 |
+| S04 BWMS 규칙 | 96개 규칙 실행, 1건 위반(BWMS-006) 감지 |
+| S05 프리셋 템플릿 | 4개 템플릿 OCR Ensemble 보강 |
+| S06 E2E 검증 | 46% 자동화 커버리지 (목표 30%+ 초과 달성) |
+
+**핵심 성과**:
+- OCR: PaddleOCR(23 texts) → OCR Ensemble(157 texts) 전환
+- Design Checker: 96개 BWMS 규칙 (builtin 7 + dynamic 89)
+- 자동화 커버리지: 44/96 = **46%**
+- 검증 리포트: `apply-company/techloss/E02-validation-report.md`
+
+---
+
 ### BMAD-Lite 도입 (솔로 개발자 + AI 에이전트 워크플로)
 
 **상태**: ✅ **완료**
