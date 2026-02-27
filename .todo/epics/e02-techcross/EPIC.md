@@ -28,7 +28,7 @@
 | S02 | [BWMS 태그 패턴 인식](S02-bwms-tag-recognition.md) | 2h | ✅ Done |
 | S03 | [Excel 출력 (Equipment + Valve Signal)](S03-excel-export.md) | 3h | ✅ Done |
 | S04 | [Design Checker BWMS 규칙](S04-bwms-rules.md) | 4h | ✅ Done |
-| S05 | [BlueprintFlow 테크로스 프리셋](S05-blueprintflow-preset.md) | 1h | ⬜ Todo |
+| S05 | [BlueprintFlow 테크로스 프리셋](S05-blueprintflow-preset.md) | 1h | ✅ Done |
 | S06 | [E2E 검증 + 체크리스트 매핑](S06-e2e-validation.md) | 2h | ⬜ Todo |
 
 ## 기술 결정

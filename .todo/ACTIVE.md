@@ -38,7 +38,7 @@
 | [S02 BWMS 태그 인식](epics/e02-techcross/S02-bwms-tag-recognition.md) | ✅ Done | 6/10 장비 검출 (NoneType+bbox+OCR 3건 수정) |
 | [S03 Excel 출력](epics/e02-techcross/S03-excel-export.md) | ✅ Done | 버그 3건 수정, Excel 2종 출력 성공 |
 | [S04 BWMS 규칙](epics/e02-techcross/S04-bwms-rules.md) | ✅ Done | 96개 규칙 실행 확인, 1건 위반 감지 |
-| [S05 프리셋 템플릿](epics/e02-techcross/S05-blueprintflow-preset.md) | ⬜ Todo | BlueprintFlow 테크로스 전용 |
+| [S05 프리셋 템플릿](epics/e02-techcross/S05-blueprintflow-preset.md) | ✅ Done | 4개 템플릿 OCR Ensemble 보강 |
 | [S06 E2E 검증](epics/e02-techcross/S06-e2e-validation.md) | ⬜ Todo | 통합 테스트 + 체크리스트 매핑 |
 
 **상세**: [.todo/epics/e02-techcross/EPIC.md](epics/e02-techcross/EPIC.md)
