@@ -15,7 +15,7 @@
 
 ---
 
-## 사용 가능한 Skills (15개)
+## 사용 가능한 Skills (16개)
 
 ### 핵심 가이드 (7개)
 
@@ -29,11 +29,12 @@
 | `devops-guide` | CI/CD, Docker, 배포 | `docker-compose up -d` | "CI", "배포", "Docker" |
 | `docs-site-guide` | 문서 사이트 관리 | `:3001`, Docusaurus | "문서", "docs-site" |
 
-### 전략 가이드 (1개)
+### 전략 가이드 (2개)
 
 | 스킬 | 용도 | Quick Ref | 자동 트리거 |
 |------|------|-----------|-------------|
 | `diagram-strategy` | 다이어그램 TSX 컴포넌트 | Mermaid 금지 → TSX | "다이어그램", "플로우" |
+| `presentation-guide` | PPT/PDF 산출물 생성 | 메트릭 카드, 3중 검증 | "PPT", "발표자료", "IR" |
 
 ### 워크플로우 스킬 (5개)
 
@@ -83,5 +84,5 @@
 
 ---
 
-**마지막 업데이트**: 2026-02-26
-**버전**: 4.0.0 (Progressive Disclosure + Quick Ref 적용)
+**마지막 업데이트**: 2026-02-27
+**버전**: 4.1.0 (presentation-guide 추가, BMAD-Lite 연계)

@@ -1,7 +1,26 @@
 # 완료된 작업 아카이브
 
-> 마지막 업데이트: 2026-02-26
+> 마지막 업데이트: 2026-02-27
 > 완료된 작업들의 기록 (참조용)
+
+---
+
+## 2026-02-27 완료
+
+### BMAD-Lite 도입 (솔로 개발자 + AI 에이전트 워크플로)
+
+**상태**: ✅ **완료**
+
+| 항목 | 내용 |
+|------|------|
+| 템플릿 2개 | `EPIC_TEMPLATE.md`, `STORY_TEMPLATE.md` |
+| 첫 Epic | E01 성과발표회 PPT (Story 3개: S01 ✅, S02 ✅, S03 대기) |
+| 신규 스킬 | `presentation-guide.md` (PPT 디자인 규격 + 3중 검증) |
+| 신규 커맨드 | `/plan-epic` (Epic 기획 → Story 분해) |
+| BACKLOG.md | Epic 인덱스 형태로 구조 전환 |
+| CLAUDE.md | Epic/Story 워크플로 섹션 추가 (545줄) |
+
+**구조**: `.todo/templates/` + `.todo/epics/{id}/` + `.todo/decisions/`
 
 ---
 

@@ -53,33 +53,37 @@
 ```
 .todo/
 ├── ACTIVE.md                      # 현재 진행 중인 작업
-├── BACKLOG.md                     # 향후 작업 목록
+├── BACKLOG.md                     # Epic 인덱스 + 향후 작업
 ├── COMPLETED.md                   # 완료 아카이브
-├── PENDING_PATTERN_PROPAGATION.md # 패턴 확산 추적
-└── CLAUDE_CODE_STRATEGIES.md      # 보리스 체니 13가지 전략
+├── CLAUDE_CODE_STRATEGIES.md      # 보리스 체니 13가지 전략
+├── templates/                     # Epic/Story 템플릿
+├── epics/{epic-id}/               # Epic별 폴더 (EPIC.md + S01~S0N.md)
+└── decisions/                     # ADR (아키텍처 결정 기록)
 ```
+
+### Epic/Story 워크플로 (BMAD-Lite)
+
+| 단계 | 세션 | 행동 |
+|------|------|------|
+| **기획** | Plan Mode (10분) | `/plan-epic` → Story 분해, `.todo/epics/` 에 저장 |
+| **구현** | 새 세션 (Story별) | "S01 구현해줘. 스펙: `.todo/epics/{id}/S01.md`" |
+| **검증** | 같은 세션 | `/verify` → Story 완료 조건 체크 |
+| **완료** | 같은 세션 | Story 상태 ✅, `ACTIVE.md` 갱신 |
 
 ### 핵심 규칙
 
 | 시점 | 행동 |
 |------|------|
-| **세션 시작** | `ACTIVE.md` 읽고 현재 작업 파악 |
-| **작업 완료** | `ACTIVE.md` 갱신, 필요시 `COMPLETED.md`에 기록 |
-| **새 작업 발견** | `BACKLOG.md`에 추가 |
-| **장기 작업 완료** | `archive/`에 상세 문서 보관 |
+| **세션 시작** | `ACTIVE.md` 읽고 현재 Epic/Story 파악 |
+| **작업 완료** | Story 상태 ✅, `ACTIVE.md` 갱신, 필요시 `COMPLETED.md`에 기록 |
+| **새 작업 발견** | `BACKLOG.md`에 Epic 추가 또는 기존 Epic에 Story 추가 |
+| **Epic 완료** | `COMPLETED.md`에 Epic 요약 기록 |
 
 ### 자동 동기화 항목
 
 - **테스트 수**: 변경 시 `ACTIVE.md` 업데이트
 - **노드/API 수**: 추가/제거 시 갱신
-- **archive 정리**: 완료된 문서 삭제 후 개수 업데이트
-
-### 참조 파일 경로
-```
-.todo/ACTIVE.md      # 항상 최신 상태 유지 필수
-.todo/BACKLOG.md     # P2, P3 작업 목록
-.todo/COMPLETED.md   # 날짜별 완료 기록
-```
+- **Epic 진행률**: Story 상태 변경 시 `ACTIVE.md` + `EPIC.md` 갱신
 
 ---
 
@@ -150,8 +154,9 @@ curl -s http://localhost:5005/health
 | `devops-guide` | CI/CD, Docker, 배포 | `docker-compose up -d` | "배포", "Docker" |
 | `docs-site-guide` | 문서 사이트 관리 | `:3001`, Docusaurus | "문서", "docs-site" |
 | `diagram-strategy` | 다이어그램 TSX 컴포넌트 | Mermaid 금지 → TSX | "다이어그램" |
+| `presentation-guide` | PPT/PDF 산출물 생성 | 메트릭 카드, 3중 검증 | "PPT", "발표자료" |
 
-**위치**: `.claude/skills/` (15개) | **상세**: `.claude/skills/README.md`
+**위치**: `.claude/skills/` (16개) | **상세**: `.claude/skills/README.md`
 
 ---
 
@@ -505,6 +510,7 @@ playwright_screenshot({ name: "verification" })
 | `/verify` | 자가 검증 (빌드+린트+헬스체크) |
 | `/simplify` | 코드 정리 (중복 제거, 단순화) |
 | `/handoff` | 세션 핸드오프 (컨텍스트 60% 초과 시) |
+| `/plan-epic` | Epic 기획 → Story 분해 (BMAD-Lite) |
 | `/add-feature` | 새 기능 추가 가이드 |
 | `/debug-issue` | 이슈 디버깅 워크플로우 |
 | `/rebuild-service` | Docker 서비스 재빌드 |

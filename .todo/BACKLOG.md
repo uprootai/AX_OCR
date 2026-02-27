@@ -1,26 +1,34 @@
-# 백로그 (향후 작업)
+# 백로그 — Epic 인덱스
 
-> 마지막 업데이트: 2026-02-21
-> 미래 작업 및 참조 문서
-
----
-
-## 현재 상태 요약
-
-| 항목 | 값 |
-|------|-----|
-| **동서기연 배치 분석** | 53/53 세션 완료 (100%) |
-| **동서기연 납품 패키지** | ✅ 생성 완료 (4.5GB) |
-| **총 치수 추출** | 2,710개 (평균 51.1개/세션) |
-| **빌드** | ✅ 정상 |
-| **ESLint** | 0 errors |
-| **노드 정의** | 29개 |
-| **API 서비스** | 21개 |
-| **P1/P2/P3 작업** | 모두 완료 ✅ |
+> 마지막 업데이트: 2026-02-27
+> Epic/Story 기반 작업 관리 (BMAD-Lite)
 
 ---
 
-## 신규 고객 온보딩 준비
+## Active Epics
+
+| ID | Epic | 고객 | 기간 | Stories | 상태 |
+|----|------|------|------|---------|------|
+| E01 | [성과발표회 PPT 완성](epics/e01-presentation/EPIC.md) | 내부 | ~03-06 | 3 | 🔵 Active |
+
+## Future Epics
+
+| ID | Epic | 고객 | 메모 | 상태 |
+|----|------|------|------|------|
+| E02 | 테크로스 P&ID 납품 | 테크로스 | P&ID 60항목 자동 설계 검증 | ⬜ Draft |
+| E03 | AX 테스트 컴플렉스 온보딩 | 10개 중소기업 | 2025.09~2028.12, 249억 규모 | ⬜ Draft |
+| E04 | SaaS 전환 (Kubernetes) | 내부 | 중장기, 온프레미스→SaaS 병행 | ⬜ Draft |
+
+## 기술 개선 (Epic 미배정)
+
+| 작업 | 메모 |
+|------|------|
+| DocLayout-YOLO Fine-tuning | 8클래스, 29이미지, 라벨링 필요 |
+| YOLOv12 업그레이드 | v11→v12 정확도 개선 기대 |
+
+---
+
+## 참조: 고객 온보딩 표준 프로세스
 
 ### 다음 고객 프로젝트를 위한 체크리스트
 
@@ -59,41 +67,18 @@ cd {customer}-delivery && sha256sum **/* > CHECKSUMS.sha256
 
 ---
 
-## ~~Agent-Native Verification UI~~ ✅ 완료 (2026-02-21)
-
-> **상세 문서**: [AGENT_NATIVE_VERIFICATION_UI.md](AGENT_NATIVE_VERIFICATION_UI.md)
-
-Phase 1-4 모두 완료. E2E 검증: 147 dimension 항목 전체 처리 (118 approve, 29 reject).
-커밋: `0b3fe6d`
-
----
-
-## 기술 개선 (우선순위 미정)
-
-### DocLayout-YOLO Fine-tuning
-- 준비 완료 (8클래스, 29이미지, 라벨링 필요)
-- 문서: `models/yolo-api/yolo_training/`
-
-### YOLOv12 업그레이드
-- 계획 문서: `YOLOV12_UPGRADE_PLAN.md`
-- 현행 v11 → v12 전환 시 정확도 개선 기대
-
-### Claude Code Agent Teams 도입 검토
-- 현재 불필요 — subagent 방식으로 충분
-- 도입 시점: 프론트/백엔드/AI 동시 대규모 변경 시
-
----
-
 ## 참조 문서
 
 | 문서 | 위치 |
 |------|------|
 | **현재 작업** | `.todo/ACTIVE.md` |
 | **완료 아카이브** | `.todo/COMPLETED.md` |
-| **패턴 확산 작업** | `.todo/PENDING_PATTERN_PROPAGATION.md` |
+| **Epic 폴더** | `.todo/epics/` |
+| **템플릿** | `.todo/templates/` |
+| **아키텍처 결정** | `.todo/decisions/` |
 | 새 API 추가 가이드 | `.claude/skills/api-creation-guide.md` |
 | 모듈화 가이드 | `.claude/skills/modularization-guide.md` |
 
 ---
 
-*마지막 업데이트: 2026-02-21 (Agent Verification UI Phase 1-4 완료)*
+*마지막 업데이트: 2026-02-27 (BMAD-Lite Epic 인덱스 도입)*
