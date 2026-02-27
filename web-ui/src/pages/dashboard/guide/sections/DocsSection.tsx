@@ -80,7 +80,7 @@ export function DocsSection({ sectionRef }: DocsSectionProps) {
           <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-700 dark:text-gray-300">
               <strong>View All Documents:</strong>{' '}
-              <a href="/docs" className="text-blue-600 hover:underline">/docs page</a> - Search and read all documentation.
+              <a href="http://localhost:3001" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Documentation Site</a> - 14개 섹션, 100+ 페이지 문서 사이트
             </p>
           </div>
         </CardContent>

@@ -7,12 +7,13 @@ import {
   Shield,
   Workflow,
   FolderOpen,
+  ExternalLink,
 } from 'lucide-react';
 
-const navigationItems = [
+const navigationItems: { key: string; href: string; icon: typeof Home; external?: boolean }[] = [
   { key: 'dashboard', href: '/dashboard', icon: Home },
   { key: 'guide', href: '/guide', icon: BookOpen },
-  { key: 'docs', href: '/docs', icon: Book },
+  { key: 'docs', href: 'http://localhost:3001', icon: Book, external: true },
   { key: 'admin', href: '/admin', icon: Shield },
 ];
 
@@ -31,7 +32,24 @@ export default function Sidebar() {
       <nav className="space-y-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname.startsWith(item.href);
+          const isActive = !item.external && location.pathname.startsWith(item.href);
+
+          if (item.external) {
+            return (
+              <a
+                key={item.key}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t(`sidebar.${item.key}Tooltip`)}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <Icon className="h-5 w-5" />
+                {t(`sidebar.${item.key}`)}
+                <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+              </a>
+            );
+          }
 
           return (
             <Link
