@@ -36,7 +36,7 @@
 |-------|------|------|
 | [S01 파이프라인 테스트](epics/e02-techcross/S01-pipeline-test.md) | ✅ Done | YOLO 257건, OCR 141건, BWMS API 60-70% 기구현 |
 | [S02 BWMS 태그 인식](epics/e02-techcross/S02-bwms-tag-recognition.md) | ✅ Done | 6/10 장비 검출 (NoneType+bbox+OCR 3건 수정) |
-| [S03 Excel 출력](epics/e02-techcross/S03-excel-export.md) | ⬜ Todo | Equipment + Valve Signal List |
+| [S03 Excel 출력](epics/e02-techcross/S03-excel-export.md) | ✅ Done | 버그 3건 수정, Excel 2종 출력 성공 |
 | [S04 BWMS 규칙](epics/e02-techcross/S04-bwms-rules.md) | ⬜ Todo | Design Checker 규칙 5개 |
 | [S05 프리셋 템플릿](epics/e02-techcross/S05-blueprintflow-preset.md) | ⬜ Todo | BlueprintFlow 테크로스 전용 |
 | [S06 E2E 검증](epics/e02-techcross/S06-e2e-validation.md) | ⬜ Todo | 통합 테스트 + 체크리스트 매핑 |

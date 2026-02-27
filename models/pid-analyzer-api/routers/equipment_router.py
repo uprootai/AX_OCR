@@ -30,8 +30,34 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/equipment", tags=["Equipment"])
 
-# Configuration
+# Configuration — OCR Ensemble 우선, PaddleOCR 폴백
+OCR_ENSEMBLE_API_URL = os.getenv("OCR_ENSEMBLE_API_URL", "http://ocr-ensemble-api:5011/api/v1/ocr")
 PADDLEOCR_API_URL = os.getenv("PADDLEOCR_API_URL", "http://paddleocr-api:5006/api/v1/ocr")
+
+
+async def _call_ocr(client: httpx.AsyncClient, filename: str, image_bytes: bytes,
+                     content_type: str, language: str) -> list:
+    """OCR Ensemble 우선, PaddleOCR 폴백"""
+    for url, name in [(OCR_ENSEMBLE_API_URL, "OCR Ensemble"), (PADDLEOCR_API_URL, "PaddleOCR")]:
+        try:
+            files = {"file": (filename, image_bytes, content_type)}
+            data = {"language": language}
+            resp = await client.post(url, files=files, data=data, timeout=120.0)
+            if resp.status_code != 200:
+                logger.warning(f"{name} returned {resp.status_code}, trying next")
+                continue
+            result = resp.json() or {}
+            texts = (
+                result.get("results", []) or result.get("detections", [])
+                or result.get("texts", []) or result.get("data", {}).get("texts", [])
+            )
+            if texts:
+                logger.info(f"{name} returned {len(texts)} texts")
+                return texts
+            logger.warning(f"{name} returned 0 texts, trying next")
+        except Exception as e:
+            logger.warning(f"{name} error: {e}, trying next")
+    return []
 
 
 # =====================
@@ -124,24 +150,9 @@ async def detect_equipment_endpoint(
         # 이미지 읽기
         image_bytes = await file.read()
 
-        # PaddleOCR로 텍스트 추출
+        # OCR 호출 (Ensemble 우선, PaddleOCR 폴백)
         async with httpx.AsyncClient(timeout=120.0) as client:
-            files = {"file": (file.filename, image_bytes, file.content_type)}
-            data = {"language": language}
-            response = await client.post(PADDLEOCR_API_URL, files=files, data=data)
-
-        if response.status_code != 200:
-            return ProcessResponse(
-                success=False,
-                data={},
-                processing_time=time.time() - start_time,
-                error=f"OCR API error: {response.status_code}"
-            )
-
-        ocr_result = response.json()
-        ocr_texts = ocr_result.get('detections', [])
-        if not ocr_texts:
-            ocr_texts = ocr_result.get('texts', [])
+            ocr_texts = await _call_ocr(client, file.filename, image_bytes, file.content_type, language)
 
         logger.info(f"OCR detected {len(ocr_texts)} texts")
 
@@ -214,24 +225,9 @@ async def export_equipment_excel_endpoint(
         # 이미지 읽기
         image_bytes = await file.read()
 
-        # PaddleOCR로 텍스트 추출
+        # OCR 호출 (Ensemble 우선, PaddleOCR 폴백)
         async with httpx.AsyncClient(timeout=120.0) as client:
-            files = {"file": (file.filename, image_bytes, "image/png")}
-            data = {"language": language}
-            response = await client.post(PADDLEOCR_API_URL, files=files, data=data)
-
-        if response.status_code != 200:
-            return ProcessResponse(
-                success=False,
-                data={},
-                processing_time=time.time() - start_time,
-                error=f"OCR API error: {response.status_code}"
-            )
-
-        ocr_result = response.json()
-        ocr_texts = ocr_result.get('detections', [])
-        if not ocr_texts:
-            ocr_texts = ocr_result.get('texts', [])
+            ocr_texts = await _call_ocr(client, file.filename, image_bytes, file.content_type, language)
 
         # 장비 검출
         equipment = detect_equipment(ocr_texts, profile_id=profile_id)

@@ -85,7 +85,7 @@ class RegionTextExtractor:
             if has_dashed:
                 region_style = "dashed"  # mixed이지만 dashed 라인 포함
 
-        if region_style not in criteria.line_styles and region_style != "mixed":
+        if region_style not in criteria.line_styles and region_style not in ("mixed", "unknown"):
             return False
 
         # 면적 확인
@@ -228,11 +228,19 @@ class RegionTextExtractor:
         # 우선순위 순으로 패턴 정렬
         sorted_patterns = sorted(patterns, key=lambda p: p.priority, reverse=True)
 
+        # exclude에서 짧은 태그 형태(밸브 ID 가능)는 제외하지 않음
+        safe_excludes = [
+            exc for exc in (exclude_texts or [])
+            if len(exc) > 6 or not any(p.match(exc) for p in sorted_patterns)
+        ]
+
         for text_item in texts:
             text = text_item.get("text", "").strip()
 
-            # 영역 식별 텍스트는 제외
-            if any(exc.lower() in text.lower() for exc in exclude_texts):
+            # 영역 식별 텍스트는 제외 (정확 일치 우선, 긴 텍스트만 부분 매칭)
+            if any(exc.lower() == text.lower() for exc in safe_excludes):
+                continue
+            if any(exc.lower() in text.lower() for exc in safe_excludes if len(exc) > 10):
                 continue
 
             # 너무 긴 텍스트는 제외 (일반적으로 태그는 짧음)
@@ -411,17 +419,26 @@ class RegionTextExtractor:
 
         results_by_rule = {}
 
-        # 가상 영역 생성을 위한 텍스트 기반 폴백 준비
-        # Line Detector가 영역을 찾지 못한 경우만 폴백 사용
+        # 1차: Line Detector 영역에서 criteria 통과하는 것 카운트
+        # criteria 통과 0개이면 가상 영역 폴백 사용
+        criteria_pass_count = 0
+        for rule in rules:
+            for region in regions:
+                if self._region_matches_criteria(region, rule.region_criteria):
+                    criteria_pass_count += 1
+                    break  # 1개라도 통과하면 충분
+
+        # 가상 영역 생성: regions==0 또는 criteria 통과 0개일 때
         all_virtual_regions = []
-        if len(regions) == 0:
-            logger.info("No regions from Line Detector, using text-based virtual regions")
+        if len(regions) == 0 or criteria_pass_count == 0:
+            reason = "no regions" if len(regions) == 0 else f"{len(regions)} regions but 0 passed criteria"
+            logger.info(f"Virtual region fallback: {reason}")
             for rule in rules:
                 if rule.region_text_patterns:
                     virtual_regions = self._find_text_based_regions(
                         texts,
                         rule.region_text_patterns,
-                        region_size=(600, 400)  # 더 큰 영역으로 밸브 캡처
+                        region_size=(600, 400)
                     )
                     all_virtual_regions.extend(virtual_regions)
             logger.info(f"Created {len(all_virtual_regions)} virtual regions from OCR text")

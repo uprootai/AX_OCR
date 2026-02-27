@@ -96,8 +96,13 @@ rules:
         priority: 5
 
       - type: valve_tag
-        regex: "^[A-Z]{2,4}-?\\d{1,4}[A-Z]?$"
-        description: "일반 밸브 태그 패턴"
+        regex: "^(XV|CV|SV|TV|MV|NV|RV|DV|EV)\\d{1,4}[A-Z]?$"
+        description: "표준 밸브 태그 (XV, CV, SV 등)"
+        priority: 3
+
+      - type: valve_tag
+        regex: "^[A-Z]{2,3}V\\d{1,4}[A-Z]?$"
+        description: "일반 밸브 태그 (접미 V + 숫자)"
         priority: 1
 
     output_type: excel

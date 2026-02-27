@@ -27,9 +27,41 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["Region"])
 
-# Configuration
+# Configuration — OCR Ensemble 우선, PaddleOCR 폴백
+OCR_ENSEMBLE_API_URL = os.getenv("OCR_ENSEMBLE_API_URL", "http://ocr-ensemble-api:5011/api/v1/ocr")
 PADDLEOCR_API_URL = os.getenv("PADDLEOCR_API_URL", "http://paddleocr-api:5006/api/v1/ocr")
 LINE_DETECTOR_API_URL = os.getenv("LINE_DETECTOR_API_URL", "http://line-detector-api:5016/api/v1/process")
+
+
+async def _call_ocr(client: httpx.AsyncClient, filename: str, image_bytes: bytes,
+                     content_type: str, language: str) -> list:
+    """OCR Ensemble 우선, PaddleOCR 폴백"""
+    urls = [
+        (OCR_ENSEMBLE_API_URL, "OCR Ensemble"),
+        (PADDLEOCR_API_URL, "PaddleOCR"),
+    ]
+    for url, name in urls:
+        try:
+            files = {"file": (filename, image_bytes, content_type)}
+            data = {"language": language}
+            resp = await client.post(url, files=files, data=data, timeout=120.0)
+            if resp.status_code != 200:
+                logger.warning(f"{name} returned {resp.status_code}, trying next")
+                continue
+            result = resp.json() or {}
+            texts = (
+                result.get("results", [])
+                or result.get("detections", [])
+                or result.get("texts", [])
+                or result.get("data", {}).get("texts", [])
+            )
+            if texts:
+                logger.info(f"{name} returned {len(texts)} texts")
+                return texts
+            logger.warning(f"{name} returned 0 texts, trying next")
+        except Exception as e:
+            logger.warning(f"{name} error: {e}, trying next")
+    return []
 
 
 # =====================
@@ -279,31 +311,8 @@ async def extract_valve_signal_list(
 
             logger.info(f"Line Detector: {len(regions)} regions detected")
 
-            # 2. PaddleOCR 호출
-            files = {"file": (file.filename, image_bytes, file.content_type)}
-            data = {"language": language}
-            ocr_response = await client.post(PADDLEOCR_API_URL, files=files, data=data)
-
-            if ocr_response.status_code != 200:
-                return ProcessResponse(
-                    success=False,
-                    data={},
-                    processing_time=time.time() - start_time,
-                    error=f"PaddleOCR API error: {ocr_response.status_code}"
-                )
-
-            ocr_result = ocr_response.json()
-            # PaddleOCR 형식: { "detections": [...] } 또는 { "results": [...] }
-            # EasyOCR 형식: { "data": { "texts": [...] } }
-            texts = ocr_result.get("detections", [])
-            if not texts:
-                texts = ocr_result.get("results", [])
-            if not texts:
-                texts = ocr_result.get("texts", [])
-            if not texts:
-                # EasyOCR 형식 처리
-                texts = ocr_result.get("data", {}).get("texts", [])
-
+            # 2. OCR 호출 (Ensemble 우선, PaddleOCR 폴백)
+            texts = await _call_ocr(client, file.filename, image_bytes, file.content_type, language)
             logger.info(f"OCR: {len(texts)} texts detected")
 
         # 3. Region Text Extraction
@@ -384,29 +393,8 @@ async def export_valve_signal_excel(
             line_result = line_response.json()
             regions = line_result.get("data", {}).get("regions", [])
 
-            # 2. PaddleOCR 호출
-            files = {"file": (file.filename, image_bytes, file.content_type)}
-            data = {"language": language}
-            ocr_response = await client.post(PADDLEOCR_API_URL, files=files, data=data)
-
-            if ocr_response.status_code != 200:
-                return ProcessResponse(
-                    success=False,
-                    data={},
-                    processing_time=time.time() - start_time,
-                    error=f"PaddleOCR API error: {ocr_response.status_code}"
-                )
-
-            ocr_result = ocr_response.json()
-            # PaddleOCR 형식: { "detections": [...] } 또는 { "results": [...] }
-            # EasyOCR 형식: { "data": { "texts": [...] } }
-            texts = ocr_result.get("detections", [])
-            if not texts:
-                texts = ocr_result.get("results", [])
-            if not texts:
-                texts = ocr_result.get("texts", [])
-            if not texts:
-                texts = ocr_result.get("data", {}).get("texts", [])
+            # 2. OCR 호출 (Ensemble 우선, PaddleOCR 폴백)
+            texts = await _call_ocr(client, file.filename, image_bytes, file.content_type, language)
 
         # 3. Region Text Extraction
         extractor = get_extractor()
