@@ -53,18 +53,25 @@ async def call_paddleocr(client: httpx.AsyncClient, image_bytes: bytes) -> List[
     """Call PaddleOCR engine"""
     try:
         files = {"file": ("image.jpg", image_bytes, "image/jpeg")}
-        data = {"lang": "en", "visualize": "false"}
+        data = {
+            "lang": "en",
+            "visualize": "false",
+            "det_db_thresh": "0.15",
+            "det_db_box_thresh": "0.3",
+            "min_confidence": "0.2",
+        }
 
         response = await client.post(
             f"{PADDLEOCR_URL}/api/v1/ocr",
             files=files,
             data=data,
-            timeout=30.0
+            timeout=90.0
         )
 
         if response.status_code == 200:
             result = response.json()
-            texts = result.get("texts") or result.get("results") or []
+            texts = result.get("detections") or result.get("texts") or result.get("results") or []
+            logger.info(f"PaddleOCR returned {len(texts)} texts (keys: {list(result.keys())[:5]})")
             return [
                 OCRResult(
                     text=t.get("text", ""),

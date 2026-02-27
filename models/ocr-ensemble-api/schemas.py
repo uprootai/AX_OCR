@@ -10,7 +10,7 @@ class OCRResult(BaseModel):
     """Individual OCR result from a single engine"""
     text: str
     confidence: float
-    bbox: Optional[List[int]] = None
+    bbox: Optional[list] = None
     source: str  # Which OCR engine produced this result
 
 
@@ -18,7 +18,7 @@ class EnsembleResult(BaseModel):
     """Merged result from ensemble voting"""
     text: str
     confidence: float
-    bbox: Optional[List[int]] = None
+    bbox: Optional[list] = None
     votes: Dict[str, float]  # Weighted votes from each engine
     sources: List[str]  # Engines that returned this result
 
