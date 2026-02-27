@@ -1,6 +1,7 @@
 ---
 name: ux-enhancer
 description: Applies 2025 enterprise UI/UX best practices including accessibility (WCAG 2.1), dark mode, performance optimization, and interactive visualizations
+user-invocable: true
 allowed-tools: [read, write, glob, grep]
 ---
 

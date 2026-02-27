@@ -1,6 +1,7 @@
 ---
 name: code-janitor
 description: Automatically detects and fixes code quality issues including unused imports, type hints, security vulnerabilities, and performance problems across Python and TypeScript codebases
+user-invocable: true
 allowed-tools: [grep, glob, read, bash]
 ---
 

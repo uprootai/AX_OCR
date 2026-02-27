@@ -1,6 +1,7 @@
 ---
 name: workflow-optimizer
 description: Analyzes drawing types and recommends optimal BlueprintFlow pipeline combinations based on content, accuracy requirements, and performance needs
+user-invocable: true
 allowed-tools: [read, grep, glob, bash]
 ---
 

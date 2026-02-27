@@ -1,6 +1,7 @@
 ---
 name: feature-implementer
 description: Executes feature implementation phase-by-phase based on plan documents. Tracks progress, runs quality checks, provides risk assessments, and integrates with Git. Use when implementing planned features, executing development phases, or building according to structured roadmaps.
+user-invocable: true
 allowed-tools: [read, write, edit, glob, grep, bash]
 ---
 

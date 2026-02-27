@@ -1,6 +1,7 @@
 ---
 name: presentation-guide
 description: PPT/PDF 발표자료 생성 가이드. python-pptx 디자인 규격, 검증 체크리스트, 메트릭 카드 패턴 포함. 성과발표, 투자IR, 고객 제안서 등 산출물 생성 시 참조.
+user-invocable: false
 ---
 
 # Presentation Guide — 발표자료 생성 스킬

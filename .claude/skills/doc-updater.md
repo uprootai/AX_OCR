@@ -1,6 +1,7 @@
 ---
 name: doc-updater
 description: Automatically tracks project changes and updates relevant documentation including CLAUDE.md, README, CHANGELOG, and API docs
+user-invocable: true
 allowed-tools: [read, glob, grep, bash]
 ---
 
