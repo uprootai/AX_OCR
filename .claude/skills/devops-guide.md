@@ -1,3 +1,10 @@
+---
+name: devops-guide
+description: CI/CD 파이프라인, Docker Compose, GPU 설정, 배포 전략 가이드.
+user-invocable: true
+allowed-tools: [Read, Grep, Glob, Bash]
+---
+
 # DevOps 가이드
 
 > CI/CD, 배포, 환경 설정, 모니터링 가이드

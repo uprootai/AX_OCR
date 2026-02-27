@@ -1,3 +1,10 @@
+---
+name: project-reference
+description: R&D 논문 35개, API 스펙, 고객사 정보, 문서 구조 참조.
+user-invocable: false
+allowed-tools: [Read, Grep, Glob]
+---
+
 # 프로젝트 레퍼런스
 
 이 스킬은 R&D 논문, API 스펙 시스템, 문서 구조에 대한 참조 정보입니다.

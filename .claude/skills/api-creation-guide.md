@@ -1,3 +1,10 @@
+---
+name: api-creation-guide
+description: 새 API 서비스 스캐폴딩 가이드. create_api.py, Docker, gateway 등록 전체 체크리스트.
+user-invocable: true
+allowed-tools: [Read, Grep, Glob, Bash, Edit, Write]
+---
+
 # 새 API 추가 가이드
 
 이 스킬은 새 API 서비스를 추가할 때 필요한 전체 가이드입니다.

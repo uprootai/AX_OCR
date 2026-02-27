@@ -1,3 +1,10 @@
+---
+name: context-engineering-guide
+description: 컨텍스트 윈도우 관리 전략. 60% 규칙, 서브에이전트 격리, 핸드오프 패턴.
+user-invocable: false
+allowed-tools: [Read, Grep]
+---
+
 # 컨텍스트 엔지니어링 가이드
 
 > **출처**: [sankalp.bearblog.dev - Claude Code 2.0 가이드](https://sankalp.bearblog.dev/my-experience-with-claude-code-20-and-how-to-get-better-at-using-coding-agents/)

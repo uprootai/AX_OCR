@@ -1,3 +1,10 @@
+---
+name: diagram-strategy
+description: Mermaid 금지, FlowDiagram/SequenceDiagram TSX 컴포넌트 사용법. docs-site 다이어그램 작성 시 참조.
+user-invocable: false
+allowed-tools: [Read, Grep, Glob]
+---
+
 # Diagram Strategy (Mermaid → TSX)
 
 ## 원칙

@@ -1,3 +1,10 @@
+---
+name: modularization-guide
+description: 1000줄 제한, 배럴 re-export 패턴, 분리 전략. 리팩토링 시 필수 참조.
+user-invocable: true
+allowed-tools: [Read, Grep, Glob, Bash, Edit, Write]
+---
+
 # 파일 크기 및 모듈화 규칙 (LLM 최적화)
 
 > **핵심 원칙**: 모든 소스 파일은 **1,000줄 이하**로 유지

@@ -1,3 +1,10 @@
+---
+name: version-history
+description: Blueprint AI BOM v10.5, Design Checker v1.0 등 서브시스템 버전 히스토리.
+user-invocable: false
+allowed-tools: [Read, Grep]
+---
+
 # 버전 히스토리 및 서브시스템 레퍼런스
 
 ---
