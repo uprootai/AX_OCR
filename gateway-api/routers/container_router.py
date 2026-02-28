@@ -228,7 +228,8 @@ def _list_containers_sync(include_stats: bool = False) -> ContainerListResponse:
                     'poc' in c.image.lower() or
                     'api' in c.name.lower() or
                     'web-ui' in c.name.lower() or
-                    'neo4j' in c.name.lower()]
+                    'neo4j' in c.name.lower() or
+                    'blueprint' in c.name.lower()]
 
         return ContainerListResponse(
             success=True,

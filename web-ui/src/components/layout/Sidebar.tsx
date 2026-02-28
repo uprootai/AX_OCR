@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Home,
   BookOpen,
@@ -8,19 +8,28 @@ import {
   Workflow,
   FolderOpen,
   ExternalLink,
-} from 'lucide-react';
+} from "lucide-react";
 
-const navigationItems: { key: string; href: string; icon: typeof Home; external?: boolean }[] = [
-  { key: 'dashboard', href: '/dashboard', icon: Home },
-  { key: 'guide', href: '/guide', icon: BookOpen },
-  { key: 'docs', href: 'http://localhost:3001', icon: Book, external: true },
-  { key: 'admin', href: '/admin', icon: Shield },
+const navigationItems: {
+  key: string;
+  href: string;
+  icon: typeof Home;
+  external?: boolean;
+}[] = [
+  { key: "dashboard", href: "/dashboard", icon: Home },
+  { key: "guide", href: "/guide", icon: BookOpen },
+  { key: "docs", href: "http://localhost:3001", icon: Book, external: true },
+  { key: "admin", href: "/admin", icon: Shield },
 ];
 
 const blueprintFlowItems = [
-  { key: 'blueprintflowBuilder', href: '/blueprintflow/builder', beta: true },
-  { key: 'blueprintflowList', href: '/blueprintflow/list', beta: true },
-  { key: 'blueprintflowTemplates', href: '/blueprintflow/templates', beta: true },
+  { key: "blueprintflowBuilder", href: "/blueprintflow/builder", beta: true },
+  { key: "blueprintflowList", href: "/blueprintflow/list", beta: true },
+  {
+    key: "blueprintflowTemplates",
+    href: "/blueprintflow/templates",
+    beta: true,
+  },
 ];
 
 export default function Sidebar() {
@@ -32,7 +41,8 @@ export default function Sidebar() {
       <nav className="space-y-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const isActive = !item.external && location.pathname.startsWith(item.href);
+          const isActive =
+            !item.external && location.pathname.startsWith(item.href);
 
           if (item.external) {
             return (
@@ -58,8 +68,8 @@ export default function Sidebar() {
               title={t(`sidebar.${item.key}Tooltip`)}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent'
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-accent"
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -72,7 +82,7 @@ export default function Sidebar() {
       {/* BlueprintFlow Section */}
       <div
         className="mt-6 p-4 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-lg border-2 border-cyan-200 dark:border-cyan-800"
-        title={t('sidebar.blueprintflowTooltip')}
+        title={t("sidebar.blueprintflowTooltip")}
       >
         <div className="flex items-center gap-2 mb-3">
           <Workflow className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
@@ -84,7 +94,7 @@ export default function Sidebar() {
           </span>
         </div>
         <p className="text-xs text-cyan-700 dark:text-cyan-300 mb-3">
-          {t('blueprintflow.title')}
+          {t("blueprintflow.title")}
         </p>
         <div className="space-y-1.5 text-xs">
           {blueprintFlowItems.map((item) => {
@@ -96,8 +106,8 @@ export default function Sidebar() {
                 title={t(`sidebar.${item.key}Tooltip`)}
                 className={`flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors ${
                   isActive
-                    ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-900 dark:text-cyan-100 font-medium'
-                    : 'text-cyan-700 dark:text-cyan-300'
+                    ? "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-900 dark:text-cyan-100 font-medium"
+                    : "text-cyan-700 dark:text-cyan-300"
                 }`}
               >
                 <span>•</span>
@@ -111,27 +121,27 @@ export default function Sidebar() {
       {/* 프로젝트 관리 (Blueprint AI BOM) */}
       <div
         className="mt-4 p-4 bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 rounded-lg border-2 border-pink-200 dark:border-pink-800"
-        title={t('sidebar.projectManagementTooltip')}
+        title={t("sidebar.projectManagementTooltip")}
       >
         <div className="flex items-center gap-2 mb-3">
           <FolderOpen className="h-5 w-5 text-pink-600 dark:text-pink-400" />
           <h3 className="font-semibold text-sm text-pink-900 dark:text-pink-100">
-            {t('sidebar.projectManagement')}
+            {t("sidebar.projectManagement")}
           </h3>
         </div>
         <p className="text-xs text-pink-700 dark:text-pink-300 mb-3">
-          {t('sidebar.projectManagementDesc')}
+          {t("sidebar.projectManagementDesc")}
         </p>
         <Link
           to="/projects"
           className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs hover:bg-pink-100 dark:hover:bg-pink-900/50 transition-colors ${
-            location.pathname.startsWith('/projects')
-              ? 'bg-pink-100 dark:bg-pink-900/50 text-pink-900 dark:text-pink-100 font-medium'
-              : 'text-pink-700 dark:text-pink-300'
+            location.pathname.startsWith("/projects")
+              ? "bg-pink-100 dark:bg-pink-900/50 text-pink-900 dark:text-pink-100 font-medium"
+              : "text-pink-700 dark:text-pink-300"
           }`}
         >
           <span>•</span>
-          <span>{t('sidebar.projectList')}</span>
+          <span>{t("sidebar.projectList")}</span>
         </Link>
       </div>
     </aside>

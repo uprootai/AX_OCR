@@ -4,6 +4,7 @@ Executor Registry
 
 YAML 스펙 기반 + Custom API 지원 하이브리드 시스템
 """
+
 from typing import Dict, Any, Optional
 from pathlib import Path
 import logging
@@ -72,7 +73,7 @@ class ExecutorRegistry:
             return None
 
         try:
-            with open(spec_file, 'r', encoding='utf-8') as f:
+            with open(spec_file, "r", encoding="utf-8") as f:
                 spec = yaml.safe_load(f)
 
             if spec and spec.get("kind") == "APISpec":
@@ -85,7 +86,9 @@ class ExecutorRegistry:
         return None
 
     @classmethod
-    def spec_to_api_config(cls, spec: Dict[str, Any], host: str = "localhost") -> Dict[str, Any]:
+    def spec_to_api_config(
+        cls, spec: Dict[str, Any], host: str = "localhost"
+    ) -> Dict[str, Any]:
         """
         YAML 스펙을 GenericAPIExecutor용 api_config로 변환
 
@@ -121,7 +124,7 @@ class ExecutorRegistry:
             "parameters": spec.get("parameters", []),
             "inputMappings": mappings.get("input", {}),
             "outputMappings": mappings.get("output", {}),
-            "blueprintflow": blueprintflow
+            "blueprintflow": blueprintflow,
         }
 
     @classmethod
@@ -137,7 +140,13 @@ class ExecutorRegistry:
         return sorted(list(types))
 
     @classmethod
-    def create(cls, node_id: str, node_type: str, parameters: Dict[str, Any], host: str = "localhost"):
+    def create(
+        cls,
+        node_id: str,
+        node_type: str,
+        parameters: Dict[str, Any],
+        host: str = "localhost",
+    ):
         """
         실행기 인스턴스 생성
 
