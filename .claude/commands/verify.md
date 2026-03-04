@@ -32,6 +32,9 @@ cd blueprint-ai-bom/frontend && npm run build
 **gateway-api:**
 ```bash
 cd gateway-api && python -m py_compile api_server.py
+cd gateway-api && pytest
+# E2E 별도 검증(필요 시)
+cd gateway-api && pytest -m e2e tests/e2e -v
 ```
 
 **blueprint-ai-bom backend:**

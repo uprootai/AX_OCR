@@ -45,6 +45,7 @@
 | 스크립트 | 매처 | 기능 |
 |----------|------|------|
 | `on-stop.sh` | `""` (전체) | 작업 완료 알림 (선택적) |
+| `on-stop-verify.sh` | `""` (전체) | 변경 파일 기반 자동 검증 (빌드/구문/pytest 기본) |
 
 ---
 
@@ -125,7 +126,8 @@ fi
 │   ├── README.md          # 이 문서
 │   ├── pre-edit-check.sh  # Edit/Write 전 체크
 │   ├── post-bash-log.sh   # Bash 후 로깅
-│   └── on-stop.sh         # 응답 완료 알림
+│   ├── on-stop.sh         # 응답 완료 알림
+│   └── on-stop-verify.sh  # 응답 완료 자동 검증
 └── logs/                  # 훅 로그 저장
 ```
 

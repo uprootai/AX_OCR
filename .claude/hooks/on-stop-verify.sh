@@ -15,6 +15,8 @@ fi
 HAS_TS=false
 HAS_PY=false
 HAS_DOCS=false
+HAS_GATEWAY=false
+HAS_GATEWAY_E2E=false
 
 while IFS= read -r file; do
     case "${file##*.}" in
@@ -23,6 +25,8 @@ while IFS= read -r file; do
     esac
     case "$file" in
         docs-site/*) HAS_DOCS=true ;;
+        gateway-api/*) HAS_GATEWAY=true ;;
+        gateway-api/tests/e2e/*) HAS_GATEWAY_E2E=true ;;
     esac
 done <<< "$CHANGED_FILES"
 
@@ -67,6 +71,18 @@ if $HAS_DOCS; then
             ISSUES="$ISSUES\n- docs-site 빌드 실패"
         fi
     fi
+fi
+
+# gateway-api 기본 테스트 (pytest.ini에서 e2e 제외 정책 적용)
+if $HAS_GATEWAY; then
+    if ! (cd "$PROJECT_ROOT/gateway-api" && pytest -q &>/dev/null); then
+        ISSUES="$ISSUES\n- gateway-api 기본 테스트 실패 (E2E 제외)"
+    fi
+fi
+
+# gateway-api E2E 변경 감지 시 별도 실행 안내
+if $HAS_GATEWAY_E2E; then
+    ISSUES="$ISSUES\n- 참고: E2E 변경 감지됨. 필요 시 수동 실행: cd gateway-api && pytest -m e2e tests/e2e -v"
 fi
 
 # 이슈가 있으면 리마인더 출력

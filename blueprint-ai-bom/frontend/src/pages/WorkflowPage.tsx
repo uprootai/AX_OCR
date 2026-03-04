@@ -599,6 +599,7 @@ export function WorkflowPage() {
               onDelete={dimensionHandlers.handleDimensionDelete}
               onBulkApprove={dimensionHandlers.handleBulkApproveDimensions}
               onAutoApprove={dimensionHandlers.handleAutoApprove}
+              onReset={dimensionHandlers.handleResetVerification}
               isAutoApproving={dimensionHandlers.isLoading}
               onAddManualDimension={dimensionHandlers.handleAddManualDimension}
               onImagePopup={imageData ? () => openOverlayPopup(imageData, state.dimensions, '치수 OCR 오버레이') : undefined}
@@ -835,6 +836,8 @@ export function WorkflowPage() {
               onImageClick={() => state.setShowImageModal(true)}
               selectedClassName={bomHighlightClass}
               onClassSelect={setBomHighlightClass}
+              dimensions={state.dimensions}
+              dimensionStats={state.dimensionStats}
             />
           )}
 

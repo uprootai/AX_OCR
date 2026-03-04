@@ -24,6 +24,7 @@ interface DimensionSectionProps {
   onDelete: (id: string) => void;
   onBulkApprove: (ids: string[]) => void;
   onAutoApprove: () => void;
+  onReset: () => void;
   isAutoApproving: boolean;
   onAddManualDimension: (value: string, box: { x1: number; y1: number; x2: number; y2: number }) => Promise<void>;
   onImagePopup?: () => void;
@@ -43,6 +44,7 @@ export function DimensionSection({
   onDelete,
   onBulkApprove,
   onAutoApprove,
+  onReset,
   isAutoApproving,
   onAddManualDimension,
   onImagePopup,
@@ -180,6 +182,7 @@ export function DimensionSection({
         onDelete={onDelete}
         onBulkApprove={onBulkApprove}
         onAutoApprove={onAutoApprove}
+        onReset={onReset}
         isAutoApproving={isAutoApproving}
         onHover={(id) => setSelectedDimensionId(id)}
         selectedId={selectedDimensionId}

@@ -37,6 +37,7 @@ echo "<session-greeting>"
 echo "Branch: ${BRANCH} | Commit: ${LAST_COMMIT}"
 echo "Changes: ${MODIFIED} modified, ${STAGED} staged, ${UNTRACKED} untracked"
 echo "Reminder: .todo/ACTIVE.md 확인하세요"
+echo "Test Policy: gateway-api 기본 pytest는 E2E 제외, E2E는 'pytest -m e2e tests/e2e -v'로 별도 실행"
 echo "</session-greeting>"
 
 exit 0

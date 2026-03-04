@@ -30,6 +30,17 @@
 
 **상세**: [.todo/epics/e01-presentation/EPIC.md](epics/e01-presentation/EPIC.md)
 
+### E03: 동서기연 BOM 추출 자동화 (~03-21)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| [S01 소재 사이즈 추출](epics/e03-dsebearing/S01-material-size-extraction.md) | ✅ Done | 단품 3종 230개 치수 추출·검증 완료 |
+| [S02 BOM 계층 구조](epics/e03-dsebearing/S02-bom-hierarchy.md) | ✅ Done | ASSY 7·SUB 16·PART 303 분류 완료 |
+| [S03 결과 전달](epics/e03-dsebearing/S03-result-delivery.md) | 🔵 In Progress | 문서 완료, 고객 전달 대기 |
+
+**Blueprint AI BOM 프로젝트**: `b97237fd` (BOM 326개 기존 임포트, 이름 변경)
+**상세**: [.todo/epics/e03-dsebearing/EPIC.md](epics/e03-dsebearing/EPIC.md)
+
 ### E02: 테크로스 P&ID 자동 설계 검증 — ✅ 완료
 
 > 6 Stories 전체 Done | 커밋: `b3e8c4b`~`8c1eb8d` | 46% 자동화 커버리지
@@ -47,4 +58,4 @@
 
 ---
 
-*마지막 업데이트: 2026-02-27*
+*마지막 업데이트: 2026-03-04*

@@ -22,7 +22,8 @@ maxTurns: 10
 1. **변경 파일 감지**: `git diff --name-only` 기반
 2. **테스트 선택**:
    - `web-ui/**` 변경 → `cd web-ui && npm run test:run`
-   - `gateway-api/**` 변경 → `cd gateway-api && pytest tests/ -v`
+   - `gateway-api/**` 변경 → `cd gateway-api && pytest` (기본: E2E 제외)
+   - `gateway-api/tests/e2e/**` 또는 사용자가 E2E 요청 → `cd gateway-api && pytest -m e2e tests/e2e -v`
    - `blueprint-ai-bom/**` 변경 → `cd blueprint-ai-bom/frontend && npm run build`
    - `docs-site/**` 변경 → `cd docs-site && npm run build`
 3. **빌드 검증**:

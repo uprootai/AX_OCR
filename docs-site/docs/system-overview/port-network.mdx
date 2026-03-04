@@ -17,6 +17,16 @@ import ArchitectureDiagram from '@site/src/components/ArchitectureDiagram';
 
 모든 서비스는 `ax_poc_network` (bridge) 네트워크를 공유합니다.
 
+## 문서 사이트(3001) 운영 방식
+
+`http://localhost:3001`은 Docusaurus 문서 사이트이며 기본 `docker-compose.yml`에 포함되지 않습니다.
+
+```bash
+cd docs-site
+npm install
+npm run start   # http://localhost:3001
+```
+
 <ArchitectureDiagram />
 
 ## 서비스 의존성
@@ -92,8 +102,9 @@ import ArchitectureDiagram from '@site/src/components/ArchitectureDiagram';
 # Gateway
 GET http://localhost:8000/api/v1/health
 
-# 개별 서비스
-GET http://localhost:<port>/health
+# 개별 서비스 (서비스별 경로 상이)
+# 예: /health, /api/v1/health, /api/v2/health
+GET http://localhost:<port>/<health-path>
 
 # BOM 백엔드
 GET http://localhost:5020/health
@@ -102,5 +113,6 @@ GET http://localhost:5020/health
 | 서비스 | 헬스 엔드포인트 | 예상 응답 |
 |--------|----------------|-----------|
 | Gateway | `/api/v1/health` | `{"status": "healthy"}` |
-| 전체 ML API | `/health` | `{"status": "healthy"}` |
+| ML API (대부분) | `/health` | `{"status": "healthy"}` |
+| 일부 API | `/api/v1/health`, `/api/v2/health` | `{"status": "healthy"}` |
 | Neo4j | `:7474` (HTTP) | 브라우저 UI |

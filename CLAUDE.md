@@ -61,6 +61,12 @@ curl -F "file=@image.png" http://localhost:5005/api/v1/detect
 curl -s http://localhost:5005/health
 ```
 
+## IMPORTANT: 테스트 실행 정책 (Gateway API)
+
+- 상세 실행 규칙은 `.claude/rules/development.md`를 단일 기준(SSOT)으로 따른다.
+- `/verify` 실행 절차는 `.claude/commands/verify.md`를 따른다.
+- Test Runner 동작은 `.claude/agents/test-runner.md`를 따른다.
+
 ---
 
 ## 온디맨드 스킬

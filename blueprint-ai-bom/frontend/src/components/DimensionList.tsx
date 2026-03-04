@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   Zap,
   Loader2,
+  RotateCcw,
 } from 'lucide-react';
 import logger from '../lib/logger';
 
@@ -73,6 +74,7 @@ interface DimensionListProps {
   onDelete?: (id: string) => void;
   onBulkApprove?: (ids: string[]) => void;
   onAutoApprove?: () => void;
+  onReset?: () => void;
   isAutoApproving?: boolean;
   onExport?: () => void;
   onHover?: (id: string | null) => void;
@@ -200,6 +202,7 @@ export function DimensionList({
   onDelete,
   onBulkApprove,
   onAutoApprove,
+  onReset,
   isAutoApproving,
   onExport,
   onHover,
@@ -427,6 +430,20 @@ export function DimensionList({
               className="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
             >
               전체 승인 ({pendingIds.length})
+            </button>
+          )}
+          {onReset && pendingIds.length < dimensions.length && (
+            <button
+              onClick={() => {
+                if (window.confirm('모든 검증 상태를 초기화하시겠습니까?\n승인/거부/수정된 항목이 모두 "대기" 상태로 되돌아갑니다.')) {
+                  onReset();
+                }
+              }}
+              disabled={isAutoApproving}
+              className="flex items-center gap-1 text-sm px-3 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              초기화
             </button>
           )}
         </div>

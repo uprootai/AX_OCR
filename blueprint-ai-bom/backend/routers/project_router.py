@@ -85,6 +85,18 @@ async def list_projects(
 
     projects = project_service.list_projects(customer=customer, limit=limit)
 
+    # 실시간 세션 수 반영 (캐시 불일치 방지)
+    try:
+        from routers.session_router import get_session_service
+        session_service = get_session_service()
+        for p in projects:
+            pid = p.get("project_id")
+            if pid:
+                sessions = session_service.list_sessions_by_project(pid)
+                p["session_count"] = len(sessions)
+    except Exception:
+        pass  # session_service 미사용 시 캐시 값 유지
+
     return {
         "projects": projects,
         "total": len(projects)

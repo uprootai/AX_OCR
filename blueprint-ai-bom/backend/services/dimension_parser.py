@@ -8,7 +8,7 @@ import uuid
 import logging
 from typing import List, Optional, Tuple
 
-from schemas.dimension import Dimension, DimensionType
+from schemas.dimension import Dimension, DimensionType, MaterialRole
 from schemas.detection import VerificationStatus, BoundingBox
 
 logger = logging.getLogger(__name__)
@@ -392,6 +392,211 @@ def parse_generic_texts(
                     if is_valid_dimension(sub_dim):
                         dimensions.append(sub_dim)
     return dimensions
+
+
+def _parse_numeric(text: str) -> Optional[float]:
+    """치수 텍스트에서 첫 번째 숫자값 추출 (내부 유틸)"""
+    m = re.search(r'(\d+\.?\d*)', re.sub(r'^[ØφΦ⌀RrMmCc]', '', text.strip()))
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    return None
+
+
+def _format_corrected(v_fixed: float, original_str: str) -> str:
+    """교정된 숫자를 과학적 표기법 없이 포맷 (내부 유틸)"""
+    if v_fixed == int(v_fixed):
+        return str(int(v_fixed))
+    # 원본 소수점 자릿수 + 1 로 출력
+    original_decimals = len(original_str.split('.')[1]) if '.' in original_str else 0
+    target_decimals = max(original_decimals + 1, 2)
+    return f"{v_fixed:.{target_decimals}f}".rstrip('0').rstrip('.')
+
+
+def correct_decimal_artifacts(dimensions: List[Dimension]) -> List[Dimension]:
+    """OCR 소수점 오인식 교정 (MAD 기반 이상치 감지)
+
+    패턴: PaddleOCR이 `490.02` → `4900.2`, `450` → `4500` 으로 읽는 오류.
+    전략: MAD(Median Absolute Deviation) 로 이상치를 감지하고,
+    /10 교정값이 합리적 범위면 자동 적용한다.
+
+    MAD는 중앙값 기반이므로 이상치가 50% 미만이면 항상 robust하다.
+    (IQR 방식은 이상치가 Q3를 직접 왜곡하는 취약점이 있음)
+
+    - 이상치 기준: 값 > median + 3 × MAD
+    - 교정 수락 조건: 교정값 ≤ median × 4 (비율 기반)
+    - 교정 시 confidence *= 0.85 (불확실성 반영)
+    """
+    # MAD 계산용 숫자 수집 — 명백한 단위 노이즈(>50000) 제외
+    numeric_vals: List[float] = []
+    for d in dimensions:
+        v = _parse_numeric(d.value)
+        if v is not None and 0 < v < 50000:
+            numeric_vals.append(v)
+
+    if len(numeric_vals) < 5:
+        return dimensions  # 샘플 부족 → 교정 건너뜀
+
+    numeric_vals.sort()
+    n = len(numeric_vals)
+    # 중앙값 계산 (이상치에 무관하게 stable)
+    if n % 2 == 0:
+        median = (numeric_vals[n // 2 - 1] + numeric_vals[n // 2]) / 2
+    else:
+        median = numeric_vals[n // 2]
+
+    # MAD = 편차의 중앙값
+    deviations = sorted([abs(v - median) for v in numeric_vals])
+    if n % 2 == 0:
+        mad = (deviations[n // 2 - 1] + deviations[n // 2]) / 2
+    else:
+        mad = deviations[n // 2]
+
+    if mad < 1:
+        return dimensions  # 치수가 모두 유사 (나사 등) → 교정 불필요
+
+    fence = median + 3 * mad  # 3-MAD fence (≈ 3σ)
+
+    corrected: List[Dimension] = []
+    for d in dimensions:
+        raw_num_str = re.search(r'(\d+\.?\d*)', re.sub(r'^[ØφΦ⌀RrMmCc]', '', d.value.strip()))
+        if not raw_num_str:
+            corrected.append(d)
+            continue
+        try:
+            v = float(raw_num_str.group(1))
+        except ValueError:
+            corrected.append(d)
+            continue
+
+        if v > fence:
+            v_fixed = v / 10
+            if v_fixed <= 5000:  # 기계 부품 물리적 한계 (5m 이하) — 도메인 지식 기반 수락 조건
+                old_str = raw_num_str.group(1)
+                new_str = _format_corrected(v_fixed, old_str)
+                new_value = d.value.replace(old_str, new_str, 1)
+                logger.info(
+                    f"OCR 소수점 교정: '{d.value}' → '{new_value}' "
+                    f"(median={median:.1f}, MAD={mad:.1f}, fence={fence:.1f})"
+                )
+                d = d.model_copy(update={
+                    "value": new_value,
+                    "confidence": round(d.confidence * 0.85, 4),
+                    "ocr_corrected": True,
+                })
+
+        corrected.append(d)
+
+    return corrected
+
+
+def classify_material_role(
+    dim: Dimension,
+    image_width: int = 0,
+    image_height: int = 0,
+    sorted_values: Optional[List[float]] = None,
+) -> MaterialRole:
+    """치수의 소재 견적 역할 분류
+
+    분류 우선순위:
+    1. 치수 타입 기반 (THREAD/SURFACE_FINISH → OTHER 확정)
+    2. 접두사/키워드 분석 (PCD, Ø 크기, R)
+    3. 공간 위치 기반 (도면 내 위치로 전체 치수 vs 상세 치수 구분)
+    4. 값 크기 기반 (대형 값 → 외경/길이 추정)
+    """
+    raw = dim.value.upper()
+
+    # 1. 확정 OTHER
+    if dim.dimension_type in (DimensionType.THREAD, DimensionType.SURFACE_FINISH,
+                               DimensionType.ANGLE, DimensionType.CHAMFER,
+                               DimensionType.TOLERANCE):
+        return MaterialRole.OTHER
+
+    # PCD (볼트 피치원) → 가공 치수
+    if raw.startswith("PCD"):
+        return MaterialRole.OTHER
+
+    # 반경 단독 (R접두사) → 형상 특징이지 소재 사이즈 아님
+    if dim.dimension_type == DimensionType.RADIUS:
+        return MaterialRole.OTHER
+
+    # 2. 직경 분류 (Ø 접두사 or diameter type)
+    has_dia_prefix = bool(re.match(r'^[ØφΦ⌀Ø]', raw))
+    if has_dia_prefix or dim.dimension_type == DimensionType.DIAMETER:
+        v = _parse_numeric(dim.value)
+        if v is not None:
+            if v <= 30:
+                return MaterialRole.OTHER        # 볼트 구멍 (M3~M30 범위)
+            elif v <= 80:
+                return MaterialRole.INNER_DIAMETER  # 중간: 내경 추정
+            else:
+                return MaterialRole.OUTER_DIAMETER  # 대형: 외경 추정
+        return MaterialRole.OUTER_DIAMETER
+
+    # 3. 위치 기반 분류 (이미지 크기 제공된 경우)
+    if image_width and image_height:
+        cx = (dim.bbox.x1 + dim.bbox.x2) / 2
+        cy = (dim.bbox.y1 + dim.bbox.y2) / 2
+        x_ratio = cx / image_width
+        y_ratio = cy / image_height
+
+        # 도면 우측 하단(title block, notes) 영역 → OTHER
+        if x_ratio > 0.65 and y_ratio > 0.75:
+            return MaterialRole.OTHER
+
+        # 도면 상단 가로 방향 치수 (스팬이 넓은 경우) → 전체 치수
+        bbox_width = dim.bbox.x2 - dim.bbox.x1
+        bbox_height = dim.bbox.y2 - dim.bbox.y1
+        is_horizontal = bbox_width > bbox_height * 1.5
+
+        if y_ratio < 0.35 and is_horizontal:
+            return MaterialRole.LENGTH
+
+    # 4. 값 크기 기반 추론 (위치 정보 없을 때 fallback)
+    v = _parse_numeric(dim.value)
+    if v is not None:
+        if sorted_values and len(sorted_values) >= 3:
+            p70 = sorted_values[int(len(sorted_values) * 0.7)]
+            if v >= p70:
+                return MaterialRole.OUTER_DIAMETER  # 상위 30% 큰 값 → 주요 소재 치수
+        if v >= 200:
+            return MaterialRole.OUTER_DIAMETER
+        if v < 5:
+            return MaterialRole.OTHER  # 공차, 틈새 값
+
+    return MaterialRole.OTHER
+
+
+def postprocess_dimensions(
+    dimensions: List[Dimension],
+    image_width: int = 0,
+    image_height: int = 0,
+) -> List[Dimension]:
+    """치수 후처리 파이프라인
+
+    1. OCR 소수점 오류 교정 (correct_decimal_artifacts)
+    2. 소재 역할 분류 (classify_material_role)
+
+    dimension_service.py의 extract_dimensions()에서 호출한다.
+    """
+    # 1. 소수점 아티팩트 교정
+    dimensions = correct_decimal_artifacts(dimensions)
+
+    # 2. 역할 분류용 정렬 값 목록 (상대 크기 판단)
+    sorted_vals: List[float] = sorted(
+        v for d in dimensions
+        if (v := _parse_numeric(d.value)) is not None and 0 < v < 5000
+    )
+
+    # 3. material_role 분류
+    result: List[Dimension] = []
+    for d in dimensions:
+        role = classify_material_role(d, image_width, image_height, sorted_vals)
+        result.append(d.model_copy(update={"material_role": role}))
+
+    return result
 
 
 def extract_dims_from_text_block(

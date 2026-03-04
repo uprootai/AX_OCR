@@ -16,12 +16,12 @@ const CATEGORIES: Record<string, { label: string; color: string; bg: string; ser
     bg: '#e8f5e9',
     services: [
       { name: 'eDOCr2', port: 5002, gpu: true },
-      { name: 'PaddleOCR', port: 5006 },
+      { name: 'PaddleOCR', port: 5006, gpu: true },
       { name: 'Tesseract', port: 5008 },
       { name: 'TrOCR', port: 5009, gpu: true },
       { name: 'OCR Ensemble', port: 5011, gpu: true },
-      { name: 'Surya OCR', port: 5013 },
-      { name: 'DocTR', port: 5014 },
+      { name: 'Surya OCR', port: 5013, gpu: true },
+      { name: 'DocTR', port: 5014, gpu: true },
       { name: 'EasyOCR', port: 5015 },
     ],
   },
@@ -31,7 +31,7 @@ const CATEGORIES: Record<string, { label: string; color: string; bg: string; ser
     bg: '#e1f5fe',
     services: [
       { name: 'EDGNet', port: 5012, gpu: true },
-      { name: 'Line Detector', port: 5016 },
+      { name: 'Line Detector', port: 5016, gpu: true },
     ],
   },
   preprocessing: {
@@ -144,7 +144,7 @@ export default function ArchitectureDiagram() {
       </div>
 
       <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '0.75rem', color: '#999' }}>
-        네트워크: <code>ax_poc_network</code> (bridge) | GPU: 10개 서비스 | CPU: 11개 서비스
+        네트워크: <code>ax_poc_network</code> (bridge) | 문서 카탈로그 기준 GPU: 13개 | CPU: 8개
       </div>
     </div>
   );

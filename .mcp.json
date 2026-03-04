@@ -36,6 +36,15 @@
         "@executeautomation/playwright-mcp-server"
       ],
       "env": {}
+    },
+    "majin-slide": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@taiyokimura/majin-slide-mcp@latest"
+      ],
+      "env": {}
     }
   }
 }

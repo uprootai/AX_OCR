@@ -6,6 +6,7 @@ import asyncio
 import httpx
 import base64
 import json
+import pytest
 from pathlib import Path
 from datetime import datetime
 
@@ -13,6 +14,7 @@ from datetime import datetime
 GATEWAY_URL = "http://localhost:8000"
 DSE_API_BASE = f"{GATEWAY_URL}/api/v1/dsebearing"
 TEST_IMAGE_DIR = Path("/home/uproot/ax/poc/apply-company/dsebearing/test_images")
+pytestmark = pytest.mark.e2e
 
 
 async def test_full_pipeline():

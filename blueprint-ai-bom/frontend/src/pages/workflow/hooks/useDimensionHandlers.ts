@@ -139,6 +139,21 @@ export function useDimensionHandlers({
     }
   }, [sessionId, loadDimensions]);
 
+  const handleResetVerification = useCallback(async () => {
+    if (!sessionId) return;
+    setIsLoading(true);
+    try {
+      await axios.post(
+        `${API_BASE_URL}/verification/reset/${sessionId}?item_type=dimension`
+      );
+      await loadDimensions(sessionId);
+    } catch (err) {
+      logger.error('Reset verification failed:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [sessionId, loadDimensions]);
+
   const handleBulkApproveDimensions = useCallback(async (ids: string[]) => {
     if (!sessionId) return;
 
@@ -170,6 +185,7 @@ export function useDimensionHandlers({
     handleDimensionDelete,
     handleAddManualDimension,
     handleAutoApprove,
+    handleResetVerification,
     handleBulkApproveDimensions,
     // States
     isLoading,

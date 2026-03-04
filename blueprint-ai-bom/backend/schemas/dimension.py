@@ -24,6 +24,21 @@ class DimensionType(str, Enum):
     UNKNOWN = "unknown"
 
 
+class MaterialRole(str, Enum):
+    """소재 견적 역할 분류
+
+    소재 구매 시 필요한 치수 역할을 나타낸다.
+    - outer_diameter: 외경 (소재 봉/링 OD 기준)
+    - inner_diameter: 내경 (보어, 홀 직경)
+    - length: 소재 길이 또는 폭
+    - other: 가공치수, 공차, 표면거칠기 등 소재 선택과 무관
+    """
+    OUTER_DIAMETER = "outer_diameter"
+    INNER_DIAMETER = "inner_diameter"
+    LENGTH = "length"
+    OTHER = "other"
+
+
 class Dimension(BaseModel):
     """치수 데이터 모델
 
@@ -51,6 +66,16 @@ class Dimension(BaseModel):
     modified_bbox: Optional[BoundingBox] = Field(None, description="수정된 바운딩박스")
     linked_to: Optional[str] = Field(None, description="연결된 객체 ID (심볼 등)")
 
+    # 소재 견적용 역할 분류 (postprocess_dimensions에서 자동 설정)
+    material_role: Optional[MaterialRole] = Field(
+        None,
+        description="소재 견적 역할: outer_diameter/inner_diameter/length/other"
+    )
+    ocr_corrected: bool = Field(
+        False,
+        description="OCR 소수점 오류 자동 교정 여부"
+    )
+
     class Config:
         use_enum_values = True
 
@@ -69,10 +94,12 @@ class DimensionCreate(BaseModel):
 class DimensionUpdate(BaseModel):
     """치수 수정 요청"""
     value: Optional[str] = None
+    modified_value: Optional[str] = None
     tolerance: Optional[str] = None
     unit: Optional[str] = None
     dimension_type: Optional[DimensionType] = None
     status: Optional[VerificationStatus] = None
+    verification_status: Optional[VerificationStatus] = None
     linked_to: Optional[str] = None
     modified_bbox: Optional[BoundingBox] = None
 

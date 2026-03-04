@@ -6,6 +6,25 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Detection } from '../../../types';
 
+interface Dimension {
+  id: string;
+  bbox: { x1: number; y1: number; x2: number; y2: number };
+  value: string;
+  unit: string | null;
+  dimension_type: string;
+  confidence: number;
+  verification_status: string;
+  modified_value: string | null;
+}
+
+interface DimensionStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+  modified: number;
+  manual: number;
+}
+
 interface FinalResultsSectionProps {
   detections: Detection[];
   imageData: string;
@@ -18,6 +37,9 @@ interface FinalResultsSectionProps {
   // BOM ↔ 도면 하이라이트 연동
   selectedClassName?: string | null;
   onClassSelect?: (className: string | null) => void;
+  // 치수 전용 워크플로우 지원
+  dimensions?: Dimension[];
+  dimensionStats?: DimensionStats | null;
 }
 
 export function FinalResultsSection({
@@ -28,6 +50,8 @@ export function FinalResultsSection({
   onImageClick,
   selectedClassName: externalSelectedClassName,
   onClassSelect,
+  dimensions = [],
+  dimensionStats,
 }: FinalResultsSectionProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [internalSelectedClassName, setInternalSelectedClassName] = useState<string | null>(null);
@@ -36,17 +60,32 @@ export function FinalResultsSection({
   const selectedClassName = externalSelectedClassName !== undefined ? externalSelectedClassName : internalSelectedClassName;
   const setSelectedClassName = onClassSelect || setInternalSelectedClassName;
 
+  // 치수 전용 모드: 심볼이 없고 치수가 있는 경우
+  const isDimensionOnly = detections.length === 0 && dimensions.length > 0;
+
   const finalDetections = detections.filter(d =>
     d.verification_status === 'approved' ||
     d.verification_status === 'modified' ||
     d.verification_status === 'manual'
   );
 
-  const modifiedCount = detections.filter(d =>
-    d.modified_class_name && d.modified_class_name !== d.class_name
-  ).length;
+  const finalDimensions = dimensions.filter(d =>
+    d.verification_status === 'approved' ||
+    d.verification_status === 'modified' ||
+    d.verification_status === 'manual'
+  );
 
-  const manualCount = detections.filter(d => d.verification_status === 'manual').length;
+  const modifiedCount = isDimensionOnly
+    ? (dimensionStats?.modified || 0)
+    : detections.filter(d => d.modified_class_name && d.modified_class_name !== d.class_name).length;
+
+  const manualCount = isDimensionOnly
+    ? (dimensionStats?.manual || 0)
+    : detections.filter(d => d.verification_status === 'manual').length;
+
+  const approvedCount = isDimensionOnly
+    ? (dimensionStats?.approved || 0)
+    : stats.approved;
 
   // Group by class name
   const grouped = finalDetections.reduce((acc, d) => {
@@ -77,67 +116,87 @@ export function FinalResultsSection({
       canvas.height = imageSize.height * scale;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      finalDetections.forEach((detection, idx) => {
-        const { x1, y1, x2, y2 } = detection.bbox;
-        const sx1 = x1 * scale;
-        const sy1 = y1 * scale;
-        const sx2 = x2 * scale;
-        const sy2 = y2 * scale;
-        const w = sx2 - sx1;
-        const h = sy2 - sy1;
+      // 치수 전용 모드: 치수 bbox 그리기
+      if (isDimensionOnly) {
+        finalDimensions.forEach((dim) => {
+          const { x1, y1, x2, y2 } = dim.bbox;
+          const sx1 = x1 * scale, sy1 = y1 * scale;
+          const w = (x2 - x1) * scale, h = (y2 - y1) * scale;
 
-        const detClassName = detection.modified_class_name || detection.class_name;
-        const isSelected = selectedClassName === detClassName;
-
-        if (selectedClassName) {
-          // 선택된 클래스가 있을 때
-          if (isSelected) {
-            // 선택된 항목: 파란색 반투명 채우기 + 굵은 테두리
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
-            ctx.fillRect(sx1, sy1, w, h);
-            ctx.strokeStyle = '#2563eb';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(sx1, sy1, w, h);
-
-            // 라벨
-            const label = `${idx + 1}`;
-            ctx.font = 'bold 12px sans-serif';
-            const textWidth = ctx.measureText(label).width;
-            ctx.fillStyle = '#2563eb';
-            ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
-            ctx.fillStyle = 'white';
-            ctx.fillText(label, sx1 + 4, sy1 - 5);
-          } else {
-            // 선택되지 않은 항목: 회색 얇은 테두리
-            ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(sx1, sy1, w, h);
-          }
-        } else {
-          // 선택 없을 때: 기존 상태별 색상
-          let color = '#22c55e'; // green - approved
-          if (detection.modified_class_name && detection.modified_class_name !== detection.class_name) {
-            color = '#f97316'; // orange - modified
-          } else if (detection.verification_status === 'manual') {
-            color = '#a855f7'; // purple - manual
-          }
+          let color = '#22c55e';
+          if (dim.verification_status === 'modified') color = '#f97316';
+          else if (dim.verification_status === 'manual') color = '#a855f7';
 
           ctx.strokeStyle = color;
           ctx.lineWidth = 2;
           ctx.strokeRect(sx1, sy1, w, h);
 
-          const label = `${idx + 1}`;
-          ctx.font = 'bold 12px sans-serif';
+          const label = dim.modified_value || dim.value;
+          ctx.font = 'bold 10px sans-serif';
           const textWidth = ctx.measureText(label).width;
           ctx.fillStyle = color;
-          ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
+          ctx.fillRect(sx1, sy1 - 14, textWidth + 6, 14);
           ctx.fillStyle = 'white';
-          ctx.fillText(label, sx1 + 4, sy1 - 5);
-        }
-      });
+          ctx.fillText(label, sx1 + 3, sy1 - 3);
+        });
+      } else {
+        finalDetections.forEach((detection, idx) => {
+          const { x1, y1, x2, y2 } = detection.bbox;
+          const sx1 = x1 * scale;
+          const sy1 = y1 * scale;
+          const sx2 = x2 * scale;
+          const sy2 = y2 * scale;
+          const w = sx2 - sx1;
+          const h = sy2 - sy1;
+
+          const detClassName = detection.modified_class_name || detection.class_name;
+          const isSelected = selectedClassName === detClassName;
+
+          if (selectedClassName) {
+            if (isSelected) {
+              ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+              ctx.fillRect(sx1, sy1, w, h);
+              ctx.strokeStyle = '#2563eb';
+              ctx.lineWidth = 3;
+              ctx.strokeRect(sx1, sy1, w, h);
+
+              const label = `${idx + 1}`;
+              ctx.font = 'bold 12px sans-serif';
+              const textWidth = ctx.measureText(label).width;
+              ctx.fillStyle = '#2563eb';
+              ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
+              ctx.fillStyle = 'white';
+              ctx.fillText(label, sx1 + 4, sy1 - 5);
+            } else {
+              ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(sx1, sy1, w, h);
+            }
+          } else {
+            let color = '#22c55e';
+            if (detection.modified_class_name && detection.modified_class_name !== detection.class_name) {
+              color = '#f97316';
+            } else if (detection.verification_status === 'manual') {
+              color = '#a855f7';
+            }
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sx1, sy1, w, h);
+
+            const label = `${idx + 1}`;
+            ctx.font = 'bold 12px sans-serif';
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = color;
+            ctx.fillRect(sx1, sy1 - 18, textWidth + 8, 18);
+            ctx.fillStyle = 'white';
+            ctx.fillText(label, sx1 + 4, sy1 - 5);
+          }
+        });
+      }
     };
     img.src = imageData;
-  }, [imageData, imageSize, finalDetections, selectedClassName]);
+  }, [imageData, imageSize, finalDetections, finalDimensions, isDimensionOnly, selectedClassName]);
 
   const handleClassClick = (className: string) => {
     setSelectedClassName(selectedClassName === className ? null : className);
@@ -150,7 +209,7 @@ export function FinalResultsSection({
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center border border-green-200 dark:border-green-800">
-          <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+          <p className="text-2xl font-bold text-green-600">{approvedCount}</p>
           <p className="text-sm text-gray-500">✅ 승인됨</p>
         </div>
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 text-center border border-orange-200 dark:border-orange-800">
@@ -207,14 +266,22 @@ export function FinalResultsSection({
             </div>
           </div>
           <p className="text-center text-sm text-gray-500 mt-2">
-            최종 선정된 부품: 총 {finalDetections.length}개
+            {isDimensionOnly
+              ? `검증 완료 치수: 총 ${finalDimensions.length}개`
+              : `최종 선정된 부품: 총 ${finalDetections.length}개`
+            }
           </p>
         </div>
 
         {/* Right: BOM List */}
         <div className="lg:col-span-1">
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-full">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">BOM 심볼 리스트</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+              {isDimensionOnly ? '치수 유형별 요약' : 'BOM 심볼 리스트'}
+            </h3>
+            {isDimensionOnly ? (
+              <DimensionTypeSummary dimensions={finalDimensions} />
+            ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {sortedClasses.map(([className, data], idx) => {
                 const isActive = selectedClassName === className;
@@ -246,6 +313,8 @@ export function FinalResultsSection({
                 );
               })}
             </div>
+            )}
+            {!isDimensionOnly && (
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-gray-700 dark:text-gray-300">총 품목 수</span>
@@ -260,9 +329,49 @@ export function FinalResultsSection({
                 </span>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+const DIMENSION_TYPE_LABELS: Record<string, string> = {
+  length: '길이', diameter: '직경', radius: '반경', angle: '각도',
+  tolerance: '공차', surface_finish: '표면', unknown: '기타',
+};
+
+function DimensionTypeSummary({ dimensions }: { dimensions: Dimension[] }) {
+  const grouped = dimensions.reduce((acc, d) => {
+    const type = d.dimension_type || 'unknown';
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
+
+  return (
+    <>
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {sorted.map(([type, count]) => (
+          <div key={type} className="flex items-center justify-between p-2 rounded border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
+            <span className="font-medium text-sm text-gray-900 dark:text-white">
+              {DIMENSION_TYPE_LABELS[type] || type}
+            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-bold text-primary-600">{count}</span>
+              <span className="text-xs text-gray-500">개</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-gray-700 dark:text-gray-300">총 치수</span>
+          <span className="text-xl font-bold text-green-600">{dimensions.length}개</span>
+        </div>
+      </div>
+    </>
   );
 }

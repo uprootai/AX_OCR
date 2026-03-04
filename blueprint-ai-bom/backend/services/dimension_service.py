@@ -36,6 +36,7 @@ from .dimension_parser import (  # noqa: F401
     parse_generic_texts,
     extract_dims_from_text_block,
     SUB_DIM_PATTERNS,
+    postprocess_dimensions,
 )
 from .dimension_merger import (  # noqa: F401
     ENGINE_BASE_WEIGHTS,
@@ -150,6 +151,9 @@ class DimensionService:
             )
             if in_margin:
                 d.confidence *= 0.5
+
+        # 후처리: OCR 소수점 교정 + 소재 역할 분류
+        dimensions = postprocess_dimensions(dimensions, image_width, image_height)
 
         model_id = "+".join(used_engines) if used_engines else "none"
         processing_time = (time.time() - start_time) * 1000

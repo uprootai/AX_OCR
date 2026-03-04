@@ -222,6 +222,53 @@ async def verify_item(
     )
 
 
+@router.post("/reset/{session_id}")
+async def reset_verification(
+    session_id: str,
+    item_type: str = "dimension"
+):
+    """
+    검증 초기화
+
+    해당 세션의 모든 항목을 pending 상태로 되돌림.
+    modified_value, verified_by 필드를 제거하여 사람이 처음부터 검증할 수 있도록 함.
+    """
+    session_service = get_session_service()
+    session = session_service.get_session(session_id)
+
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    if item_type == "dimension":
+        items = session.get("dimensions", [])
+    else:
+        items = session.get("detections", [])
+
+    reset_count = 0
+    for item in items:
+        status = item.get("verification_status", "pending")
+        if status != "pending":
+            item["verification_status"] = "pending"
+            item.pop("modified_value", None)
+            item.pop("verified_by", None)
+            reset_count += 1
+
+    # 세션 업데이트
+    if item_type == "dimension":
+        session_service.update_session(session_id, {"dimensions": items})
+    else:
+        session_service.update_session(session_id, {"detections": items})
+
+    return {
+        "session_id": session_id,
+        "item_type": item_type,
+        "reset_count": reset_count,
+        "total_items": len(items),
+        "success": True,
+        "message": f"{reset_count}개 항목 검증 초기화 완료"
+    }
+
+
 @router.post("/bulk-approve/{session_id}", response_model=BulkApproveResponse)
 async def bulk_approve(
     session_id: str,

@@ -7,6 +7,12 @@ paths:
 
 # 개발 규칙
 
+## 테스트 실행 원칙 (중요)
+
+- `gateway-api` 기본 테스트는 E2E를 제외한 빠른 회귀 검증으로 실행한다.
+- E2E는 외부 실행 서비스(`localhost:8000` 등) 의존이 있으므로 별도 명령으로만 실행한다.
+- 기본 품질 확인 시 E2E 실패를 일반 회귀 실패와 혼합하지 않는다.
+
 ## 프론트엔드 핵심 파일 (web-ui/)
 
 | 목적 | 파일 경로 |
@@ -27,7 +33,8 @@ cd web-ui && npm run build     # 프로덕션 빌드
 cd web-ui && npm run test:run  # 테스트
 
 # 백엔드
-cd gateway-api && pytest tests/ -v
+cd gateway-api && pytest                    # 기본: E2E 제외 (pytest.ini addopts)
+cd gateway-api && pytest -m e2e tests/e2e -v  # 필요 시: E2E만 별도 실행
 
 # Docker
 docker-compose up -d
