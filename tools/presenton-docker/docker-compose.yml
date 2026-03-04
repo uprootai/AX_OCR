@@ -1,0 +1,13 @@
+services:
+  presenton:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ax-presenton:latest
+    container_name: ax-presenton
+    environment:
+      - TARGET_ROOT=/workspace/startup
+    volumes:
+      - /home/uproot/ax/docs/초기창업패키지:/workspace/startup
+    working_dir: /workspace/startup/presentation
+    command: ["all"]
