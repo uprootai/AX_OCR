@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUIStore } from './store/uiStore';
 import { useEffect, lazy, Suspense } from 'react';
@@ -8,9 +8,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // Layout (sync - always needed)
 import Layout from './components/layout/Layout';
-
-// Landing (sync - first page)
-import Landing from './pages/Landing';
 
 // Lazy-loaded Pages
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
@@ -68,8 +65,8 @@ function App() {
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* 랜딩 페이지 (레이아웃 없음) */}
-              <Route path="/" element={<Landing />} />
+              {/* / → 대시보드로 리다이렉트 */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
               {/* 레이아웃이 있는 페이지들 */}
               <Route element={<Layout />}>

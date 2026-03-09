@@ -10,7 +10,7 @@ import { Button } from '../../../components/ui/Button';
 import { workflowSessionApi, type WorkflowSessionResponse, type WorkflowDefinition } from '../../../lib/api';
 
 // Blueprint AI BOM 프론트엔드 URL (CustomerSessionPage가 있는 곳)
-const BLUEPRINT_AI_BOM_FRONTEND_URL = import.meta.env.VITE_BLUEPRINT_AI_BOM_URL || 'http://localhost:3000';
+const BLUEPRINT_AI_BOM_FRONTEND_URL = import.meta.env.VITE_BLUEPRINT_AI_BOM_FRONTEND_URL || '/bom';
 
 interface DeployTemplateModalProps {
   isOpen: boolean;

@@ -266,53 +266,17 @@ services:
   web-ui:
     build:
       context: ./web-ui
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.prod
     container_name: web-ui
     ports:
-      - "5173:5173"
-    volumes:
-      - ./web-ui/src:/app/src
-      - ./web-ui/public:/app/public
-      - ./web-ui/index.html:/app/index.html
-      - ./web-ui/vite.config.ts:/app/vite.config.ts
-      - ./web-ui/tsconfig.json:/app/tsconfig.json
-      - ./web-ui/tailwind.config.js:/app/tailwind.config.js
-    environment:
-      # WSL2 Docker 포트가 Windows localhost로 자동 포워딩되지 않음
-      # 브라우저에서 접근 시 WSL IP 사용 필요 (wslrelay 제한)
-      # 시작 전: export WSL_HOST="http://$(hostname -I | awk '{print $1}')"
-      # Core APIs
-      - VITE_GATEWAY_URL=${WSL_HOST:-http://localhost}:8000
-      - VITE_EDOCR2_URL=${WSL_HOST:-http://localhost}:5001
-      - VITE_EDOCR2_V2_URL=${WSL_HOST:-http://localhost}:5002
-      - VITE_EDGNET_URL=${WSL_HOST:-http://localhost}:5012
-      - VITE_SKINMODEL_URL=${WSL_HOST:-http://localhost}:5003
-      - VITE_VL_URL=${WSL_HOST:-http://localhost}:5004
-      - VITE_YOLO_URL=${WSL_HOST:-http://localhost}:5005
-      - VITE_PADDLEOCR_URL=${WSL_HOST:-http://localhost}:5006
-      - VITE_KNOWLEDGE_URL=${WSL_HOST:-http://localhost}:5007
-      # OCR Services
-      - VITE_TESSERACT_URL=${WSL_HOST:-http://localhost}:5008
-      - VITE_TROCR_URL=${WSL_HOST:-http://localhost}:5009
-      - VITE_ESRGAN_URL=${WSL_HOST:-http://localhost}:5010
-      - VITE_OCR_ENSEMBLE_URL=${WSL_HOST:-http://localhost}:5011
-      - VITE_SURYA_OCR_URL=${WSL_HOST:-http://localhost}:5013
-      - VITE_DOCTR_URL=${WSL_HOST:-http://localhost}:5014
-      - VITE_EASYOCR_URL=${WSL_HOST:-http://localhost}:5015
-      # P&ID Services
-      - VITE_LINE_DETECTOR_URL=${WSL_HOST:-http://localhost}:5016
-      - VITE_PID_ANALYZER_URL=${WSL_HOST:-http://localhost}:5018
-      - VITE_DESIGN_CHECKER_URL=${WSL_HOST:-http://localhost}:5019
-      - VITE_BLUEPRINT_AI_BOM_URL=${WSL_HOST:-http://localhost}:5020
-      - VITE_PID_COMPOSER_URL=${WSL_HOST:-http://localhost}:5021
-      - VITE_TABLE_DETECTOR_URL=${WSL_HOST:-http://localhost}:5022
+      - "5173:80"
     networks:
       - ax_poc_network
     restart: unless-stopped
     depends_on:
       - gateway-api
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5173/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
       interval: 30s
       timeout: 15s
       retries: 5
@@ -758,6 +722,52 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  # =====================
+  # ngrok Reverse Proxy (포트 9000)
+  # 단일 ngrok 도메인으로 3개 앱 경로 기반 라우팅
+  # / → web-ui, /bom/ → blueprint, /docs/ → docs-site, /api/ → BOM backend
+  # =====================
+  ngrok-proxy:
+    build:
+      context: ./ngrok-proxy
+      dockerfile: Dockerfile
+    container_name: ngrok-proxy
+    ports:
+      - "9000:80"
+    depends_on:
+      - web-ui
+      - blueprint-ai-bom-frontend
+      - docs-site
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =====================
+  # Docs Site (포트 3001)
+  # =====================
+  docs-site:
+    build:
+      context: ./docs-site
+      dockerfile: Dockerfile
+    container_name: docs-site
+    ports:
+      - "3001:80"
+    networks:
+      - ax_poc_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   ax_poc_network:

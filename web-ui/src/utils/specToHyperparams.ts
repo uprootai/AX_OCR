@@ -5,8 +5,7 @@
  */
 
 import axios from 'axios';
-
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8000';
+import { GATEWAY_URL } from '../lib/apiServices';
 
 export interface HyperparamDefinition {
   key: string;

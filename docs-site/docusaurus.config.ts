@@ -12,7 +12,7 @@ const config: Config = {
   },
 
   url: 'https://ax-poc-docs.example.com',
-  baseUrl: '/',
+  baseUrl: '/docs/',
 
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
@@ -32,7 +32,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          routeBasePath: 'docs',
+          routeBasePath: '/',
         },
         blog: false,
         theme: {
@@ -75,28 +75,28 @@ const config: Config = {
         {
           title: 'Core',
           items: [
-            {label: 'System Overview', to: '/docs/system-overview'},
-            {label: 'Analysis Pipeline', to: '/docs/analysis-pipeline'},
-            {label: 'BlueprintFlow', to: '/docs/blueprintflow'},
-            {label: 'API Reference', to: '/docs/api-reference'},
+            {label: 'System Overview', to: '/system-overview'},
+            {label: 'Analysis Pipeline', to: '/analysis-pipeline'},
+            {label: 'BlueprintFlow', to: '/blueprintflow'},
+            {label: 'API Reference', to: '/api-reference'},
           ],
         },
         {
           title: 'Systems',
           items: [
-            {label: 'Agent Verification', to: '/docs/agent-verification'},
-            {label: 'BOM & Quoting', to: '/docs/bom-generation'},
-            {label: 'P&ID Analysis', to: '/docs/pid-analysis'},
-            {label: 'R&D Research', to: '/docs/research'},
+            {label: 'Agent Verification', to: '/agent-verification'},
+            {label: 'BOM & Quoting', to: '/bom-generation'},
+            {label: 'P&ID Analysis', to: '/pid-analysis'},
+            {label: 'R&D Research', to: '/research'},
           ],
         },
         {
           title: 'Operations',
           items: [
-            {label: 'DevOps', to: '/docs/devops'},
-            {label: 'Deployment', to: '/docs/deployment'},
-            {label: 'Developer Guide', to: '/docs/developer'},
-            {label: 'Quality Assurance', to: '/docs/quality-assurance'},
+            {label: 'DevOps', to: '/devops'},
+            {label: 'Deployment', to: '/deployment'},
+            {label: 'Developer Guide', to: '/developer'},
+            {label: 'Quality Assurance', to: '/quality-assurance'},
           ],
         },
       ],

@@ -8,6 +8,14 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    allowedHosts: true,
+    proxy: {
+      '/bom-api': {
+        target: 'http://blueprint-ai-bom-backend:5020',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/bom-api/, ''),
+      },
+    },
     fs: {
       // Allow serving files from the parent docs folder via symlinks
       // Paths are relative to vite.config.ts (web-ui/)

@@ -6,15 +6,12 @@
  * @see ./apiRegistry.ts - 중앙화된 API 정의
  */
 
-// 환경 변수에서 API URL 가져오기
-const getApiUrl = (key: string, defaultValue: string): string => {
-  return import.meta.env[key] || defaultValue;
-};
+import { GATEWAY_URL } from '../lib/apiServices';
 
 /**
  * 관리 API 설정 (Gateway API 사용)
  */
-export const ADMIN_API_URL = getApiUrl('VITE_GATEWAY_URL', 'http://localhost:8000');
+export const ADMIN_API_URL = GATEWAY_URL;
 
 export const ADMIN_ENDPOINTS = {
   status: `${ADMIN_API_URL}/admin/status`,

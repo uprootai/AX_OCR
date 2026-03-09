@@ -159,7 +159,7 @@ export function PIDWorkflowSection({
               {pagedSessions.map((session) => (
                 <a
                   key={session.session_id}
-                  href={`http://localhost:3000/workflow?session=${session.session_id}`}
+                  href={`/bom/workflow?session=${session.session_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:border-cyan-300 dark:hover:border-cyan-700 transition-colors group cursor-pointer"

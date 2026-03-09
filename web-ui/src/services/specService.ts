@@ -5,8 +5,7 @@
  */
 
 import type { NodeDefinition, NodeParameter, RecommendedInput, ProfilesConfig } from '../config/nodeDefinitions';
-
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8000';
+import { GATEWAY_URL } from '../lib/apiServices';
 
 export interface APISpec {
   apiVersion: string;

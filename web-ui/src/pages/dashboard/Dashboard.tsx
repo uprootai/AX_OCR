@@ -327,7 +327,7 @@ export default function Dashboard() {
                     <div key={project.project_id} className="border rounded-lg overflow-hidden">
                       {/* 프로젝트 헤더 */}
                       <a
-                        href={`http://localhost:3000/projects/${project.project_id}`}
+                        href={`/bom/projects/${project.project_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/60 transition-colors"
@@ -390,7 +390,7 @@ export default function Dashboard() {
                           {sessions.slice(0, 5).map((session) => (
                             <a
                               key={session.session_id}
-                              href={`http://localhost:3000/workflow?session=${session.session_id}`}
+                              href={`/bom/workflow?session=${session.session_id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors"
@@ -418,7 +418,7 @@ export default function Dashboard() {
                           ))}
                           {sessions.length > 5 && (
                             <a
-                              href={`http://localhost:3000/projects/${project.project_id}`}
+                              href={`/bom/projects/${project.project_id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center justify-center py-2.5 text-sm text-blue-600 hover:bg-muted/30 transition-colors"
