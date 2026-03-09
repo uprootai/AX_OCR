@@ -19,6 +19,8 @@ from schemas.quotation import (
     ProjectQuotationResponse,
     QuotationExportFormat,
     QuotationExportResponse,
+    QuotationVersionInfo,
+    QuotationVersionDiff,
 )
 from schemas.pricing_config import PricingConfig, DEFAULT_PRICING_CONFIG
 from services.cost_calculator import calculate_item_cost
@@ -398,13 +400,28 @@ class QuotationService:
         data: ProjectQuotationResponse,
         project_service,
     ):
-        """quotation.json 저장, project 통계 갱신"""
+        """quotation.json 저장 + 버전 아카이브, project 통계 갱신"""
         project_dir = project_service.projects_dir / project_id
         project_dir.mkdir(parents=True, exist_ok=True)
 
+        # 버전 아카이브: quotation_history/ 디렉토리에 순번 저장
+        history_dir = project_dir / "quotation_history"
+        history_dir.mkdir(parents=True, exist_ok=True)
+        existing = sorted(history_dir.glob("quotation_v*.json"))
+        next_version = len(existing) + 1
+        version_file = history_dir / f"quotation_v{next_version:03d}.json"
+
+        data_dict = data.model_dump()
+        data_dict["_version"] = next_version
+        data_dict["_versioned_at"] = datetime.now().isoformat()
+
+        with open(version_file, "w", encoding="utf-8") as f:
+            json.dump(data_dict, f, ensure_ascii=False, indent=2, default=str)
+
+        # 최신본을 quotation.json에도 저장 (기존 동작 유지)
         quotation_file = project_dir / "quotation.json"
         with open(quotation_file, "w", encoding="utf-8") as f:
-            json.dump(data.model_dump(), f, ensure_ascii=False, indent=2, default=str)
+            json.dump(data_dict, f, ensure_ascii=False, indent=2, default=str)
 
         # 프로젝트 통계 업데이트
         project = project_service.get_project(project_id)
@@ -414,7 +431,95 @@ class QuotationService:
             project["updated_at"] = datetime.now().isoformat()
             project_service._save_project(project_id)
 
-        logger.info(f"견적 집계 저장: {project_id} → {quotation_file}")
+        logger.info(f"견적 집계 저장: {project_id} v{next_version} → {version_file}")
+
+    # --- 견적 이력 관리 ---
+
+    def list_versions(
+        self, project_id: str, project_service
+    ) -> List[QuotationVersionInfo]:
+        """프로젝트 견적 버전 목록 조회"""
+        project_dir = project_service.projects_dir / project_id
+        history_dir = project_dir / "quotation_history"
+        if not history_dir.exists():
+            return []
+
+        versions = []
+        for vf in sorted(history_dir.glob("quotation_v*.json")):
+            try:
+                with open(vf, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                versions.append(QuotationVersionInfo(
+                    version=data.get("_version", 0),
+                    created_at=data.get("_versioned_at", data.get("created_at", "")),
+                    summary=QuotationSummary(**data.get("summary", {})),
+                ))
+            except Exception as e:
+                logger.warning(f"버전 파일 로드 실패: {vf} — {e}")
+        return versions
+
+    def get_version(
+        self, project_id: str, version: int, project_service
+    ) -> Optional[ProjectQuotationResponse]:
+        """특정 버전의 견적 데이터 로드"""
+        project_dir = project_service.projects_dir / project_id
+        version_file = project_dir / "quotation_history" / f"quotation_v{version:03d}.json"
+        if not version_file.exists():
+            return None
+        try:
+            with open(version_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            data.pop("_version", None)
+            data.pop("_versioned_at", None)
+            return ProjectQuotationResponse(**data)
+        except Exception as e:
+            logger.error(f"버전 로드 실패: v{version} — {e}")
+            return None
+
+    def compare_versions(
+        self, project_id: str, v_old: int, v_new: int, project_service
+    ) -> Optional[QuotationVersionDiff]:
+        """두 견적 버전 비교"""
+        old_data = self.get_version(project_id, v_old, project_service)
+        new_data = self.get_version(project_id, v_new, project_service)
+        if not old_data or not new_data:
+            return None
+
+        old_items = {i.session_id: i for i in old_data.items}
+        new_items = {i.session_id: i for i in new_data.items}
+
+        added = [sid for sid in new_items if sid not in old_items]
+        removed = [sid for sid in old_items if sid not in new_items]
+        changed = []
+        for sid in set(old_items) & set(new_items):
+            o, n = old_items[sid], new_items[sid]
+            if abs(o.total - n.total) > 0.01:
+                changed.append({
+                    "session_id": sid,
+                    "drawing_number": n.drawing_number,
+                    "old_total": o.total,
+                    "new_total": n.total,
+                    "diff": round(n.total - o.total, 2),
+                })
+
+        total_diff = round(new_data.summary.total - old_data.summary.total, 2)
+        pct = round(
+            (total_diff / old_data.summary.total * 100)
+            if old_data.summary.total else 0, 1
+        )
+
+        return QuotationVersionDiff(
+            project_id=project_id,
+            version_old=v_old,
+            version_new=v_new,
+            summary_old=old_data.summary,
+            summary_new=new_data.summary,
+            total_diff=total_diff,
+            total_diff_percent=pct,
+            added_items=added,
+            removed_items=removed,
+            changed_items=changed,
+        )
 
     def _load_quotation(
         self, project_id: str, project_service

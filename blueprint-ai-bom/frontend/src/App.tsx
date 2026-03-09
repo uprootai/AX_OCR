@@ -10,7 +10,7 @@ import { CustomerWorkflowPage, CustomerImageReviewPage, CustomerSessionPage } fr
 
 function App() {
   return (
-    <BrowserRouter basename="/bom">
+    <BrowserRouter>
       <Routes>
         {/* 새로운 통합 워크플로우 페이지 (기본) */}
         <Route path="/" element={<WorkflowPage />} />

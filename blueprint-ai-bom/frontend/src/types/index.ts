@@ -62,6 +62,7 @@ export interface Session {
 
   // 프로젝트 연결 정보
   project_id?: string;
+  project_name?: string;
 }
 
 export interface SessionDetail extends Session {

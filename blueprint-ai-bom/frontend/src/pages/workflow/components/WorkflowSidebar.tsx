@@ -32,6 +32,8 @@ interface Session {
   filename: string;
   detection_count: number;
   features?: string[];
+  project_id?: string;
+  project_name?: string;
 }
 
 // Feature 이름 매핑
@@ -270,12 +272,15 @@ export function WorkflowSidebar({
           </div>
 
           {/* 세션 목록 */}
-          <div className="flex-shrink-0 overflow-y-auto p-4 max-h-[240px]">
+          <div className="flex-shrink-0 overflow-y-auto p-4 max-h-[360px]">
             <div className="flex items-center justify-between mb-2">
               {!isSelectMode ? (
                 <>
                   <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300" title="최근 작업한 세션 목록. 클릭하면 해당 세션으로 전환">
                     {projectId ? '프로젝트 세션' : '최근 세션'}
+                    {sessions.length > 0 && (
+                      <span className="ml-1 text-xs font-normal text-gray-400">({sessions.length})</span>
+                    )}
                   </h2>
                   {sessions.length > 0 && (
                     <button
@@ -292,14 +297,14 @@ export function WorkflowSidebar({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => {
-                        const allIds = sessions.slice(0, 10).map(s => s.session_id);
+                        const allIds = sessions.map(s => s.session_id);
                         setSelectedIds(prev =>
                           prev.size === allIds.length ? new Set() : new Set(allIds)
                         );
                       }}
                       className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
-                      {selectedIds.size === sessions.slice(0, 10).length
+                      {selectedIds.size === sessions.length
                         ? '전체해제'
                         : '전체선택'}
                     </button>
@@ -332,7 +337,7 @@ export function WorkflowSidebar({
               <p className="text-sm text-gray-500">세션이 없습니다.</p>
             ) : (
               <ul className="space-y-2">
-                {sessions.slice(0, 10).map(session => {
+                {sessions.map(session => {
                   const isCurrent = currentSession?.session_id === session.session_id;
                   const isSelected = selectedIds.has(session.session_id);
                   return (
@@ -369,6 +374,11 @@ export function WorkflowSidebar({
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate text-gray-900 dark:text-white">{session.filename}</p>
+                          {session.project_id ? (
+                            <p className="text-[10px] text-blue-600 dark:text-blue-400 truncate">📁 {session.project_name || session.project_id.slice(0, 8)}</p>
+                          ) : (
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500">프로젝트 미연결</p>
+                          )}
                           <p className="text-xs text-gray-500">
                             {session.features && session.features.length > 0
                               ? session.features.map(f => FEATURE_NAMES[f] || f).join(' · ')

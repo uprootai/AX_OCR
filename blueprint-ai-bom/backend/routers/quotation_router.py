@@ -77,6 +77,68 @@ async def get_project_quotation(
     return result
 
 
+@router.get("/{project_id}/quotation/versions")
+async def list_quotation_versions(project_id: str):
+    """견적 버전 목록 조회
+
+    Returns:
+        List[QuotationVersionInfo]: 버전 목록 (번호, 생성일, 요약)
+    """
+    from services.quotation_service import get_quotation_service
+
+    services = get_services()
+    project_service = services["project_service"]
+
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
+
+    quotation_service = get_quotation_service()
+    return quotation_service.list_versions(project_id, project_service)
+
+
+@router.get("/{project_id}/quotation/versions/{version}")
+async def get_quotation_version(project_id: str, version: int):
+    """특정 버전의 견적 데이터 조회"""
+    from services.quotation_service import get_quotation_service
+
+    services = get_services()
+    project_service = services["project_service"]
+
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
+
+    quotation_service = get_quotation_service()
+    result = quotation_service.get_version(project_id, version, project_service)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"버전을 찾을 수 없습니다: v{version}")
+    return result
+
+
+@router.get("/{project_id}/quotation/versions/{v_old}/compare/{v_new}")
+async def compare_quotation_versions(project_id: str, v_old: int, v_new: int):
+    """두 견적 버전 비교
+
+    Returns:
+        QuotationVersionDiff: 총액 차이, 추가/삭제/변경 항목
+    """
+    from services.quotation_service import get_quotation_service
+
+    services = get_services()
+    project_service = services["project_service"]
+
+    project = project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
+
+    quotation_service = get_quotation_service()
+    result = quotation_service.compare_versions(project_id, v_old, v_new, project_service)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"버전 비교 실패: v{v_old} vs v{v_new}")
+    return result
+
+
 @router.post("/{project_id}/quotation/export")
 async def export_project_quotation(
     project_id: str,

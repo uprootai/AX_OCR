@@ -11,7 +11,7 @@ import type {
   BOMData,
   DetectionConfig,
 } from '../types';
-import { sessionApi, detectionApi, bomApi } from '../lib/api';
+import { sessionApi, detectionApi, bomApi, projectApi } from '../lib/api';
 
 // AbortController를 외부에서 관리
 let detectionAbortController: AbortController | null = null;
@@ -142,6 +142,19 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const sessions = await sessionApi.list(limit, projectId);
+      // 프로젝트명 매핑
+      const projectIds = [...new Set(sessions.filter(s => s.project_id).map(s => s.project_id!))];
+      if (projectIds.length > 0) {
+        try {
+          const res = await projectApi.list(undefined, 100);
+          const nameMap = new Map((res.projects ?? []).map((p: { project_id: string; name: string }) => [p.project_id, p.name]));
+          for (const s of sessions) {
+            if (s.project_id && nameMap.has(s.project_id)) {
+              s.project_name = nameMap.get(s.project_id);
+            }
+          }
+        } catch { /* 프로젝트 조회 실패해도 세션 목록은 표시 */ }
+      }
       set({ sessions, isLoading: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : '목록 로드 실패';

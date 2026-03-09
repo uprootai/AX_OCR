@@ -103,6 +103,27 @@ class ProjectQuotationResponse(BaseModel):
     )
 
 
+class QuotationVersionInfo(BaseModel):
+    """견적 버전 정보"""
+    version: int
+    created_at: str
+    summary: QuotationSummary
+
+
+class QuotationVersionDiff(BaseModel):
+    """견적 버전 비교 결과"""
+    project_id: str
+    version_old: int
+    version_new: int
+    summary_old: QuotationSummary
+    summary_new: QuotationSummary
+    total_diff: float = 0.0
+    total_diff_percent: float = 0.0
+    added_items: List[str] = Field(default_factory=list)
+    removed_items: List[str] = Field(default_factory=list)
+    changed_items: List[dict] = Field(default_factory=list)
+
+
 class QuotationExportFormat(str, Enum):
     """견적서 내보내기 형식"""
     PDF = "pdf"
