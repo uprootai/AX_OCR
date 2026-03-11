@@ -149,7 +149,7 @@ export function FinalResult({
               </div>
             </div>
             <a
-              href={bomSessionInfo.verificationUrl}
+              href={bomSessionInfo.verificationUrl.replace(/^https?:\/\/localhost:\d+/, '/bom')}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"

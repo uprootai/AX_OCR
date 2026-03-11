@@ -71,7 +71,7 @@ export const bomNodes: Record<string, NodeDefinition> = {
     usageTips: [
       '⭐ 검출 노드 연결 필수 (YOLO)',
       '📐 도면 타입과 기능(features)은 ImageInput에서 설정',
-      '💡 세션 생성 후 검증 UI(localhost:3000)에서 BOM 생성',
+      '💡 세션 생성 후 검증 UI(/bom/)에서 BOM 생성',
     ],
     recommendedInputs: [
       {

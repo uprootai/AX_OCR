@@ -478,7 +478,7 @@ if __name__ == "__main__":
             </h3>
             <div className="grid grid-cols-2 gap-2">
               <a
-                href="http://localhost:3001/docs"
+                href="/docs/docs"
                 target="_blank"
                 className="flex items-center gap-2 p-2 bg-background hover:bg-muted rounded border transition-colors"
               >
@@ -486,7 +486,7 @@ if __name__ == "__main__":
                 <ExternalLink className="w-4 h-4 ml-auto" />
               </a>
               <a
-                href="http://localhost:3001/docs"
+                href="/docs/docs"
                 target="_blank"
                 className="flex items-center gap-2 p-2 bg-background hover:bg-muted rounded border transition-colors"
               >
@@ -494,7 +494,7 @@ if __name__ == "__main__":
                 <ExternalLink className="w-4 h-4 ml-auto" />
               </a>
               <a
-                href="http://localhost:3001/docs"
+                href="/docs/docs"
                 target="_blank"
                 className="flex items-center gap-2 p-2 bg-background hover:bg-muted rounded border transition-colors"
               >
@@ -502,7 +502,7 @@ if __name__ == "__main__":
                 <ExternalLink className="w-4 h-4 ml-auto" />
               </a>
               <a
-                href="http://localhost:3001/docs"
+                href="/docs/docs"
                 target="_blank"
                 className="flex items-center gap-2 p-2 bg-background hover:bg-muted rounded border transition-colors"
               >

@@ -18,7 +18,7 @@ const navigationItems: {
 }[] = [
   { key: "dashboard", href: "/dashboard", icon: Home },
   { key: "guide", href: "/guide", icon: BookOpen },
-  { key: "docs", href: "http://localhost:3001", icon: Book, external: true },
+  { key: "docs", href: "/docs/", icon: Book, external: true },
   { key: "admin", href: "/admin", icon: Shield },
 ];
 

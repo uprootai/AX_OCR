@@ -10,7 +10,7 @@ import { CustomerWorkflowPage, CustomerImageReviewPage, CustomerSessionPage } fr
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <Routes>
         {/* 새로운 통합 워크플로우 페이지 (기본) */}
         <Route path="/" element={<WorkflowPage />} />
