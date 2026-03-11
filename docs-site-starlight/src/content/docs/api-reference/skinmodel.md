@@ -2,9 +2,10 @@
 sidebar_position: 13
 title: "SkinModel API"
 description: "FEM 기반 기하공차 예측 및 제조 가능성 분석 API의 파라미터와 출력 구조를 정리한다."
+tags: [API, 마이크로서비스, 스킨모델, 공차]
 ---
 
-# SkinModel API
+# SkinModel API (공차 예측)
 
 > FEM 기반 기하공차 예측 및 제조 가능성 분석 (포트 5003).
 

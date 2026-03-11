@@ -2,11 +2,12 @@
 sidebar_position: 4
 title: 설계 검사기
 description: BWMS 전용 규칙을 포함한 규칙 기반 P&ID 설계 검증
+tags: [P&ID, 분석, 설계검증]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 설계 검사기
+# 설계 검사기 (Design Checker)
 
 > 규칙 기반 P&ID 설계 검증 API(포트 5019) — BWMS 전용 50개 이상의 규칙으로 장비, 배관, 계기, 안전 사항을 자동 검증.
 
@@ -293,6 +294,12 @@ Query Parameters:
 | `not_applicable` | 이 도면에 해당 규칙이 적용되지 않음 |
 
 엔지니어는 근거를 기재하여 개별 규칙 결과를 재정의할 수 있으며, 이를 통해 설계 결정에 대한 감사 추적이 생성됩니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Design Checker /api/v1/check` | 설계 검증 |
 
 ## 관련 문서
 

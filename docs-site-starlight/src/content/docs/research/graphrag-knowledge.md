@@ -2,9 +2,10 @@
 sidebar_position: 10
 title: "GraphRAG — 지식 그래프 기반 RAG"
 description: "Microsoft Research의 그래프 RAG 접근법 — 엔티티 지식 그래프와 커뮤니티 요약으로 전역적 질의 처리"
+tags: [연구, R&D, GraphRAG, 지식그래프]
 ---
 
-# GraphRAG: From Local to Global Knowledge Graph RAG
+# GraphRAG (Knowledge Graph RAG)
 
 > Microsoft Research의 그래프 RAG 접근법으로, 엔티티 지식 그래프와 커뮤니티 요약을 사전 생성하여 전역적 질의에 응답한다.
 

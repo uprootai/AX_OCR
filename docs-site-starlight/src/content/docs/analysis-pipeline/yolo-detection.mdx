@@ -2,11 +2,12 @@
 sidebar_position: 2
 title: YOLO 검출
 description: 고해상도 엔지니어링 도면을 위한 SAHI 지원 YOLOv11 심볼 검출
+tags: [파이프라인, ML, YOLO, 검출]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# YOLO 검출
+# YOLO 검출 (YOLO Detection)
 
 > YOLOv11 기반 객체 검출 단계로, 73개 클래스의 심볼/부품/주석을 식별하며 고해상도 도면을 위한 SAHI 슬라이스 추론을 지원한다.
 
@@ -127,6 +128,12 @@ Content-Type: multipart/form-data
 - 기본 신뢰도 임계값 **0.4**(0.5가 아님)는 정밀도(Precision)보다 재현율(Recall)을 우선시하는 엔지니어링 도면에 맞게 튜닝되었습니다.
 - 대형 도면의 프로덕션 사용 시, 예상되는 심볼 밀도에 맞는 적절한 타일 크기로 SAHI를 활성화하십시오.
 - `visualize` 파라미터는 JSON 검출 결과와 함께 base64 인코딩된 주석 이미지를 반환합니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `YOLO /api/v1/detect` | 객체 검출 |
 
 ## 관련 문서
 

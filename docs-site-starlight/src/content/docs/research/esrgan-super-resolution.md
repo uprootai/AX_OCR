@@ -2,9 +2,10 @@
 sidebar_position: 8
 title: "ESRGAN: Enhanced Super-Resolution GAN"
 description: "RRDB 아키텍처와 Relativistic Discriminator를 적용한 이미지 초해상도 생성 모델"
+tags: [연구, R&D, ESRGAN, 초해상도]
 ---
 
-# ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks
+# ESRGAN (Enhanced Super-Resolution GAN)
 
 > SRGAN을 개선한 초해상도 모델로, RRDB 아키텍처와 Relativistic Discriminator를 사용하여 저해상도 이미지를 업스케일링한다.
 

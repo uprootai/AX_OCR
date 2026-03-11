@@ -2,9 +2,10 @@
 sidebar_position: 4
 title: "Tesseract OCR API"
 description: "Google Tesseract 기반 CPU 전용 OCR 엔진 API의 파라미터와 사용법을 정리한다."
+tags: [API, 마이크로서비스, Tesseract, OCR]
 ---
 
-# Tesseract OCR API
+# Tesseract OCR API (Open-Source OCR)
 
 > Google Tesseract 기반 오픈소스 OCR 엔진 (포트 5008, CPU 전용).
 

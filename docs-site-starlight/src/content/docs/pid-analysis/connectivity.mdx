@@ -2,11 +2,12 @@
 sidebar_position: 3
 title: 연결성 분석
 description: P&ID 심볼 간 흐름 추적을 위한 그래프 기반 연결성 분석
+tags: [P&ID, 분석, 연결성, 그래프]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 연결성 분석
+# 연결성 분석 (Connectivity Analysis)
 
 > 심볼 검출과 라인 검출 결과를 결합하여 장비 연결 그래프를 구축하고, 흐름 경로를 추적하며, 고립 심볼을 식별하는 연결성 분석기.
 
@@ -202,6 +203,12 @@ for line in detected_lines:
 | 노드당 평균 연결 수 | 그래프 밀도 | 1.5 - 3.0 |
 | 최대 연결 수 | 허브 노드 차수 | 3 - 8 |
 | 라인 기반 비율 | 라인으로부터의 연결 | > 70% |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `PID Analyzer /api/v1/connectivity` | 연결성 |
 
 ## 관련 문서
 

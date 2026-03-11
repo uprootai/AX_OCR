@@ -2,9 +2,10 @@
 sidebar_position: 2
 title: "eDOCr2 API"
 description: "기계 도면 특화 OCR API로 치수, GD&T, 텍스트를 자동 추출한다."
+tags: [API, 마이크로서비스, eDOCr2, OCR]
 ---
 
-# eDOCr2 API
+# eDOCr2 OCR API (텍스트 추출)
 
 > 기계 도면 특화 OCR -- 치수, GD&T, 텍스트 자동 추출 (포트 5002).
 

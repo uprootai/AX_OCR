@@ -2,6 +2,7 @@
 sidebar_position: 2
 title: 능동 학습
 description: 능동 학습(Active Learning) 파이프라인
+tags: [QA, 품질, 능동학습]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
@@ -147,6 +148,12 @@ training_data = service.get_training_data(action_filter="modified")
 2. 에이전트 (Claude Sonnet)가 우선 검토
 3. 에이전트 불확실 → L3 사람 검토(Human Review)로 에스컬레이션
 4. 검토 결과 → `VerificationLog` 에 기록 → 학습 데이터로 수집
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /qa/feedback` | 피드백 |
 
 ## 관련 문서
 

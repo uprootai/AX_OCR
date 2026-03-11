@@ -2,9 +2,10 @@
 sidebar_position: 15
 title: OCR 앙상블 투표
 description: 다중 OCR 엔진 출력을 가중 투표로 통합하는 앙상블 방법론과 관련 연구 정리
+tags: [연구, R&D, OCR앙상블, 투표]
 ---
 
-# OCR Ensemble: Multi-Engine Voting Methods
+# OCR 앙상블 투표 (Multi-Engine Voting)
 
 > 다중 OCR 엔진의 가중 투표 앙상블 방법론과 AX 시스템 적용 사례를 정리합니다.
 

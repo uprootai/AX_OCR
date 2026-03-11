@@ -2,9 +2,10 @@
 sidebar_position: 14
 title: "EasyOCR: Ready-to-use OCR"
 description: "JaidedAI 개발 80+ 언어 지원 범용 OCR 모듈 — CRAFT 검출 + CRNN 인식 기반"
+tags: [연구, R&D, EasyOCR, OCR]
 ---
 
-# EasyOCR: Ready-to-use OCR
+# EasyOCR (범용 OCR 모듈)
 
 > JaidedAI 개발 80+ 언어 지원 범용 OCR 모듈로, CRAFT 텍스트 검출과 CRNN 인식을 사용한다.
 

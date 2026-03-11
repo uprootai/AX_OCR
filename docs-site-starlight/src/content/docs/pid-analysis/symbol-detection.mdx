@@ -2,11 +2,12 @@
 sidebar_position: 1
 title: 심볼 검출
 description: YOLO 기반 P&ID 심볼 검출 - 60개 클래스 및 SAHI 지원
+tags: [P&ID, 분석, 심볼검출]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 심볼 검출
+# 심볼 검출 (Symbol Detection)
 
 > YOLO v11 기반 P&ID 심볼 검출 — 60개 클래스, SAHI 슬라이싱, NMS 병합을 통한 소형 심볼 검출.
 
@@ -224,6 +225,12 @@ Parameters:
 | < 0.1 | 임계값 미만 | 보고되지 않음 |
 
 P&ID 분석에서 낮은 기본 임계값(0.10)은 최대 재현율(Recall)을 보장합니다 -- 잠재적 심볼을 검출한 후 검증 단계에서 필터링하는 것이 아예 놓치는 것보다 낫습니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `PID Analyzer /api/v1/symbols` | 심볼 검출 |
 
 ## 관련 문서
 

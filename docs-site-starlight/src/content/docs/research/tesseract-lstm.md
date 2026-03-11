@@ -2,9 +2,10 @@
 sidebar_position: 11
 title: Tesseract LSTM OCR
 description: Tesseract 4.0+ LSTM 기반 OCR 엔진의 아키텍처, 엔진 모드, AX 적용 정리
+tags: [연구, R&D, Tesseract, LSTM]
 ---
 
-# Tesseract LSTM OCR
+# Tesseract LSTM OCR (Open-Source OCR Engine)
 
 > Tesseract OCR의 LSTM 엔진(v4.0+) 아키텍처와 AX 포트 5008 적용을 정리합니다.
 

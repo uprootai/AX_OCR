@@ -2,9 +2,10 @@
 sidebar_position: 1
 title: 시스템 설치 가이드
 description: Docker/GPU 설치, 환경 설정, 서비스 시작/중지, 포트 변경, 백업/복원, 업그레이드 절차
+tags: [배포, 운영, 설치]
 ---
 
-# 시스템 설치 가이드
+# 시스템 설치 가이드 (Installation Guide)
 
 > Docker 기반 AX 도면 분석 시스템의 설치, 환경 설정, GPU 구성 절차를 정리한다.
 

@@ -2,9 +2,10 @@
 sidebar_position: 5
 title: YOLOv11 검출
 description: Ultralytics YOLOv11의 C3k2, SPPF, C2PSA 아키텍처 및 AX 도면 심볼 검출 적용 정리
+tags: [연구, R&D, YOLOv11, 객체검출]
 ---
 
-# YOLOv11: An Overview of the Key Architectural Enhancements
+# YOLOv11 검출 (Key Architectural Enhancements)
 
 > YOLOv11의 핵심 아키텍처 개선사항과 AX YOLO API(포트 5005) 적용을 정리합니다.
 

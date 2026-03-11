@@ -2,9 +2,10 @@
 sidebar_position: 3
 title: "PaddleOCR API"
 description: "PaddlePaddle 기반 다국어 범용 OCR API의 파라미터와 사용법을 정리한다."
+tags: [API, 마이크로서비스, PaddleOCR, OCR]
 ---
 
-# PaddleOCR API
+# PaddleOCR API (다국어 OCR)
 
 > PaddlePaddle 기반 다국어 범용 OCR (포트 5006).
 

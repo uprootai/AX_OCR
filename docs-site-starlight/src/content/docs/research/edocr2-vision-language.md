@@ -2,9 +2,10 @@
 sidebar_position: 2
 title: "eDOCr2 + Vision Language 통합"
 description: "eDOCr2 프레임워크의 후속 연구 — 전통 OCR과 VL 모델(Qwen2-VL, GPT-4)을 결합한 기계 도면 텍스트 인식"
+tags: [연구, R&D, eDOCr2, 비전언어]
 ---
 
-# Optimizing Text Recognition in Mechanical Drawings: A Comprehensive Approach
+# eDOCr2 + Vision Language 통합 (Text Recognition in Mechanical Drawings)
 
 > eDOCr2 프레임워크의 후속 연구로, 전통 OCR과 Vision Language 모델을 결합하여 기계 도면의 치수, GD&T, 테이블 정보를 추출한다.
 

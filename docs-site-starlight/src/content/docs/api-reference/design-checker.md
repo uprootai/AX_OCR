@@ -2,9 +2,10 @@
 sidebar_position: 15
 title: "Design Checker API"
 description: "P&ID 도면의 설계 오류 검출 및 규정 준수 검증 API의 검사 규칙과 출력 구조를 정리한다."
+tags: [API, 마이크로서비스, 설계검증]
 ---
 
-# Design Checker API
+# Design Checker API (설계 검증)
 
 > P&ID 도면 설계 오류 검출 및 규정 검증 (포트 5019, CPU 전용).
 

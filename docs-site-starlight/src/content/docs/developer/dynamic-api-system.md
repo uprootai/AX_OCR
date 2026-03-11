@@ -2,9 +2,10 @@
 sidebar_position: 4
 title: 동적 API 추가 시스템
 description: Dashboard UI에서 외부 API를 런타임에 등록하고 헬스체크, BlueprintFlow 노드, 설정 패널에 자동 반영하는 시스템
+tags: [개발자, 가이드, 동적API]
 ---
 
-# 동적 API 추가 시스템
+# 동적 API 추가 시스템 (Dynamic API System)
 
 > Dashboard에서 외부 API를 런타임에 등록하면 헬스체크, BlueprintFlow 노드, 설정 패널에 자동 반영되는 시스템을 설명합니다.
 

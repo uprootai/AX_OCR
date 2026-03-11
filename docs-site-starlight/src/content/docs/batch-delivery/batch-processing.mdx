@@ -2,12 +2,13 @@
 sidebar_position: 1
 title: 배치 처리
 description: 대량 도면 일괄 분석
+tags: [배치, 납품, 일괄처리]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
 
-# 배치 처리
+# 배치 처리 (Batch Processing)
 
 > 폴더 단위 도면 일괄 분석 — 병렬 처리, 자동 재시도, GPU 큐 관리를 통한 대량 도면 배치 분석.
 
@@ -108,6 +109,12 @@ GET /api/batch/status/{project_id}
 | 추출된 치수 | 총 2,710개 |
 | 평균 치수/세션 | 51.1 |
 | 성공률 | 100% |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /analysis/batch` | 배치 분석 |
 
 ## 관련 문서
 

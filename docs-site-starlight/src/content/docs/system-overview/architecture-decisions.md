@@ -2,9 +2,10 @@
 sidebar_position: 5
 title: Architecture Decisions
 description: AI 모델 선정 기준 및 의사결정 매트릭스 (eDOCr vs VL API vs YOLOv11)
+tags: [시스템, 아키텍처, 의사결정, ADR]
 ---
 
-# Architecture Decisions
+# 아키텍처 결정 기록 (Architecture Decisions)
 
 > eDOCr, VL API, YOLOv11 세 모델의 정량적 비교와 최종 채택 근거를 정리한다.
 

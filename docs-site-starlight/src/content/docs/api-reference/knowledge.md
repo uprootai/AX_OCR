@@ -2,9 +2,10 @@
 sidebar_position: 17
 title: "Knowledge Engine API"
 description: "GraphRAG + VectorRAG 하이브리드 방식의 도메인 지식 검색 엔진 API를 정리한다."
+tags: [API, 마이크로서비스, 지식그래프, RAG]
 ---
 
-# Knowledge Engine API
+# Knowledge Engine API (지식 검색)
 
 > GraphRAG + VectorRAG 하이브리드 도메인 지식 검색 엔진 (포트 5007, CPU 전용).
 

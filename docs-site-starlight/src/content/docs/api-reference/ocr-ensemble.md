@@ -2,9 +2,10 @@
 sidebar_position: 9
 title: "OCR Ensemble API"
 description: "eDOCr2, PaddleOCR, Tesseract, TrOCR 4개 엔진의 가중 투표 앙상블 OCR API를 정리한다."
+tags: [API, 마이크로서비스, OCR앙상블, 투표]
 ---
 
-# OCR Ensemble API
+# OCR Ensemble API (Ensemble Voting)
 
 > 4개 OCR 엔진(eDOCr2, PaddleOCR, Tesseract, TrOCR) 가중 투표 앙상블 (포트 5011).
 

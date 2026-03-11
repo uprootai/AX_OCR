@@ -2,11 +2,12 @@
 sidebar_position: 4
 title: 커스텀 API
 description: BlueprintFlow에서 커스텀 API 노드 추가, 실행기 등록 및 노드 정의 가이드
+tags: [워크플로우, DAG, 커스텀API]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 커스텀 API
+# 커스텀 API (Custom API)
 
 > API 서비스 스캐폴딩, 실행기 등록, 프론트엔드 노드 정의까지 5단계에 걸쳐 BlueprintFlow에 커스텀 API 노드를 추가하는 절차를 설명한다.
 
@@ -231,6 +232,12 @@ my-custom-api:
 - 항상 API 스펙 YAML에 파라미터를 먼저 정의한 후, 노드 정의에 반영하십시오. 스펙에 없는 파라미터를 프론트엔드에 추가하지 마십시오.
 - `category`는 `input`, `detection`, `ocr`, `segmentation`, `preprocessing`, `analysis`, `knowledge`, `ai`, `control` 중 하나여야 합니다. `api`를 카테고리로 사용하지 마십시오.
 - GPU 할당은 Docker 파일을 수정하지 않고도 대시보드를 통해 동적으로 설정할 수 있습니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /blueprintflow/execute` | 커스텀 실행 |
 
 ## 관련 문서
 

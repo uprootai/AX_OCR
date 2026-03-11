@@ -2,9 +2,10 @@
 sidebar_position: 5
 title: 평가 보고서
 description: 시스템 종합 평가 및 EDGNet 통합 성능 보고서
+tags: [QA, 품질, 평가, 리포트]
 ---
 
-# 평가 보고서
+# 평가 보고서 (Evaluation Reports)
 
 > 시스템 종합 평가(82/100점) 및 EDGNet 통합 성능 보고서 — 코드 완벽성, 기능성, 성능, 문서화, 목적 달성도 5개 영역 평가.
 
@@ -203,6 +204,12 @@ description: 시스템 종합 평가 및 EDGNet 통합 성능 보고서
 ---
 
 *평가 일시: 2025-11-08 | 출처: COMPREHENSIVE_EVALUATION_REPORT.md + FINAL_COMPREHENSIVE_REPORT.md 통합*
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /qa/reports` | 평가 리포트 |
 
 ## 관련 문서
 

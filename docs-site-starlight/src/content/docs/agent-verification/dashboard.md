@@ -2,9 +2,10 @@
 sidebar_position: 3
 title: 대시보드
 description: 실시간 검증 대시보드의 지표 및 분석
+tags: [검증, 에이전트, 대시보드, UI]
 ---
 
-# 대시보드
+# 대시보드 (Verification Dashboard)
 
 > 세션 및 프로젝트 수준의 검증 진행률, 정확도 지표, 거부 사유 분석을 제공하는 대시보드 API를 설명합니다.
 
@@ -217,6 +218,12 @@ F1 = 2 * (Precision * Recall) / (Precision + Recall)
 ```
 
 이러한 수정 사항은 모델이 근접했지만 정확하지 않았던 사례를 나타내며, 모델 개선을 위한 학습 예제로 활용됩니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /verification/status` | 검증 상태 |
 
 ## 관련 문서
 

@@ -2,6 +2,7 @@
 sidebar_position: 5
 title: LLM 사용성 가이드
 description: LLM이 코드베이스를 탐색, 수정, 확장할 때 따르는 표준화된 API 구조 및 패턴 안내
+tags: [개발자, 가이드, LLM, 사용성]
 ---
 
 # LLM 사용성 가이드 (LLM Usability Guide)

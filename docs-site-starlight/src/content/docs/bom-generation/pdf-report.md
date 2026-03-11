@@ -2,6 +2,7 @@
 sidebar_position: 4
 title: PDF 보고서
 description: 회사 브랜딩과 다중 페이지 지원이 포함된 포맷된 PDF 견적 보고서
+tags: [BOM, 견적, PDF, 리포트]
 ---
 
 # PDF 보고서 (PDF Report)
@@ -143,6 +144,12 @@ PDF 보고서는 이중 언어 콘텐츠를 지원합니다:
 | 한국어 | NanumGothic | 부품 설명, 헤더 |
 | 영어 | Helvetica / Arial | 기술 사양, 클래스명 |
 | 혼합 | 자동 감지 | 한국어/영어 혼합 텍스트 지원 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Blueprint AI BOM /api/v1/report/pdf` | PDF 생성 |
 
 ## 관련 문서
 

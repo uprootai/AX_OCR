@@ -2,9 +2,10 @@
 sidebar_position: 7
 title: TrOCR
 description: Microsoft의 Transformer 기반 OCR 모델 TrOCR의 인코더-디코더 아키텍처 및 AX 적용 정리
+tags: [연구, R&D, TrOCR, 트랜스포머]
 ---
 
-# TrOCR: Transformer-based Optical Character Recognition
+# TrOCR (Transformer 기반 OCR)
 
 > TrOCR의 ViT 인코더 + RoBERTa 디코더 구조와 AX 포트 5009 적용을 정리합니다.
 

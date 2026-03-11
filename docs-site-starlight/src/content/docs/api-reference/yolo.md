@@ -2,9 +2,10 @@
 sidebar_position: 1
 title: "YOLO Detection API"
 description: "YOLOv11 기반 기계 도면 심볼 검출 API의 파라미터, 엔드포인트, 검출 클래스를 정리한다."
+tags: [API, 마이크로서비스, YOLO, 검출]
 ---
 
-# YOLO Detection API
+# YOLO 검출 API (YOLO Detection)
 
 > YOLOv11 기반 기계 도면 심볼 검출 API (포트 5005).
 

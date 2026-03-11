@@ -2,9 +2,10 @@
 sidebar_position: 14
 title: "PID Analyzer API"
 description: "P&ID 도면의 심볼 간 연결성 분석 및 BOM/밸브/장비 리스트 추출 API를 정리한다."
+tags: [API, 마이크로서비스, P&ID, 분석]
 ---
 
-# PID Analyzer API
+# PID Analyzer API (연결성 분석)
 
 > P&ID 연결성 분석 및 BOM 추출 (포트 5018, CPU 전용).
 

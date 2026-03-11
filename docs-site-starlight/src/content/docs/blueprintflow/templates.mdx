@@ -2,11 +2,12 @@
 sidebar_position: 3
 title: 템플릿
 description: 일반적인 기계 도면 분석 시나리오를 위한 사전 구성 워크플로우 템플릿
+tags: [워크플로우, DAG, 템플릿]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 템플릿
+# 템플릿 (Templates)
 
 > 표준 분석, P&ID, OCR 비교, BOM 생성, 리비전 비교 등 5개 사전 구성 워크플로우 템플릿과 커스터마이징 방법을 설명한다.
 
@@ -185,6 +186,12 @@ BlueprintFlow에는 일반적인 분석 시나리오를 위한 사전 구성 워
 - 템플릿 파라미터는 `gateway-api/api_specs/*.yaml`에서 검증된 기본값을 사용합니다. API 스펙에 정의된 파라미터만 포함됩니다.
 - 템플릿은 JSON 파일로 내보내어 팀원 간에 공유할 수 있습니다.
 - YOLO의 기본 신뢰도(confidence) 값 **0.4**는 기계 도면에 맞게 의도적으로 설정된 값입니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET/POST | `Gateway /blueprintflow/templates` | 템플릿 CRUD |
 
 ## 관련 문서
 

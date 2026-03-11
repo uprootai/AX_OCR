@@ -2,9 +2,10 @@
 sidebar_position: 12
 title: Surya OCR
 description: 90개 이상 언어를 지원하는 다국어 OCR 툴킷 Surya의 아키텍처 및 AX 적용 정리
+tags: [연구, R&D, Surya, 다국어OCR]
 ---
 
-# Surya: Multilingual OCR with Layout Analysis
+# Surya OCR (다국어 OCR 툴킷)
 
 > Surya의 텍스트 검출/인식/레이아웃 분석 파이프라인과 AX 포트 5013 적용을 정리합니다.
 

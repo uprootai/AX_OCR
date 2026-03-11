@@ -2,11 +2,12 @@
 sidebar_position: 1
 title: Docker Compose
 description: 컨테이너 오케스트레이션
+tags: [DevOps, Docker, 컴포즈, 컨테이너]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# Docker Compose
+# Docker Compose (컨테이너 오케스트레이션)
 
 > 21개 이상 컨테이너의 서비스 구성, 네트워크, 볼륨, GPU/CPU 설정을 정의하는 Docker Compose 오케스트레이션.
 
@@ -146,6 +147,12 @@ services:
               device_ids: ['0']
               capabilities: [gpu]
 ```
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /admin/docker/ps` | 컨테이너 목록 |
 
 ## 관련 문서
 

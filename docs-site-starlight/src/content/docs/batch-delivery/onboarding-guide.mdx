@@ -2,11 +2,12 @@
 sidebar_position: 4
 title: 고객 온보딩
 description: 신규 고객 프로젝트 자동 셋업 CLI 가이드
+tags: [배치, 납품, 온보딩]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 고객 온보딩 가이드
+# 고객 온보딩 (Customer Onboarding)
 
 > 프로젝트 생성부터 견적 내보내기까지 8단계 API 호출을 자동화하는 CLI 도구 — BOM 견적, P&ID 분석, 일반 제조 도면 타입 지원.
 
@@ -323,6 +324,12 @@ Phase 7: Agent Verification [FAIL]
 
 - Anthropic API 키 설정 확인 (`ANTHROPIC_API_KEY` 환경변수)
 - `--verify-l1-only`로 LLM 없이 실행 가능
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /health` | 시스템 상태 확인 |
 
 ## 관련 문서
 

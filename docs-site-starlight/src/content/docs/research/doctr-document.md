@@ -2,9 +2,10 @@
 sidebar_position: 13
 title: "docTR: Document Text Recognition"
 description: "Mindee 개발 딥러닝 기반 2단계 OCR 라이브러리 — 텍스트 검출과 인식 파이프라인 제공"
+tags: [연구, R&D, DocTR, OCR]
 ---
 
-# docTR: Document Text Recognition
+# docTR (문서 텍스트 인식)
 
 > Mindee 개발 딥러닝 기반 2단계 OCR 라이브러리로, DBNet/CRNN 등 구현을 사용하여 텍스트 검출과 인식을 수행한다.
 

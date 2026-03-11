@@ -20,16 +20,20 @@
 
 ## Active Epic
 
-### E05: Docs-Site Starlight 마이그레이션 + 문서 표준화
+### E06: Docs 콘텐츠 스타일 규격 적용 (✅ Done)
 
 | Story | 상태 | 요약 |
 |-------|------|------|
-| S01 문서 구조 표준화 | ✅ Done | 115개 전체 100% (frontmatter, blockquote, 관련 문서) |
-| S02 Starlight POC | ✅ Done (WT4) | Go 판정 (빌드 3.5초, Pagefind 내장, React Island 동작) |
-| S03 콘텐츠 마이그레이션 | ✅ Done | 115개 → 116 페이지, 빌드 9.4초 |
-| S04 TSX 컴포넌트 마이그레이션 | ✅ Done | FlowDiagram, SequenceDiagram client:load |
-| S05 라우트 맵 문서화 | ✅ Done | 13개 라우트 100%, 6개 상세 페이지 |
-| S06 문서 품질 검증 | ✅ Done | lint-docs.sh, onBrokenLinks: throw |
+| S01 스타일 규칙 정의 + 검증 스크립트 | ✅ Done | rules 파일 + lint-style.sh |
+| S02 Frontmatter 일괄 표준화 | ✅ Done | tags 115/115 추가 |
+| S03 H1 제목 + blockquote 표준화 | ✅ Done | 한글(English) 115/115 |
+| S05 관련 API 섹션 추가 | ✅ Done | 42개 파일 API 표 추가 |
+| S06 라우트 문서 강화 | ✅ Done | 권한 컬럼, 재작성 |
+| S08 최종 검증 + 배포 | ✅ Done | lint 0 violation, 116p 빌드, 배포 |
+
+**상세**: [.todo/epics/e06-docs-style-rewrite/EPIC.md](epics/e06-docs-style-rewrite/EPIC.md)
+
+### E05: Docs-Site Starlight 마이그레이션 + 문서 표준화 (✅ Done)
 
 **상세**: [.todo/epics/e05-docs-starlight/EPIC.md](epics/e05-docs-starlight/EPIC.md)
 

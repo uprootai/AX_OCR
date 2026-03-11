@@ -2,9 +2,10 @@
 sidebar_position: 18
 title: "VL (Vision-Language) API"
 description: "Qwen2-VL 등 멀티모달 AI 모델을 사용한 이미지 이해 및 자연어 질의응답 API를 정리한다."
+tags: [API, 마이크로서비스, VLM, 비전언어]
 ---
 
-# VL (Vision-Language) API
+# VL API (비전-언어 모델)
 
 > 멀티모달 AI 기반 이미지 이해 및 자연어 질의응답 (포트 5004, GPU 필수).
 

@@ -2,9 +2,10 @@
 sidebar_position: 10
 title: "EDGNet API"
 description: "Graph Neural Network 기반 도면 세그멘테이션 API의 파라미터와 분류 클래스를 정리한다."
+tags: [API, 마이크로서비스, EDGNet, 에지검출]
 ---
 
-# EDGNet API
+# EDGNet API (도면 세그멘테이션)
 
 > Graph Neural Network 기반 도면 세그멘테이션 (포트 5012).
 

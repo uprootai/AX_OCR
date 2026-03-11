@@ -2,11 +2,12 @@
 sidebar_position: 3
 title: OCR 처리
 description: 엔지니어링 도면 텍스트 추출을 위한 8개 OCR 엔진과 앙상블 투표
+tags: [파이프라인, ML, OCR, 텍스트인식]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# OCR 처리
+# OCR 처리 (OCR Processing)
 
 > 8개 OCR 엔진(eDOCr2 주 엔진 + PaddleOCR, Tesseract, TrOCR 등)을 사용하여 도면에서 텍스트, 치수, GD&T 심볼을 추출하고, 4개 엔진 가중 투표 앙상블로 정확도를 높인다.
 
@@ -163,6 +164,13 @@ Content-Type: multipart/form-data
 - 한국어 텍스트가 포함된 기계 도면에는 항상 eDOCr2를 우선 선택해야 합니다.
 - 앙상블 엔진(포트 5011)은 4개 엔진을 병렬로 실행하므로 지연 시간이 더 길지만, 모호한 텍스트에 대해 높은 정확도를 제공합니다.
 - Surya OCR은 텍스트 방향이 다양한 복잡한 레이아웃의 도면에서 효과적입니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `eDOCr2 /api/v1/extract` | 텍스트 추출 |
+| POST | `Gateway /api/v1/ocr/ensemble` | 앙상블 OCR |
 
 ## 관련 문서
 

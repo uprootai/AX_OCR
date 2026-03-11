@@ -2,9 +2,10 @@
 sidebar_position: 1
 title: Contributing to AX POC
 description: Git Flow 브랜치 전략, 커밋 컨벤션, 코드 스타일, PR 프로세스 등 코드 기여 가이드
+tags: [개발자, 가이드, 기여, 컨벤션]
 ---
 
-# Contributing to AX POC Microservices
+# 기여 가이드 (Contributing to AX POC)
 
 > Git Flow 브랜치 전략, Conventional Commits, Python/TypeScript 코드 스타일, PR 프로세스를 정의한다.
 

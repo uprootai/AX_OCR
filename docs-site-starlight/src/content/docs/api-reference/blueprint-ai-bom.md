@@ -2,9 +2,10 @@
 sidebar_position: 16
 title: "Blueprint AI BOM API"
 description: "Human-in-the-Loop 방식으로 도면을 분석하고 BOM을 생성하는 API의 엔드포인트와 검증 큐를 정리한다."
+tags: [API, 마이크로서비스, BOM, AI]
 ---
 
-# Blueprint AI BOM API
+# Blueprint AI BOM API (BOM 자동 생성)
 
 > Human-in-the-Loop 기반 도면 분석 및 BOM 생성 (포트 5020).
 

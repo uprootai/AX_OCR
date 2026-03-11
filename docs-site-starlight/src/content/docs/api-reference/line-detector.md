@@ -2,9 +2,10 @@
 sidebar_position: 11
 title: "Line Detector API"
 description: "P&ID 도면의 배관/신호선 검출 및 연결성 분석 API의 파라미터와 출력 구조를 정리한다."
+tags: [API, 마이크로서비스, 라인검출]
 ---
 
-# Line Detector API
+# Line Detector API (라인 검출)
 
 > P&ID 라인(배관/신호선) 검출 및 연결성 분석 (포트 5016, CPU 전용).
 

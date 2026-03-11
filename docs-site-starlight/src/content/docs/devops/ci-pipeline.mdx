@@ -2,11 +2,12 @@
 sidebar_position: 2
 title: CI 파이프라인
 description: 지속적 통합 파이프라인
+tags: [DevOps, Docker, CI, 빌드]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# CI 파이프라인
+# CI 파이프라인 (CI Pipeline)
 
 > Git Push/PR 시 프론트엔드(ESLint, Build, Vitest)와 백엔드(Ruff, Pytest)를 병렬 검증하는 지속적 통합 파이프라인.
 
@@ -94,6 +95,12 @@ on:
 | 프론트엔드 테스트 | 전체 통과 | 필수 |
 | Ruff | 에러 0건 | 필수 |
 | 백엔드 테스트 | 전체 통과 | 필수 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /health` | CI 헬스체크 |
 
 ## 관련 문서
 

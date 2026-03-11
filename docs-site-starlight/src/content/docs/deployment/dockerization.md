@@ -2,9 +2,10 @@
 sidebar_position: 5
 title: Dockerization 통합 가이드
 description: YOLO API, PaddleOCR API 도커라이징, 검증 레벨(L1~L5), 트러블슈팅
+tags: [배포, 운영, Docker, 컨테이너]
 ---
 
-# Dockerization 통합 가이드
+# Dockerization 통합 가이드 (Dockerization Guide)
 
 > YOLO API와 PaddleOCR API의 도커라이징, 검증 레벨(L1~L5), 트러블슈팅을 정리한다.
 

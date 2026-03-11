@@ -2,9 +2,10 @@
 sidebar_position: 7
 title: "DocTR API"
 description: "2단계 파이프라인(Detection + Recognition) 방식의 문서 OCR API를 정리한다."
+tags: [API, 마이크로서비스, DocTR, OCR]
 ---
 
-# DocTR API
+# DocTR API (문서 텍스트 인식)
 
 > 2단계 파이프라인 OCR (Detection + Recognition) (포트 5014).
 

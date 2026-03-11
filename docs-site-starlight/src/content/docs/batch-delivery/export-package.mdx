@@ -2,11 +2,12 @@
 sidebar_position: 3
 title: 내보내기 패키지
 description: 납품 패키지 생성 및 독립 실행 내보내기 (Self-contained Export)
+tags: [배치, 납품, 내보내기, 패키지]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 내보내기 패키지
+# 내보내기 패키지 (Export Package)
 
 > JSON/Excel/PDF/HTML 납품 패키지 생성 및 Docker 이미지를 포함한 독립 실행 내보내기(Self-contained Export) 기능.
 
@@ -166,6 +167,12 @@ import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
 Linux/macOS: `chmod +x scripts/import.sh && ./scripts/import.sh`
 Windows: `.\scripts\import.ps1`
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /projects/:id/export` | 패키지 내보내기 |
 
 ## 관련 문서
 

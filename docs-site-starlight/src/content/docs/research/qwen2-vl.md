@@ -2,9 +2,10 @@
 sidebar_position: 9
 title: Qwen2-VL
 description: Alibaba의 동적 해상도 비전-언어 모델 Qwen2-VL 아키텍처 및 AX 도면 분류 적용 정리
+tags: [연구, R&D, Qwen2-VL, VLM]
 ---
 
-# Qwen2-VL: Enhancing Vision-Language Model's Perception
+# Qwen2-VL (비전-언어 모델)
 
 > Qwen2-VL의 동적 해상도 처리, M-RoPE 위치 임베딩, AX VL API(포트 5004) 적용을 정리합니다.
 

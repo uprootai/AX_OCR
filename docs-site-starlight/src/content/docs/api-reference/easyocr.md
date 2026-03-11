@@ -2,9 +2,10 @@
 sidebar_position: 8
 title: "EasyOCR API"
 description: "80개 이상 언어를 지원하며 CPU 환경에서도 동작하는 범용 OCR API를 정리한다."
+tags: [API, 마이크로서비스, EasyOCR, OCR]
 ---
 
-# EasyOCR API
+# EasyOCR API (범용 OCR)
 
 > 80개 이상 언어 지원, CPU 친화적 범용 OCR (포트 5015).
 

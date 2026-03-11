@@ -2,11 +2,12 @@
 sidebar_position: 2
 title: 라인 검출
 description: P&ID 라인 검출, 스타일 분류, 교차점 분석을 위한 라인 검출기 API
+tags: [P&ID, 분석, 라인검출]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# 라인 검출
+# 라인 검출 (Line Detection)
 
 > OpenCV 기반 라인 검출기 API(포트 5016) — 6가지 라인 스타일 분류, 색상 분류, 영역 검출, 교차점 분석.
 
@@ -214,6 +215,12 @@ Content-Type: multipart/form-data
 - **PID 분석기**: 라인과 교차점을 사용하여 흐름 경로 분석
 - **연결성 분석기**: 라인과 심볼 검출 결과를 결합하여 연결 그래프 구축
 - **설계 검사기**: 영역 검출을 사용하여 범위 검증 및 장비 경계 확인
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `PID Analyzer /api/v1/lines` | 배관 검출 |
 
 ## 관련 문서
 

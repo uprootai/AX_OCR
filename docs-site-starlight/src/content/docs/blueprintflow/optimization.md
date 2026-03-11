@@ -2,9 +2,10 @@
 sidebar_position: 5
 title: BlueprintFlow 최적화
 description: YOLO 모델 다양화 전략 및 후처리 파이프라인 최적화 가이드
+tags: [워크플로우, DAG, 최적화, 성능]
 ---
 
-# BlueprintFlow 최적화
+# 최적화 (Optimization)
 
 > 용도별 YOLO 모델 다양화(5종), 후처리 파이프라인 4가지 옵션, 성능 벤치마크 계획을 포함한 파이프라인 최적화 로드맵이다.
 
@@ -218,6 +219,12 @@ Image → eDOCr2 (Full Image)
 ---
 
 *출처: blueprintflow/04_optimization/ 3파일 통합 (optimization_guide.md + pipeline_options.md + yolo_models.md)*
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /blueprintflow/execute` | 최적화 실행 |
 
 ## 관련 문서
 

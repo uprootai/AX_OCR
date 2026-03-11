@@ -2,6 +2,7 @@
 sidebar_position: 1
 title: GT 비교
 description: 정답(Ground Truth) 비교 분석
+tags: [QA, 품질, GT비교, 정확도]
 ---
 
 import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
@@ -130,6 +131,12 @@ f1_score  = 2 * precision * recall / (precision + recall)
 1. `uploads/gt_labels/{name}.txt` 확인 (업로드된 파일)
 2. `test_drawings/labels/{name}.txt` 확인 (레퍼런스 파일)
 3. 모두 없으면 `has_ground_truth: false` 반환
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /qa/gt/compare` | GT 비교 |
 
 ## 관련 문서
 

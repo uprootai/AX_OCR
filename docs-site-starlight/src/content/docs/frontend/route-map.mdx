@@ -1,81 +1,101 @@
 ---
 sidebar_position: 2
 title: 라우트 맵
-description: web-ui 전체 라우트 마스터 표 (13개 라우트)
+description: web-ui 전체 라우트 선언 기준 마스터 표
+tags: [프론트엔드, React, 라우팅]
 ---
 
-# 라우트 맵
+# 라우트 맵 (Route Map)
 
-> web-ui(포트 5173)에 등록된 13개 라우트의 전체 목록이다. App.tsx의 `<Routes>` 선언 기준으로 작성했다.
+> web-ui(포트 5173)의 12개 라우트 선언 기준 마스터 레퍼런스이다. 모든 경로는 `App.tsx`의 `<Routes>` 기준이다.
 
 ## 라우트 인벤토리
 
-- 총 라우트 수: **13개**
-- Layout 적용 라우트: 11개
-- 리다이렉트 라우트: 1개
-- 지연 로딩(lazy) 컴포넌트: 11개
+| 구분 | 수 | 설명 |
+|------|-----|------|
+| 사용자 페이지 | 9개 | 공개 접근 가능 |
+| 관리자 페이지 | 2개 | 기능적 관리 목적 (현재 공개) |
+| 시스템 라우트 | 1개 | 리다이렉트 |
 
 ## 사용자 페이지
 
-인증 없이 접근 가능하다. 현재 모든 라우트는 공개 상태이다.
+인증 없이 접근 가능하다.
 
-| 경로 | 컴포넌트 | 로딩 | 설명 | 가이드 |
-|------|----------|------|------|--------|
-| `/dashboard` | `Dashboard` | lazy | API 상태, 컨테이너, 프로젝트 현황, 통계 통합 대시보드 | [상세](./pages/dashboard) |
-| `/guide` | `Guide` | lazy | 시스템 사용 가이드 (10개 섹션, 사이드바 TOC) | - |
-| `/docs` | `Docs` | lazy | docs-site(`/docs/`)로 리다이렉트하는 브릿지 페이지 | - |
-| `/blueprintflow/builder` | `BlueprintFlowBuilder` | lazy | React Flow 기반 워크플로우 빌더 캔버스 | [상세](./pages/blueprintflow) |
-| `/blueprintflow/list` | `BlueprintFlowList` | lazy | 저장된 워크플로우 목록 (CRUD) | [상세](./pages/blueprintflow) |
-| `/blueprintflow/templates` | `BlueprintFlowTemplates` | lazy | 워크플로우 템플릿 갤러리 + 배포 모달 | [상세](./pages/blueprintflow) |
-| `/pid-overlay` | `PIDOverlayPage` | lazy | P&ID 심볼 검출 오버레이 뷰어 | - |
-| `/projects` | `ProjectList` | lazy | 프로젝트 목록 (검색, 필터, 생성) | [상세](./pages/project) |
-| `/projects/:projectId` | `ProjectDetail` | lazy | 프로젝트 상세 (세션, 워크플로우, GT 관리) | [상세](./pages/project) |
+| 경로 | 권한 | 페이지 | 컴포넌트 | 로딩 | 설명 | 가이드 |
+|------|------|--------|----------|------|------|--------|
+| `/dashboard` | 공개 | 대시보드 | `Dashboard` | lazy | 시스템 현황 + 프로젝트 요약 | [상세](./pages/dashboard) |
+| `/guide` | 공개 | 가이드 | `Guide` | lazy | 시스템 사용 가이드 | — |
+| `/docs` | 공개 | 문서 | `Docs` | lazy | docs-site 브릿지 | — |
+| `/blueprintflow/builder` | 공개 | 빌더 | `BlueprintFlowBuilder` | lazy | 워크플로우 캔버스 | [상세](./pages/blueprintflow) |
+| `/blueprintflow/list` | 공개 | 목록 | `BlueprintFlowList` | lazy | 워크플로우 CRUD | [상세](./pages/blueprintflow) |
+| `/blueprintflow/templates` | 공개 | 템플릿 | `BlueprintFlowTemplates` | lazy | 템플릿 갤러리 | [상세](./pages/blueprintflow) |
+| `/pid-overlay` | 공개 | P&ID | `PIDOverlayPage` | lazy | 심볼 검출 오버레이 | [상세](./pages/session) |
+| `/projects` | 공개 | 목록 | `ProjectList` | lazy | 프로젝트 목록 | [상세](./pages/project) |
+| `/projects/:projectId` | 공개 | 상세 | `ProjectDetail` | lazy | 프로젝트 상세 | [상세](./pages/project) |
 
 ## 관리자 페이지
 
-기능적으로 관리 목적이나, 현재 권한 분리는 없다.
+기능적으로 관리 목적이나 현재 권한 분리는 없다.
 
-| 경로 | 컴포넌트 | 로딩 | 설명 | 가이드 |
-|------|----------|------|------|--------|
-| `/admin` | `Admin` | lazy | 시스템 현황, 모델 관리, 로그 조회, 백업/복원 | [상세](./pages/admin) |
-| `/admin/api/:apiId` | `APIDetail` | lazy | 개별 API 상세 설정, Docker 제어, 하이퍼파라미터 | [상세](./pages/admin#api-detail) |
+| 경로 | 권한 | 페이지 | 컴포넌트 | 로딩 | 설명 | 가이드 |
+|------|------|--------|----------|------|------|--------|
+| `/admin` | 공개* | 시스템 관리 | `Admin` | lazy | 상태, 모델, 로그, 백업 | [상세](./pages/admin) |
+| `/admin/api/:apiId` | 공개* | API 상세 | `APIDetail` | lazy | 개별 API 설정 | [상세](./pages/admin) |
+
+\*향후 관리자 인증 추가 예정
 
 ## 시스템 라우트
 
-| 경로 | 동작 | 설명 |
+| 경로 | 유형 | 설명 |
 |------|------|------|
-| `/` | `Navigate to="/dashboard" replace` | 루트 접근 시 대시보드로 리다이렉트 |
-| `<Layout />` | Outlet wrapper | Header + Sidebar + 페이지 콘텐츠를 감싸는 레이아웃 |
+| `/` | redirect | `/dashboard`로 자동 리다이렉트 |
 
-## 라우트 구조
+## 레이아웃 구조
 
-모든 페이지(루트 리다이렉트 제외)는 `<Layout />` 내부에서 렌더링된다. Layout은 Header(내비게이션)와 Sidebar(컨텍스트 의존)를 제공한다.
+모든 렌더 라우트는 `<Layout />` 내부에서 렌더링된다.
 
 ```
 <BrowserRouter>
   <Suspense fallback={<PageLoader />}>
     <Routes>
-      /               → Navigate to="/dashboard"
-      <Layout>
-        /dashboard         → Dashboard
-        /guide             → Guide
-        /docs              → Docs
-        /blueprintflow/builder    → BlueprintFlowBuilder
-        /blueprintflow/list       → BlueprintFlowList
-        /blueprintflow/templates  → BlueprintFlowTemplates
-        /admin             → Admin
-        /admin/api/:apiId  → APIDetail
-        /pid-overlay       → PIDOverlayPage
-        /projects          → ProjectList
-        /projects/:projectId → ProjectDetail
+      /                → Navigate to="/dashboard"
+      <Layout>         (11개 라우트)
+        /dashboard
+        /guide
+        /docs
+        /blueprintflow/builder
+        /blueprintflow/list
+        /blueprintflow/templates
+        /admin
+        /admin/api/:apiId
+        /pid-overlay
+        /projects
+        /projects/:projectId
       </Layout>
     </Routes>
   </Suspense>
 </BrowserRouter>
 ```
 
+## 로딩 전략
+
+| 항목 | 값 |
+|------|-----|
+| 동기 로드 | `Layout` (1개) |
+| 지연 로드 | 11개 페이지 (React.lazy) |
+| 폴백 | `<PageLoader />` 스피너 |
+| React Query | staleTime 30초, refetchOnWindowFocus 비활성 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /health` | 전체 서비스 헬스체크 |
+| GET | `Gateway /admin/status` | 시스템 상태 (API + GPU + 리소스) |
+
 ## 관련 문서
 
-- [라우팅 상세](./routing) -- 지연 로딩, React Query 설정, 테마 시스템
-- [프론트엔드 아키텍처](/frontend) -- 전체 구조 개요
-- [상태 관리](./state-management) -- Zustand 스토어
+- [라우팅 상세](./routing) — 지연 로딩, React Query, 테마
+- [프론트엔드 아키텍처](/frontend) — 전체 구조 개요
+- [상태 관리](./state-management) — Zustand 스토어
+- [페이지 상세](./pages) — 개별 페이지 가이드

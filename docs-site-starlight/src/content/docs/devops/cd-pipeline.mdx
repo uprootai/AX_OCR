@@ -2,11 +2,12 @@
 sidebar_position: 3
 title: CD 파이프라인
 description: 지속적 배포 파이프라인
+tags: [DevOps, Docker, CD, 배포]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# CD 파이프라인
+# CD 파이프라인 (CD Pipeline)
 
 > CI 성공 후 스테이징 배포, 스모크 테스트, 수동 승인을 거쳐 프로덕션에 배포하는 지속적 배포 파이프라인.
 
@@ -108,6 +109,12 @@ docker-compose up -d
 | `DEPLOY_ENV` | 스테이징 / 프로덕션 |
 | `IMAGE_TAG` | Docker 이미지 태그 (git SHA) |
 | `ROLLBACK_TAG` | 이전 안정 태그 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /admin/docker/restart/:service` | 서비스 재시작 |
 
 ## 관련 문서
 

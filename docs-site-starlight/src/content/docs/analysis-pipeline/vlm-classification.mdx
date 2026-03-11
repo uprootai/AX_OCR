@@ -2,12 +2,13 @@
 sidebar_position: 1
 title: VLM 분류
 description: Qwen2-VL 기반 도면 유형 분류 - 분석 파이프라인의 첫 번째 단계
+tags: [파이프라인, ML, VLM, 분류]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
 
-# VLM 분류
+# VLM 분류 (VLM Classification)
 
 > Qwen2-VL 기반으로 도면 이미지를 5개 카테고리(mechanical, p&id, table, text, photo)로 분류하고, 분류 결과에 따라 후속 처리 경로를 결정한다.
 
@@ -114,6 +115,12 @@ Content-Type: multipart/form-data
 
 - 분류 신뢰도(Confidence)가 0.7 미만인 경우, 에이전트 검증 큐(Agent Verification Queue)를 통한 휴먼 인 더 루프(Human-in-the-Loop) 검토가 실행됩니다.
 - VLM은 `describe` 작업 파라미터를 사용하면 도면 내용에 대한 자유 텍스트 설명을 생성할 수도 있습니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `VL /api/v1/classify` | 도면 유형 분류 |
 
 ## 관련 문서
 

@@ -2,9 +2,10 @@
 sidebar_position: 2
 title: Git Workflow Guide
 description: Git Flow 브랜치 전략, Conventional Commits, 모듈별 커밋, 일상 워크플로우 안내
+tags: [개발자, 가이드, Git, 브랜치]
 ---
 
-# Git Workflow Guide
+# Git 워크플로우 (Git Workflow Guide)
 
 > 브랜치 전략, 커밋 규칙, 모듈별 단계적 커밋, 비상 절차를 안내합니다.
 

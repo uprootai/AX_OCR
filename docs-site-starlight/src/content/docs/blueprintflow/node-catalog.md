@@ -2,9 +2,10 @@
 sidebar_position: 1
 title: 노드 카탈로그
 description: 카테고리별로 정리된 29개 이상의 BlueprintFlow 노드 타입 전체 레퍼런스
+tags: [워크플로우, DAG, 노드, 카탈로그]
 ---
 
-# 노드 카탈로그
+# 노드 카탈로그 (Node Catalog)
 
 > 9개 카테고리, 29개 이상의 BlueprintFlow 노드 타입과 각 노드의 파라미터를 정리한 전체 레퍼런스이다.
 
@@ -133,6 +134,12 @@ type NodeCategory =
 - 파라미터 이름은 `gateway-api/api_specs/*.yaml`에 정의된 것과 반드시 일치해야 합니다. API 스펙에 없는 파라미터는 사용하지 마십시오.
 - GPU 가속 노드(YOLO, eDOCr2, VL 등)는 대시보드를 통해 GPU 할당을 설정할 수 있습니다.
 - `visualize` 파라미터를 사용할 수 있는 경우, JSON 결과와 함께 주석이 표시된 이미지를 반환합니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /blueprintflow/nodes` | 노드 목록 |
 
 ## 관련 문서
 

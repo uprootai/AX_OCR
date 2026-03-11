@@ -2,9 +2,10 @@
 sidebar_position: 6
 title: "Surya OCR API"
 description: "90개 이상 언어를 지원하며 레이아웃 분석 기능을 포함한 OCR API를 정리한다."
+tags: [API, 마이크로서비스, Surya, OCR]
 ---
 
-# Surya OCR API
+# Surya OCR API (다국어 레이아웃 분석)
 
 > 90개 이상 언어를 지원하며 레이아웃 분석 기능을 포함한 OCR (포트 5013).
 

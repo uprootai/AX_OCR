@@ -2,9 +2,10 @@
 sidebar_position: 6
 title: PaddleOCR (PP-OCR)
 description: Baidu의 경량 다국어 OCR 시스템 PP-OCR 시리즈(v1~v5) 아키텍처 및 AX 적용 정리
+tags: [연구, R&D, PaddleOCR, OCR]
 ---
 
-# PP-OCR: A Practical Ultra Lightweight OCR System
+# PaddleOCR (PP-OCR 경량 OCR 시스템)
 
 > Baidu PP-OCR 시리즈의 텍스트 검출/인식 아키텍처와 AX 시스템 포트 5006 적용 사항을 정리합니다.
 

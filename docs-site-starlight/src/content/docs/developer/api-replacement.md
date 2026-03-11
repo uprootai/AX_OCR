@@ -2,9 +2,10 @@
 sidebar_position: 6
 title: API 교체 가이드
 description: 기존 API를 새로운 구현체로 물리적/논리적으로 교체하는 절차 및 FAQ
+tags: [개발자, 가이드, API교체]
 ---
 
-# API 교체 가이드
+# API 교체 가이드 (API Replacement Guide)
 
 > 기존 API를 새로운 구현체로 완전히 교체하는 방법
 

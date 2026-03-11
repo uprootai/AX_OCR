@@ -2,9 +2,10 @@
 sidebar_position: 3
 title: API 스펙 시스템 개발자 가이드
 description: YAML 기반 API 표준화 및 BlueprintFlow 자동 통합 시스템 구조와 사용법
+tags: [개발자, 가이드, API스펙, YAML]
 ---
 
-# API 스펙 시스템 개발자 가이드
+# API 스펙 시스템 (API Spec System)
 
 > YAML 기반 API 표준화 및 자동 통합 시스템
 

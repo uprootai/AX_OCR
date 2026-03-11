@@ -2,9 +2,10 @@
 sidebar_position: 12
 title: "ESRGAN API"
 description: "Real-ESRGAN 기반 이미지 업스케일링(2x/4x) API의 파라미터와 성능 벤치마크를 정리한다."
+tags: [API, 마이크로서비스, ESRGAN, 초해상도]
 ---
 
-# ESRGAN API
+# ESRGAN API (이미지 업스케일링)
 
 > Real-ESRGAN 기반 이미지 업스케일링 2x/4x (포트 5010).
 

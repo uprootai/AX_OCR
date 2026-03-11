@@ -2,9 +2,10 @@
 sidebar_position: 5
 title: "TrOCR API"
 description: "Microsoft Transformer 기반 OCR API로 손글씨 및 장면 텍스트 인식에 특화되어 있다."
+tags: [API, 마이크로서비스, TrOCR, OCR]
 ---
 
-# TrOCR API
+# TrOCR API (Transformer OCR)
 
 > Microsoft Transformer 기반 OCR -- 손글씨 및 장면 텍스트 특화 (포트 5009).
 

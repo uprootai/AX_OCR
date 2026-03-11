@@ -2,9 +2,10 @@
 sidebar_position: 3
 title: "금속 적층 제조의 기하공차 및 조립 가능성 추정"
 description: "Skin Model Shapes와 FEM 시뮬레이션을 결합한 금속 AM 부품의 기하공차 예측 및 조립 가능성 검증 방법론"
+tags: [연구, R&D, 기하공차, GD&T]
 ---
 
-# 금속 적층 제조의 기하공차 및 제조 조립 가능성 추정
+# 기하공차 및 조립 가능성 추정 (Geometric Tolerance & AM Assemblability)
 
 > Skin Model Shapes와 열-기계적 FEM 시뮬레이션을 결합하여 금속 적층 제조 부품의 기하공차와 조립 가능성을 예측하는 방법론을 제시한다.
 

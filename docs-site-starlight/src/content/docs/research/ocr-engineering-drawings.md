@@ -2,9 +2,10 @@
 sidebar_position: 1
 title: "eDOCr v1 — 공학 도면 OCR"
 description: "eDOCr 초기 버전 — CRAFT 텍스트 검출과 CRNN 인식 기반 5단계 파이프라인으로 도면 정보 자동 추출"
+tags: [연구, R&D, OCR, 도면]
 ---
 
-# Optical Character Recognition on Engineering Drawings
+# eDOCr v1 — 공학 도면 OCR (Engineering Drawing OCR)
 
 > eDOCr 초기 버전으로, CRAFT + CRNN 기반 5단계 파이프라인을 통해 공학 도면의 정보 블록, GD&T, 치수 정보를 자동 추출한다.
 

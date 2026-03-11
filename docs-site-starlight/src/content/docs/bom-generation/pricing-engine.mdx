@@ -2,6 +2,7 @@
 sidebar_position: 2
 title: 견적 엔진
 description: 제조 견적 생성을 위한 원가 계산 엔진
+tags: [BOM, 견적, 가격산출, 엔진]
 ---
 
 import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
@@ -242,6 +243,12 @@ Plugs:    0.25"NPT  -> diameter=10.3mm (NPT 공칭)
 | `estimated` | 부품명에서 추정한 중량 (치수 없음) |
 | `standard_catalog` | 표준 부품 카탈로그 단가 조회 |
 | `none` | 원가 데이터 없음 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Blueprint AI BOM /api/v1/estimate` | 견적 |
 
 ## 관련 문서
 

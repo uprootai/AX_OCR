@@ -2,12 +2,13 @@
 sidebar_position: 2
 title: DAG 엔진
 description: 위상 정렬 실행 엔진과 병렬 브랜치 처리 및 실행기 레지스트리
+tags: [워크플로우, DAG, 실행엔진]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
 
-# DAG 엔진
+# DAG 엔진 (DAG Engine)
 
 > 칸 알고리즘 기반 위상 정렬로 실행 순서를 결정하고, 독립 브랜치를 병렬 실행하며, 실행기 레지스트리를 통해 각 노드를 ML 서비스에 라우팅하는 실행 런타임이다.
 
@@ -159,6 +160,12 @@ class BaseExecutor:
 - DAG 엔진은 실행 전에 그래프의 순환(Cycle)을 검증합니다. 순환이 있는 그래프는 에러와 함께 거부됩니다.
 - 실행 진행 상태는 WebSocket 업데이트를 통해 UI에 실시간으로 보고됩니다.
 - Gateway API (포트 8000)가 DAG 엔진을 호스팅하며 모든 서비스 간 통신을 관리합니다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /blueprintflow/execute` | DAG 실행 |
 
 ## 관련 문서
 

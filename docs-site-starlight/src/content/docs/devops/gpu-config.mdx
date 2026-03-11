@@ -2,11 +2,12 @@
 sidebar_position: 4
 title: GPU 설정
 description: GPU 설정 및 할당
+tags: [DevOps, Docker, GPU, CUDA]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
-# GPU 설정
+# GPU 설정 (GPU Configuration)
 
 > 9개 GPU 서비스의 VRAM 할당, 동적 설정 API, Docker 오버라이드 방법을 다룬다.
 
@@ -113,6 +114,12 @@ services:
 | GPU 미감지 | `nvidia-smi` 확인, Docker 재시작 |
 | 추론 속도 저하 | GPU 사용률 확인, 동시 실행 모델 수 줄이기 |
 | 컨테이너 충돌 | `docker logs` 확인, VRAM 제한 조정 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /admin/status` | GPU 상태 |
 
 ## 관련 문서
 

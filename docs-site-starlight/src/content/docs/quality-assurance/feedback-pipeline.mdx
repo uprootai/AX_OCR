@@ -2,6 +2,7 @@
 sidebar_position: 3
 title: 피드백 파이프라인
 description: 사용자 피드백 처리 파이프라인
+tags: [QA, 품질, 피드백]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
@@ -173,6 +174,12 @@ height   = (y2 - y1) / image_height
 - 각 검출 결과의 `verification_status`는 마지막 검토 결과를 반영
 - 세션 내 모든 항목이 `pending`이 아닐 때 수집 대상이 됨
 - `min_approved_rate` 필터로 품질이 낮은 세션(거부 비율 높음)은 자동 제외
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Gateway /qa/feedback` | 피드백 파이프라인 |
 
 ## 관련 문서
 

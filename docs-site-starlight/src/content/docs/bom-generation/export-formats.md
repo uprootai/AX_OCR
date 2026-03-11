@@ -2,6 +2,7 @@
 sidebar_position: 3
 title: 내보내기 형식
 description: BOM 및 견적 내보내기 형식 - Excel, JSON, PDF
+tags: [BOM, 견적, 내보내기, 포맷]
 ---
 
 # 내보내기 형식 (Export Formats)
@@ -175,6 +176,12 @@ POST /export/package/{session_id}
 | `/session/import` | POST | 내보낸 데이터에서 세션 가져오기 |
 | `/project/export/{project_id}` | GET | 프로젝트 내 모든 세션 내보내기 |
 | `/project/import` | POST | 모든 세션 포함 프로젝트 가져오기 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Blueprint AI BOM /api/v1/export` | 내보내기 |
 
 ## 관련 문서
 

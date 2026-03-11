@@ -13,12 +13,14 @@
 | E02 | 테크로스 P&ID 설계 검증 | 테크로스 | ~03-21 | 6 | ✅ Done |
 | E03 | [동서기연 BOM 추출 자동화](epics/e03-dsebearing/EPIC.md) | 동서기연 | ~03-21 | 3 | 🔵 Active |
 
+| E05 | [Docs-Site Starlight 마이그레이션](epics/e05-docs-starlight/EPIC.md) | 내부 | ~03-11 | 6 | ✅ Done |
+| E06 | [Docs 콘텐츠 스타일 규격 적용](epics/e06-docs-style-rewrite/EPIC.md) | 내부 | ~03-14 | 8 | ⬜ Planning |
+
 ## Future Epics
 
 | ID | Epic | 고객 | 메모 | 상태 |
 |----|------|------|------|------|
 | E04 | [AX 테스트 컴플렉스 온보딩](epics/e04-ax-testcomplex/EPIC.md) | 10개 중소기업 | 2025.09~2028.12, 249억 규모, 5 Stories | ⬜ Ready |
-| E05 | [Docs-Site Starlight 마이그레이션](epics/e05-docs-starlight/EPIC.md) | 내부 | Phase1: 표준화(즉시), Phase2: Starlight 전환, 6 Stories | ⬜ Planning |
 
 ## 기술 개선 (Epic 미배정)
 
