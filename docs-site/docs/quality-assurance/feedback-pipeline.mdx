@@ -6,6 +6,8 @@ description: 사용자 피드백 처리 파이프라인
 
 # 피드백 파이프라인 (Feedback Pipeline)
 
+> 사용자 피드백(승인/거부/수정)을 수집하고, 검증 완료 세션을 YOLO 재학습용 데이터셋으로 변환하는 파이프라인.
+
 ## 개요
 
 사용자 피드백을 수집하고 검증 완료된 데이터를 YOLO 재학습용 데이터셋으로 변환하여 모델을 지속적으로 개선합니다.
@@ -169,3 +171,10 @@ height   = (y2 - y1) / image_height
 - 각 검출 결과의 `verification_status`는 마지막 검토 결과를 반영
 - 세션 내 모든 항목이 `pending`이 아닐 때 수집 대상이 됨
 - `min_approved_rate` 필터로 품질이 낮은 세션(거부 비율 높음)은 자동 제외
+
+## 관련 문서
+
+- [품질 보증](/docs/quality-assurance) — QA 체계 개요
+- [능동 학습](/docs/quality-assurance/active-learning) — 피드백 파이프라인과 연동되는 능동 학습
+- [GT 비교](/docs/quality-assurance/gt-comparison) — 정답 데이터 비교 평가
+- [OCR 메트릭](/docs/quality-assurance/ocr-metrics) — OCR 성능 측정

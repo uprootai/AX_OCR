@@ -1,11 +1,13 @@
 ---
 sidebar_label: Evaluation Reports
 sidebar_position: 5
+title: 평가 보고서
+description: 시스템 종합 평가 및 EDGNet 통합 성능 보고서
 ---
 
-# Evaluation Reports
+# 평가 보고서
 
-시스템 종합 평가 및 EDGNet 통합 성능 보고서
+> 시스템 종합 평가(82/100점) 및 EDGNet 통합 성능 보고서 — 코드 완벽성, 기능성, 성능, 문서화, 목적 달성도 5개 영역 평가.
 
 ---
 
@@ -202,3 +204,10 @@ sidebar_position: 5
 ---
 
 *평가 일시: 2025-11-08 | 출처: COMPREHENSIVE_EVALUATION_REPORT.md + FINAL_COMPREHENSIVE_REPORT.md 통합*
+
+## 관련 문서
+
+- [품질 보증](/docs/quality-assurance) — QA 체계 개요
+- [OCR 메트릭](/docs/quality-assurance/ocr-metrics) — OCR 성능 측정 상세
+- [GT 비교](/docs/quality-assurance/gt-comparison) — 정답 데이터 비교 평가
+- [시스템 개요](/docs/system-overview) — 시스템 아키텍처 전체 구조

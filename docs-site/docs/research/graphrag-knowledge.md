@@ -1,9 +1,13 @@
 ---
 sidebar_label: "GraphRAG"
 sidebar_position: 10
+title: "GraphRAG — 지식 그래프 기반 RAG"
+description: "Microsoft Research의 그래프 RAG 접근법 — 엔티티 지식 그래프와 커뮤니티 요약으로 전역적 질의 처리"
 ---
 
 # GraphRAG: From Local to Global Knowledge Graph RAG
+
+> Microsoft Research의 그래프 RAG 접근법으로, 엔티티 지식 그래프와 커뮤니티 요약을 사전 생성하여 전역적 질의에 응답한다.
 
 ## 논문 정보
 - **제목**: From Local to Global: A Graph RAG Approach to Query-Focused Summarization
@@ -53,3 +57,8 @@ sidebar_position: 10
 - GitHub: https://github.com/microsoft/graphrag
 - 공식 문서: https://microsoft.github.io/graphrag/
 - Microsoft Research: https://www.microsoft.com/en-us/research/project/graphrag/
+
+## 관련 문서
+
+- [Knowledge Engine API](/docs/api-reference/knowledge) - Knowledge API 서비스 (Port 5007)
+- [Qwen2-VL](/docs/research/qwen2-vl) - Vision-Language 모델

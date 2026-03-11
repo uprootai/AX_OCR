@@ -1,9 +1,13 @@
 ---
 sidebar_label: "Qwen2-VL"
 sidebar_position: 9
+title: Qwen2-VL
+description: Alibaba의 동적 해상도 비전-언어 모델 Qwen2-VL 아키텍처 및 AX 도면 분류 적용 정리
 ---
 
 # Qwen2-VL: Enhancing Vision-Language Model's Perception
+
+> Qwen2-VL의 동적 해상도 처리, M-RoPE 위치 임베딩, AX VL API(포트 5004) 적용을 정리합니다.
 
 ## 논문 정보
 - **제목**: Qwen2-VL: Enhancing Vision-Language Model's Perception of the World at Any Resolution
@@ -57,3 +61,9 @@ sidebar_position: 9
 - GitHub: https://github.com/QwenLM/Qwen-VL
 - 공식 페이지: https://qwenlm.github.io/
 - Hugging Face: https://huggingface.co/Qwen
+
+## 관련 문서
+
+- [YOLOv11 검출](./yolov11-detection.md) -- 객체 검출 모델
+- [BOM 및 견적](../bom-generation/index.mdx) -- VLM 분류가 사용되는 파이프라인
+- [OCR 앙상블 투표](./ocr-ensemble-voting.md) -- 다중 엔진 OCR 앙상블

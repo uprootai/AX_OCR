@@ -6,6 +6,8 @@ description: BOM 및 견적 내보내기 형식 - Excel, JSON, PDF
 
 # 내보내기 형식 (Export Formats)
 
+> BOM 데이터를 Excel, JSON, PDF로 내보내는 형식 사양과 엔드포인트를 설명합니다.
+
 BOM 시스템은 다양한 용도에 맞는 여러 내보내기 형식을 지원합니다. 각 형식에는 검출 결과, 치수, 단가 및 검증 상태를 포함한 전체 BOM 데이터가 담겨 있습니다.
 
 ## 형식 비교
@@ -173,3 +175,9 @@ POST /export/package/{session_id}
 | `/session/import` | POST | 내보낸 데이터에서 세션 가져오기 |
 | `/project/export/{project_id}` | GET | 프로젝트 내 모든 세션 내보내기 |
 | `/project/import` | POST | 모든 세션 포함 프로젝트 가져오기 |
+
+## 관련 문서
+
+- [PDF 보고서](./pdf-report.md) -- PDF 견적서 레이아웃 및 브랜딩 설정
+- [BOM 및 견적](./index.mdx) -- 전체 BOM 파이프라인 개요
+- [BOM 프론트엔드](../frontend/bom-frontend.mdx) -- BOM UI에서의 내보내기 기능

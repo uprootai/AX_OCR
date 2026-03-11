@@ -1,9 +1,13 @@
 ---
 sidebar_label: "TrOCR"
 sidebar_position: 7
+title: TrOCR
+description: Microsoft의 Transformer 기반 OCR 모델 TrOCR의 인코더-디코더 아키텍처 및 AX 적용 정리
 ---
 
 # TrOCR: Transformer-based Optical Character Recognition
+
+> TrOCR의 ViT 인코더 + RoBERTa 디코더 구조와 AX 포트 5009 적용을 정리합니다.
 
 ## 논문 정보
 - **제목**: TrOCR: Transformer-based Optical Character Recognition with Pre-trained Models
@@ -52,3 +56,9 @@ sidebar_position: 7
 ## 참고 자료
 - GitHub: https://github.com/microsoft/unilm/tree/master/trocr
 - Hugging Face: https://huggingface.co/microsoft/trocr-base-handwritten
+
+## 관련 문서
+
+- [OCR 앙상블 투표](./ocr-ensemble-voting.md) -- 다중 엔진 투표 앙상블
+- [PaddleOCR](./paddleocr.md) -- 경량 다국어 OCR
+- [Tesseract LSTM](./tesseract-lstm.md) -- LSTM 기반 OCR

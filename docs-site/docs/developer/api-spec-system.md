@@ -2,6 +2,7 @@
 sidebar_position: 3
 sidebar_label: API Spec System
 title: API 스펙 시스템 개발자 가이드
+description: YAML 기반 API 표준화 및 BlueprintFlow 자동 통합 시스템 구조와 사용법
 ---
 
 # API 스펙 시스템 개발자 가이드
@@ -291,3 +292,9 @@ web-ui/src/
 scripts/
 └── create_api.py           # 스캐폴딩 스크립트
 ```
+
+## 관련 문서
+
+- [동적 API 추가 시스템](/docs/developer/dynamic-api-system) — Dashboard 기반 동적 API 등록
+- [API 교체 가이드](/docs/developer/api-replacement) — 기존 API 교체 절차
+- [Contributing](/docs/developer/contributing) — 코드 기여 가이드라인

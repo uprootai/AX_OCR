@@ -1,11 +1,13 @@
 ---
 sidebar_label: "Dockerization"
 sidebar_position: 5
+title: Dockerization 통합 가이드
+description: YOLO API, PaddleOCR API 도커라이징, 검증 레벨(L1~L5), 트러블슈팅
 ---
 
 # Dockerization 통합 가이드
 
-> YOLO API, PaddleOCR API 도커라이징 및 검증 가이드
+> YOLO API와 PaddleOCR API의 도커라이징, 검증 레벨(L1~L5), 트러블슈팅을 정리한다.
 
 ---
 
@@ -26,11 +28,11 @@ sidebar_position: 5
 
 | Component | Docker Rebuild 후 상태 | 작동 여부 |
 |-----------|-------------------|---------|
-| **Frontend (web-ui)** | 완벽하게 작동 | 31개 파라미터 모두 표시됨 |
+| **Frontend (web-ui)** | 정상 작동 | 31개 파라미터 모두 표시됨 |
 | **Backend APIs** | 부분 작동 | 새 파라미터 무시됨 |
 | **기존 기능** | 정상 작동 | 영향 없음 |
 
-**결론**: Docker 재빌드 가능하며, **Frontend는 완벽**, **Backend는 새 파라미터만 아직 처리 안 됨**
+**결론**: Docker 재빌드 가능하며, **Frontend는 정상**, **Backend는 새 파라미터만 아직 처리 안 됨**
 
 ### Docker 재빌드 명령
 
@@ -56,7 +58,7 @@ curl http://localhost:5173
 
 | Feature | Frontend | Backend | 실제 작동 |
 |---------|----------|---------|---------|
-| **기존 기능** | O | O | 완벽 |
+| **기존 기능** | O | O | 정상 |
 | **새 파라미터 UI 표시** | O | - | 표시됨 |
 | **새 파라미터 처리** | O | X | 무시됨 |
 | **YOLO 특화 모델** | O | X | 사용 안 됨 |
@@ -633,5 +635,9 @@ PaddleOCR(lang="korean")
 
 ---
 
-**작성일**: 2025-11-23
-**최종 수정**: 2025-11-23
+## 관련 문서
+
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션 설정
+- [GPU 설정](/docs/devops/gpu-config) — 서비스별 GPU 할당
+- [시스템 설치 가이드](/docs/deployment/installation) — 설치 절차 및 환경 설정
+- [API 교체 가이드](/docs/developer/api-replacement) — API 교체 및 마이그레이션

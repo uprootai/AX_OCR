@@ -1,12 +1,13 @@
 ---
 sidebar_position: 4
 sidebar_label: Dynamic API System
-title: 동적 API 추가 시스템 완벽 가이드
+title: 동적 API 추가 시스템
+description: Dashboard UI에서 외부 API를 런타임에 등록하고 헬스체크, BlueprintFlow 노드, 설정 패널에 자동 반영하는 시스템
 ---
 
-# 동적 API 추가 시스템 완벽 가이드
+# 동적 API 추가 시스템
 
-> Dashboard에서 버튼 하나로 새로운 API를 모든 곳에 자동 추가
+> Dashboard에서 외부 API를 런타임에 등록하면 헬스체크, BlueprintFlow 노드, 설정 패널에 자동 반영되는 시스템을 설명합니다.
 
 ## 개요
 
@@ -318,7 +319,7 @@ setModels([...defaultModels, ...customModels]);
 ---
 
 ### 7. i18n 다국어 지원
-- 한국어 (ko.json) + 영어 (en.json) 완벽 번역
+- 한국어 (ko.json) + 영어 (en.json) 전체 번역
 - 모든 UI 텍스트, 에러 메시지, 도움말 포함
 
 **파일**:
@@ -661,3 +662,9 @@ interface APIConfig {
 - API 검색 및 필터링
 - API 사용 통계 (호출 횟수, 평균 응답 시간)
 - API 버전 관리 (v1, v2, ...)
+
+## 관련 문서
+
+- [프론트엔드 아키텍처](../frontend/index.mdx) -- Web UI 전체 구조
+- [컴포넌트 라이브러리](../frontend/component-library.mdx) -- BlueprintFlow 노드 및 UI 컴포넌트
+- [LLM 사용성 가이드](./llm-usability.md) -- 코드 탐색 패턴

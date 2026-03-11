@@ -1,11 +1,13 @@
 ---
 sidebar_label: "Design Checker"
 sidebar_position: 15
+title: "Design Checker API"
+description: "P&ID 도면의 설계 오류 검출 및 규정 준수 검증 API의 검사 규칙과 출력 구조를 정리한다."
 ---
 
 # Design Checker API
 
-> **P&ID 도면 설계 오류 검출 및 규정 검증**
+> P&ID 도면 설계 오류 검출 및 규정 검증 (포트 5019, CPU 전용).
 
 ---
 
@@ -194,3 +196,11 @@ ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analy
 |------|------|------|
 | RAM | 512MB | 1GB |
 | CPU 코어 | 2 | 4 |
+
+---
+
+## 관련 문서
+
+- [PID Analyzer API](/docs/api-reference/pid-analyzer) -- Design Checker의 입력 연결 데이터 제공
+- [Line Detector API](/docs/api-reference/line-detector) -- 라인 검출 결과 입력
+- [YOLO Detection API](/docs/api-reference/yolo) -- P&ID 심볼 검출 (model_type=pid_class_aware)

@@ -1,11 +1,13 @@
 ---
 sidebar_label: "Surya OCR"
 sidebar_position: 6
+title: "Surya OCR API"
+description: "90개 이상 언어를 지원하며 레이아웃 분석 기능을 포함한 OCR API를 정리한다."
 ---
 
 # Surya OCR API
 
-> **90+ 언어 지원, 레이아웃 분석 포함 OCR**
+> 90개 이상 언어를 지원하며 레이아웃 분석 기능을 포함한 OCR (포트 5013).
 
 ---
 
@@ -176,3 +178,11 @@ ImageInput → Surya OCR (languages=ko,en)
 | 파라미터 | 영향 |
 |----------|------|
 | detect_layout | OCR만: 3GB, 레이아웃: 5GB |
+
+---
+
+## 관련 문서
+
+- [DocTR API](/docs/api-reference/doctr) -- 2단계 파이프라인 OCR 대안
+- [EasyOCR API](/docs/api-reference/easyocr) -- CPU 친화적 다국어 OCR
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- 다중 OCR 엔진 앙상블

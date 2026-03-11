@@ -1,9 +1,13 @@
 ---
 sidebar_label: "OCR Ensemble"
 sidebar_position: 15
+title: OCR 앙상블 투표
+description: 다중 OCR 엔진 출력을 가중 투표로 통합하는 앙상블 방법론과 관련 연구 정리
 ---
 
 # OCR Ensemble: Multi-Engine Voting Methods
+
+> 다중 OCR 엔진의 가중 투표 앙상블 방법론과 AX 시스템 적용 사례를 정리합니다.
 
 ## 관련 논문
 
@@ -86,5 +90,8 @@ def weighted_vote(results, weights):
 - LMV-RPA: https://arxiv.org/abs/2412.17965
 - Post-OCR Correction: https://arxiv.org/abs/2109.06264
 
----
-*AX OCR Ensemble은 위 연구들을 참고하여 도면 OCR에 최적화된 가중 투표 방식을 구현합니다.*
+## 관련 문서
+
+- [PaddleOCR](./paddleocr.md) -- 앙상블 구성 엔진 중 하나
+- [Tesseract LSTM](./tesseract-lstm.md) -- 앙상블 구성 엔진 중 하나
+- [TrOCR](./trocr-transformer.md) -- 앙상블 구성 엔진 중 하나

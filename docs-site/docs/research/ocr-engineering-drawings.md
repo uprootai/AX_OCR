@@ -1,9 +1,13 @@
 ---
 sidebar_label: "eDOCr v1"
 sidebar_position: 1
+title: "eDOCr v1 — 공학 도면 OCR"
+description: "eDOCr 초기 버전 — CRAFT 텍스트 검출과 CRNN 인식 기반 5단계 파이프라인으로 도면 정보 자동 추출"
 ---
 
 # Optical Character Recognition on Engineering Drawings
+
+> eDOCr 초기 버전으로, CRAFT + CRNN 기반 5단계 파이프라인을 통해 공학 도면의 정보 블록, GD&T, 치수 정보를 자동 추출한다.
 
 ## 논문 정보
 - **제목**: Optical character recognition on engineering drawings to achieve automation in production quality control
@@ -107,3 +111,10 @@ sidebar_position: 1
    - 어떤 측정 장치를 사용할지
    - 부품의 어느 위치를 측정할지
    - 특정 요구사항을 어떻게 확인할지
+
+## 관련 문서
+
+- [eDOCr2 API](/docs/api-reference/edocr2) - eDOCr2 API 서비스 (Port 5002)
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 후속 논문 (Vision Language 통합)
+- [Skin Model Tolerance](/docs/research/geometric-tolerance) - 기하공차 분석 방법론
+- [OCR Ensemble Voting](/docs/research/ocr-ensemble-voting) - 다중 OCR 앙상블

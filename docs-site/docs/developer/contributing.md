@@ -2,9 +2,12 @@
 sidebar_position: 1
 sidebar_label: Contributing
 title: Contributing to AX POC
+description: Git Flow 브랜치 전략, 커밋 컨벤션, 코드 스타일, PR 프로세스 등 코드 기여 가이드
 ---
 
 # Contributing to AX POC Microservices
+
+> Git Flow 브랜치 전략, Conventional Commits, Python/TypeScript 코드 스타일, PR 프로세스를 정의한다.
 
 ## Git Workflow
 
@@ -312,3 +315,9 @@ ax/poc/
 - GitHub Issues: Technical questions, bug reports
 - Pull Requests: Code review, feedback
 - Documentation: Check README.md and docs/
+
+## 관련 문서
+
+- [Git Workflow](/docs/developer/git-workflow) — 브랜치 전략 및 커밋 워크플로우 상세
+- [LLM Usability](/docs/developer/llm-usability) — LLM 친화적 코드 작성 가이드
+- [CI 파이프라인](/docs/devops/ci-pipeline) — 자동화된 린트, 테스트, 빌드

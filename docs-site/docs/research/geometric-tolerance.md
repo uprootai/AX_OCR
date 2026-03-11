@@ -1,9 +1,13 @@
 ---
 sidebar_label: "Skin Model Tolerance"
 sidebar_position: 3
+title: "금속 적층 제조의 기하공차 및 조립 가능성 추정"
+description: "Skin Model Shapes와 FEM 시뮬레이션을 결합한 금속 AM 부품의 기하공차 예측 및 조립 가능성 검증 방법론"
 ---
 
 # 금속 적층 제조의 기하공차 및 제조 조립 가능성 추정
+
+> Skin Model Shapes와 열-기계적 FEM 시뮬레이션을 결합하여 금속 적층 제조 부품의 기하공차와 조립 가능성을 예측하는 방법론을 제시한다.
 
 ## 논문 정보
 - **제목**: Geometric tolerance and manufacturing assemblability estimation of metal additive manufacturing (AM) processes
@@ -338,4 +342,10 @@ epsilon = epsilon_e + epsilon_p + epsilon_t (총 변형률)
    - GD&T 국제 표준 따름
    - 산업 적용 가능한 방법론
 
-**핵심 메시지**: Skin model shapes와 물리 기반 시뮬레이션을 결합하여 금속 AM의 기하학적 품질과 조립 가능성을 제조 전에 신뢰성 있게 예측할 수 있으며, 이는 정밀 제조 분야에서 금속 AM의 적용을 확대하는 데 기여할 것입니다.
+**핵심 메시지**: Skin model shapes와 물리 기반 시뮬레이션을 결합하여 금속 AM의 기하학적 품질과 조립 가능성을 제조 전에 예측할 수 있다.
+
+## 관련 문서
+
+- [SkinModel API](/docs/api-reference/skinmodel) - SkinModel API 서비스 (Port 5003)
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 치수 및 GD&T 정보 추출
+- [eDOCr v1](/docs/research/ocr-engineering-drawings) - 공학 도면 OCR

@@ -1,11 +1,13 @@
 ---
 sidebar_label: "PID Analyzer"
 sidebar_position: 14
+title: "PID Analyzer API"
+description: "P&ID 도면의 심볼 간 연결성 분석 및 BOM/밸브/장비 리스트 추출 API를 정리한다."
 ---
 
 # PID Analyzer API
 
-> **P&ID 연결성 분석 및 BOM 추출**
+> P&ID 연결성 분석 및 BOM 추출 (포트 5018, CPU 전용).
 
 ---
 
@@ -208,3 +210,11 @@ ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analy
 |------|------|------|
 | RAM | 1GB | 2GB |
 | CPU 코어 | 2 | 4 |
+
+---
+
+## 관련 문서
+
+- [Line Detector API](/docs/api-reference/line-detector) -- PID Analyzer의 입력 라인 데이터 제공
+- [Design Checker API](/docs/api-reference/design-checker) -- PID Analyzer 결과로 설계 규칙 검증
+- [YOLO Detection API](/docs/api-reference/yolo) -- P&ID 심볼 검출 (model_type=pid_class_aware)

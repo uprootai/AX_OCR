@@ -1,9 +1,13 @@
 ---
 sidebar_label: "EasyOCR"
 sidebar_position: 14
+title: "EasyOCR: Ready-to-use OCR"
+description: "JaidedAI 개발 80+ 언어 지원 범용 OCR 모듈 — CRAFT 검출 + CRNN 인식 기반"
 ---
 
 # EasyOCR: Ready-to-use OCR
+
+> JaidedAI 개발 80+ 언어 지원 범용 OCR 모듈로, CRAFT 텍스트 검출과 CRNN 인식을 사용한다.
 
 ## 프로젝트 정보
 - **이름**: EasyOCR
@@ -65,3 +69,11 @@ EasyOCR은 80개 이상의 언어를 지원하는 범용 OCR 파이썬 모듈로
 
 ---
 *참고: EasyOCR은 전용 학술 논문 없이 GitHub 프로젝트로 관리됩니다. CRAFT와 CRNN 논문의 구현을 사용합니다.*
+
+## 관련 문서
+
+- [EasyOCR API](/docs/api-reference/easyocr) - EasyOCR API 서비스 (Port 5015)
+- [OCR Ensemble Voting](/docs/research/ocr-ensemble-voting) - 다중 OCR 엔진 앙상블 방법론
+- [DocTR](/docs/research/doctr-document) - 2단계 파이프라인 OCR
+- [PaddleOCR](/docs/research/paddleocr) - PP-OCR 경량 OCR 시스템
+- [Tesseract LSTM](/docs/research/tesseract-lstm) - Tesseract LSTM OCR 엔진

@@ -1,9 +1,13 @@
 ---
 sidebar_label: "ESRGAN"
 sidebar_position: 8
+title: "ESRGAN: Enhanced Super-Resolution GAN"
+description: "RRDB 아키텍처와 Relativistic Discriminator를 적용한 이미지 초해상도 생성 모델"
 ---
 
 # ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks
+
+> SRGAN을 개선한 초해상도 모델로, RRDB 아키텍처와 Relativistic Discriminator를 사용하여 저해상도 이미지를 업스케일링한다.
 
 ## 논문 정보
 - **제목**: ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks
@@ -59,3 +63,9 @@ SRGAN(Super-Resolution GAN)은 사실적인 텍스처를 생성할 수 있지만
 - GitHub (ESRGAN): https://github.com/xinntao/ESRGAN
 - GitHub (Real-ESRGAN): https://github.com/xinntao/Real-ESRGAN
 - BasicSR: https://github.com/XPixelGroup/BasicSR
+
+## 관련 문서
+
+- [ESRGAN API](/docs/api-reference/esrgan) - ESRGAN API 서비스 (Port 5010)
+- [YOLOv11 Detection](/docs/research/yolov11-detection) - 객체 검출 모델
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 도면 텍스트 인식 (전처리 후 사용)

@@ -1,11 +1,13 @@
 ---
 sidebar_label: "YOLO"
 sidebar_position: 1
+title: "YOLO Detection API"
+description: "YOLOv11 기반 기계 도면 심볼 검출 API의 파라미터, 엔드포인트, 검출 클래스를 정리한다."
 ---
 
 # YOLO Detection API
 
-> **YOLOv11 기반 기계 도면 심볼 검출**
+> YOLOv11 기반 기계 도면 심볼 검출 API (포트 5005).
 
 ---
 
@@ -171,3 +173,11 @@ print(response.json())
 | RAM | 2GB | 3GB |
 | CPU 코어 | 4 | 8 |
 | CUDA | 11.8+ | 12.x |
+
+---
+
+## 관련 문서
+
+- [eDOCr2 API](/docs/api-reference/edocr2) -- YOLO 검출 후 치수 인식에 사용
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- YOLO 검출 결과와 연계한 앙상블 OCR
+- [Dockerization](/docs/deployment/dockerization) -- YOLO API 도커라이징 상세

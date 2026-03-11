@@ -2,12 +2,12 @@
 sidebar_position: 3
 sidebar_label: On-Premise Operation
 title: 온프레미스 운영 가이드
+description: 고객사 교육 계획, 자동 백업/복구, 업데이트 절차, 트러블슈팅, 성능 튜닝
 ---
 
-# AX 도면 분석 시스템 - 온프레미스 운영 가이드
+# 온프레미스 운영 가이드
 
-> 고객사 교육, 유지보수, 백업/복구, 업데이트 관련 운영 가이드
-> 문서 버전: 1.0.0
+> 고객사 교육 계획, 자동 백업/복구, 업데이트 절차, 트러블슈팅, 성능 튜닝을 정리한다.
 
 ---
 
@@ -298,7 +298,7 @@ self.model.half()  # FP32 -> FP16 (메모리 절반)
 
 | Component | Docker Rebuild 후 상태 | 작동 여부 |
 |-----------|-------------------|---------|
-| **Frontend (web-ui)** | 완벽하게 작동 | 모든 파라미터 표시됨 |
+| **Frontend (web-ui)** | 정상 작동 | 모든 파라미터 표시됨 |
 | **Backend APIs** | 부분 작동 | 새 파라미터 무시됨 |
 | **기존 기능** | 정상 작동 | 영향 없음 |
 
@@ -341,7 +341,7 @@ curl http://localhost:5002/health  # eDOCr2 API
 
 | Feature | Frontend | Backend | 실제 작동 |
 |---------|----------|---------|---------|
-| **기존 기능** | Yes | Yes | 완벽 |
+| **기존 기능** | Yes | Yes | 정상 |
 | **새 파라미터 UI 표시** | Yes | - | 표시됨 |
 | **새 파라미터 처리** | Yes | No | 무시됨 |
 | **YOLO 특화 모델** | Yes | No | 사용 안 됨 |
@@ -357,3 +357,10 @@ curl http://localhost:5002/health  # eDOCr2 API
 상업적 라이선스
 온프레미스 단일 서버 라이선스
 ```
+
+## 관련 문서
+
+- [온프레미스 인프라 구성](/docs/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
+- [관리자 매뉴얼](/docs/deployment/admin-manual) — 서비스 관리 및 모니터링
+- [시스템 설치 가이드](/docs/deployment/installation) — 설치 절차 및 환경 설정
+- [Dockerization](/docs/deployment/dockerization) — Docker 컨테이너화 가이드

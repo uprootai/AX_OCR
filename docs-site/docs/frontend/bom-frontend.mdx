@@ -6,6 +6,8 @@ description: Blueprint AI BOM 프론트엔드
 
 # BOM 프론트엔드
 
+> 포트 3000에서 구동되는 BOM 전용 React 앱의 페이지 구조, 세션 생명주기, API 클라이언트 레이어를 설명합니다.
+
 별도의 React 앱으로 구동되는 Blueprint AI BOM 전용 프론트엔드입니다 (포트 3000).
 
 ## 아키텍처
@@ -146,3 +148,9 @@ API 모듈 구조 (`lib/api/`):
 ## 검증 임계값
 
 자동 검증 판정 기준 (`constants.ts`): `AUTO_APPROVE` 0.9 (자동 승인), `HIGH_CONFIDENCE` 0.7 (녹색), `LOW_CONFIDENCE` 0.5 (경고).
+
+## 관련 문서
+
+- [프론트엔드 아키텍처](./index.mdx) -- 전체 프론트엔드 구조 개요
+- [BOM 및 견적](../bom-generation/index.mdx) -- BOM 백엔드 파이프라인
+- [내보내기 형식](../bom-generation/export-formats.md) -- Excel/PDF/JSON 내보내기 사양

@@ -1,6 +1,7 @@
 ---
 sidebar_label: Architecture Decisions
 sidebar_position: 5
+title: Architecture Decisions
 description: AI 모델 선정 기준 및 의사결정 매트릭스 (eDOCr vs VL API vs YOLOv11)
 ---
 

@@ -2,11 +2,12 @@
 sidebar_position: 5
 sidebar_label: LLM Usability
 title: LLM 사용성 가이드
+description: LLM이 코드베이스를 탐색, 수정, 확장할 때 따르는 표준화된 API 구조 및 패턴 안내
 ---
 
 # LLM 사용성 가이드 (LLM Usability Guide)
 
-**Purpose**: LLM이 이 코드베이스를 쉽게 이해하고 수정할 수 있도록 하는 가이드
+> LLM이 이 코드베이스를 탐색하고 수정할 때 사용하는 표준 API 구조, 파일 규모, 코드 탐색 전략을 설명합니다.
 
 ---
 
@@ -749,3 +750,9 @@ models/
 | **Add Feature** | Difficult | Easy |
 | **Delete Feature** | Risky | Safe |
 | **Code Search** | Slow | Fast |
+
+## 관련 문서
+
+- [Git Workflow](./git-workflow.md) -- 브랜치 전략 및 커밋 규칙
+- [동적 API 시스템](./dynamic-api-system.md) -- 런타임 API 등록 시스템
+- [프론트엔드 아키텍처](../frontend/index.mdx) -- 프론트엔드 디렉토리 구조

@@ -1,9 +1,13 @@
 ---
 sidebar_label: "Tesseract LSTM"
 sidebar_position: 11
+title: Tesseract LSTM OCR
+description: Tesseract 4.0+ LSTM 기반 OCR 엔진의 아키텍처, 엔진 모드, AX 적용 정리
 ---
 
 # Tesseract LSTM OCR
+
+> Tesseract OCR의 LSTM 엔진(v4.0+) 아키텍처와 AX 포트 5008 적용을 정리합니다.
 
 ## 프로젝트 정보
 - **이름**: Tesseract OCR Engine
@@ -60,3 +64,9 @@ Tesseract 4.0은 LSTM(Long Short-Term Memory) 신경망 기반 인식 엔진을 
 - GitHub: https://github.com/tesseract-ocr/tesseract
 - 문서: https://tesseract-ocr.github.io/tessdoc/
 - 훈련 가이드: https://tesseract-ocr.github.io/tessdoc/tess5/TrainingTesseract-5.html
+
+## 관련 문서
+
+- [OCR 앙상블 투표](./ocr-ensemble-voting.md) -- 다중 엔진 투표 앙상블
+- [PaddleOCR](./paddleocr.md) -- 경량 다국어 OCR
+- [TrOCR](./trocr-transformer.md) -- Transformer 기반 OCR

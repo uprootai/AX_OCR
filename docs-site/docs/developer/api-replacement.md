@@ -1,6 +1,8 @@
 ---
 sidebar_label: "API Replacement"
 sidebar_position: 6
+title: API 교체 가이드
+description: 기존 API를 새로운 구현체로 물리적/논리적으로 교체하는 절차 및 FAQ
 ---
 
 # API 교체 가이드
@@ -531,9 +533,10 @@ curl http://localhost:8000/api/v1/health
 
 ## 관련 문서
 
-- **DYNAMIC_API_SYSTEM_GUIDE.md** - Dashboard를 통한 API 추가
-- **DEPLOYMENT_GUIDE.md** - 개별 API 배포 방법
-- **TROUBLESHOOTING.md** - API 관련 문제 해결
+- [동적 API 추가 시스템](/docs/developer/dynamic-api-system) — Dashboard를 통한 API 추가
+- [API 스펙 시스템](/docs/developer/api-spec-system) — YAML 기반 API 표준화
+- [Dockerization](/docs/deployment/dockerization) — Docker 컨테이너화 가이드
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션
 
 ---
 

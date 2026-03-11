@@ -6,6 +6,8 @@ description: GD&T 공차 분석 및 제조 공정 평가를 위한 SkinModel Sha
 
 # 공차 분석
 
+> SkinModel Shapes를 사용하여 OCR에서 추출된 GD&T 데이터를 분석하고, 제조 가능성 및 누적 공차를 평가한다.
+
 공차 분석(Tolerance Analysis) 단계는 SkinModel Shapes를 사용하여 엔지니어링 도면에서 추출된 기하 공차(GD&T, Geometric Dimensioning and Tolerancing) 데이터를 분석합니다. 제조 가능성, 누적 공차(Tolerance Stack-up), 공정 적합성을 평가합니다.
 
 ## 개요
@@ -139,3 +141,10 @@ Content-Type: multipart/form-data
 - `correlation_length` 파라미터는 표면 편차의 공간 상관 방식을 제어합니다. 값이 작을수록 더 미세한 표면 텍스처를 모델링합니다.
 - 공차 분석 결과는 공정 난이도에 따른 비용 계수를 조정하여 제조 견적에 직접적으로 영향을 미칩니다.
 - 여러 결합 부품이 있는 조립체의 경우, 누적 공차 분석이 개별 공차의 누적 효과를 고려합니다.
+
+## 관련 문서
+
+- [분석 파이프라인](/docs/analysis-pipeline/) -- 파이프라인 전체 개요
+- [OCR 처리](/docs/analysis-pipeline/ocr-processing) -- 공차 분석에 입력되는 치수/GD&T 추출
+- [BOM 및 견적](/docs/bom-generation/) -- 공차 분석 결과가 비용에 반영되는 구조
+- [노드 카탈로그](/docs/blueprintflow/node-catalog) -- BlueprintFlow SkinModel 노드 파라미터

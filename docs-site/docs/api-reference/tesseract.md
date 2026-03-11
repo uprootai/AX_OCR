@@ -1,11 +1,13 @@
 ---
 sidebar_label: "Tesseract"
 sidebar_position: 4
+title: "Tesseract OCR API"
+description: "Google Tesseract 기반 CPU 전용 OCR 엔진 API의 파라미터와 사용법을 정리한다."
 ---
 
 # Tesseract OCR API
 
-> **Google Tesseract 기반 오픈소스 OCR 엔진**
+> Google Tesseract 기반 오픈소스 OCR 엔진 (포트 5008, CPU 전용).
 
 ---
 
@@ -154,3 +156,11 @@ ImageInput → OCR Ensemble (Tesseract 15% 가중치)
 | RAM | 512MB | 1GB |
 | CPU 코어 | 2 | 4 |
 | 디스크 | 500MB | 1GB |
+
+---
+
+## 관련 문서
+
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- Tesseract 15% 가중치로 참여
+- [PaddleOCR API](/docs/api-reference/paddleocr) -- 다국어 OCR 대안
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 기계 도면 특화 OCR

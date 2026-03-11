@@ -1,11 +1,13 @@
 ---
 sidebar_label: "DocTR"
 sidebar_position: 7
+title: "DocTR API"
+description: "2단계 파이프라인(Detection + Recognition) 방식의 문서 OCR API를 정리한다."
 ---
 
 # DocTR API
 
-> **2단계 파이프라인 OCR (Detection + Recognition)**
+> 2단계 파이프라인 OCR (Detection + Recognition) (포트 5014).
 
 ---
 
@@ -202,3 +204,11 @@ ImageInput → ESRGAN(2x) → DocTR
 | 파라미터 | 영향 |
 |----------|------|
 | det_arch | mobilenet: 1.5GB, resnet50: 2.5GB |
+
+---
+
+## 관련 문서
+
+- [Surya OCR API](/docs/api-reference/surya-ocr) -- 레이아웃 분석 포함 OCR 대안
+- [ESRGAN API](/docs/api-reference/esrgan) -- 저해상도 도면 전처리 후 DocTR 연계
+- [EasyOCR API](/docs/api-reference/easyocr) -- CPU 친화적 OCR 대안

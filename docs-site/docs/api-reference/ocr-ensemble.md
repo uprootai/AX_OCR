@@ -1,11 +1,13 @@
 ---
 sidebar_label: "OCR Ensemble"
 sidebar_position: 9
+title: "OCR Ensemble API"
+description: "eDOCr2, PaddleOCR, Tesseract, TrOCR 4개 엔진의 가중 투표 앙상블 OCR API를 정리한다."
 ---
 
 # OCR Ensemble API
 
-> **4개 OCR 엔진 가중 투표 앙상블**
+> 4개 OCR 엔진(eDOCr2, PaddleOCR, Tesseract, TrOCR) 가중 투표 앙상블 (포트 5011).
 
 ---
 
@@ -189,3 +191,11 @@ ImageInput → eDOCr2 (단일)
 | VRAM | 2GB | 4GB |
 | RAM | 4GB | 8GB |
 | 처리 시간 | 30초 | 60초 |
+
+---
+
+## 관련 문서
+
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 앙상블 구성 엔진 (40% 가중치)
+- [PaddleOCR API](/docs/api-reference/paddleocr) -- 앙상블 구성 엔진 (35% 가중치)
+- [ESRGAN API](/docs/api-reference/esrgan) -- 저해상도 도면 전처리 후 앙상블 연계

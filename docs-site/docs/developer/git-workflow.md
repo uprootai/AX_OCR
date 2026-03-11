@@ -2,9 +2,12 @@
 sidebar_position: 2
 sidebar_label: Git Workflow
 title: Git Workflow Guide
+description: Git Flow 브랜치 전략, Conventional Commits, 모듈별 커밋, 일상 워크플로우 안내
 ---
 
 # Git Workflow Guide
+
+> 브랜치 전략, 커밋 규칙, 모듈별 단계적 커밋, 비상 절차를 안내합니다.
 
 ## Quick Reference
 
@@ -286,3 +289,8 @@ When pushing, GitHub Actions will:
 4. Security scan
 5. Deploy to staging (on develop)
 6. Deploy to production (on main)
+
+## 관련 문서
+
+- [LLM 사용성 가이드](./llm-usability.md) -- LLM이 코드베이스를 탐색하는 패턴
+- [동적 API 시스템](./dynamic-api-system.md) -- 런타임 API 등록 시스템

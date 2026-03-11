@@ -1,11 +1,13 @@
 ---
 sidebar_label: "eDOCr2"
 sidebar_position: 2
+title: "eDOCr2 API"
+description: "기계 도면 특화 OCR API로 치수, GD&T, 텍스트를 자동 추출한다."
 ---
 
 # eDOCr2 API
 
-> **기계 도면 특화 OCR - 치수, GD&T, 텍스트 자동 추출**
+> 기계 도면 특화 OCR -- 치수, GD&T, 텍스트 자동 추출 (포트 5002).
 
 ---
 
@@ -218,3 +220,11 @@ ImageInput → ESRGAN(2x) → eDOCr2
 | 파라미터 | 영향 |
 |----------|------|
 | extract_tables | 테이블 추출 시 메모리 2배 |
+
+---
+
+## 관련 문서
+
+- [YOLO Detection API](/docs/api-reference/yolo) -- eDOCr2 앞단에서 심볼 검출 수행
+- [SkinModel API](/docs/api-reference/skinmodel) -- 추출된 치수로 공차 분석
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- eDOCr2를 포함한 4엔진 앙상블

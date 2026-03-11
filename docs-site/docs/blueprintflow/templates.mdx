@@ -6,6 +6,8 @@ description: 일반적인 기계 도면 분석 시나리오를 위한 사전 구
 
 # 템플릿
 
+> 표준 분석, P&ID, OCR 비교, BOM 생성, 리비전 비교 등 5개 사전 구성 워크플로우 템플릿과 커스터마이징 방법을 설명한다.
+
 BlueprintFlow에는 일반적인 분석 시나리오를 위한 사전 구성 워크플로우 템플릿이 포함되어 있습니다. 템플릿은 노드를 추가, 제거 또는 재설정하여 커스터마이징할 수 있는 시작점을 제공합니다.
 
 ## 제공 템플릿
@@ -180,4 +182,11 @@ BlueprintFlow에는 일반적인 분석 시나리오를 위한 사전 구성 워
 
 - 템플릿 파라미터는 `gateway-api/api_specs/*.yaml`에서 검증된 기본값을 사용합니다. API 스펙에 정의된 파라미터만 포함됩니다.
 - 템플릿은 JSON 파일로 내보내어 팀원 간에 공유할 수 있습니다.
-- YOLO의 기본 신뢰도(confidence) 값 **0.4**는 기계 도면에 최적화되어 의도적으로 설정된 값입니다.
+- YOLO의 기본 신뢰도(confidence) 값 **0.4**는 기계 도면에 맞게 의도적으로 설정된 값입니다.
+
+## 관련 문서
+
+- [BlueprintFlow](/docs/blueprintflow/) -- BlueprintFlow 개요
+- [노드 카탈로그](/docs/blueprintflow/node-catalog) -- 노드 파라미터 전체 레퍼런스
+- [DAG 엔진](/docs/blueprintflow/dag-engine) -- 워크플로우 실행 엔진
+- [최적화](/docs/blueprintflow/optimization) -- 추가 템플릿 및 모델 다양화 로드맵

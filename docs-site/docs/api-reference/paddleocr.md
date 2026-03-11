@@ -1,11 +1,13 @@
 ---
 sidebar_label: "PaddleOCR"
 sidebar_position: 3
+title: "PaddleOCR API"
+description: "PaddlePaddle 기반 다국어 범용 OCR API의 파라미터와 사용법을 정리한다."
 ---
 
 # PaddleOCR API
 
-> **PaddlePaddle 기반 다국어 범용 OCR**
+> PaddlePaddle 기반 다국어 범용 OCR (포트 5006).
 
 ---
 
@@ -170,3 +172,11 @@ ImageInput → OCR Ensemble (PaddleOCR 35% 가중치)
 | 파라미터 | 영향 |
 |----------|------|
 | use_angle_cls | 처리 시간 1.5배 증가 |
+
+---
+
+## 관련 문서
+
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- PaddleOCR 35% 가중치로 참여
+- [Dockerization](/docs/deployment/dockerization) -- PaddleOCR API 도커라이징 상세
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 기계 도면 특화 OCR 대안

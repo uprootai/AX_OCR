@@ -1,11 +1,13 @@
 ---
 sidebar_label: "TrOCR"
 sidebar_position: 5
+title: "TrOCR API"
+description: "Microsoft Transformer 기반 OCR API로 손글씨 및 장면 텍스트 인식에 특화되어 있다."
 ---
 
 # TrOCR API
 
-> **Microsoft Transformer 기반 OCR - 손글씨 및 장면 텍스트 특화**
+> Microsoft Transformer 기반 OCR -- 손글씨 및 장면 텍스트 특화 (포트 5009).
 
 ---
 
@@ -150,4 +152,12 @@ YOLO로 텍스트 영역 검출 → 각 영역을 TrOCR로 개별 처리
 | 파라미터 | 영향 |
 |----------|------|
 | model_type | large 모델 → VRAM 2배 |
-| num_beams | 빔 수 ↑ → 메모리/시간 증가 |
+| num_beams | 빔 수 증가 시 메모리/시간 증가 |
+
+---
+
+## 관련 문서
+
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- TrOCR 10% 가중치로 참여
+- [YOLO Detection API](/docs/api-reference/yolo) -- 텍스트 영역 검출 후 TrOCR로 인식
+- [EasyOCR API](/docs/api-reference/easyocr) -- CPU 친화적 OCR 대안

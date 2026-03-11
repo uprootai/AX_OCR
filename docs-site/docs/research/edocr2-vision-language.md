@@ -1,9 +1,13 @@
 ---
 sidebar_label: "eDOCr2 + VL"
 sidebar_position: 2
+title: "eDOCr2 + Vision Language 통합"
+description: "eDOCr2 프레임워크의 후속 연구 — 전통 OCR과 VL 모델(Qwen2-VL, GPT-4)을 결합한 기계 도면 텍스트 인식"
 ---
 
 # Optimizing Text Recognition in Mechanical Drawings: A Comprehensive Approach
+
+> eDOCr2 프레임워크의 후속 연구로, 전통 OCR과 Vision Language 모델을 결합하여 기계 도면의 치수, GD&T, 테이블 정보를 추출한다.
 
 ## 논문 정보
 - **제목**: Optimizing Text Recognition in Mechanical Drawings: A Comprehensive Approach
@@ -251,4 +255,12 @@ eDOCr2는 전통적인 OCR과 최신 Vision Language 모델을 결합하여:
 - **유연한 통합**: VL 모델을 선택적으로 통합 가능
 - **실용적 응용**: 품질 관리, BOM 생성, 제조 평가 등
 
-하이브리드 접근법이 제조 산업의 자동화, 효율성, 정확성 향상에 중요한 역할을 할 것으로 전망됩니다.
+하이브리드 접근법이 제조 산업의 자동화, 효율성, 정확성 향상에 기여할 수 있다.
+
+## 관련 문서
+
+- [eDOCr2 API](/docs/api-reference/edocr2) - eDOCr2 API 서비스 (Port 5002)
+- [eDOCr v1 — OCR on Engineering Drawings](/docs/research/ocr-engineering-drawings) - 이전 버전 논문
+- [Qwen2-VL](/docs/research/qwen2-vl) - Vision-Language 모델 논문
+- [VL API](/docs/api-reference/vl) - Vision-Language API 서비스 (Port 5004)
+- [OCR Ensemble Voting](/docs/research/ocr-ensemble-voting) - 다중 OCR 엔진 앙상블

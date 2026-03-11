@@ -1,11 +1,13 @@
 ---
 sidebar_label: "SkinModel"
 sidebar_position: 13
+title: "SkinModel API"
+description: "FEM 기반 기하공차 예측 및 제조 가능성 분석 API의 파라미터와 출력 구조를 정리한다."
 ---
 
 # SkinModel API
 
-> **FEM 기반 기하공차 예측 및 제조 가능성 분석**
+> FEM 기반 기하공차 예측 및 제조 가능성 분석 (포트 5003).
 
 ---
 
@@ -193,4 +195,12 @@ ImageInput → YOLO → eDOCr2 → SkinModel → Knowledge
 
 | 파라미터 | 영향 |
 |----------|------|
-| task | manufacturability → 시간 증가 |
+| task | manufacturability 시 시간 증가 |
+
+---
+
+## 관련 문서
+
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 치수 추출 후 SkinModel로 공차 분석
+- [Knowledge API](/docs/api-reference/knowledge) -- 공차 정보 기반 유사 부품 검색
+- [YOLO Detection API](/docs/api-reference/yolo) -- 심볼 검출 후 파이프라인 연계

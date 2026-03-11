@@ -1,11 +1,13 @@
 ---
 sidebar_label: "EasyOCR"
 sidebar_position: 8
+title: "EasyOCR API"
+description: "80개 이상 언어를 지원하며 CPU 환경에서도 동작하는 범용 OCR API를 정리한다."
 ---
 
 # EasyOCR API
 
-> **80+ 언어 지원, CPU 친화적, 한국어 특화 OCR**
+> 80개 이상 언어 지원, CPU 친화적 범용 OCR (포트 5015).
 
 ---
 
@@ -178,3 +180,11 @@ ImageInput → EasyOCR (paragraph=true)
 | 파라미터 | 영향 |
 |----------|------|
 | batch_size | batch1: 2GB, batch8: 4GB |
+
+---
+
+## 관련 문서
+
+- [PaddleOCR API](/docs/api-reference/paddleocr) -- 다국어 OCR 대안
+- [Surya OCR API](/docs/api-reference/surya-ocr) -- 레이아웃 분석 포함 OCR
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- 다중 OCR 엔진 앙상블

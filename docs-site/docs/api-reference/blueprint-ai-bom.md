@@ -1,11 +1,13 @@
 ---
 sidebar_label: "Blueprint AI BOM"
 sidebar_position: 16
+title: "Blueprint AI BOM API"
+description: "Human-in-the-Loop 방식으로 도면을 분석하고 BOM을 생성하는 API의 엔드포인트와 검증 큐를 정리한다."
 ---
 
 # Blueprint AI BOM API
 
-> **Human-in-the-Loop 기반 도면 분석 및 BOM 생성**
+> Human-in-the-Loop 기반 도면 분석 및 BOM 생성 (포트 5020).
 
 ---
 
@@ -189,3 +191,11 @@ ImageInput → ESRGAN(2x) → Blueprint AI BOM
 | RAM | 4GB | 8GB |
 | CPU 코어 | 4 | 8 |
 | 디스크 | 20GB | 50GB |
+
+---
+
+## 관련 문서
+
+- [YOLO Detection API](/docs/api-reference/yolo) -- BOM 분석 전 심볼 검출
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 치수 인식 엔진
+- [ESRGAN API](/docs/api-reference/esrgan) -- 저해상도 도면 전처리

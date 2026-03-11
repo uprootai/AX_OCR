@@ -6,6 +6,8 @@ description: 능동 학습(Active Learning) 파이프라인
 
 # 능동 학습 (Active Learning)
 
+> 신뢰도 기반 4단계 우선순위로 불확실한 예측 결과를 사람에게 검토 요청하고, 검증 로그를 수집하여 모델 재학습에 활용하는 능동 학습 파이프라인.
+
 ## 개요
 
 불확실한 예측 결과를 우선적으로 사람에게 검토 요청하여 모델을 효율적으로 개선합니다.
@@ -143,3 +145,10 @@ training_data = service.get_training_data(action_filter="modified")
 2. 에이전트 (Claude Sonnet)가 우선 검토
 3. 에이전트 불확실 → L3 사람 검토(Human Review)로 에스컬레이션
 4. 검토 결과 → `VerificationLog` 에 기록 → 학습 데이터로 수집
+
+## 관련 문서
+
+- [품질 보증](/docs/quality-assurance) — QA 체계 개요
+- [피드백 파이프라인](/docs/quality-assurance/feedback-pipeline) — 검증 완료 데이터의 YOLO 데이터셋 변환
+- [GT 비교](/docs/quality-assurance/gt-comparison) — 정답 데이터와 비교 평가
+- [에이전트 검증](/docs/agent-verification) — L2 Agent Review 연동

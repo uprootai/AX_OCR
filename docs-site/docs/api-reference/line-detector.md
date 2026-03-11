@@ -1,11 +1,13 @@
 ---
 sidebar_label: "Line Detector"
 sidebar_position: 11
+title: "Line Detector API"
+description: "P&ID 도면의 배관/신호선 검출 및 연결성 분석 API의 파라미터와 출력 구조를 정리한다."
 ---
 
 # Line Detector API
 
-> **P&ID 라인(배관/신호선) 검출 및 연결성 분석**
+> P&ID 라인(배관/신호선) 검출 및 연결성 분석 (포트 5016, CPU 전용).
 
 ---
 
@@ -180,3 +182,11 @@ ImageInput → Line Detector
 |----------|------|
 | method | combined → 처리 시간 2배 |
 | find_intersections | 추가 계산 필요 |
+
+---
+
+## 관련 문서
+
+- [PID Analyzer API](/docs/api-reference/pid-analyzer) -- Line Detector 결과를 입력으로 연결 분석
+- [YOLO Detection API](/docs/api-reference/yolo) -- P&ID 심볼 검출 (model_type=pid_class_aware)
+- [Design Checker API](/docs/api-reference/design-checker) -- P&ID 설계 규칙 검증

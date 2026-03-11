@@ -2,12 +2,12 @@
 sidebar_position: 4
 sidebar_label: Admin Manual
 title: 관리자 매뉴얼
+description: 서비스 관리, Docker 컨테이너 운영, 모니터링, 로그 관리, 백업/복구, 문제 해결
 ---
 
-# AX 도면 분석 시스템 - 관리자 매뉴얼
+# 관리자 매뉴얼
 
-> 시스템 운영 및 관리 가이드
-> 버전: 2.0.0
+> 서비스 관리, Docker 컨테이너 운영, 모니터링, 로그 관리, 백업/복구, 문제 해결 절차를 정리한다.
 
 ---
 
@@ -403,3 +403,10 @@ services:
 # crontab -e
 0 2 * * * /opt/ax-drawing-analysis/scripts/backup.sh
 ```
+
+## 관련 문서
+
+- [시스템 설치 가이드](/docs/deployment/installation) — 설치 절차 및 환경 설정
+- [온프레미스 운영 가이드](/docs/deployment/on-premise-operation) — 교육, 백업, 업데이트
+- [온프레미스 인프라 구성](/docs/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션

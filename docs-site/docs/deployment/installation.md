@@ -2,12 +2,12 @@
 sidebar_position: 1
 sidebar_label: Installation
 title: 시스템 설치 가이드
+description: Docker/GPU 설치, 환경 설정, 서비스 시작/중지, 포트 변경, 백업/복원, 업그레이드 절차
 ---
 
-# AX 도면 분석 시스템 - 설치 가이드
+# 시스템 설치 가이드
 
-> 온프레미스 납품용 설치 및 운영 매뉴얼
-> 버전: 1.1.0
+> Docker 기반 AX 도면 분석 시스템의 설치, 환경 설정, GPU 구성 절차를 정리한다.
 
 ---
 
@@ -524,3 +524,10 @@ iftop
 # 로그 레벨 낮추기 (.env)
 LOG_LEVEL=warn
 ```
+
+## 관련 문서
+
+- [관리자 매뉴얼](/docs/deployment/admin-manual) — 서비스 관리 및 모니터링
+- [온프레미스 인프라 구성](/docs/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
+- [Dockerization](/docs/deployment/dockerization) — Docker 컨테이너화 가이드
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션

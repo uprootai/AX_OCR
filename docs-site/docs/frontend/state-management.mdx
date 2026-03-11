@@ -6,6 +6,8 @@ description: Zustand 기반 상태 관리
 
 # 상태 관리
 
+> workflowStore와 apiConfigStore의 인터페이스, 셀렉터 패턴, 비동기 액션 구현 방식을 설명합니다.
+
 Zustand를 사용한 경량 상태 관리입니다.
 
 ## 스토어 아키텍처
@@ -97,3 +99,9 @@ executeWorkflow: async () => {
   }
 }
 ```
+
+## 관련 문서
+
+- [프론트엔드 아키텍처](./index.mdx) -- 전체 프론트엔드 구조 개요
+- [컴포넌트 라이브러리](./component-library.mdx) -- 스토어를 소비하는 컴포넌트
+- [라우팅](./routing.mdx) -- 페이지별 스토어 사용 현황

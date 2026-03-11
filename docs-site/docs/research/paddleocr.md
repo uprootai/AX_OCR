@@ -1,9 +1,13 @@
 ---
 sidebar_label: "PaddleOCR"
 sidebar_position: 6
+title: PaddleOCR (PP-OCR)
+description: Baidu의 경량 다국어 OCR 시스템 PP-OCR 시리즈(v1~v5) 아키텍처 및 AX 적용 정리
 ---
 
 # PP-OCR: A Practical Ultra Lightweight OCR System
+
+> Baidu PP-OCR 시리즈의 텍스트 검출/인식 아키텍처와 AX 시스템 포트 5006 적용 사항을 정리합니다.
 
 ## 논문 정보
 - **제목**: PP-OCR: A Practical Ultra Lightweight OCR System
@@ -58,3 +62,9 @@ sidebar_position: 6
 ## 참고 자료
 - GitHub: https://github.com/PaddlePaddle/PaddleOCR
 - 공식 문서: https://paddlepaddle.github.io/PaddleOCR/
+
+## 관련 문서
+
+- [OCR 앙상블 투표](./ocr-ensemble-voting.md) -- 다중 엔진 투표 앙상블
+- [Tesseract LSTM](./tesseract-lstm.md) -- 또 다른 OCR 엔진
+- [TrOCR](./trocr-transformer.md) -- Transformer 기반 OCR

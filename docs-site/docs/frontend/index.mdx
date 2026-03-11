@@ -6,6 +6,8 @@ description: React 19 프론트엔드 아키텍처 개요
 
 # 프론트엔드 아키텍처
 
+> Web UI와 BOM 프론트엔드 두 개의 React 앱 구조, 기술 스택, 디렉토리 레이아웃을 설명합니다.
+
 AX POC 프론트엔드는 두 개의 독립적인 React 앱으로 구성됩니다.
 
 ## 두 개의 앱
@@ -91,8 +93,12 @@ web-ui/
 | 페이지 | 설명 |
 |--------|------|
 | [라우팅](./routing) | 라우팅 및 페이지 구성 |
-| [라우트 맵](./route-map) | 13개 라우트 마스터 표 |
-| [페이지 상세](./pages/) | 주요 페이지별 상세 문서 (5개) |
 | [상태 관리](./state-management) | Zustand 상태 관리 |
 | [컴포넌트 라이브러리](./component-library) | 공통 컴포넌트 |
 | [BOM 프론트엔드](./bom-frontend) | BOM 프론트엔드 |
+
+## 관련 문서
+
+- [라우팅](./routing.mdx) -- 라우트 맵 및 지연 로딩 전략
+- [상태 관리](./state-management.mdx) -- Zustand 스토어 아키텍처
+- [BOM 및 견적](../bom-generation/index.mdx) -- BOM 파이프라인 백엔드

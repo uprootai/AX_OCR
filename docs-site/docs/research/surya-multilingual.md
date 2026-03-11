@@ -1,9 +1,13 @@
 ---
 sidebar_label: "Surya OCR"
 sidebar_position: 12
+title: Surya OCR
+description: 90개 이상 언어를 지원하는 다국어 OCR 툴킷 Surya의 아키텍처 및 AX 적용 정리
 ---
 
 # Surya: Multilingual OCR with Layout Analysis
+
+> Surya의 텍스트 검출/인식/레이아웃 분석 파이프라인과 AX 포트 5013 적용을 정리합니다.
 
 ## 프로젝트 정보
 - **이름**: Surya OCR
@@ -65,5 +69,10 @@ Surya는 힌두 태양신의 이름을 딴 다국어 OCR 툴킷으로, 90개 이
 - GitHub: https://github.com/datalab-to/surya
 - Demo: https://huggingface.co/spaces/vikp/surya
 
----
-*참고: Surya는 전용 학술 논문 없이 GitHub 프로젝트로 관리됩니다.*
+Surya는 전용 학술 논문 없이 GitHub 프로젝트로 관리됩니다.
+
+## 관련 문서
+
+- [OCR 앙상블 투표](./ocr-ensemble-voting.md) -- 다중 엔진 투표 앙상블
+- [PaddleOCR](./paddleocr.md) -- 또 다른 다국어 OCR 엔진
+- [Tesseract LSTM](./tesseract-lstm.md) -- 레거시 OCR 엔진

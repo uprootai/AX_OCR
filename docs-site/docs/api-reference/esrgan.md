@@ -1,11 +1,13 @@
 ---
 sidebar_label: "ESRGAN"
 sidebar_position: 12
+title: "ESRGAN API"
+description: "Real-ESRGAN 기반 이미지 업스케일링(2x/4x) API의 파라미터와 성능 벤치마크를 정리한다."
 ---
 
 # ESRGAN API
 
-> **Real-ESRGAN 기반 이미지 업스케일링**
+> Real-ESRGAN 기반 이미지 업스케일링 2x/4x (포트 5010).
 
 ---
 
@@ -141,3 +143,11 @@ ImageInput → ESRGAN(4x) → OCR Ensemble
 | RAM | 4GB | 8GB |
 | CPU 코어 | 4 | 8 |
 | CUDA | 11.8+ | 12.x |
+
+---
+
+## 관련 문서
+
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 업스케일 후 치수 인식에 사용
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- 업스케일 후 앙상블 OCR 연계
+- [EDGNet API](/docs/api-reference/edgnet) -- 업스케일 후 세그멘테이션 연계

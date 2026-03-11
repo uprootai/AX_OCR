@@ -6,6 +6,8 @@ description: BWMS 전용 규칙을 포함한 규칙 기반 P&ID 설계 검증
 
 # 설계 검사기
 
+> 규칙 기반 P&ID 설계 검증 API(포트 5019) — BWMS 전용 50개 이상의 규칙으로 장비, 배관, 계기, 안전 사항을 자동 검증.
+
 설계 검사기 API(Design Checker API, 포트 5019)는 사전 정의된 설계 규칙에 따라 P&ID 도면을 평가합니다. 장비 존재 여부, 배관 표준, 계기 요구사항 및 안전 준수 사항을 자동으로 검증합니다. 이 시스템은 BWMS(선박평형수 처리 시스템, Ballast Water Management System) 장비에 특화된 50개 이상의 규칙을 포함합니다.
 
 ## 개요
@@ -289,3 +291,10 @@ Query Parameters:
 | `not_applicable` | 이 도면에 해당 규칙이 적용되지 않음 |
 
 엔지니어는 근거를 기재하여 개별 규칙 결과를 재정의할 수 있으며, 이를 통해 설계 결정에 대한 감사 추적이 생성됩니다.
+
+## 관련 문서
+
+- [P&ID 분석 개요](/docs/pid-analysis) — P&ID 분석 파이프라인 전체 구조
+- [연결성 분석](/docs/pid-analysis/connectivity) — 설계 검사의 입력이 되는 연결 그래프
+- [심볼 검출](/docs/pid-analysis/symbol-detection) — 장비 존재 여부 확인의 기반
+- [라인 검출](/docs/pid-analysis/line-detection) — 영역 검출 및 배관 규칙 검증의 기반

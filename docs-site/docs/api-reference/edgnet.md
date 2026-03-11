@@ -1,11 +1,13 @@
 ---
 sidebar_label: "EDGNet"
 sidebar_position: 10
+title: "EDGNet API"
+description: "Graph Neural Network 기반 도면 세그멘테이션 API의 파라미터와 분류 클래스를 정리한다."
 ---
 
 # EDGNet API
 
-> **Graph Neural Network 기반 도면 세그멘테이션**
+> Graph Neural Network 기반 도면 세그멘테이션 (포트 5012).
 
 ---
 
@@ -174,4 +176,12 @@ ImageInput → ESRGAN(2x) → EDGNet
 | 파라미터 | 영향 |
 |----------|------|
 | model | graphsage → VRAM 2배 |
-| num_classes | 클래스 수 ↑ → 메모리 ↑ |
+| num_classes | 클래스 수 증가 시 메모리 증가 |
+
+---
+
+## 관련 문서
+
+- [ESRGAN API](/docs/api-reference/esrgan) -- 저해상도 도면 전처리 후 EDGNet 연계
+- [YOLO Detection API](/docs/api-reference/yolo) -- 심볼 검출과 병행 사용
+- [Line Detector API](/docs/api-reference/line-detector) -- P&ID 라인 검출 세그멘테이션

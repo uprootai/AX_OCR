@@ -1,9 +1,13 @@
 ---
 sidebar_label: "EDGNet GNN"
 sidebar_position: 4
+title: "EDGNet — 공학 도면 컴포넌트 세그멘테이션"
+description: "GraphSAGE 기반 Graph Convolutional Network를 사용한 래스터 공학 도면의 컴포넌트 분류 (Text/Contour/Dimension)"
 ---
 
 # Graph Convolutional Networks를 사용한 공학 도면의 컴포넌트 세그멘테이션
+
+> GraphSAGE 기반 GCN으로 래스터 공학 도면을 벡터화한 뒤 Text, Contour, Dimension 컴포넌트를 분류한다. 3-class 90.82% 정확도 달성.
 
 ## 논문 정보
 - **제목**: Component Segmentation of Engineering Drawings Using Graph Convolutional Networks
@@ -301,3 +305,9 @@ Non-text    345    13559
 
 ## 참고 자료
 - arXiv: https://arxiv.org/abs/2212.00290
+
+## 관련 문서
+
+- [EDGNet API](/docs/api-reference/edgnet) - EDGNet API 서비스 (Port 5012)
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 도면 텍스트 인식
+- [YOLOv11 Detection](/docs/research/yolov11-detection) - 객체 검출 모델
