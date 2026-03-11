@@ -10,15 +10,14 @@
 | ID | Epic | 고객 | 기간 | Stories | 상태 |
 |----|------|------|------|---------|------|
 | E01 | [성과발표회 PPT 완성](epics/e01-presentation/EPIC.md) | 내부 | ~03-06 | 3 | 🔵 Active |
-| E02 | [테크로스 P&ID 설계 검증](epics/e02-techcross/EPIC.md) | 테크로스 | ~03-21 | 6 | 🔵 Active |
+| E02 | 테크로스 P&ID 설계 검증 | 테크로스 | ~03-21 | 6 | ✅ Done |
 | E03 | [동서기연 BOM 추출 자동화](epics/e03-dsebearing/EPIC.md) | 동서기연 | ~03-21 | 3 | 🔵 Active |
 
 ## Future Epics
 
 | ID | Epic | 고객 | 메모 | 상태 |
 |----|------|------|------|------|
-| E04 | AX 테스트 컴플렉스 온보딩 | 10개 중소기업 | 2025.09~2028.12, 249억 규모 | ⬜ Draft |
-| E05 | SaaS 전환 (Kubernetes) | 내부 | 중장기, 온프레미스→SaaS 병행 | ⬜ Draft |
+| E04 | [AX 테스트 컴플렉스 온보딩](epics/e04-ax-testcomplex/EPIC.md) | 10개 중소기업 | 2025.09~2028.12, 249억 규모, 5 Stories | ⬜ Ready |
 
 ## 기술 개선 (Epic 미배정)
 

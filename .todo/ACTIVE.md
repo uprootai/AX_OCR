@@ -41,11 +41,6 @@
 **Blueprint AI BOM 프로젝트**: `b97237fd` (BOM 326개 기존 임포트, 이름 변경)
 **상세**: [.todo/epics/e03-dsebearing/EPIC.md](epics/e03-dsebearing/EPIC.md)
 
-### E02: 테크로스 P&ID 자동 설계 검증 — ✅ 완료
-
-> 6 Stories 전체 Done | 커밋: `b3e8c4b`~`8c1eb8d` | 46% 자동화 커버리지
-> **상세**: [.todo/epics/e02-techcross/EPIC.md](epics/e02-techcross/EPIC.md)
-
 ---
 
 ## 참조 문서
