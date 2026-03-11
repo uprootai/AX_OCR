@@ -27,8 +27,10 @@
 | S01 스타일 규칙 정의 + 검증 스크립트 | ✅ Done | rules 파일 + lint-style.sh |
 | S02 Frontmatter 일괄 표준화 | ✅ Done | tags 115/115 추가 |
 | S03 H1 제목 + blockquote 표준화 | ✅ Done | 한글(English) 115/115 |
+| S04 섹션 순서 재구성 | ✅ Done | 115개 검증, 1개 수정 |
 | S05 관련 API 섹션 추가 | ✅ Done | 42개 파일 API 표 추가 |
 | S06 라우트 문서 강화 | ✅ Done | 권한 컬럼, 재작성 |
+| S07 표 형식 + anchor 통일 | ✅ Done | 표 9개 표준화, anchor 18개 |
 | S08 최종 검증 + 배포 | ✅ Done | lint 0 violation, 116p 빌드, 배포 |
 
 **상세**: [.todo/epics/e06-docs-style-rewrite/EPIC.md](epics/e06-docs-style-rewrite/EPIC.md)
