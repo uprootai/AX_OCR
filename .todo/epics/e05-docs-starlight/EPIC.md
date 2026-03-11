@@ -3,7 +3,7 @@
 > **소유자**: 개발팀
 > **생성일**: 2026-03-11
 > **기간**: 2026-Q2 (장기, 단계별 실행)
-> **현 상태**: 🔄 Phase 1 완료, Phase 2 대기 (Node 22 필요)
+> **현 상태**: ✅ Phase 1+2 완료 (Starlight 마이그레이션 배포됨)
 
 ---
 
@@ -49,8 +49,8 @@
 |----|-------|-------|-------|------|
 | S01 | [문서 구조 규칙 표준화](S01-style-standards.md) | 1 | 4 Tasks | ✅ 완료 |
 | S02 | [Starlight 파일럿 테스트](S02-starlight-poc.md) | 2 | 4 Tasks | ✅ 완료 (Go 판정) |
-| S03 | [콘텐츠 마이그레이션](S03-content-migration.md) | 2 | 4 Tasks | ⬜ Todo |
-| S04 | [TSX 컴포넌트 마이그레이션](S04-component-migration.md) | 2 | 3 Tasks | ⬜ Todo |
+| S03 | [콘텐츠 마이그레이션](S03-content-migration.md) | 2 | 4 Tasks | ✅ 완료 |
+| S04 | [TSX 컴포넌트 마이그레이션](S04-component-migration.md) | 2 | 3 Tasks | ✅ 완료 |
 | S05 | [web-ui 라우트 맵 문서화](S05-route-documentation.md) | 1 | 8 Tasks | ✅ 완료 |
 | S06 | [문서 품질 검증 체계](S06-quality-system.md) | 1 | 4 Tasks | ✅ 완료 |
 
@@ -68,16 +68,16 @@
 - T03 샘플 콘텐츠 변환 → ✅
 - T04 벤치마크 + Go/No-Go 판단 → ✅ Go (조건부: Node 22)
 
-**S03 (4 Tasks)** — ⬜ S02 Go 후
-- T01 페이지 인벤토리 확정
-- T02 마이그레이션 스크립트 작성
-- T03 배치 변환 + 검증 (15 카테고리별)
-- T04 사이드바 설정 완성
+**S03 (4 Tasks)** — ✅ 완료
+- T01 페이지 인벤토리 확정 → ✅ 115개
+- T02 마이그레이션 스크립트 작성 → ✅ `scripts/migrate-content.mjs`
+- T03 배치 변환 + 검증 (15 카테고리별) → ✅ 116 페이지 빌드 성공
+- T04 사이드바 설정 완성 → ✅ `astro.config.mjs`
 
-**S04 (3 Tasks)** — ⬜ S02 Go 후
-- T01 FlowDiagram TSX 포팅
-- T02 SequenceDiagram TSX 포팅
-- T03 import 자동 삽입 스크립트
+**S04 (3 Tasks)** — ✅ 완료
+- T01 FlowDiagram TSX 포팅 → ✅ `src/components/diagrams/FlowDiagram.tsx`
+- T02 SequenceDiagram TSX 포팅 → ✅ `src/components/diagrams/SequenceDiagram.tsx`
+- T03 import 자동 삽입 스크립트 → ✅ 43개 파일 67개 사용처 client:load 적용
 
 **S05 (8 Tasks)** — ✅ 완료
 - T01 라우트 인벤토리 추출 → ✅

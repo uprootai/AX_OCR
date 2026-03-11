@@ -1,7 +1,7 @@
 # 진행 중인 작업
 
 > **마지막 업데이트**: 2026-03-11
-> **기준 커밋**: bbaff3b (feat: E05-S01 문서 표준화 완료)
+> **기준 커밋**: 032a470 (feat: E05 Phase 2 — Starlight 마이그레이션 완료)
 
 ---
 
@@ -26,8 +26,8 @@
 |-------|------|------|
 | S01 문서 구조 표준화 | ✅ Done | 115개 전체 100% (frontmatter, blockquote, 관련 문서) |
 | S02 Starlight POC | ✅ Done (WT4) | Go 판정 (빌드 3.5초, Pagefind 내장, React Island 동작) |
-| S03 콘텐츠 마이그레이션 | ⬜ Todo | Node 22 업그레이드 후 진행 |
-| S04 TSX 컴포넌트 마이그레이션 | ⬜ Todo | FlowDiagram, SequenceDiagram 포팅 |
+| S03 콘텐츠 마이그레이션 | ✅ Done | 115개 → 116 페이지, 빌드 9.4초 |
+| S04 TSX 컴포넌트 마이그레이션 | ✅ Done | FlowDiagram, SequenceDiagram client:load |
 | S05 라우트 맵 문서화 | ✅ Done | 13개 라우트 100%, 6개 상세 페이지 |
 | S06 문서 품질 검증 | ✅ Done | lint-docs.sh, onBrokenLinks: throw |
 
