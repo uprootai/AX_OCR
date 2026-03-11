@@ -1,0 +1,82 @@
+---
+sidebar_position: 3
+title: 프로젝트
+description: 프로젝트 목록/상세 페이지 -- BOM 견적 및 P&ID 검출 프로젝트 관리
+---
+
+# 프로젝트
+
+> 프로젝트 목록 조회, 생성, 상세 관리(세션 연결, BOM/P&ID 워크플로우, GT 관리, Export/Import)를 수행하는 페이지이다.
+
+## 접속 방법
+
+| URL | 권한 | 설명 |
+|-----|------|------|
+| `/projects` | 공개 | 프로젝트 목록 |
+| `/projects/:projectId` | 공개 | 프로젝트 상세 |
+
+## 페이지 구성
+
+### 프로젝트 목록 (`ProjectListPage`)
+
+컴포넌트: `pages/project/ProjectListPage.tsx`
+
+| 기능 | 설명 |
+|------|------|
+| 검색 | 프로젝트명, 고객사, 설명 텍스트 필터 |
+| 고객사 필터 | 드롭다운으로 고객사별 필터링 |
+| 통계 카드 | 전체 프로젝트 수, 전체 세션, 완료, 대기 |
+| 프로젝트 카드 | `ProjectCard` 컴포넌트로 그리드 표시 |
+| 새 프로젝트 | `ProjectCreateModal`로 프로젝트 생성 |
+
+### 프로젝트 상세 (`ProjectDetailPage`)
+
+컴포넌트: `pages/project/ProjectDetailPage.tsx`
+
+| 섹션 | 설명 |
+|------|------|
+| 프로젝트 정보 | 이름, 고객사, 생성일, BOM 소스, 도면 폴더, 기본 템플릿, 활성 기능 |
+| 진행 현황 | 전체 세션, 완료, 대기, 진행률 바 |
+| P&ID 워크플로우 | `PIDWorkflowSection` -- P&ID 검출 프로젝트용 세션 관리 |
+| BOM 워크플로우 | `BOMWorkflowSection` -- BOM 견적 프로젝트용 워크플로우 |
+| 기존 세션 연결 | 미연결 세션 목록에서 프로젝트에 세션 연결/분리 |
+
+### 프로젝트 타입
+
+| 타입 | 코드값 | 색상 | 설명 |
+|------|--------|------|------|
+| P&ID | `pid_detection` | cyan | P&ID 도면 심볼 자동 검출/분석 |
+| BOM | `bom_quotation` | pink | BOM PDF 파싱, 도면 매칭, 견적 산출 |
+| 일반 | `general` | blue | 범용 도면 분석 |
+
+### 프로젝트 메뉴 (더보기)
+
+| 동작 | 설명 |
+|------|------|
+| 프로젝트 설정 | `ProjectSettingsModal` -- 이름, 고객사, 템플릿 등 수정 |
+| GT 관리 | `GTManagementModal` -- Ground Truth 데이터 관리 |
+| BOM 전용 UI에서 열기 | `/bom/projects/:projectId`로 외부 링크 |
+| 프로젝트 Export | JSON 파일로 다운로드 |
+| 프로젝트 Import | JSON 파일 업로드로 프로젝트 복원 |
+| 프로젝트 삭제 | 확인 후 삭제, 목록으로 이동 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `BOM /api/v1/projects` | 프로젝트 목록 (customer 필터, limit) |
+| POST | `BOM /api/v1/projects` | 프로젝트 생성 |
+| GET | `BOM /api/v1/projects/:id` | 프로젝트 상세 (세션 포함) |
+| PUT | `BOM /api/v1/projects/:id` | 프로젝트 수정 |
+| DELETE | `BOM /api/v1/projects/:id` | 프로젝트 삭제 |
+| GET | `BOM /api/v1/projects/:id/export` | 프로젝트 JSON Export |
+| POST | `BOM /api/v1/projects/import` | 프로젝트 JSON Import |
+| GET | `BOM /api/v1/sessions` | 세션 목록 (미연결 세션 필터) |
+| PATCH | `BOM /api/v1/sessions/:id/project` | 세션 프로젝트 연결 |
+| DELETE | `BOM /api/v1/sessions/:id/project` | 세션 프로젝트 분리 |
+
+## 관련 문서
+
+- [라우트 맵](../route-map) -- 전체 라우트
+- [BOM 프론트엔드](../bom-frontend) -- BOM 전용 UI
+- [대시보드](./dashboard) -- 프로젝트 현황 섹션

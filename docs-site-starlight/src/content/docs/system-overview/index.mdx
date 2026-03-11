@@ -1,0 +1,90 @@
+---
+sidebar_position: 1
+title: 시스템 개요
+description: AX POC 전체 시스템 아키텍처 개요
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+# 시스템 개요
+
+> AX POC 전체 시스템의 아키텍처, 핵심 지표, 데이터 흐름을 요약한다.
+
+```
+도면 이미지 → VLM 분류 → YOLO 검출 → OCR 추출 → 공차 분석 → 리비전 비교 → 견적 PDF
+```
+
+## 핵심 지표
+
+| 지표 | 값 |
+|------|-----|
+| **마이크로서비스(Microservices)** | Docker Compose 서비스 24개 |
+| **외부 API 서비스** | 21개 (`docs-site/src/data/services.json` 기준) |
+| **Gateway 내부 분석 도구** | 5개 (`titleblock`, `partslist`, `dimensionparser`, `bommatcher`, `quotegenerator`) |
+| **GPU 표시 서비스** | 13개 (`apiRegistry.ts`/문서 카탈로그 기준) |
+| **검출 클래스(Detection Classes)** | Engineering 14 / P&ID Symbol 32 / BOM 27 |
+| **노드 타입(Node Types)** | 29개 이상 |
+| **테스트** | 백엔드/프론트엔드 자동화 테스트 스위트 운영 |
+
+## 상위 아키텍처
+
+
+
+## 데이터 흐름
+
+<FlowDiagram client:load
+  direction="LR"
+  title="데이터 흐름"
+  nodes={[
+    { id: 'img', label: '도면 이미지', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'vlm', label: 'VLM 분류', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'yolo', label: 'YOLO 검출', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'pid', label: 'P&ID 파이프라인', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'table', label: '테이블 검출기', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'ocr', label: 'OCR 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'dim', label: '치수 분석', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'tol', label: '공차 분석', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'bomb', label: 'BOM 생성', color: '#880e4f', bg: '#fce4ec', shape: 'rounded' },
+    { id: 'quote', label: '견적 PDF', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'conn', label: '연결성 분석', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'dch', label: '설계 검증', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'report', label: '보고서', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'img', to: 'vlm' },
+    { from: 'vlm', to: 'yolo', label: '기계도면' },
+    { from: 'vlm', to: 'pid', label: 'P&ID' },
+    { from: 'vlm', to: 'table', label: '테이블' },
+    { from: 'yolo', to: 'ocr' },
+    { from: 'ocr', to: 'dim' },
+    { from: 'dim', to: 'tol' },
+    { from: 'tol', to: 'bomb' },
+    { from: 'bomb', to: 'quote' },
+    { from: 'pid', to: 'conn' },
+    { from: 'conn', to: 'dch' },
+    { from: 'dch', to: 'report' },
+  ]}
+  layers={[['img'], ['vlm'], ['yolo', 'pid', 'table'], ['ocr', 'conn'], ['dim', 'dch'], ['tol', 'report'], ['bomb'], ['quote']]}
+/>
+
+## 섹션 안내
+
+| # | 섹션 | 설명 |
+|---|------|------|
+| 1 | [시스템 개요](./architecture-map) | 아키텍처, 서비스 카탈로그, 기술 스택 |
+| 2 | [분석 파이프라인](/analysis-pipeline) | VLM → YOLO → OCR → 분석 파이프라인 |
+| 3 | [BlueprintFlow](/blueprintflow) | 비주얼 워크플로우 빌더 |
+| 4 | [에이전트 검증](/agent-verification) | 3단계 하이브리드 검증 |
+| 5 | [BOM 및 견적](/bom-generation) | BOM 생성 및 견적 |
+| 6 | [P&ID 분석](/pid-analysis) | P&ID 분석 파이프라인 |
+| 7 | [배치 및 납품](/batch-delivery) | 배치 처리 및 납품 |
+| 8 | [품질 보증](/quality-assurance) | 품질 보증 체계 |
+| 9 | [프론트엔드](/frontend) | 프론트엔드 아키텍처 |
+| 10 | [DevOps](/devops) | DevOps 및 인프라 |
+
+## 관련 문서
+
+- [아키텍처 맵](/system-overview/architecture-map) — 서비스 토폴로지 인터랙티브 맵
+- [서비스 카탈로그](/system-overview/service-catalog) — 21개 API 서비스 상세
+- [기술 스택](/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴
+- [포트 및 네트워크](/system-overview/port-network) — 포트 할당 및 네트워크 구성

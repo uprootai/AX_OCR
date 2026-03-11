@@ -1,0 +1,206 @@
+---
+sidebar_position: 2
+title: 전달 자료 & 도면 분석
+description: 94개 PDF 도면, BOM 구조, 실제 도면 캡쳐
+---
+
+# 전달 자료 & 도면 분석
+
+> 동서기연으로부터 수령한 94개 PDF 도면의 상세 분류, BOM 구조, 실제 도면 캡쳐를 정리한다.
+
+## 파일 통계 (94개 PDF)
+
+| 분류 | 수량 | 용량 | 내용 |
+|------|------|------|------|
+| **BOM** | 1개 | 0.4MB | BOM_Z24018 — 395개 품목, Project Z24018 (PP12) |
+| **제조사양서** | 1개 | 33MB | PDM002 (대형 조립도) |
+| **구매사양서** | 1개 | 12MB | STMPS00095 |
+| **부품 도면** | 91개 | ~100MB | TD 시리즈 개별 부품도 |
+| **합계** | **94개** | **~145MB** | 1UNIT PJT 전체 |
+
+---
+
+## 부품 도면 카테고리 (91개)
+
+| 카테고리 | 수량 | 도면번호 예시 | 분석 상태 |
+|---------|------|-------------|----------|
+| 체결 부품 (Fasteners) | 15개 | TD0060700~TD0060748 (BOLT, NUT, PIN, WASHER) | ✅ 전체 분석 |
+| 저널 베어링 (T1~T8) | 40개 | TD0062015~TD0062054 (BEARING, CASING, PAD) | ✅ 전체 분석 |
+| 스러스트 베어링 | 12개 | TD0062055~TD0062066 (THRUST RING, CASING, PAD) | ✅ 전체 분석 |
+| 조정 부품 (Adjustment) | 14개 | TD0060742~TD0060754 (SHIM, WEDGE, PIVOT) | ✅ 전체 분석 |
+| 기타 부품 | 6개 | TD0060706~TD0339628 (WEAR PAD, NOZZLE, COVER) | ✅ 전체 분석 |
+| 품질기준서 (CTQ) | 4개 | TD0060732 (Sheet 1~4/4) | ✅ 분석 (견적 불필요) |
+
+---
+
+## 실제 도면 캡쳐
+
+### 조립도 — T1 BEARING ASSY (분홍색, 견적 불필요)
+
+조립도는 **부품 간 조립 관계**를 보여주며, 개별 치수 추출 대상이 아닙니다.
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/bearing_assy_t1_page1.png" alt="T1 Bearing Assembly Drawing" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>T1 BEARING ASSY (TD0062015) — 조립도, BOM 분홍색 표기</p>
+</div>
+
+### 단품도 — BEARING RING T1 (하얀색, 견적 대상)
+
+**하얀색 품목**이 실제 견적 대상입니다. 외경·내경·길이 등 **큰 소재 사이즈**를 추출합니다.
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/TD0062017_bearing_ring_t1.png" alt="Bearing Ring T1 Drawing" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>BEARING RING T1 (TD0062017) — 단품도, 80개 치수 자동 추출</p>
+</div>
+
+### 단품도 — BEARING CASING T1
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/TD0062019_bearing_casing_t1.png" alt="Bearing Casing T1 Drawing" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>BEARING CASING T1 (TD0062019) — 단품도, 110개 치수 자동 추출</p>
+</div>
+
+### 단품도 — LINER PAD T1
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/TD0062020_liner_pad_t1.png" alt="Liner Pad T1 Drawing" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>LINER PAD T1 (TD0062020) — 단품도, 48개 치수 자동 추출</p>
+</div>
+
+### 스러스트 베어링 — THRUST BEARING ASSY
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/thrust_bearing_assy_page1.png" alt="Thrust Bearing Assembly Drawing" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>THRUST BEARING ASSY (TD0062055) — 조립도</p>
+</div>
+
+### 스러스트 베어링 링 — THRUST BEARING RING
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/TD0062057.png" alt="Thrust Bearing Ring Drawing" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>THRUST BEARING RING (TD0062057) — 단품도, 89개 치수 자동 추출</p>
+</div>
+
+---
+
+## BOM 상세 (Z24018)
+
+| 항목 | 값 |
+|------|---|
+| Project NO | Z24018 |
+| Project명 | PP12 |
+| DOC NO | BOM_Z24018_110104001 |
+| REV | 1 (2025.05.16, PT번호 변경/소재변경) |
+| 총 품목 수 | 395개 |
+| 총 중량 | 약 20,698 kg |
+| 작성자 | 방경보 |
+
+### BOM 색깔 구분 (1차 미팅에서 확인)
+
+| BOM 색깔 | 의미 | 수량 | 견적 처리 |
+|---------|------|------|----------|
+| 🟥 분홍색 | 최종 조립도 (Assembly) | 7개 | **스킵** — 치수 추출 불필요 |
+| 🟦 파란색 | 중간 조립품 (Sub-assembly) | 16개 | **스킵** — 치수 추출 불필요 |
+| ⬜ **하얀색** | **단품 도면 (Part)** | **303개** | **견적 대상** — 각각 견적 산출 후 합산 |
+
+### BOM 계층 예시: T1 BEARING ASSY
+
+```
+BOM 2번: T1 BEARING ASSY (분홍) ← 조립도, 견적 불필요
+├── 3번: BEARING RING ASSY (파란) ← 중간 조립품, 견적 불필요
+│   ├── 4~17번: 개별 부품 (하양) ← 각각 견적 산출
+│   └── 18번: 하위 조립품 (파란) ← 견적 불필요
+│       └── 19~23번: 부품 (하양) ← 각각 견적 산출
+├── 24~44번: 나머지 부품들 (하양) ← 각각 견적 산출
+└── 단품 견적 전부 합산 = 2번 전체 견적
+```
+
+### 베어링 어셈블리 구성 (10개 SET)
+
+#### 저널 베어링 (8개)
+
+| NO | 도면번호 | 품명 | 사이즈 | 중량(kg) |
+|----|---------|------|--------|---------|
+| 1 | TD0062015 | T1 BEARING ASSY | 360x190 | 882 |
+| 2 | TD0062021 | T2 BEARING ASSY | 380x190 | 857 |
+| 3 | TD0062026 | T3 BEARING ASSY | 380x260 | 975 |
+| 4 | TD0062031 | T4 BEARING ASSY | 420x260 | 1,294 |
+| 5 | TD0062037 | T5 BEARING ASSY | 460x260 | 1,378 |
+| 6 | TD0062042 | T6 BEARING ASSY | 460x260 | 1,378 |
+| 7 | TD0062046 | T7 BEARING ASSY | 460x260 | 1,378 |
+| 8 | TD0062050 | T8 BEARING ASSY | 500x260 | 1,363 |
+
+#### 스러스트 베어링 (2개)
+
+| NO | 도면번호 | 품명 | 사이즈 | 중량(kg) |
+|----|---------|------|--------|---------|
+| 1 | TD0062055 | THRUST BEARING ASSY | OD670xID440 | 1,648 |
+| - | TD0062058 | THRUST CASING ASSY (TBN) | - | 158 |
+| - | TD0062064 | THRUST CASING ASSY (GEN) | - | 158 |
+
+---
+
+## 주요 재질 정리
+
+### 단조강 (Forged Steel)
+
+| 규격 | 용도 |
+|------|------|
+| **SF440A** | 베어링 링, 베어링 케이싱, 라이너 패드 (주력 소재) |
+
+### 합금강 (Alloy Steel)
+
+| 규격 | 열처리 | 용도 |
+|------|--------|------|
+| SCM440+Q.T | 담금질+뜨임 | 고강도 볼트, 부싱, 로킹 핀 |
+| S45C+Q.T | 담금질+뜨임 | 다웰 핀, 셋 핀 |
+| S45C-N | 노멀라이징 | 무빙 웨지 |
+
+### 스테인리스강 / 일반 구조용강
+
+| 규격 | 용도 | 비고 |
+|------|------|------|
+| SUS304 | 심 플레이트 | |
+| SUS316 | 노드락 와셔 | |
+| **SS275** (= SS400 유사) | 심/로킹 플레이트 | **정확한 스펙은 SS275** (미팅 확인) |
+| SM490A | 솔리드 심 플레이트, 웨지 | |
+
+### 특수 재질
+
+| 규격 | 용도 |
+|------|------|
+| **ASTM B23 GR.2** (화이트메탈/베빗) | 베어링 패드 라이닝 |
+| ASTM A193 B7 / B16 | 고강도 볼트 |
+| ASTM A194 2H | 너트 |
+
+---
+
+## AX POC 시스템 커버리지
+
+### 도면 영역별 자동화 현황
+
+| 도면 영역 | 커버리지 | 사용 기술 | 비고 |
+|----------|---------|----------|------|
+| **큰 소재 사이즈** (Ø550 등) | ✅ 자동 추출 | eDOCr2 + PaddleOCR | 1순위 — *"소재 치수가 제일 1번으로 빠져야 됨"* |
+| **재질 정보** | ✅ BOM 연동 | BOM 파서 | BOM에서 재질 자동 매칭 |
+| 구멍 수, 가공 형태 | ⬜ 2단계 예정 | YOLO 검출 | *"가공비가 추가로 들어감"* |
+| 각도 정보 | ⬜ 2단계 예정 | eDOCr2 | *"2차로 가공 견적 뺄 때 참고"* |
+| 가공 표기 (표면처리) | ⬜ 향후 | OCR | *"가공을 어떻게 해라는 표기들"* |
+| 상단 공차 테이블 | ➖ 불필요 | - | *"견적상 크게 의미 없음"* |
+| NOTES / ISO VIEW | ➖ 불필요 | - | 확인 결과 불필요 |
+
+### 자료 유형별 사용 여부
+
+| 자료 | 사용 | 이유 |
+|------|------|------|
+| BOM | ✅ **사용** | 소재 재질, 도면번호, 부품 목록 기준 |
+| 단품 도면 (하얀색) | ✅ **사용** | 치수, 재질, 가공 정보 추출 대상 |
+| 조립도 (분홍/파란) | ➖ 불필요 | *"수치보다는 조립 내용을 표현하는 도면"* |
+| 사양서 (STMPS00095) | ➖ 불필요 | *"BOM에 재질 다 있으니까 그걸로 충분"* |
+| 품질기준서 (TD0060732) | ➖ 불필요 | *"견적 볼 때는 안 봐도 되는 부분"* |
+
+## 관련 문서
+
+- [동서기연 — 개요](/customer-cases/dsebearing) — 프로젝트 전체 요약
+- [추출 & 견적 결과](/customer-cases/dsebearing/results) — 548개 치수 추출 및 견적 산출
+- [미팅 & 커뮤니케이션](/customer-cases/dsebearing/meeting-history) — 1차 미팅 Q&A

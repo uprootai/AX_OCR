@@ -1,0 +1,109 @@
+---
+sidebar_position: 2
+title: 상태 관리
+description: Zustand 기반 상태 관리
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+# 상태 관리
+
+> workflowStore와 apiConfigStore의 인터페이스, 셀렉터 패턴, 비동기 액션 구현 방식을 설명합니다.
+
+Zustand를 사용한 경량 상태 관리입니다.
+
+## 스토어 아키텍처
+
+<FlowDiagram client:load
+  direction="LR"
+  title="스토어 아키텍처"
+  nodes={[
+    { id: 'bf', label: 'BlueprintFlow', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'dash', label: '대시보드', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'set', label: '설정', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'ws', label: 'workflowStore', sub: '워크플로우 상태', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'as', label: 'apiConfigStore', sub: 'API 설정', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'lib', label: 'api.ts', sub: 'HTTP 클라이언트', color: '#00838f', bg: '#e0f7fa', shape: 'rounded' },
+    { id: 'gw', label: 'Gateway :8000', color: '#37474f', bg: '#eceff1', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'bf', to: 'ws' },
+    { from: 'bf', to: 'as' },
+    { from: 'dash', to: 'as' },
+    { from: 'set', to: 'as' },
+    { from: 'ws', to: 'lib' },
+    { from: 'as', to: 'lib' },
+    { from: 'lib', to: 'gw' },
+  ]}
+  layers={[['bf', 'dash', 'set'], ['ws', 'as'], ['lib'], ['gw']]}
+/>
+
+## 스토어 목록
+
+### workflowStore
+
+워크플로우 빌더의 노드/엣지 상태를 관리합니다.
+
+```typescript
+interface WorkflowState {
+  nodes: Node[];
+  edges: Edge[];
+  selectedNodeId: string | null;
+  isExecuting: boolean;
+  executionResults: Record<string, NodeResult>;
+
+  // 액션
+  addNode: (node: Node) => void;
+  removeNode: (id: string) => void;
+  updateNodeData: (id: string, data: any) => void;
+  connect: (edge: Edge) => void;
+  executeWorkflow: () => Promise<void>;
+}
+```
+
+### apiConfigStore
+
+API 서비스 설정과 상태를 관리합니다.
+
+```typescript
+interface ApiConfigState {
+  services: ServiceConfig[];
+  healthStatus: Record<string, HealthStatus>;
+
+  // 액션
+  updateServiceConfig: (id: string, config: Partial<ServiceConfig>) => void;
+  checkHealth: (serviceId: string) => Promise<void>;
+  checkAllHealth: () => Promise<void>;
+}
+```
+
+## 패턴
+
+### 셀렉터 패턴 (Selector Pattern)
+
+```typescript
+// 불필요한 리렌더링을 방지하기 위한 세밀한 구독
+const nodes = useWorkflowStore(state => state.nodes);
+const isExecuting = useWorkflowStore(state => state.isExecuting);
+```
+
+### 비동기 액션 (Async Actions)
+
+```typescript
+// 스토어 액션에 통합된 API 호출
+executeWorkflow: async () => {
+  set({ isExecuting: true });
+  try {
+    const results = await api.post('/workflow/execute', getState().toJSON());
+    set({ executionResults: results, isExecuting: false });
+  } catch (error) {
+    set({ isExecuting: false });
+  }
+}
+```
+
+## 관련 문서
+
+- [프론트엔드 아키텍처](./index.mdx) -- 전체 프론트엔드 구조 개요
+- [컴포넌트 라이브러리](./component-library.mdx) -- 스토어를 소비하는 컴포넌트
+- [라우팅](./routing.mdx) -- 페이지별 스토어 사용 현황

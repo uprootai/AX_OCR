@@ -1,0 +1,85 @@
+---
+sidebar_position: 2
+title: 서비스 카탈로그
+description: 21개 외부 API 서비스 상세 카탈로그
+---
+
+
+# 서비스 카탈로그
+
+> 21개 외부 API 서비스와 5개 Gateway 내부 분석 도구의 카테고리별 상세 목록.
+추가로 Gateway 내부 분석 도구 5개(`titleblock`, `partslist`, `dimensionparser`, `bommatcher`, `quotegenerator`)가 있습니다.
+
+
+## 카테고리별 서비스
+
+{/* AUTO-GENERATED:START */}
+### 객체 검출(Detection) (2개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **YOLO v11** | 5005 | 사용 | 14가지 도면 심볼 검출 |
+| **Table Detector** | 5022 | 사용 | 테이블 검출 및 구조 추출 |
+
+### 광학 문자 인식(OCR) (8개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **eDOCr2** | 5002 | 사용 | 한국어 치수 인식 |
+| **PaddleOCR** | 5006 | 사용 | 다국어 OCR |
+| **Tesseract** | 5008 | 미사용 | 문서 OCR |
+| **TrOCR** | 5009 | 사용 | 필기체 OCR |
+| **OCR Ensemble** | 5011 | 사용 | 4엔진 가중 투표 |
+| **Surya OCR** | 5013 | 사용 | 90+ 언어, 레이아웃 분석 |
+| **DocTR** | 5014 | 사용 | 2단계 파이프라인 OCR |
+| **EasyOCR** | 5015 | 미사용 | 80+ 언어, CPU 친화적 |
+
+### 세그멘테이션(Segmentation) (2개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **EDGNet** | 5012 | 사용 | 엣지 기반 세그멘테이션 |
+| **Line Detector** | 5016 | 사용 | P&ID 라인 검출 |
+
+### 전처리(Preprocessing) (1개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **ESRGAN** | 5010 | 사용 | 4x 이미지 업스케일링 |
+
+### 분석(Analysis) (5개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **SkinModel** | 5003 | 미사용 | 공차 분석 & 제조성 예측 |
+| **PID Analyzer** | 5018 | 미사용 | P&ID 연결 분석 |
+| **Design Checker** | 5019 | 미사용 | P&ID 설계 규칙 검증 |
+| **Blueprint AI BOM** | 5020 | 사용 | Human-in-the-Loop 도면 BOM |
+| **PID Composer** | 5021 | 미사용 | P&ID 레이어 합성, SVG 오버레이 |
+
+### 지식 그래프(Knowledge) (1개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **Knowledge** | 5007 | 미사용 | Neo4j + GraphRAG |
+
+### 인공지능(AI) (1개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **Vision-Language** | 5004 | 사용 | Vision-Language 멀티모달 |
+
+### 오케스트레이터(Orchestrator) (1개 서비스)
+
+| 서비스 | 포트 | GPU | 설명 |
+|--------|------|-----|------|
+| **Gateway API** | 8000 | 미사용 | API Gateway & Orchestrator |
+{/* AUTO-GENERATED:END */}
+
+> 참고: 위 GPU 표시는 `web-ui/src/config/apiRegistry.ts` 기준이며, 실제 GPU 디바이스 할당은 `docker-compose.override.yml` 적용 여부에 따라 달라집니다.
+
+## 관련 문서
+
+- [포트 및 네트워크](/system-overview/port-network) — 포트 할당 및 네트워크 구성
+- [아키텍처 맵](/system-overview/architecture-map) — 서비스 토폴로지 인터랙티브 맵
+- [기술 스택](/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴

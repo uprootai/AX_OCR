@@ -1,0 +1,117 @@
+---
+sidebar_position: 1
+title: 배치 처리
+description: 대량 도면 일괄 분석
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
+
+# 배치 처리
+
+> 폴더 단위 도면 일괄 분석 — 병렬 처리, 자동 재시도, GPU 큐 관리를 통한 대량 도면 배치 분석.
+
+## 개요
+
+배치 처리는 폴더 단위로 여러 도면을 한 번에 분석하는 기능입니다.
+
+<SequenceDiagram client:load
+  title="배치 처리 시퀀스"
+  participants={[
+    { id: 'user', label: '사용자', color: '#1565c0' },
+    { id: 'router', label: '배치 라우터', color: '#e65100' },
+    { id: 'queue', label: '처리 큐', color: '#37474f' },
+    { id: 'service', label: '세션 서비스', color: '#1b5e20' },
+  ]}
+  messages={[
+    { from: 'user', to: 'router', label: '폴더 업로드 (N개 도면)', type: 'sync' },
+    { from: 'router', to: 'router', label: '프로젝트 생성', type: 'self' },
+    { from: 'router', to: 'queue', label: '세션 큐에 추가', type: 'sync' },
+    { from: 'queue', to: 'service', label: '도면 처리', type: 'sync' },
+    { from: 'service', to: 'service', label: '검출 → OCR → 분석', type: 'self' },
+    { from: 'service', to: 'queue', label: '세션 완료', type: 'reply' },
+    { from: 'queue', to: 'router', label: '전체 세션 완료', type: 'reply' },
+    { from: 'router', to: 'user', label: '배치 결과 요약', type: 'reply' },
+  ]}
+  loops={[{ label: '각 도면에 대해', start: 2, end: 5 }]}
+/>
+
+## API 엔드포인트
+
+### 배치 분석 시작
+
+```
+POST /api/batch/analyze
+Content-Type: multipart/form-data
+```
+
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| `files` | File[] | 도면 이미지 파일들 |
+| `project_name` | string | 프로젝트 이름 |
+| `features` | string[] | 활성화할 기능 목록 |
+
+### 배치 상태 확인
+
+```
+GET /api/batch/status/{project_id}
+```
+
+응답:
+```json
+{
+  "project_id": "a444211b",
+  "total_sessions": 53,
+  "completed": 53,
+  "failed": 0,
+  "progress_percent": 100.0
+}
+```
+
+## 세션별 처리 파이프라인
+
+<FlowDiagram client:load
+  direction="TD"
+  title="세션별 처리 파이프라인"
+  nodes={[
+    { id: 'img', label: '이미지 로드', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'vlm', label: 'VLM 분류', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'det', label: 'YOLO 검출', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'ocr', label: 'eDOCr2 OCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'dim', label: '치수 파싱', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'ver', label: '검증 큐', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'bom', label: 'BOM 생성', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'img', to: 'vlm' },
+    { from: 'vlm', to: 'det' },
+    { from: 'det', to: 'ocr' },
+    { from: 'ocr', to: 'dim' },
+    { from: 'dim', to: 'ver' },
+    { from: 'ver', to: 'bom' },
+  ]}
+  layers={[['img'], ['vlm'], ['det'], ['ocr'], ['dim'], ['ver'], ['bom']]}
+/>
+
+## 병렬 처리
+
+- 세션 간 병렬 처리 (동시 실행 수 설정 가능)
+- GPU 서비스 큐 관리로 메모리 초과 방지
+- 실패 세션 자동 재시도 (최대 3회)
+
+## 성능 지표
+
+| 지표 | 값 (DSE Bearing) |
+|------|-------------------|
+| 전체 세션 수 | 53 |
+| 평균 처리 시간 | ~30초/세션 |
+| 추출된 치수 | 총 2,710개 |
+| 평균 치수/세션 | 51.1 |
+| 성공률 | 100% |
+
+## 관련 문서
+
+- [배치 처리 및 납품](/batch-delivery) — 배치 처리 시스템 개요
+- [프로젝트 관리](/batch-delivery/project-management) — 프로젝트-세션 계층 관리
+- [내보내기 패키지](/batch-delivery/export-package) — 분석 결과 납품 패키지 생성
+- [고객 온보딩](/batch-delivery/onboarding-guide) — 배치 분석을 포함한 온보딩 CLI

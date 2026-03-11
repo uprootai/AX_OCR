@@ -1,0 +1,84 @@
+---
+sidebar_position: 4
+title: BlueprintFlow
+description: 워크플로우 빌더, 목록, 템플릿 갤러리 -- 3개 라우트
+---
+
+# BlueprintFlow
+
+> React Flow 기반 비주얼 워크플로우 빌더, 저장된 워크플로우 목록, 템플릿 갤러리를 제공하는 3개 페이지이다.
+
+## 접속 방법
+
+| URL | 권한 | 설명 |
+|-----|------|------|
+| `/blueprintflow/builder` | 공개 | 워크플로우 빌더 캔버스 |
+| `/blueprintflow/list` | 공개 | 저장된 워크플로우 목록 |
+| `/blueprintflow/templates` | 공개 | 템플릿 갤러리 |
+
+## 페이지 구성
+
+### 워크플로우 빌더 (`BlueprintFlowBuilder`)
+
+컴포넌트: `pages/blueprintflow/BlueprintFlowBuilder.tsx`
+
+| 영역 | 설명 |
+|------|------|
+| NodePalette (좌측) | 드래그 가능한 노드 팔레트 (API 노드 + Custom API 노드) |
+| 캔버스 (중앙) | React Flow 캔버스 -- 노드 배치, 엣지 연결, MiniMap, Controls |
+| 툴바 (상단) | 워크플로우 이름, 이미지 업로드, GT/단가 파일 첨부, 저장/실행/취소 |
+| NodeDetailPanel (우측) | 선택된 노드의 파라미터 편집, 추천 노드 추가 |
+| DebugPanel | 실행 결과 JSON 뷰어 |
+| ExecutionStatusPanel | 실행 진행률, 노드별 상태, 결과 다운로드 |
+
+주요 기능:
+- **세션 자동 로드**: `?session=` 쿼리 파라미터로 세션 이미지 자동 로드
+- **프로젝트 연결**: 드롭다운으로 프로젝트 선택
+- **실행 모드**: Sequential / Parallel / Eager 3가지 모드
+- **컨테이너 확인**: 실행 전 필요한 Docker 컨테이너 상태 점검
+- **템플릿 저장/불러오기**: `SaveTemplateModal`, `LoadTemplateModal`
+
+### 워크플로우 목록 (`BlueprintFlowList`)
+
+컴포넌트: `pages/blueprintflow/BlueprintFlowList.tsx`
+
+| 기능 | 설명 |
+|------|------|
+| 워크플로우 카드 | 이름, 설명, 노드/엣지 수, 최종 수정일 |
+| 편집 | 워크플로우를 빌더에서 열기 |
+| 복제 | 이름에 "(Copy)" 붙여 복제 |
+| 삭제 | 확인 없이 즉시 삭제 |
+| 실행 | 빌더에서 열고 실행 |
+
+### 템플릿 갤러리 (`BlueprintFlowTemplates`)
+
+컴포넌트: `pages/blueprintflow/BlueprintFlowTemplates.tsx`
+
+| 기능 | 설명 |
+|------|------|
+| 카테고리 탭 | all, detection, ocr 등 카테고리별 필터 |
+| 템플릿 카드 | 이름, 설명, 노드 수, 난이도 |
+| 빌더에서 열기 | 템플릿을 워크플로우로 로드 후 빌더로 이동 |
+| 샘플 이미지/GT | 템플릿에 번들된 샘플 자동 로드 |
+| 배포 모달 | `DeployTemplateModal`로 프로젝트에 템플릿 배포 |
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `Gateway /api/v1/workflow/list` | 저장된 워크플로우 목록 |
+| POST | `Gateway /api/v1/workflow/save` | 워크플로우 저장 |
+| GET | `Gateway /api/v1/workflow/:id` | 워크플로우 로드 |
+| DELETE | `Gateway /api/v1/workflow/:id` | 워크플로우 삭제 |
+| POST | `Gateway /api/v1/workflow/execute/stream` | 워크플로우 스트리밍 실행 |
+| GET | `Gateway /api/v1/templates` | 템플릿 목록 |
+| GET | `Gateway /api/v1/templates/:id` | 템플릿 상세 |
+| POST | `Gateway /api/v1/templates` | 템플릿 저장 |
+| GET | `BOM /api/v1/projects` | 프로젝트 목록 (프로젝트 연결용) |
+| GET | `BOM /api/v1/sessions/:id/image` | 세션 이미지 로드 |
+
+## 관련 문서
+
+- [라우트 맵](../route-map) -- 전체 라우트
+- [BlueprintFlow 개요](/blueprintflow) -- DAG 엔진, 노드 카탈로그
+- [상태 관리](../state-management) -- workflowStore

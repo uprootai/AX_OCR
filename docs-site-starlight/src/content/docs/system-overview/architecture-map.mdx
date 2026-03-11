@@ -1,0 +1,34 @@
+---
+sidebar_position: 1
+title: 아키텍처 맵
+description: 전체 시스템 아키텍처 인터랙티브 맵
+---
+
+# 아키텍처 맵
+
+> 21개 Docker 컨테이너로 구성된 마이크로서비스 토폴로지와 서비스 간 통신 구조를 보여준다.
+
+## 서비스 토폴로지(Topology)
+
+
+
+## 서비스 간 통신
+
+모든 서비스 간 통신은 Docker 네트워크 `ax_poc_network`를 통해 이루어집니다.
+
+| 패턴 | 설명 |
+|------|------|
+| **Gateway → Service** | HTTP REST (JSON/multipart) |
+| **프론트엔드 → Gateway** | Vite 프록시를 통한 HTTP REST |
+| **BOM 프론트엔드 → BOM 백엔드** | 직접 HTTP 통신 |
+| **Knowledge → Neo4j** | Bolt 프로토콜 (:7687) |
+
+## 포트 할당
+
+
+
+## 관련 문서
+
+- [서비스 카탈로그](/system-overview/service-catalog) — 21개 API 서비스 상세
+- [포트 및 네트워크](/system-overview/port-network) — 포트 할당 및 네트워크 구성
+- [기술 스택](/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴

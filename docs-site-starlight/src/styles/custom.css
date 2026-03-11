@@ -1,0 +1,56 @@
+/* AX POC Documentation — Custom Theme Colors */
+
+/* Light mode (default) */
+:root {
+    --sl-color-accent-low: #dbeafe;
+    --sl-color-accent: #2563eb;
+    --sl-color-accent-high: #1e40af;
+    --sl-color-white: #1a1a2e;
+    --sl-color-gray-1: #3a3a4e;
+    --sl-color-gray-2: #585868;
+    --sl-color-gray-3: #8888a0;
+    --sl-color-gray-4: #c0c0d0;
+    --sl-color-gray-5: #e8e8f0;
+    --sl-color-gray-6: #f4f4f8;
+    --sl-color-black: #ffffff;
+}
+
+/* Dark mode */
+:root[data-theme='dark'] {
+    --sl-color-accent-low: #1e293b;
+    --sl-color-accent: #3b82f6;
+    --sl-color-accent-high: #93bbfd;
+    --sl-color-white: #e8e8f0;
+    --sl-color-gray-1: #c0c0d0;
+    --sl-color-gray-2: #8888a0;
+    --sl-color-gray-3: #585868;
+    --sl-color-gray-4: #3a3a4e;
+    --sl-color-gray-5: #272737;
+    --sl-color-gray-6: #1a1a2e;
+    --sl-color-black: #13131f;
+}
+
+/* Navbar external link styles */
+.nav-external-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.nav-external-links a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--sl-color-white);
+    border: 1px solid var(--sl-color-gray-4);
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.nav-external-links a:hover {
+    background-color: var(--sl-color-accent-low);
+    border-color: var(--sl-color-accent);
+}

@@ -1,0 +1,123 @@
+---
+sidebar_position: 1
+title: VLM 분류
+description: Qwen2-VL 기반 도면 유형 분류 - 분석 파이프라인의 첫 번째 단계
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
+
+# VLM 분류
+
+> Qwen2-VL 기반으로 도면 이미지를 5개 카테고리(mechanical, p&id, table, text, photo)로 분류하고, 분류 결과에 따라 후속 처리 경로를 결정한다.
+
+시각적 언어 모델(VLM, Vision-Language Model) 단계는 분석 파이프라인의 진입점입니다. 업로드된 도면을 카테고리로 분류하여 이후 처리 경로를 결정합니다.
+
+## 모델
+
+| 항목 | 값 |
+|------|-----|
+| **모델** | Qwen2-VL |
+| **서비스** | VL API |
+| **포트** | 5004 |
+| **GPU** | 필수 |
+| **카테고리** | AI |
+
+## 분류 카테고리
+
+VLM은 업로드된 각 이미지를 다섯 가지 카테고리 중 하나로 분류합니다:
+
+| 카테고리 | 설명 | 후속 처리 경로 |
+|----------|------|---------------|
+| **mechanical** | 치수와 공차가 포함된 기계 엔지니어링 도면 | YOLO 검출 + eDOCr2 OCR + SkinModel |
+| **p&id** | 배관 계장도(P&ID, Piping and Instrumentation Diagram) | Line Detector + PID Analyzer + Design Checker |
+| **table** | 표 형식 데이터 (BOM 표, 부품 목록) | Table Detector + OCR |
+| **text** | 텍스트 중심 문서 (사양서, 주석) | OCR (PaddleOCR / Tesseract) |
+| **photo** | 부품 또는 조립체의 사진 | YOLO 검출 (육안 검사) |
+
+## 시퀀스 흐름
+
+<SequenceDiagram client:load
+  title="VLM 분류 시퀀스"
+  participants={[
+    { id: 'user', label: '사용자', color: '#1565c0' },
+    { id: 'gw', label: 'Gateway API :8000', color: '#37474f' },
+    { id: 'vlm', label: 'VL 서비스 :5004', color: '#1a237e' },
+  ]}
+  messages={[
+    { from: 'user', to: 'gw', label: 'POST /api/v1/classify (multipart 이미지)', type: 'sync' },
+    { from: 'gw', to: 'vlm', label: '이미지 전달', type: 'sync' },
+    { from: 'vlm', to: 'vlm', label: 'Qwen2-VL 추론', type: 'self' },
+    { from: 'vlm', to: 'gw', label: '분류 결과 {category, confidence}', type: 'reply' },
+    { from: 'gw', to: 'user', label: '응답: 도면 유형 + 라우팅 정보', type: 'reply' },
+  ]}
+/>
+
+## API 엔드포인트
+
+### POST /api/v1/classify
+
+도면 이미지의 유형을 분류합니다.
+
+**요청(Request):**
+
+```
+Content-Type: multipart/form-data
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `file` | File | 예 | 도면 이미지 (PNG, JPG, TIFF, PDF) |
+
+**응답(Response):**
+
+```json
+{
+  "category": "mechanical",
+  "confidence": 0.95,
+  "all_scores": {
+    "mechanical": 0.95,
+    "p_and_id": 0.02,
+    "table": 0.01,
+    "text": 0.01,
+    "photo": 0.01
+  }
+}
+```
+
+## 라우팅 로직
+
+분류가 완료되면 Gateway API는 도면을 적절한 처리 파이프라인으로 라우팅합니다:
+
+<FlowDiagram client:load
+  direction="TD"
+  title="VLM 분류 라우팅"
+  nodes={[
+    { id: 'vlm', label: 'VLM 분류', color: '#4a148c', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 'mech', label: 'YOLO + eDOCr2 + SkinModel', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'pid', label: 'Line Detector + PID Analyzer', color: '#01579b', bg: '#e1f5fe', shape: 'rounded' },
+    { id: 'tbl', label: 'Table Detector + OCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'txt', label: 'PaddleOCR / Tesseract', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'pht', label: 'YOLO 육안 검사', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'vlm', to: 'mech', label: 'mechanical' },
+    { from: 'vlm', to: 'pid', label: 'p&id' },
+    { from: 'vlm', to: 'tbl', label: 'table' },
+    { from: 'vlm', to: 'txt', label: 'text' },
+    { from: 'vlm', to: 'pht', label: 'photo' },
+  ]}
+  layers={[['vlm'], ['mech', 'pid', 'tbl', 'txt', 'pht']]}
+/>
+
+## 참고 사항
+
+- 분류 신뢰도(Confidence)가 0.7 미만인 경우, 에이전트 검증 큐(Agent Verification Queue)를 통한 휴먼 인 더 루프(Human-in-the-Loop) 검토가 실행됩니다.
+- VLM은 `describe` 작업 파라미터를 사용하면 도면 내용에 대한 자유 텍스트 설명을 생성할 수도 있습니다.
+
+## 관련 문서
+
+- [분석 파이프라인](/analysis-pipeline/) -- 파이프라인 전체 개요
+- [YOLO 검출](/analysis-pipeline/yolo-detection) -- 분류 후 심볼 검출 단계
+- [에이전트 검증](/agent-verification/) -- 낮은 신뢰도 분류 결과의 검증
+- [BlueprintFlow](/blueprintflow/) -- 워크플로우 빌더에서 VLM 노드 사용

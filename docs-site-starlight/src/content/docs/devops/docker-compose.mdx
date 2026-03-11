@@ -1,0 +1,155 @@
+---
+sidebar_position: 1
+title: Docker Compose
+description: 컨테이너 오케스트레이션
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+# Docker Compose
+
+> 21개 이상 컨테이너의 서비스 구성, 네트워크, 볼륨, GPU/CPU 설정을 정의하는 Docker Compose 오케스트레이션.
+
+## 서비스 아키텍처
+
+<FlowDiagram client:load
+  direction="TD"
+  title="호스트 머신 - docker-compose.yml"
+  nodes={[
+    { id: 'dc', label: 'docker-compose.yml', color: '#263238', bg: '#eceff1', shape: 'rounded' },
+    { id: 'yolo', label: 'YOLO :5005', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'edocr', label: 'eDOCr2 :5002', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'vl', label: 'VL :5004', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'trocr', label: 'TrOCR :5009', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'esrgan', label: 'ESRGAN :5010', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'ens', label: 'Ensemble :5011', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'edgnet', label: 'EDGNet :5012', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'bom', label: 'BOM :5020', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'table', label: 'Table :5022', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'skin', label: 'SkinModel :5003', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'paddle', label: 'PaddleOCR :5006', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'kn', label: 'Knowledge :5007', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'tess', label: 'Tesseract :5008', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'surya', label: 'Surya :5013', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'doctr', label: 'DocTR :5014', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'easy', label: 'EasyOCR :5015', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'line', label: 'Line Det :5016', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'pid', label: 'PID :5018', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'dchk', label: 'Design :5019', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'comp', label: 'Composer :5021', color: '#1565c0', bg: '#e3f2fd', shape: 'rect' },
+    { id: 'gw', label: 'Gateway :8000', color: '#263238', bg: '#eceff1', shape: 'rect' },
+    { id: 'web', label: 'Web UI :5173', color: '#263238', bg: '#eceff1', shape: 'rect' },
+    { id: 'bomfe', label: 'BOM FE :3000', color: '#263238', bg: '#eceff1', shape: 'rect' },
+    { id: 'neo', label: 'Neo4j :7687', color: '#263238', bg: '#eceff1', shape: 'rect' },
+  ]}
+  edges={[
+    { from: 'dc', to: 'yolo' },
+    { from: 'dc', to: 'skin' },
+    { from: 'dc', to: 'gw' },
+  ]}
+  layers={[
+    ['dc'],
+    ['yolo', 'edocr', 'vl', 'trocr', 'esrgan', 'ens', 'edgnet', 'bom', 'table'],
+    ['skin', 'paddle', 'kn', 'tess', 'surya', 'doctr', 'easy', 'line', 'pid', 'dchk', 'comp'],
+    ['gw', 'web', 'bomfe', 'neo'],
+  ]}
+/>
+
+## 컨테이너 설정
+
+### GPU 서비스 예시
+
+```yaml
+yolo-api:
+  build: ./models/yolo-api
+  container_name: yolo-api
+  ports:
+    - "5005:5005"
+  volumes:
+    - ./models/yolo-api/weights:/app/weights
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+  networks:
+    - ax_poc_network
+```
+
+### CPU 서비스 예시
+
+```yaml
+paddleocr-api:
+  build: ./models/paddleocr-api
+  container_name: paddleocr-api
+  ports:
+    - "5006:5006"
+  networks:
+    - ax_poc_network
+```
+
+## 네트워크
+
+```yaml
+networks:
+  ax_poc_network:
+    driver: bridge
+```
+
+모든 서비스는 `ax_poc_network` 브리지 네트워크를 공유합니다.
+
+## 볼륨
+
+| 볼륨 | 용도 |
+|------|------|
+| `./models/*/weights` | ML 모델 가중치 |
+| `./data/` | 공유 데이터 디렉토리 |
+| `neo4j_data` | Neo4j 데이터베이스 |
+
+## 명령어
+
+```bash
+# 모든 서비스 시작
+docker-compose up -d
+
+# 특정 서비스 시작
+docker-compose up -d yolo-api
+
+# 로그 확인
+docker logs yolo-api -f
+
+# 서비스 재빌드
+docker-compose build --no-cache yolo-api
+docker-compose up -d yolo-api
+
+# 전체 헬스 체크
+for port in 5002 5003 5004 5005 5006 5007 5008 5009 5010 5011 5012 5013 5014 5015 5016 5018 5019 5020 5021 5022; do
+  echo "Port $port: $(curl -s http://localhost:$port/health | jq -r .status)"
+done
+```
+
+## 오버라이드 파일
+
+`docker-compose.override.yml`로 로컬 개발 환경을 커스터마이징할 수 있습니다:
+
+```yaml
+# docker-compose.override.yml (커밋 대상 아님)
+services:
+  yolo-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+```
+
+## 관련 문서
+
+- [GPU 설정](/devops/gpu-config) — 서비스별 GPU 할당 및 동적 설정
+- [CI 파이프라인](/devops/ci-pipeline) — 지속적 통합 파이프라인
+- [CD 파이프라인](/devops/cd-pipeline) — 지속적 배포 파이프라인
+- [DevOps 및 인프라](/devops) — DevOps 개요

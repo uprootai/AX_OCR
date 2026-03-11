@@ -1,0 +1,124 @@
+---
+sidebar_position: 4
+title: 포트 및 네트워크
+description: 포트 할당 및 네트워크 토폴로지
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+
+# 포트 및 네트워크 맵
+
+> 전체 서비스의 포트 할당, Docker 네트워크 구성, 서비스 의존성 그래프를 보여준다.
+
+## 포트 할당
+
+
+## Docker 네트워크
+
+모든 서비스는 `ax_poc_network` (bridge) 네트워크를 공유합니다.
+
+## 문서 사이트(3001) 운영 방식
+
+`http://localhost:3001`은 Docusaurus 문서 사이트이며 기본 `docker-compose.yml`에 포함되지 않습니다.
+
+```bash
+cd docs-site
+npm install
+npm run start   # http://localhost:3001
+```
+
+
+## 서비스 의존성
+
+<FlowDiagram client:load
+  direction="TD"
+  title="서비스 의존성"
+  nodes={[
+    { id: 'gw', label: 'Gateway API', color: '#263238', bg: '#eceff1', shape: 'rounded' },
+    { id: 'yolo', label: 'YOLO', color: '#e65100', bg: '#fff3e0', shape: 'rect' },
+    { id: 'edocr', label: 'eDOCr2', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'vl', label: 'Vision-Language', color: '#1a237e', bg: '#e8eaf6', shape: 'rect' },
+    { id: 'paddle', label: 'PaddleOCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'tess', label: 'Tesseract', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'trocr', label: 'TrOCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'ens', label: 'OCR Ensemble', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'surya', label: 'Surya', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'doctr', label: 'DocTR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'easy', label: 'EasyOCR', color: '#1b5e20', bg: '#e8f5e9', shape: 'rect' },
+    { id: 'edge', label: 'EDGNet', color: '#01579b', bg: '#e1f5fe', shape: 'rect' },
+    { id: 'line', label: 'Line Det', color: '#01579b', bg: '#e1f5fe', shape: 'rect' },
+    { id: 'esrgan', label: 'ESRGAN', color: '#4a148c', bg: '#f3e5f5', shape: 'rect' },
+    { id: 'skin', label: 'SkinModel', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'pid', label: 'PID Analyzer', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'dc', label: 'Design Checker', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'comp', label: 'Composer', color: '#311b92', bg: '#ede7f6', shape: 'rect' },
+    { id: 'bom', label: 'BOM 백엔드', color: '#880e4f', bg: '#fce4ec', shape: 'rect' },
+    { id: 'kn', label: 'Knowledge', color: '#880e4f', bg: '#fce4ec', shape: 'rect' },
+    { id: 'neo', label: 'Neo4j', color: '#37474f', bg: '#eceff1', shape: 'rect' },
+  ]}
+  edges={[
+    { from: 'gw', to: 'yolo' },
+    { from: 'gw', to: 'edocr' },
+    { from: 'gw', to: 'vl' },
+    { from: 'gw', to: 'paddle' },
+    { from: 'gw', to: 'tess' },
+    { from: 'gw', to: 'trocr' },
+    { from: 'gw', to: 'ens' },
+    { from: 'gw', to: 'surya' },
+    { from: 'gw', to: 'doctr' },
+    { from: 'gw', to: 'easy' },
+    { from: 'gw', to: 'edge' },
+    { from: 'gw', to: 'line' },
+    { from: 'gw', to: 'esrgan' },
+    { from: 'gw', to: 'skin' },
+    { from: 'gw', to: 'pid' },
+    { from: 'gw', to: 'dc' },
+    { from: 'gw', to: 'comp' },
+    { from: 'gw', to: 'bom' },
+    { from: 'gw', to: 'kn' },
+    { from: 'kn', to: 'neo' },
+    { from: 'ens', to: 'edocr', dashed: true },
+    { from: 'ens', to: 'paddle', dashed: true },
+    { from: 'ens', to: 'tess', dashed: true },
+    { from: 'ens', to: 'trocr', dashed: true },
+    { from: 'bom', to: 'yolo', dashed: true },
+    { from: 'bom', to: 'edocr', dashed: true },
+    { from: 'bom', to: 'vl', dashed: true },
+  ]}
+  layers={[
+    ['gw'],
+    ['yolo', 'edocr', 'vl', 'paddle', 'tess', 'trocr', 'ens', 'surya', 'doctr', 'easy'],
+    ['edge', 'line', 'esrgan', 'skin', 'pid', 'dc', 'comp', 'bom', 'kn'],
+    ['neo'],
+  ]}
+/>
+
+## 헬스체크 엔드포인트(Health Check Endpoints)
+
+모든 서비스는 표준 헬스체크를 제공합니다:
+
+```bash
+# Gateway
+GET http://localhost:8000/api/v1/health
+
+# 개별 서비스 (서비스별 경로 상이)
+# 예: /health, /api/v1/health, /api/v2/health
+GET http://localhost:<port>/<health-path>
+
+# BOM 백엔드
+GET http://localhost:5020/health
+```
+
+| 서비스 | 헬스 엔드포인트 | 예상 응답 |
+|--------|----------------|-----------|
+| Gateway | `/api/v1/health` | `{"status": "healthy"}` |
+| ML API (대부분) | `/health` | `{"status": "healthy"}` |
+| 일부 API | `/api/v1/health`, `/api/v2/health` | `{"status": "healthy"}` |
+| Neo4j | `:7474` (HTTP) | 브라우저 UI |
+
+## 관련 문서
+
+- [서비스 카탈로그](/system-overview/service-catalog) — 21개 API 서비스 상세
+- [아키텍처 맵](/system-overview/architecture-map) — 서비스 토폴로지 인터랙티브 맵
+- [DevOps](/devops) — Docker Compose 운영

@@ -1,0 +1,74 @@
+---
+sidebar_position: 1
+title: 품질 보증
+description: 품질 보증 체계 개요
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+# 품질 보증 (Quality Assurance)
+
+> GT 비교, 능동 학습, 피드백 파이프라인, OCR 메트릭을 통한 ML 분석 결과 품질 보증 체계.
+
+ML 분석 결과의 품질을 보장하는 체계입니다.
+
+## QA 생명주기
+
+<FlowDiagram client:load
+  direction="TD"
+  title="QA 생명주기"
+  nodes={[
+    { id: 'det', label: '검출 결과', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'gt', label: 'GT 데이터 존재?', color: '#1565c0', bg: '#e3f2fd', shape: 'diamond' },
+    { id: 'comp', label: 'GT 비교', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'al', label: '능동 학습 큐', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'metrics', label: '메트릭 계산', sub: 'mAP, P, R, F1', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'report', label: 'QA 보고서', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'priority', label: '우선순위 점수 산정', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'review', label: '사람 검토', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'feedback', label: '피드백', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'retrain', label: '모델 업데이트', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'det', to: 'gt' },
+    { from: 'gt', to: 'comp', label: '예' },
+    { from: 'gt', to: 'al', label: '아니오' },
+    { from: 'comp', to: 'metrics' },
+    { from: 'metrics', to: 'report' },
+    { from: 'al', to: 'priority' },
+    { from: 'priority', to: 'review' },
+    { from: 'review', to: 'feedback' },
+    { from: 'feedback', to: 'retrain' },
+    { from: 'retrain', to: 'det' },
+  ]}
+  layers={[['det'], ['gt'], ['comp', 'al'], ['metrics', 'priority'], ['report', 'review'], ['feedback'], ['retrain']]}
+/>
+
+## 핵심 메트릭 (Key Metrics)
+
+| 메트릭 | 설명 | 목표 |
+|--------|------|------|
+| **mAP@50** | 평균 정밀도 (Mean Average Precision) | > 0.85 |
+| **Precision** | 정밀도 | > 0.90 |
+| **Recall** | 재현율 | > 0.85 |
+| **F1 Score** | 조화 평균 | > 0.87 |
+| **CER** | 문자 오류율 (Character Error Rate, OCR) | < 5% |
+
+## 세 가지 핵심 축
+
+| 핵심 축 | 설명 |
+|---------|------|
+| [GT 비교](./gt-comparison) | 정답(Ground Truth) 데이터와 비교 분석 |
+| [능동 학습](./active-learning) | 불확실 샘플 우선 학습 |
+| [피드백 파이프라인](./feedback-pipeline) | 사용자 피드백 수집 및 처리 |
+| [OCR 메트릭](./ocr-metrics) | OCR 성능 측정 |
+| [평가 보고서](./evaluation-reports) | 시스템 종합 평가 보고서 |
+
+## 관련 문서
+
+- [GT 비교](/quality-assurance/gt-comparison) — 정답 데이터와 비교 분석
+- [능동 학습](/quality-assurance/active-learning) — 불확실 샘플 우선 학습
+- [피드백 파이프라인](/quality-assurance/feedback-pipeline) — 사용자 피드백 수집 및 YOLO 데이터셋 생성
+- [OCR 메트릭](/quality-assurance/ocr-metrics) — OCR 성능 측정
+- [평가 보고서](/quality-assurance/evaluation-reports) — 시스템 종합 평가
+- [에이전트 검증](/agent-verification) — 3단계 에이전트 검증 시스템

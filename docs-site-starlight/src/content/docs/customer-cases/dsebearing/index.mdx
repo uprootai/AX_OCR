@@ -1,0 +1,95 @@
+---
+sidebar_position: 1
+title: 동서기연 — 터빈 베어링
+description: 터빈 베어링 도면 분석 및 견적 자동화 사례 개요
+---
+
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+
+# 동서기연 — 터빈 베어링 견적 자동화
+
+> 94개 터빈 베어링 도면에서 치수를 자동 추출하고, BOM 계층 분류 및 견적을 자동 산출하는 사례.
+
+> **고객**: (주)동서기연 (김동엽 대표)
+> **업종**: 터빈/발전기 베어링 제조 (주요 거래처: 두산에너빌리티)
+> **기간**: 2026-01 ~ 진행 중
+> **도면 유형**: 기계 부품도 (ISO/JIS 기반)
+
+---
+
+## 프로젝트 한눈에 보기
+
+### 파이프라인 커버리지
+
+<FlowDiagram client:load
+  direction="LR"
+  title="동서기연 견적 자동화 파이프라인"
+  nodes={[
+    { id: 'pdf', label: '94개 PDF\n도면 수령', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'ocr', label: 'eDOCr2 + PaddleOCR\n치수 자동 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'bom', label: 'BOM 계층 분류\n(395→326 품목)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'verify', label: 'Human-in-the-Loop\n검증 (카드 그리드)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'quote', label: '견적 자동 산출\n₩1.1억', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'pdf', to: 'ocr' },
+    { from: 'ocr', to: 'bom' },
+    { from: 'bom', to: 'verify' },
+    { from: 'verify', to: 'quote' },
+  ]}
+  layers={[['pdf'], ['ocr'], ['bom'], ['verify'], ['quote']]}
+/>
+
+### 핵심 성과 지표
+
+| 지표 | 값 | 비고 |
+|------|-----|------|
+| 수령 도면 | **94개** PDF | 1UNIT PJT 전체 |
+| 자동 추출 치수 | **548개** | 11종 단품 도면 |
+| BOM 품목 분류 | **326개** (ASSY 7 / SUB 16 / PART 303) | 견적 대상 303개 |
+| 자동 산출 견적 | **₩110,747,678** | 54개 품목 기준 |
+| 기존 수작업 소요 | **12일** → 자동화 목표 **1일** | 사양확인 4일 + 외주 6일 + 검토 2일 |
+
+### 타임라인
+
+| 날짜 | 이벤트 | 상태 |
+|------|--------|------|
+| 2026-01-20 | 자료 수령 (94개 PDF) | ✅ 완료 |
+| 2026-01-21 | 전체 분석 완료 (94개 MD, BOM 395품목) | ✅ 완료 |
+| 2026-01-23 | 후속 이메일 (분류확인 + 미팅요청) | ✅ 완료 |
+| 2026-02-04 | **1차 미팅** (20분, 화상) | ✅ 완료 |
+| 2026-03-04 | 2차 미팅 준비자료 작성 | ✅ 완료 |
+| 2026-03-11 | **현재** — 2차 미팅 일정 대기 | ⏳ 진행 중 |
+
+---
+
+## 고객 Pain Point
+
+동서기연은 터빈 베어링 **1UNIT 견적에 12일**이 소요됩니다.
+
+| 단계 | 소요일 | 내용 | AX POC 커버리지 |
+|------|--------|------|----------------|
+| 사양 확인 | 4일 | 도면별 재질/치수 수동 검토 | **✅ 자동화 완료** (eDOCr2 + PaddleOCR) |
+| 외주 견적 | 6일 | 협력사에 견적 요청·취합 | ⬜ 향후 자동화 |
+| 자체 검토 | 2일 | 최종 검토 및 조정 | **✅ 검증 UI** (카드 그리드) |
+
+:::tip[김동엽 대표 원문]
+*"사양 확인하고 도면에 큰 치수에 여유치를 붙여서 일단 소재 견적을 받아야 되는 부분이거든요."*
+:::
+
+---
+
+## 서브 페이지
+
+| 페이지 | 내용 |
+|--------|------|
+| [전달 자료 & 도면 분석](/customer-cases/dsebearing/data-overview) | 94개 PDF 상세, BOM 구조, 실제 도면 캡쳐 |
+| [미팅 & 커뮤니케이션](/customer-cases/dsebearing/meeting-history) | 이메일 교환, 1차 미팅 Q&A, 핵심 발견 |
+| [추출 & 견적 결과](/customer-cases/dsebearing/results) | 548개 치수 추출, BOM 분류, ₩1.1억 견적 |
+| [다음 단계 & 미결 사항](/customer-cases/dsebearing/next-steps) | 미수령 자료, 2차 미팅 계획, 미해결 질문 |
+
+## 관련 문서
+
+- [BOM & 견적](/bom-generation) — BOM 생성 및 견적 엔진
+- [분석 파이프라인](/analysis-pipeline) — 분석 파이프라인 아키텍처
+- [에이전트 검증](/agent-verification) — Human-in-the-Loop 검증 시스템

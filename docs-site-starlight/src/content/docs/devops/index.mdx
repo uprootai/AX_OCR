@@ -1,0 +1,64 @@
+---
+sidebar_position: 1
+title: DevOps 및 인프라
+description: DevOps 체계 및 인프라 개요
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+# DevOps 및 인프라
+
+> CI/CD 파이프라인, Docker Compose 오케스트레이션, GPU 설정 등 DevOps 인프라 구성을 다룬다.
+
+## 개요
+
+<FlowDiagram client:load
+  direction="LR"
+  nodes={[
+    { id: 'dev', label: '개발', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'ci', label: 'CI', sub: 'GitHub Actions', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'build', label: 'Docker 빌드', color: '#4a148c', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 'stage', label: '스테이징', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'prod', label: '프로덕션', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'dev', to: 'ci' },
+    { from: 'ci', to: 'build' },
+    { from: 'build', to: 'stage' },
+    { from: 'stage', to: 'prod' },
+  ]}
+  layers={[['dev'], ['ci'], ['build'], ['stage'], ['prod']]}
+/>
+
+## 인프라 요약
+
+| 구성 요소 | 기술 | 상세 |
+|-----------|------|------|
+| **컨테이너 런타임** | Docker Compose | 21개 이상 컨테이너 |
+| **CI (지속적 통합)** | GitHub Actions | ESLint + Build + Vitest + Ruff + Pytest |
+| **CD (지속적 배포)** | GitHub Actions | 빌드 → 스테이징 → 프로덕션 (수동 승인) |
+| **GPU 관리** | NVIDIA Container Toolkit | 동적 할당 |
+| **데이터베이스** | Neo4j | 지식 그래프 (포트 7687) |
+| **리버스 프록시** | Nginx | 프로덕션 전용 |
+
+## 테스트 커버리지
+
+| 테스트 스위트 | 수량 | 프레임워크 |
+|--------------|------|-----------|
+| 프론트엔드 | 185 | Vitest |
+| 백엔드 | 364 | Pytest |
+| **합계** | **549** | - |
+
+## 하위 페이지
+
+| 페이지 | 설명 |
+|--------|------|
+| [Docker Compose](./docker-compose) | 컨테이너 오케스트레이션 |
+| [CI 파이프라인](./ci-pipeline) | 지속적 통합 |
+| [CD 파이프라인](./cd-pipeline) | 지속적 배포 |
+| [GPU 설정](./gpu-config) | GPU 설정 및 할당 |
+
+## 관련 문서
+
+- [Deployment](/deployment) — 시스템 설치 및 온프레미스 배포
+- [시스템 아키텍처](/system-overview/architecture-map) — 전체 시스템 구성

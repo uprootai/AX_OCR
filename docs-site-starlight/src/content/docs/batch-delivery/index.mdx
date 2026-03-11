@@ -1,0 +1,101 @@
+---
+sidebar_position: 1
+title: 배치 처리 및 납품
+description: 대량 도면 일괄 분석 및 납품 패키지 시스템
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+# 배치 처리 및 납품
+
+> 대량 도면 일괄 분석, 프로젝트 관리, JSON/Excel/PDF 납품 패키지 생성 및 독립 실행 내보내기를 제공하는 배치 처리 시스템.
+
+대량의 도면을 일괄 분석하고 납품 가능한 패키지로 내보내는 시스템입니다.
+
+## 파이프라인 개요
+
+<FlowDiagram client:load
+  direction="LR"
+  title="배치 처리 파이프라인"
+  nodes={[
+    { id: 'upload', label: '폴더 업로드', sub: 'N개 도면', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'queue', label: '처리 큐', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'par', label: '병렬 처리', color: '#e65100', bg: '#fff3e0', shape: 'diamond' },
+    { id: 's1', label: '세션 1', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 's2', label: '세션 2', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'sn', label: '세션 N', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'agg', label: '결과 집계', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'bom', label: '통합 BOM', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'export', label: '내보내기 패키지', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'upload', to: 'queue' },
+    { from: 'queue', to: 'par' },
+    { from: 'par', to: 's1' },
+    { from: 'par', to: 's2' },
+    { from: 'par', to: 'sn' },
+    { from: 's1', to: 'agg' },
+    { from: 's2', to: 'agg' },
+    { from: 'sn', to: 'agg' },
+    { from: 'agg', to: 'bom' },
+    { from: 'bom', to: 'export' },
+  ]}
+  layers={[['upload'], ['queue'], ['par'], ['s1', 's2', 'sn'], ['agg'], ['bom'], ['export']]}
+/>
+
+## 주요 기능
+
+| 기능 | 설명 |
+|------|------|
+| **배치 분석 (Batch Analysis)** | 폴더 단위 도면 일괄 처리 |
+| **프로젝트 관리 (Project Management)** | 프로젝트 → 세션 계층 관리 |
+| **내보내기 패키지 (Export Package)** | JSON + Excel + PDF 납품 |
+| **독립 실행 내보내기 (Self-contained Export)** | 서버 없이 독립 실행 가능 |
+
+## 실제 사례
+
+**DSE Bearing Turbine 프로젝트:**
+- 53개 세션 (53개 도면)
+- 2,710개 치수 추출 (평균 51.1개/세션)
+- 7개 조립 그룹 (T3~T8 + THRUST)
+- 배치 완료율 100%
+
+## 프로젝트 계층 구조
+
+<FlowDiagram client:load
+  direction="TD"
+  title="프로젝트 계층 구조"
+  nodes={[
+    { id: 'project', label: 'PROJECT', sub: 'id (PK) / name / client / session_count', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'session', label: 'SESSION', sub: 'id (PK) / project_id (FK) / image_path / status', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'detection', label: 'DETECTION', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'dimension', label: 'DIMENSION', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'bom_item', label: 'BOM_ITEM', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'quotation', label: 'QUOTATION', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'project', to: 'session', label: '포함 (1:N)' },
+    { from: 'session', to: 'detection', label: '보유 (1:N)' },
+    { from: 'session', to: 'dimension', label: '보유 (1:N)' },
+    { from: 'session', to: 'bom_item', label: '생성 (1:N)' },
+    { from: 'project', to: 'quotation', label: '생산 (1:N)' },
+  ]}
+  layers={[['project'], ['session', 'quotation'], ['detection', 'dimension', 'bom_item']]}
+/>
+
+## 하위 페이지
+
+| 페이지 | 설명 |
+|--------|------|
+| [배치 처리](./batch-processing) | 대량 도면 일괄 분석 상세 |
+| [프로젝트 관리](./project-management) | 프로젝트 계층 관리 |
+| [내보내기 패키지](./export-package) | 납품 패키지 생성 |
+| [고객 온보딩](./onboarding-guide) | 신규 고객 프로젝트 자동 셋업 |
+
+## 관련 문서
+
+- [배치 처리](./batch-processing) — 대량 도면 일괄 분석 상세
+- [프로젝트 관리](./project-management) — 프로젝트 계층 관리
+- [내보내기 패키지](./export-package) — 납품 패키지 생성
+- [고객 온보딩](./onboarding-guide) — 신규 고객 프로젝트 자동 셋업
+- [BOM 생성](/bom-generation) — BOM 생성 파이프라인

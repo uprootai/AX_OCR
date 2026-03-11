@@ -1,0 +1,123 @@
+---
+sidebar_position: 1
+title: BlueprintFlow
+description: 29개 이상의 노드 타입으로 맞춤형 분석 파이프라인을 구성하는 비주얼 워크플로우 빌더
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+
+# BlueprintFlow
+
+> 29개 이상의 노드 타입과 DAG 엔진을 갖춘 비주얼 워크플로우 빌더로, 드래그 앤 드롭 방식으로 맞춤형 분석 파이프라인을 구성한다.
+
+BlueprintFlow는 엔지니어가 캔버스 위에서 처리 노드를 연결하여 맞춤형 분석 파이프라인(Analysis Pipeline)을 구성할 수 있는 비주얼 워크플로우 빌더입니다. React Flow를 기반으로 구축되었으며, 검출(Detection), OCR, 분석(Analysis), 내보내기(Export) 단계를 방향성 비순환 그래프(DAG, Directed Acyclic Graph)로 조립할 수 있는 드래그 앤 드롭 인터페이스를 제공합니다.
+
+## 주요 기능
+
+- **29개 이상의 노드 타입**: 9개 카테고리로 구성
+- **DAG 실행 엔진**: 위상 정렬(Topological Sort) 및 병렬 브랜치 실행
+- **사전 구성 템플릿**: 일반적인 분석 워크플로우용
+- **실시간 실행**: 노드별 진행 상태 추적
+- **커스텀 API 통합**: 스캐폴딩 도구를 통한 확장
+
+## 노드 카테고리
+
+<div style={{ border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px', padding: '16px', overflowX: 'auto', background: 'var(--ifm-background-surface-color, var(--ifm-background-color))' }}>
+  <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+    <span style={{ display: 'inline-block', padding: '8px 20px', background: 'var(--ifm-color-primary)', color: 'white', borderRadius: '20px', fontWeight: 700, fontSize: '0.95rem' }}>BlueprintFlow</span>
+  </div>
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #e0f2f1 55%, var(--ifm-background-color))', border: '2px solid #004d4030' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#004d40', marginBottom: '6px' }}>입력</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>ImageInput, TextInput</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #fff3e0 55%, var(--ifm-background-color))', border: '2px solid #e6510030' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#e65100', marginBottom: '6px' }}>검출</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>YOLO, Table Detector</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #e8f5e9 55%, var(--ifm-background-color))', border: '2px solid #1b5e2030' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1b5e20', marginBottom: '6px' }}>OCR</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>eDOCr2, PaddleOCR, Tesseract, TrOCR, OCR Ensemble, Surya OCR, DocTR, EasyOCR</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #e1f5fe 55%, var(--ifm-background-color))', border: '2px solid #01579b30' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#01579b', marginBottom: '6px' }}>세그멘테이션</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>EDGNet, Line Detector</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #f3e5f5 55%, var(--ifm-background-color))', border: '2px solid #4a148c30' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#4a148c', marginBottom: '6px' }}>전처리</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>ESRGAN</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #ede7f6 55%, var(--ifm-background-color))', border: '2px solid #311b9230' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#311b92', marginBottom: '6px' }}>분석</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>SkinModel, PID Analyzer, Design Checker, GT Comparison, PDF Export</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #fce4ec 55%, var(--ifm-background-color))', border: '2px solid #880e4f30' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#880e4f', marginBottom: '6px' }}>지식 그래프</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>Knowledge Graph</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #e8eaf6 55%, var(--ifm-background-color))', border: '2px solid #1a237e30' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1a237e', marginBottom: '6px' }}>AI</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>Vision-Language</div>
+    </div>
+    <div style={{ padding: '10px', borderRadius: '8px', background: 'color-mix(in srgb, #efebe9 55%, var(--ifm-background-color))', border: '2px solid #3e272330' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#3e2723', marginBottom: '6px' }}>제어</div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-700)' }}>IF, Loop, Merge</div>
+    </div>
+  </div>
+</div>
+
+## 아키텍처
+
+<FlowDiagram client:load
+  direction="TD"
+  title="BlueprintFlow 아키텍처"
+  nodes={[
+    { id: 'ui', label: 'BlueprintFlow 캔버스', sub: 'React Flow', color: '#1565c0', bg: 'color-mix(in srgb, #e3f2fd 55%, var(--ifm-background-color))', shape: 'rounded' },
+    { id: 'store', label: '워크플로우 스토어', sub: 'Zustand', color: '#37474f', bg: 'color-mix(in srgb, #eceff1 55%, var(--ifm-background-color))', shape: 'rounded' },
+    { id: 'exec', label: 'DAG 엔진', sub: 'Gateway API', color: '#e65100', bg: 'color-mix(in srgb, #fff3e0 55%, var(--ifm-background-color))', shape: 'rounded' },
+    { id: 'reg', label: '실행기 레지스트리', color: '#37474f', bg: 'color-mix(in srgb, #eceff1 55%, var(--ifm-background-color))', shape: 'rounded' },
+    { id: 'apis', label: 'ML 서비스', sub: '21개 컨테이너', color: '#37474f', bg: 'color-mix(in srgb, #eceff1 55%, var(--ifm-background-color))', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'ui', to: 'store' },
+    { from: 'store', to: 'exec' },
+    { from: 'exec', to: 'reg' },
+    { from: 'reg', to: 'apis' },
+  ]}
+  layers={[['ui'], ['store'], ['exec'], ['reg'], ['apis']]}
+/>
+
+## 하위 페이지
+
+| 페이지 | 설명 |
+|--------|------|
+| [노드 카탈로그](./node-catalog.md) | 29개 이상의 모든 노드 타입과 파라미터에 대한 전체 레퍼런스 |
+| [DAG 엔진](./dag-engine.mdx) | 실행 엔진 내부 구조: 위상 정렬, 병렬 처리, 실행기 레지스트리 |
+| [템플릿](./templates.mdx) | 일반적인 분석 시나리오를 위한 사전 구성 워크플로우 템플릿 |
+| [커스텀 API](./custom-api.mdx) | 커스텀 API 노드 및 실행기 추가 가이드 |
+
+## 빠른 시작
+
+1. `http://localhost:5173/blueprintflow/builder`에서 **BlueprintFlow 빌더**로 이동합니다.
+2. 사이드바에서 노드를 캔버스로 드래그합니다.
+3. 출력을 입력에 연결하여 데이터 흐름을 정의합니다.
+4. 속성 패널에서 노드 파라미터를 설정합니다.
+5. **실행(Run)**을 클릭하여 워크플로우를 실행합니다.
+
+## 프론트엔드 파일 위치
+
+| 파일 | 용도 |
+|------|------|
+| `web-ui/src/pages/blueprintflow/BlueprintFlowBuilder.tsx` | 메인 빌더 페이지 |
+| `web-ui/src/config/nodeDefinitions.ts` | 노드 타입 정의 (29개 이상의 노드, 70개 이상의 파라미터) |
+| `web-ui/src/config/apiRegistry.ts` | API 엔드포인트 레지스트리 |
+| `web-ui/src/store/workflowStore.ts` | 워크플로우 상태 관리 |
+
+## 관련 문서
+
+- [노드 카탈로그](/blueprintflow/node-catalog) -- 29개 이상의 노드 타입 전체 레퍼런스
+- [DAG 엔진](/blueprintflow/dag-engine) -- 위상 정렬 실행 엔진 내부 구조
+- [템플릿](/blueprintflow/templates) -- 사전 구성 워크플로우 템플릿
+- [커스텀 API](/blueprintflow/custom-api) -- 커스텀 API 노드 추가 가이드
+- [최적화](/blueprintflow/optimization) -- 모델 다양화 및 파이프라인 최적화
+- [분석 파이프라인](/analysis-pipeline/) -- ML 파이프라인 단계별 설명
