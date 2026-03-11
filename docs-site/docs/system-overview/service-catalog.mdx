@@ -8,7 +8,7 @@ import ServiceTable from '@site/src/components/ServiceTable';
 
 # 서비스 카탈로그
 
-AX POC의 외부 노출 API는 21개입니다.
+> 21개 외부 API 서비스와 5개 Gateway 내부 분석 도구의 카테고리별 상세 목록.
 추가로 Gateway 내부 분석 도구 5개(`titleblock`, `partslist`, `dimensionparser`, `bommatcher`, `quotegenerator`)가 있습니다.
 
 <ServiceTable />
@@ -79,3 +79,9 @@ AX POC의 외부 노출 API는 21개입니다.
 <!-- AUTO-GENERATED:END -->
 
 > 참고: 위 GPU 표시는 `web-ui/src/config/apiRegistry.ts` 기준이며, 실제 GPU 디바이스 할당은 `docker-compose.override.yml` 적용 여부에 따라 달라집니다.
+
+## 관련 문서
+
+- [포트 및 네트워크](/docs/system-overview/port-network) — 포트 할당 및 네트워크 구성
+- [아키텍처 맵](/docs/system-overview/architecture-map) — 서비스 토폴로지 인터랙티브 맵
+- [기술 스택](/docs/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴

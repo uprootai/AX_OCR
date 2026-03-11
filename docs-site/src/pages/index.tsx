@@ -64,6 +64,11 @@ const SECTIONS = [
     description: 'Docker Compose, CI/CD, GPU 설정, 모니터링',
     link: '/docs/devops',
   },
+  {
+    title: '15. Customer Cases',
+    description: '동서기연 베어링 견적, 파나시아 MCP Panel 심볼 검출',
+    link: '/docs/customer-cases',
+  },
 ];
 
 function HomepageHeader() {

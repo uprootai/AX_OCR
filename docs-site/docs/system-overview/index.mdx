@@ -6,7 +6,7 @@ description: AX POC 전체 시스템 아키텍처 개요
 
 # 시스템 개요
 
-AX POC는 **기계 도면 자동 분석 및 제조 견적 생성 시스템**입니다.
+> AX POC 전체 시스템의 아키텍처, 핵심 지표, 데이터 흐름을 요약한다.
 
 ```
 도면 이미지 → VLM 분류 → YOLO 검출 → OCR 추출 → 공차 분석 → 리비전 비교 → 견적 PDF
@@ -81,3 +81,10 @@ import ArchitectureDiagram from '@site/src/components/ArchitectureDiagram';
 | 8 | [품질 보증](/docs/quality-assurance) | 품질 보증 체계 |
 | 9 | [프론트엔드](/docs/frontend) | 프론트엔드 아키텍처 |
 | 10 | [DevOps](/docs/devops) | DevOps 및 인프라 |
+
+## 관련 문서
+
+- [아키텍처 맵](/docs/system-overview/architecture-map) — 서비스 토폴로지 인터랙티브 맵
+- [서비스 카탈로그](/docs/system-overview/service-catalog) — 21개 API 서비스 상세
+- [기술 스택](/docs/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴
+- [포트 및 네트워크](/docs/system-overview/port-network) — 포트 할당 및 네트워크 구성

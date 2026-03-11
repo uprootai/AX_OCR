@@ -14,8 +14,8 @@ const config: Config = {
   url: 'https://ax-poc-docs.example.com',
   baseUrl: '/docs/',
 
-  onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
+  onBrokenLinks: 'throw',
+  onBrokenMarkdownLinks: 'throw',
 
   i18n: {
     defaultLocale: 'ko',
@@ -97,6 +97,7 @@ const config: Config = {
             {label: 'Deployment', to: '/deployment'},
             {label: 'Developer Guide', to: '/developer'},
             {label: 'Quality Assurance', to: '/quality-assurance'},
+            {label: 'Customer Cases', to: '/customer-cases'},
           ],
         },
       ],

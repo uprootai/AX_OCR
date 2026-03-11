@@ -1,0 +1,69 @@
+---
+sidebar_position: 5
+title: 세션 & P&ID
+description: P&ID 심볼 검출 오버레이 뷰어 및 세션 관련 페이지
+tags: [frontend, page, pid, session, overlay]
+---
+
+# 세션 & P&ID
+
+> P&ID 도면의 심볼을 검출하여 오버레이로 시각화하는 페이지이다. 가이드 페이지와 문서 브릿지도 포함한다.
+
+## 접속 방법
+
+| URL | 권한 | 설명 |
+|-----|------|------|
+| `/pid-overlay` | 공개 | P&ID 심볼 검출 오버레이 뷰어 |
+| `/guide` | 공개 | 시스템 사용 가이드 |
+| `/docs` | 공개 | docs-site로 리다이렉트 |
+
+## P&ID 오버레이 뷰어 (`PIDOverlayPage`) {#pid-overlay}
+
+컴포넌트: `pages/pid-overlay/PIDOverlayPage.tsx`
+
+| 기능 | 설명 |
+|------|------|
+| 이미지 업로드 | P&ID 도면 PNG/JPG 업로드 |
+| `PIDOverlayViewer` | 심볼/라인/텍스트/영역 오버레이 시각화 컴포넌트 |
+| 레이어 토글 | 표시할 항목(심볼, 라인, 텍스트, 영역) 선택 |
+| SVG/이미지 모드 | 렌더링 형식 전환 |
+| 분석 결과 요약 | 심볼/라인/텍스트/영역 검출 수 표시 |
+
+Design Checker API(`localhost:5019`)의 `pipeline/detect` 엔드포인트를 호출한다. 전체 분석(심볼+라인+텍스트+영역)이 필요한 경우 BlueprintFlow 사용을 권장한다.
+
+## 가이드 페이지 (`Guide`) {#guide}
+
+컴포넌트: `pages/dashboard/Guide.tsx`
+
+10개 섹션으로 구성된 사이드바 TOC 기반 가이드 페이지이다.
+
+| 섹션 | 설명 |
+|------|------|
+| Overview | 시스템 개요 |
+| Architecture | 아키텍처 설명 |
+| Pipeline | 분석 파이프라인 |
+| Services | API 서비스 목록 |
+| Quickstart | 빠른 시작 |
+| API Dev | API 개발 가이드 |
+| Spec Ref | API 스펙 참조 |
+| Testing | 테스트 방법 |
+| Docs | 문서 안내 |
+| BlueprintFlow | BlueprintFlow 사용법 |
+
+## 문서 브릿지 (`Docs`) {#docs}
+
+컴포넌트: `pages/docs/Docs.tsx`
+
+`/docs` 접근 시 `window.location.href = '/docs/'`로 docs-site(Docusaurus)로 리다이렉트한다. 자동 이동이 안 되는 경우를 위한 수동 링크도 제공한다.
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `Design Checker :5019 /pipeline/detect` | P&ID 심볼 검출 |
+
+## 관련 문서
+
+- [라우트 맵](../route-map) -- 전체 라우트
+- [P&ID 분석](/docs/pid-analysis) -- P&ID 분석 파이프라인
+- [BlueprintFlow](./blueprintflow) -- 전체 분석 워크플로우

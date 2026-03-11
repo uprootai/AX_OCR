@@ -1,0 +1,126 @@
+---
+sidebar_position: 4
+title: 추출 & 견적 결과
+description: 548개 치수 자동 추출, BOM 계층 분류, 견적 자동 산출
+---
+
+# 추출 & 견적 결과
+
+> 11종 단품 도면에서 548개 치수를 자동 추출하고, 326개 BOM 품목을 분류한 뒤, 54개 품목 기준 1.1억원 견적을 산출한 결과.
+
+## 소재 사이즈 자동 추출 (eDOCr2 + PaddleOCR)
+
+11종 단품 도면에서 **548개 치수**를 자동 추출했습니다.
+
+### 저널 베어링 (T1) — 238개
+
+| 도면번호 | 품명 | 추출 치수 | 검증 |
+|---------|------|----------|------|
+| TD0062017 | BEARING RING (T1,T2,T3) | **80개** | ✅ |
+| TD0062019 | BEARING CASING (T1) | **110개** | ✅ |
+| TD0062020 | LINER PAD (T1) | **48개** | ✅ |
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/TD0062017_bearing_ring_t1.png" alt="Bearing Ring T1 - 80개 치수 추출" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>TD0062017 BEARING RING T1 — 80개 치수 자동 추출 대상</p>
+</div>
+
+### 스러스트 베어링 — 310개
+
+| 도면번호 | 품명 | 추출 치수 | 검증 |
+|---------|------|----------|------|
+| TD0062057 | THRUST BEARING RING | **89개** | ✅ |
+| TD0062059 | THRUST CASING (TBN) | **54개** | ✅ |
+| TD0062060 | THRUST PAD (TBN) | **23개** | ✅ |
+| TD0062061 | UPPER LEVELING PLATE | **8개** | ✅ |
+| TD0062062 | LOWER LEVELING PLATE | **24개** | ✅ |
+| TD0062063 | THRUST SHIM PLATE | **38개** | ✅ |
+| TD0062065 | THRUST CASING (GEN) | **51개** | ✅ |
+| TD0062066 | THRUST PAD (GEN) | **23개** | ✅ |
+
+<div style={{textAlign: 'center', margin: '1rem 0'}}>
+  <img src="/docs/img/customer-cases/dsebearing/TD0062057.png" alt="Thrust Bearing Ring - 89개 치수 추출" style={{maxWidth: '100%', border: '1px solid #ddd', borderRadius: '8px'}} />
+  <p style={{color: 'gray', fontSize: '0.85rem'}}>TD0062057 THRUST BEARING RING — 89개 치수 자동 추출 대상</p>
+</div>
+
+### 추출 예시 (TD0062017 BEARING RING)
+
+도면에서 추출된 주요 소재 사이즈:
+- 외경: Ø704, 590, 550, 495, 435 등
+- 내경: 375, 120 등
+- 두께/길이: 200, 100, 30 등
+- 나사 규격: M30x45, M8x16 등
+
+### 검증 방식 (Human-in-the-Loop)
+
+<FlowDiagram
+  direction="LR"
+  title="치수 검증 워크플로우"
+  nodes={[
+    { id: 'upload', label: '도면 업로드', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'extract', label: 'eDOCr2 + PaddleOCR\n자동 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'cards', label: '카드 그리드\n(오버레이 표시)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'auto', label: '자동 승인\n(신뢰도 90%+)', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'manual', label: '수동 검토', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'done', label: '100% 검증 완료', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'upload', to: 'extract' },
+    { from: 'extract', to: 'cards' },
+    { from: 'cards', to: 'auto' },
+    { from: 'cards', to: 'manual' },
+    { from: 'auto', to: 'done' },
+    { from: 'manual', to: 'done' },
+  ]}
+  layers={[['upload'], ['extract'], ['cards'], ['auto', 'manual'], ['done']]}
+/>
+
+---
+
+## BOM 계층 분류 결과
+
+Z24018 BOM 326개 품목을 자동 분류했습니다.
+
+| 레벨 | BOM 색깔 | 수량 | 견적 처리 |
+|------|---------|------|---------|
+| ASSY | 🟥 분홍 | 7개 | 스킵 (조립 관계 확인용) |
+| SUB | 🟦 파란 | 16개 | 스킵 (중간 조립품) |
+| **PART** | ⬜ **하얀** | **303개** | **견적 대상** |
+| 합계 | - | **326개** | - |
+
+---
+
+## 견적 자동 산출
+
+54개 품목에 대해 내부 추정 단가 기반으로 자동 산출:
+
+| 항목 | 금액 |
+|------|------|
+| 총 재료비 | 69,014,836원 |
+| 총 가공비 | 12,087,975원 |
+| 소계 | 100,679,707원 |
+| **합계 (VAT 포함)** | **₩110,747,678** |
+
+:::warning 주의
+가공비는 BOM 내 가공 정보 기반 **추정값**입니다. 고객의 실제 단가표 수령 후 정밀화 필요.
+:::
+
+### 견적 커버리지
+
+| 구분 | 수량 | 비율 |
+|------|------|------|
+| 견적 산출 완료 | 54개 | 17.8% |
+| 견적 대상 (PART) | 303개 | 100% |
+| 잔여 | 249개 | 82.2% |
+
+:::info 잔여 249개
+잔여 품목은 **도면 자동 추출 → 검증 → 견적** 파이프라인 연동 후 순차 처리 예정.
+고객 실단가 수령 시 정밀도 향상.
+:::
+
+## 관련 문서
+
+- [동서기연 — 개요](/docs/customer-cases/dsebearing) — 프로젝트 전체 요약
+- [전달 자료 & 도면 분석](/docs/customer-cases/dsebearing/data-overview) — 94개 PDF 도면 상세
+- [다음 단계 & 미결 사항](/docs/customer-cases/dsebearing/next-steps) — 미수령 자료 및 2차 미팅 계획
+- [BOM & 견적](/docs/bom-generation) — BOM 생성 및 견적 엔진

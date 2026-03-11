@@ -1,0 +1,174 @@
+---
+sidebar_position: 2
+title: 파나시아 — MCP Panel
+description: MCP Panel P&ID 심볼 검출 및 BOM 생성 사례
+---
+
+# 파나시아 — MCP Panel P&ID 심볼 검출
+
+> MCP Panel 도면에서 27종 전력 설비 심볼을 YOLO로 검출하고, GT 비교 검증 후 BOM을 생성하는 사례.
+
+> **고객**: (주)파나시아
+> **업종**: 선박 환경장비 제조 (BWMS, 배기가스 세정장치 등)
+> **기간**: 2025 ~ 2026-01 (POC 완료)
+> **도면 유형**: P&ID (MCP Panel — 전력 설비 배선도)
+
+---
+
+## 프로젝트 개요
+
+파나시아의 MCP(Motor Control Panel) 도면에서 **27종 전력 설비 심볼**을 자동 검출하고,
+Ground Truth(GT) 비교를 통해 검출 정확도를 검증한 뒤, BOM을 생성하는 시스템입니다.
+
+<FlowDiagram
+  direction="LR"
+  title="파나시아 파이프라인"
+  nodes={[
+    { id: 'upload', label: 'MCP Panel\n도면 업로드', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'yolo', label: 'YOLO 검출\n(27클래스)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'gt', label: 'GT 비교 검증', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'review', label: 'Human-in-the-Loop\n승인/거부/수정', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'canvas', label: 'Canvas 수동 추가', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'bom', label: 'BOM 내보내기', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'upload', to: 'yolo' },
+    { from: 'yolo', to: 'gt' },
+    { from: 'gt', to: 'review' },
+    { from: 'review', to: 'canvas' },
+    { from: 'canvas', to: 'bom' },
+  ]}
+  layers={[['upload'], ['yolo'], ['gt'], ['review'], ['canvas'], ['bom']]}
+/>
+
+---
+
+## 검출 대상: 27종 P&ID 심볼
+
+YOLO 모델(`panasia` 프로파일)로 MCP Panel 도면에서 전력 설비 심볼을 검출합니다.
+
+| 카테고리 | 심볼 예시 | 설명 |
+|---------|----------|------|
+| 차단기류 | CB, MCCB, NFB, ELCB | 회로 차단기 |
+| 변압기류 | TR, CT, PT, GPT | 변압기, 계기용 변성기 |
+| 보호계전기 | OCR, OCGR, SGR, OVR, UVR | 과전류, 지락, 전압 계전기 |
+| 계측기 | AM, VM, WM, WHM, FM | 전류/전압/전력/주파수계 |
+| 제어기기 | MC, THR, LA, PF | 전자접촉기, 열동릴레이, 피뢰기 |
+| 기타 | DS, VCB, ACB, VS, ZCT | 단로기, 진공차단기 등 |
+
+### 모델 설정
+
+| 항목 | 값 |
+|------|---|
+| 모델 프로파일 | `panasia` |
+| 검출 클래스 | 27종 |
+| Confidence Threshold | 0.40 |
+| IoU Threshold | 0.50 |
+| 이미지 크기 | 1024px |
+| SAHI (타일 분할) | 비활성 |
+
+---
+
+## GT 비교 검증
+
+검출 결과의 정확도를 Ground Truth와 비교하여 검증합니다.
+
+### 검증 워크플로우
+
+1. **YOLO 자동 검출** — 도면에서 심볼 위치·클래스 검출
+2. **GT 데이터 비교** — 사전 라벨링된 정답과 매칭
+3. **카드 그리드 검토** — 각 검출 결과를 카드로 표시
+   - 자동 승인 (높은 신뢰도)
+   - 수동 검토 (낮은 신뢰도)
+   - 거부/수정 (오검출)
+4. **Canvas 수동 추가** — 미검출 심볼 직접 추가
+5. **BOM 생성** — 최종 확정된 심볼 목록으로 BOM 내보내기
+
+---
+
+## 납품 패키지
+
+POC 완료 후 **독립 실행 가능한 Docker 패키지**로 납품합니다.
+
+### 패키지 구성
+
+| 서비스 | 컨테이너 | 포트 | 설명 |
+|--------|---------|------|------|
+| BOM 프론트엔드 | `panasia-blueprint-ai-bom-frontend` | 13000 | 검증 UI |
+| BOM 백엔드 | `panasia-blueprint-ai-bom-backend` | 15020 | 세션/BOM API |
+| Gateway API | `panasia-gateway-api` | 18000 | API 게이트웨이 |
+| YOLO API | `panasia-yolo-api` | 15005 | 심볼 검출 (GPU) |
+
+### 패키지 메타데이터
+
+```json
+{
+  "export_version": "3.0",
+  "session_name": "PANASIA: MCP Panel 심볼 검출 + GT 비교",
+  "container_prefix": "panasia-",
+  "port_offset": 10000,
+  "network": "panasia_network"
+}
+```
+
+### 설치 및 실행
+
+```bash
+# Linux/macOS
+./scripts/import.sh
+
+# Windows PowerShell
+.\scripts\import.ps1
+```
+
+실행 후 `http://localhost:13000`에서 검증 UI에 접속할 수 있습니다.
+
+---
+
+## BlueprintFlow 연동
+
+web-ui의 BlueprintFlow에서 **PANASIA 전용 템플릿**을 사용할 수 있습니다.
+
+| 항목 | 값 |
+|------|---|
+| 템플릿 이름 | PANASIA: MCP Panel 심볼 검출 + GT 비교 |
+| 카테고리 | `panasia` |
+| 모델 타입 | `panasia` (YOLO 27클래스) |
+
+### 워크플로우 노드 구성
+
+```
+ImageInput (P&ID) → YOLO (panasia 모델) → Blueprint AI BOM → 검증 UI
+```
+
+---
+
+## 적용 결과 요약
+
+| 항목 | 값 |
+|------|---|
+| 검출 심볼 클래스 | 27종 |
+| 검출 모델 | YOLO v11 (커스텀 학습) |
+| 검증 방식 | GT 비교 + Human-in-the-Loop |
+| 납품 형태 | Docker 이미지 4개 (약 9.6GB) |
+| 실행 환경 | GPU 권장 (YOLO), CPU 가능 (느림) |
+| 상태 | **POC 완료, 납품 대기** |
+
+---
+
+## 다음 단계
+
+| 우선순위 | 내용 |
+|---------|------|
+| 1 | 범용 납품 패키지 템플릿화 (`generate-package.sh`) |
+| 2 | P&ID 전용 교육 자료 (퀵카드, 매뉴얼) |
+| 3 | 추가 도면 유형 확장 (BWMS P&ID 등) |
+
+---
+
+## 관련 문서
+
+- [P&ID Analysis](/docs/pid-analysis) — P&ID 분석 파이프라인
+- [BOM & Quoting](/docs/bom-generation) — BOM 생성 및 검출 클래스
+- [Batch & Delivery](/docs/batch-delivery/export-package) — 납품 패키지 형식
+- [BlueprintFlow Templates](/docs/blueprintflow/templates) — 워크플로우 템플릿

@@ -1,11 +1,12 @@
 ---
 sidebar_label: Architecture Decisions
 sidebar_position: 5
+description: AI 모델 선정 기준 및 의사결정 매트릭스 (eDOCr vs VL API vs YOLOv11)
 ---
 
 # Architecture Decisions
 
-AI 모델 선정 기준 및 의사결정 매트릭스
+> eDOCr, VL API, YOLOv11 세 모델의 정량적 비교와 최종 채택 근거를 정리한다.
 
 ---
 
@@ -215,3 +216,9 @@ python batch_inference.py --gpus 0,1,2,3
 ---
 
 *작성일: 2025-11-13 | 출처: DECISION_MATRIX.md + MODEL_SELECTION_CRITERIA.md 통합*
+
+## 관련 문서
+
+- [기술 스택](/docs/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴
+- [서비스 카탈로그](/docs/system-overview/service-catalog) — 21개 API 서비스 상세
+- [시스템 개요](/docs/system-overview) — 전체 시스템 요약

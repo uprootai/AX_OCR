@@ -99,6 +99,20 @@ const sidebars: SidebarsConfig = {
       link: {type: 'doc', id: 'frontend/index'},
       items: [
         'frontend/routing',
+        'frontend/route-map',
+        {
+          type: 'category',
+          label: '페이지 상세',
+          link: {type: 'doc', id: 'frontend/pages/index'},
+          collapsed: true,
+          items: [
+            'frontend/pages/dashboard',
+            'frontend/pages/project',
+            'frontend/pages/blueprintflow',
+            'frontend/pages/session',
+            'frontend/pages/admin',
+          ],
+        },
         'frontend/state-management',
         'frontend/component-library',
         'frontend/bom-frontend',
@@ -185,6 +199,26 @@ const sidebars: SidebarsConfig = {
         'deployment/on-premise-operation',
         'deployment/admin-manual',
         'deployment/dockerization',
+      ],
+    },
+    {
+      type: 'category',
+      label: '15. Customer Cases',
+      link: {type: 'doc', id: 'customer-cases/index'},
+      items: [
+        {
+          type: 'category',
+          label: '동서기연 — 터빈 베어링',
+          link: {type: 'doc', id: 'customer-cases/dsebearing/index'},
+          collapsed: true,
+          items: [
+            'customer-cases/dsebearing/data-overview',
+            'customer-cases/dsebearing/meeting-history',
+            'customer-cases/dsebearing/results',
+            'customer-cases/dsebearing/next-steps',
+          ],
+        },
+        'customer-cases/panasia',
       ],
     },
   ],

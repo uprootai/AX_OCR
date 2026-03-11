@@ -1,0 +1,60 @@
+---
+sidebar_position: 15
+title: 고객 적용 사례
+description: AX POC 시스템을 적용한 실제 고객사 사례
+---
+
+# 고객 적용 사례
+
+> AX POC 시스템을 실제 제조 현장에 적용한 고객사별 파이프라인 및 성과를 정리한다.
+
+## 적용 현황
+
+| 고객사 | 업종 | 도면 유형 | 적용 기술 | 상태 |
+|--------|------|----------|----------|------|
+| **동서기연** | 터빈 베어링 제조 | 기계 부품도 | eDOCr2 치수 추출 + BOM 계층 분류 + 견적 자동 산출 | 개발 중 |
+| **파나시아** | 선박 환경장비 | P&ID (MCP Panel) | YOLO 27클래스 심볼 검출 + GT 비교 검증 | POC 완료 |
+
+## 도면 유형별 파이프라인
+
+<FlowDiagram
+  direction="LR"
+  title="고객사별 파이프라인"
+  nodes={[
+    { id: 'drawing', label: '도면 업로드', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'vlm', label: 'VLM 분류', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'mech', label: '기계 부품도', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'pid', label: 'P&ID 도면', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'yolo_eng', label: 'YOLO (Engineering)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'yolo_pid', label: 'YOLO (P&ID 27cls)', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'ocr', label: 'eDOCr2 치수 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'gt', label: 'GT 비교 검증', color: '#880e4f', bg: '#fce4ec', shape: 'rounded' },
+    { id: 'bom', label: 'BOM + 견적', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'export', label: '납품 패키지', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'drawing', to: 'vlm' },
+    { from: 'vlm', to: 'mech', label: '동서기연' },
+    { from: 'vlm', to: 'pid', label: '파나시아' },
+    { from: 'mech', to: 'yolo_eng' },
+    { from: 'pid', to: 'yolo_pid' },
+    { from: 'yolo_eng', to: 'ocr' },
+    { from: 'yolo_pid', to: 'gt' },
+    { from: 'ocr', to: 'bom' },
+    { from: 'gt', to: 'export' },
+  ]}
+  layers={[['drawing'], ['vlm'], ['mech', 'pid'], ['yolo_eng', 'yolo_pid'], ['ocr', 'gt'], ['bom', 'export']]}
+/>
+
+## 사례 목록
+
+| # | 사례 | 핵심 성과 |
+|---|------|----------|
+| 1 | [동서기연 — 터빈 베어링 견적 자동화](./dsebearing) | 94개 도면 분석, 548개 치수 추출, 326품목 BOM 분류, 1.1억원 자동 견적 |
+| 2 | [파나시아 — MCP Panel P&ID 심볼 검출](./panasia) | 27종 전력 설비 심볼 검출, GT 비교 검증, Docker 납품 패키지 |
+
+## 관련 문서
+
+- [시스템 개요](/docs/system-overview) — 전체 아키텍처 및 기술 스택
+- [분석 파이프라인](/docs/analysis-pipeline) — VLM → YOLO → OCR 파이프라인
+- [BOM & 견적](/docs/bom-generation) — BOM 생성 및 견적 엔진
