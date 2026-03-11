@@ -1,7 +1,7 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-02-27
-> **기준 커밋**: 89767a9 (fix: 자체 감사 4개 버그 수정)
+> **마지막 업데이트**: 2026-03-11
+> **기준 커밋**: bbaff3b (feat: E05-S01 문서 표준화 완료)
 
 ---
 
@@ -14,11 +14,24 @@
 | **테스트** | 549개 통과 (gateway 364, web-ui 185) |
 | **빌드 상태** | ✅ 정상 (tsc + build 에러 0) |
 | **파일 크기** | 모두 600줄 이하 |
-| **문서 사이트** | 14섹션 101페이지 (localhost:3001) |
+| **문서 사이트** | 15섹션 115페이지 (localhost:3001) — 100% 표준 준수 |
 
 ---
 
 ## Active Epic
+
+### E05: Docs-Site Starlight 마이그레이션 + 문서 표준화
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 문서 구조 표준화 | ✅ Done | 115개 전체 100% (frontmatter, blockquote, 관련 문서) |
+| S02 Starlight POC | ✅ Done (WT4) | Go 판정 (빌드 3.5초, Pagefind 내장, React Island 동작) |
+| S03 콘텐츠 마이그레이션 | ⬜ Todo | Node 22 업그레이드 후 진행 |
+| S04 TSX 컴포넌트 마이그레이션 | ⬜ Todo | FlowDiagram, SequenceDiagram 포팅 |
+| S05 라우트 맵 문서화 | ✅ Done | 13개 라우트 100%, 6개 상세 페이지 |
+| S06 문서 품질 검증 | ✅ Done | lint-docs.sh, onBrokenLinks: throw |
+
+**상세**: [.todo/epics/e05-docs-starlight/EPIC.md](epics/e05-docs-starlight/EPIC.md)
 
 ### E01: 성과발표회 PPT 완성 (~03-06)
 
@@ -53,4 +66,4 @@
 
 ---
 
-*마지막 업데이트: 2026-03-04*
+*마지막 업데이트: 2026-03-11*

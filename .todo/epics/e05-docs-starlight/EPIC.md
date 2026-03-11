@@ -3,7 +3,7 @@
 > **소유자**: 개발팀
 > **생성일**: 2026-03-11
 > **기간**: 2026-Q2 (장기, 단계별 실행)
-> **현 상태**: ⬜ Planning
+> **현 상태**: 🔄 Phase 1 완료, Phase 2 대기 (Node 22 필요)
 
 ---
 
@@ -47,12 +47,12 @@
 
 | ID | Story | Phase | Tasks | 상태 |
 |----|-------|-------|-------|------|
-| S01 | [문서 구조 규칙 표준화](S01-style-standards.md) | 1 | 4 Tasks | ✅ 완료 (WT1) |
-| S02 | [Starlight 파일럿 테스트](S02-starlight-poc.md) | 2 | 4 Tasks | 🔄 진행 중 (WT4) |
+| S01 | [문서 구조 규칙 표준화](S01-style-standards.md) | 1 | 4 Tasks | ✅ 완료 |
+| S02 | [Starlight 파일럿 테스트](S02-starlight-poc.md) | 2 | 4 Tasks | ✅ 완료 (Go 판정) |
 | S03 | [콘텐츠 마이그레이션](S03-content-migration.md) | 2 | 4 Tasks | ⬜ Todo |
 | S04 | [TSX 컴포넌트 마이그레이션](S04-component-migration.md) | 2 | 3 Tasks | ⬜ Todo |
-| S05 | [web-ui 라우트 맵 문서화](S05-route-documentation.md) | 1 | 8 Tasks | 🔄 진행 중 (WT2) |
-| S06 | [문서 품질 검증 체계](S06-quality-system.md) | 1 | 4 Tasks | 🔄 진행 중 (WT3) |
+| S05 | [web-ui 라우트 맵 문서화](S05-route-documentation.md) | 1 | 8 Tasks | ✅ 완료 |
+| S06 | [문서 품질 검증 체계](S06-quality-system.md) | 1 | 4 Tasks | ✅ 완료 |
 
 ### Task 상세 목록
 
@@ -60,13 +60,13 @@
 - T01 표준 규칙 정의 → ✅ `.claude/rules/docs-site.md`
 - T02 Customer Cases 적용 (7파일) → ✅
 - T03 System Overview 적용 (6파일) → ✅
-- T04 나머지 카테고리 적용 (~93파일) → ⬜ 별도 배치
+- T04 나머지 카테고리 적용 (96파일) → ✅ 6개 병렬 워크트리 처리
 
-**S02 (4 Tasks)** — 🔄 진행 중
-- T01 프로젝트 스캐폴딩 → 🔄
-- T02 React Island 테스트 (Go/No-Go 핵심) → 🔄
-- T03 샘플 콘텐츠 변환 → 🔄
-- T04 벤치마크 + Go/No-Go 판단 → 🔄
+**S02 (4 Tasks)** — ✅ 완료 (Go 판정)
+- T01 프로젝트 스캐폴딩 → ✅
+- T02 React Island 테스트 → ✅ client:load 동작
+- T03 샘플 콘텐츠 변환 → ✅
+- T04 벤치마크 + Go/No-Go 판단 → ✅ Go (조건부: Node 22)
 
 **S03 (4 Tasks)** — ⬜ S02 Go 후
 - T01 페이지 인벤토리 확정
@@ -79,21 +79,21 @@
 - T02 SequenceDiagram TSX 포팅
 - T03 import 자동 삽입 스크립트
 
-**S05 (8 Tasks)** — 🔄 진행 중
-- T01 라우트 인벤토리 추출 → 🔄
-- T02 전체 라우트 맵 문서 → 🔄
-- T03 대시보드 상세 → 🔄
-- T04 프로젝트 상세 → 🔄
-- T05 BlueprintFlow 상세 → 🔄
-- T06 세션/분석 상세 → 🔄
-- T07 관리자 도구 복합 문서 (anchor) → 🔄
-- T08 sidebars.ts 업데이트 → 🔄
+**S05 (8 Tasks)** — ✅ 완료
+- T01 라우트 인벤토리 추출 → ✅
+- T02 전체 라우트 맵 문서 → ✅ `frontend/route-map.mdx`
+- T03 대시보드 상세 → ✅
+- T04 프로젝트 상세 → ✅
+- T05 BlueprintFlow 상세 → ✅
+- T06 세션/분석 상세 → ✅
+- T07 관리자 도구 복합 문서 (anchor) → ✅
+- T08 sidebars.ts 업데이트 → ✅
 
-**S06 (4 Tasks)** — 🔄 진행 중
-- T01 onBrokenLinks 설정 변경 → 🔄
-- T02 lint-docs.sh 스크립트 → 🔄
-- T03 package.json 업데이트 → 🔄
-- T04 품질 리포트 템플릿 → 🔄
+**S06 (4 Tasks)** — ✅ 완료
+- T01 onBrokenLinks 설정 변경 → ✅ `throw`
+- T02 lint-docs.sh 스크립트 → ✅
+- T03 package.json 업데이트 → ✅
+- T04 품질 리포트 템플릿 → ✅
 
 ## 의존성 그래프
 
