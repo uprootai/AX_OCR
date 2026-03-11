@@ -5,7 +5,8 @@ description: 포트 할당 및 네트워크 토폴로지
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
-
+import PortMap from '../../../components/PortMap';
+import ArchitectureDiagram from '../../../components/ArchitectureDiagram';
 
 # 포트 및 네트워크 맵
 
@@ -13,6 +14,7 @@ import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
 ## 포트 할당
 
+<PortMap client:load />
 
 ## Docker 네트워크
 
@@ -28,6 +30,7 @@ npm install
 npm run start   # http://localhost:3001
 ```
 
+<ArchitectureDiagram client:load />
 
 ## 서비스 의존성
 

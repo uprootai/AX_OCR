@@ -754,7 +754,7 @@ services:
   # =====================
   docs-site:
     build:
-      context: ./docs-site
+      context: ./docs-site-starlight
       dockerfile: Dockerfile
     container_name: docs-site
     ports:
