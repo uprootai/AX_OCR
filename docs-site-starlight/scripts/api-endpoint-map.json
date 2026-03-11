@@ -1,0 +1,427 @@
+{
+  "_meta": {
+    "description": "Docs-to-API endpoint mapping for adding ## 관련 API sections",
+    "generated": "2026-03-11",
+    "total_docs_files": 62,
+    "files_needing_api_section": 49,
+    "files_excluded": [
+      "customer-cases/* (고객 사례 — API 매핑 불필요)",
+      "research/index.mdx (R&D 논문 — API 없음)",
+      "deployment/index.mdx (배포 가이드 — 별도 API 없음)",
+      "developer/index.mdx (개발자 가이드 — 종합 참조)"
+    ],
+    "services": {
+      "Gateway": "localhost:8000 — /admin/*, /api/v1/*",
+      "Blueprint AI BOM": "localhost:5020 — /detection/*, /bom/*, /sessions/*, /verification/*, /projects/*, /analysis/*, /pid-features/*",
+      "YOLO": "localhost:5001 — /api/v1/detect, /api/v1/extract_dimensions",
+      "eDOCr2": "localhost:5002 — /api/v2/ocr, /api/v1/profiles",
+      "SkinModel": "localhost:5003 — /api/v1/tolerance, /api/v1/validate",
+      "VL (Vision-Language)": "localhost:5004 — /api/v1/analyze, /api/v1/classify",
+      "PaddleOCR": "localhost:5006 — /api/v1/ocr",
+      "Knowledge": "localhost:5007 — /api/v1/hybrid/search, /api/v1/graph/query",
+      "Tesseract": "localhost:5008 — /api/v1/ocr",
+      "TrOCR": "localhost:5009 — /api/v1/ocr",
+      "ESRGAN": "localhost:5010 — /api/v1/upscale, /api/v1/enhance",
+      "OCR Ensemble": "localhost:5011 — /api/v1/ocr",
+      "EDGNet": "localhost:5012 — /api/v1/segment",
+      "Surya OCR": "localhost:5013 — /api/v1/ocr",
+      "DocTR": "localhost:5014 — /api/v1/ocr",
+      "EasyOCR": "localhost:5015 — /api/v1/ocr",
+      "Line Detector": "localhost:5016 — /api/v1/process",
+      "PID Analyzer": "localhost:5018 — /api/v1/analyze, /api/v1/bwms/*",
+      "Design Checker": "localhost:5019 — /api/v1/check, /api/v1/pipeline/*",
+      "PID Composer": "localhost:5021 — /api/v1/compose",
+      "Table Detector": "localhost:5022 — /api/v1/detect, /api/v1/extract, /api/v1/analyze"
+    }
+  },
+
+  "system-overview": {
+    "index.mdx": [
+      {"method": "GET", "endpoint": "Gateway /admin/status", "description": "시스템 전체 상태 조회 (API 헬스, GPU, 리소스)"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/health", "description": "게이트웨이 헬스체크"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/registry/healthy", "description": "정상 API 목록 조회"}
+    ],
+    "architecture-map.mdx": [
+      {"method": "GET", "endpoint": "Gateway /api/v1/registry/list", "description": "등록된 전체 API 목록"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/registry/discover", "description": "API 자동 탐색"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/registry/{api_id}", "description": "개별 API 상세 정보"}
+    ],
+    "port-network.mdx": [
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers/status", "description": "전체 컨테이너 상태"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers", "description": "컨테이너 목록"},
+      {"method": "GET", "endpoint": "Gateway /admin/docker/ps", "description": "Docker 컨테이너 목록"}
+    ],
+    "service-catalog.mdx": [
+      {"method": "GET", "endpoint": "Gateway /api/v1/registry/list", "description": "등록된 전체 API 목록"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/registry/category/{category}", "description": "카테고리별 API 조회"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/specs", "description": "전체 API 스펙 조회"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/specs/{api_id}", "description": "개별 API 스펙 조회"}
+    ],
+    "tech-stack.mdx": [
+      {"method": "GET", "endpoint": "Gateway /admin/models", "description": "로드된 ML 모델 목록"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers/gpu/stats", "description": "GPU 사용 통계"}
+    ]
+  },
+
+  "analysis-pipeline": {
+    "index.mdx": [
+      {"method": "POST", "endpoint": "Gateway /api/v1/process", "description": "단일 이미지 분석 파이프라인 실행"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/progress/{job_id}", "description": "분석 진행률 조회"},
+      {"method": "POST", "endpoint": "BOM /analysis/run/{session_id}", "description": "세션 분석 실행 (옵션 기반)"},
+      {"method": "GET", "endpoint": "BOM /analysis/presets", "description": "분석 프리셋 목록"}
+    ],
+    "yolo-detection.mdx": [
+      {"method": "POST", "endpoint": "YOLO /api/v1/detect", "description": "이미지 객체 검출 (심볼, 치수선, 영역)"},
+      {"method": "POST", "endpoint": "YOLO /api/v1/extract_dimensions", "description": "치수 영역 추출"},
+      {"method": "GET", "endpoint": "YOLO /api/v1/info", "description": "YOLO 모델 정보 조회"},
+      {"method": "GET", "endpoint": "YOLO /api/v1/models", "description": "사용 가능한 모델 목록"},
+      {"method": "POST", "endpoint": "BOM /detection/{session_id}/detect", "description": "세션 기반 YOLO 검출"}
+    ],
+    "ocr-processing.mdx": [
+      {"method": "POST", "endpoint": "eDOCr2 /api/v2/ocr", "description": "기계도면 특화 OCR (치수, GD&T, 텍스트)"},
+      {"method": "POST", "endpoint": "PaddleOCR /api/v1/ocr", "description": "PP-OCRv5 텍스트 인식"},
+      {"method": "POST", "endpoint": "OCR Ensemble /api/v1/ocr", "description": "4엔진 가중 투표 앙상블 OCR"},
+      {"method": "POST", "endpoint": "EasyOCR /api/v1/ocr", "description": "80+ 언어 OCR"},
+      {"method": "POST", "endpoint": "Surya OCR /api/v1/ocr", "description": "90+ 언어 + 레이아웃 분석 OCR"},
+      {"method": "POST", "endpoint": "TrOCR /api/v1/ocr", "description": "Transformer 기반 OCR"},
+      {"method": "POST", "endpoint": "Tesseract /api/v1/ocr", "description": "Tesseract OCR"},
+      {"method": "POST", "endpoint": "DocTR /api/v1/ocr", "description": "DocTR 2단계 파이프라인 OCR"}
+    ],
+    "vlm-classification.mdx": [
+      {"method": "POST", "endpoint": "VL /api/v1/analyze", "description": "이미지 분석 (멀티모달 AI)"},
+      {"method": "POST", "endpoint": "VL /api/v1/classify", "description": "도면 유형 분류"},
+      {"method": "POST", "endpoint": "VL /api/v1/extract_info_block", "description": "정보란 추출"},
+      {"method": "POST", "endpoint": "VL /api/v1/extract_dimensions", "description": "치수 정보 추출"},
+      {"method": "POST", "endpoint": "VL /api/v1/infer_manufacturing_process", "description": "제조 공정 추론"},
+      {"method": "POST", "endpoint": "BOM /classification/classify", "description": "세션 기반 VLM 분류"},
+      {"method": "POST", "endpoint": "BOM /analysis/vlm-classify/{session_id}", "description": "VLM 분류 실행"}
+    ],
+    "tolerance-analysis.mdx": [
+      {"method": "POST", "endpoint": "SkinModel /api/v1/tolerance", "description": "FEM 기반 공차 예측"},
+      {"method": "POST", "endpoint": "SkinModel /api/v1/validate", "description": "GD&T 검증"},
+      {"method": "POST", "endpoint": "SkinModel /api/v1/manufacturability", "description": "제조 가능성 분석"},
+      {"method": "GET", "endpoint": "SkinModel /api/v1/info", "description": "SkinModel API 정보"}
+    ],
+    "revision-comparison.mdx": [
+      {"method": "POST", "endpoint": "BOM /analysis/revision/compare", "description": "리비전 간 비교 분석"},
+      {"method": "GET", "endpoint": "BOM /analysis/revision/{session_id}", "description": "리비전 비교 결과 조회"}
+    ]
+  },
+
+  "blueprintflow": {
+    "index.mdx": [
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute", "description": "워크플로우 실행"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute-stream", "description": "스트리밍 워크플로우 실행"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/workflow/health", "description": "워크플로우 엔진 헬스체크"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/workflow/running", "description": "실행 중 워크플로우 목록"}
+    ],
+    "dag-engine.mdx": [
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute", "description": "DAG 워크플로우 실행"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/cancel/{execution_id}", "description": "워크플로우 취소"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/workflow/node-types", "description": "사용 가능한 노드 타입 조회"}
+    ],
+    "templates.mdx": [
+      {"method": "GET", "endpoint": "Gateway /api/v1/workflow/templates", "description": "워크플로우 템플릿 목록"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/workflow/templates/{template_id}", "description": "템플릿 상세 조회"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute-template/{template_id}", "description": "템플릿 기반 실행"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute-template-stream/{template_id}", "description": "템플릿 스트리밍 실행"}
+    ],
+    "custom-api.mdx": [
+      {"method": "GET", "endpoint": "Gateway /api/v1/api-configs", "description": "커스텀 API 설정 목록"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/api-configs", "description": "커스텀 API 등록"},
+      {"method": "PUT", "endpoint": "Gateway /api/v1/api-configs/{api_id}", "description": "커스텀 API 수정"},
+      {"method": "DELETE", "endpoint": "Gateway /api/v1/api-configs/{api_id}", "description": "커스텀 API 삭제"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/api-configs/{api_id}/toggle", "description": "커스텀 API 활성화/비활성화"}
+    ]
+  },
+
+  "agent-verification": {
+    "index.mdx": [
+      {"method": "GET", "endpoint": "BOM /verification/queue/{session_id}", "description": "검증 큐 조회"},
+      {"method": "GET", "endpoint": "BOM /verification/stats/{session_id}", "description": "검증 통계"},
+      {"method": "POST", "endpoint": "BOM /verification/verify/{session_id}", "description": "항목 검증 (승인/거부/수정)"},
+      {"method": "POST", "endpoint": "BOM /verification/auto-approve/{session_id}", "description": "고신뢰도 자동 승인"}
+    ],
+    "three-level-architecture.mdx": [
+      {"method": "GET", "endpoint": "BOM /verification/agent/queue/{session_id}", "description": "에이전트 검증 큐 조회"},
+      {"method": "GET", "endpoint": "BOM /verification/agent/item/{session_id}/{item_id}", "description": "검증 항목 상세"},
+      {"method": "POST", "endpoint": "BOM /verification/agent/decide/{session_id}/{item_id}", "description": "에이전트 판정"},
+      {"method": "GET", "endpoint": "BOM /verification/agent/dashboard/{session_id}", "description": "검증 대시보드"},
+      {"method": "GET", "endpoint": "BOM /verification/agent/dashboard/project/{project_id}", "description": "프로젝트 검증 현황"}
+    ],
+    "api-reference.mdx": [
+      {"method": "GET", "endpoint": "BOM /verification/queue/{session_id}", "description": "검증 큐 조회"},
+      {"method": "POST", "endpoint": "BOM /verification/verify/{session_id}", "description": "항목 검증"},
+      {"method": "POST", "endpoint": "BOM /verification/bulk-approve/{session_id}", "description": "일괄 승인"},
+      {"method": "POST", "endpoint": "BOM /verification/reset/{session_id}", "description": "검증 초기화"},
+      {"method": "GET", "endpoint": "BOM /verification/logs/{session_id}", "description": "검증 로그"},
+      {"method": "PUT", "endpoint": "BOM /verification/thresholds", "description": "임계값 설정"},
+      {"method": "GET", "endpoint": "BOM /verification/thresholds", "description": "임계값 조회"},
+      {"method": "GET", "endpoint": "BOM /verification/training-data", "description": "학습 데이터 내보내기"}
+    ]
+  },
+
+  "bom-generation": {
+    "index.mdx": [
+      {"method": "POST", "endpoint": "BOM /bom/{session_id}/generate", "description": "BOM 생성"},
+      {"method": "GET", "endpoint": "BOM /bom/{session_id}", "description": "BOM 조회"},
+      {"method": "GET", "endpoint": "BOM /bom/{session_id}/summary", "description": "BOM 요약"},
+      {"method": "POST", "endpoint": "BOM /bom/{session_id}/export", "description": "BOM 내보내기"},
+      {"method": "GET", "endpoint": "BOM /bom/{session_id}/download", "description": "BOM 다운로드"},
+      {"method": "POST", "endpoint": "BOM /bom/extract-table", "description": "테이블 추출로 BOM 생성"},
+      {"method": "POST", "endpoint": "BOM /bom/extract-all-tables", "description": "전체 테이블 추출"}
+    ],
+    "pricing-engine.mdx": [
+      {"method": "POST", "endpoint": "BOM /bom/{session_id}/pricing", "description": "단가 계산"},
+      {"method": "GET", "endpoint": "BOM /bom/{session_id}/pricing", "description": "단가 조회"},
+      {"method": "DELETE", "endpoint": "BOM /bom/{session_id}/pricing", "description": "단가 삭제"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/pricing-config", "description": "프로젝트 단가 설정 조회"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/pricing-config", "description": "프로젝트 단가 설정"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/quotation", "description": "견적 집계 조회"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/quotation/export", "description": "견적서 내보내기"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/quotation/download", "description": "견적서 다운로드"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/dsebearing/prices/materials", "description": "재질별 단가 목록"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/dsebearing/prices/labor", "description": "가공비 목록"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/dsebearing/prices/discounts", "description": "수량 할인율 목록"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/dsebearing/quotegenerator", "description": "견적서 자동 생성"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/dsebearing/quote/export/excel", "description": "견적서 Excel 내보내기"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/dsebearing/quote/export/pdf", "description": "견적서 PDF 내보내기"}
+    ]
+  },
+
+  "pid-analysis": {
+    "index.mdx": [
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/analyze", "description": "P&ID 연결성 분석"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/process", "description": "P&ID 이미지 처리"},
+      {"method": "POST", "endpoint": "BOM /pid-features/{session_id}/valve/detect", "description": "밸브 시그널 검출"},
+      {"method": "POST", "endpoint": "BOM /pid-features/{session_id}/equipment/detect", "description": "장비 검출"},
+      {"method": "POST", "endpoint": "BOM /pid-features/{session_id}/checklist/check", "description": "설계 체크리스트 검사"}
+    ],
+    "symbol-detection.mdx": [
+      {"method": "POST", "endpoint": "YOLO /api/v1/detect", "description": "P&ID 심볼 검출 (model_type=pid_class_aware)"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/bwms/detect-equipment", "description": "BWMS 장비 검출"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/bwms/generate-equipment-list", "description": "장비 리스트 생성"},
+      {"method": "GET", "endpoint": "PID Analyzer /api/v1/bwms/equipment-types", "description": "장비 타입 목록"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/equipment/detect", "description": "장비 검출 (프로파일 기반)"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/equipment/export-excel", "description": "장비 리스트 Excel 내보내기"}
+    ],
+    "line-detection.mdx": [
+      {"method": "POST", "endpoint": "Line Detector /api/v1/process", "description": "P&ID 라인 검출 및 스타일 분류"},
+      {"method": "GET", "endpoint": "Line Detector /api/v1/info", "description": "Line Detector API 정보"},
+      {"method": "GET", "endpoint": "Line Detector /api/v1/profiles", "description": "라인 검출 프로파일 목록"},
+      {"method": "POST", "endpoint": "BOM /analysis/lines/{session_id}", "description": "세션 기반 라인 검출"},
+      {"method": "GET", "endpoint": "BOM /analysis/lines/{session_id}", "description": "라인 검출 결과 조회"}
+    ],
+    "connectivity.mdx": [
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/analyze", "description": "심볼 간 연결 관계 분석"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/path/bfs", "description": "BFS 경로 탐색"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/path/dfs", "description": "DFS 경로 탐색"},
+      {"method": "POST", "endpoint": "PID Analyzer /api/v1/path/components", "description": "연결 컴포넌트 탐색"},
+      {"method": "POST", "endpoint": "BOM /analysis/connectivity/{session_id}", "description": "세션 기반 연결성 분석"},
+      {"method": "GET", "endpoint": "BOM /analysis/connectivity/{session_id}", "description": "연결성 결과 조회"},
+      {"method": "GET", "endpoint": "BOM /analysis/connectivity/{session_id}/path", "description": "경로 조회"}
+    ],
+    "design-checker.mdx": [
+      {"method": "POST", "endpoint": "Design Checker /api/v1/check", "description": "설계 규칙 검증"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/check/bwms", "description": "BWMS 규칙 검증"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/pipeline/detect", "description": "P&ID 심볼 검출 파이프라인"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/pipeline/ocr", "description": "OCR 파이프라인"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/pipeline/validate", "description": "통합 검증 파이프라인"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/pipeline/validate/export", "description": "검증 결과 내보내기"},
+      {"method": "GET", "endpoint": "Design Checker /api/v1/rules", "description": "검증 규칙 목록"},
+      {"method": "GET", "endpoint": "Design Checker /api/v1/rules/status", "description": "규칙 상태 조회"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/ocr", "description": "OCR 기반 텍스트 검증"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/ocr/export/excel", "description": "OCR 검증 Excel 내보내기"},
+      {"method": "POST", "endpoint": "Design Checker /api/v1/ocr/export/pdf", "description": "OCR 검증 PDF 내보내기"}
+    ]
+  },
+
+  "batch-delivery": {
+    "index.mdx": [
+      {"method": "POST", "endpoint": "BOM /projects", "description": "프로젝트 생성"},
+      {"method": "GET", "endpoint": "BOM /projects", "description": "프로젝트 목록"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}", "description": "프로젝트 상세"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/export", "description": "프로젝트 내보내기"}
+    ],
+    "project-management.mdx": [
+      {"method": "POST", "endpoint": "BOM /projects", "description": "프로젝트 생성"},
+      {"method": "GET", "endpoint": "BOM /projects", "description": "프로젝트 목록"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}", "description": "프로젝트 상세 조회"},
+      {"method": "PUT", "endpoint": "BOM /projects/{project_id}", "description": "프로젝트 수정"},
+      {"method": "DELETE", "endpoint": "BOM /projects/{project_id}", "description": "프로젝트 삭제"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/upload-batch", "description": "배치 업로드"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/import-bom", "description": "BOM 파일 임포트"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/bom-hierarchy", "description": "BOM 계층 구조 조회"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/match-drawings", "description": "도면-BOM 매칭"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/create-sessions", "description": "매칭 결과로 세션 생성"}
+    ],
+    "batch-processing.mdx": [
+      {"method": "POST", "endpoint": "BOM /analysis/batch/{project_id}", "description": "배치 분석 실행"},
+      {"method": "GET", "endpoint": "BOM /analysis/batch/{project_id}/status", "description": "배치 진행 상태"},
+      {"method": "DELETE", "endpoint": "BOM /analysis/batch/{project_id}", "description": "배치 작업 취소"}
+    ],
+    "export-package.mdx": [
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/export", "description": "프로젝트 내보내기"},
+      {"method": "POST", "endpoint": "BOM /projects/import", "description": "프로젝트 임포트"},
+      {"method": "POST", "endpoint": "BOM /export/sessions/{session_id}", "description": "세션 내보내기"},
+      {"method": "GET", "endpoint": "BOM /export/sessions/{session_id}/download/{filename}", "description": "내보내기 파일 다운로드"},
+      {"method": "GET", "endpoint": "BOM /export/sessions/{session_id}/history", "description": "내보내기 이력"},
+      {"method": "GET", "endpoint": "BOM /export/sessions/{session_id}/preview", "description": "내보내기 미리보기"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/download/{file_id}/{file_type}", "description": "게이트웨이 파일 다운로드"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/download_quote/{quote_number}", "description": "견적서 다운로드"}
+    ],
+    "onboarding-guide.mdx": [
+      {"method": "POST", "endpoint": "BOM /sessions/upload", "description": "도면 업로드 → 세션 생성"},
+      {"method": "POST", "endpoint": "BOM /detection/{session_id}/detect", "description": "검출 실행"},
+      {"method": "POST", "endpoint": "BOM /verification/verify/{session_id}", "description": "검증 수행"},
+      {"method": "POST", "endpoint": "BOM /bom/{session_id}/generate", "description": "BOM 생성"}
+    ]
+  },
+
+  "quality-assurance": {
+    "index.mdx": [
+      {"method": "GET", "endpoint": "BOM /verification/stats/{session_id}", "description": "검증 통계"},
+      {"method": "GET", "endpoint": "BOM /feedback/stats", "description": "피드백 통계"},
+      {"method": "GET", "endpoint": "BOM /feedback/health", "description": "피드백 시스템 헬스"}
+    ],
+    "gt-comparison.mdx": [
+      {"method": "POST", "endpoint": "BOM /api/ground-truth/compare", "description": "GT 비교 (Precision/Recall/F1)"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/gt", "description": "GT 데이터 등록"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/gt", "description": "GT 데이터 조회"}
+    ],
+    "feedback-pipeline.mdx": [
+      {"method": "GET", "endpoint": "BOM /feedback/stats", "description": "피드백 통계"},
+      {"method": "GET", "endpoint": "BOM /feedback/sessions", "description": "검증 완료 세션 목록"},
+      {"method": "POST", "endpoint": "BOM /feedback/export/yolo", "description": "YOLO 학습 데이터 내보내기"},
+      {"method": "GET", "endpoint": "BOM /feedback/exports", "description": "내보내기 목록"},
+      {"method": "GET", "endpoint": "BOM /verification/training-data", "description": "학습 데이터 조회"}
+    ],
+    "ocr-metrics.mdx": [
+      {"method": "POST", "endpoint": "OCR Ensemble /api/v1/ocr/compare", "description": "OCR 엔진 비교"},
+      {"method": "POST", "endpoint": "eDOCr2 /api/v2/ocr", "description": "eDOCr2 OCR 실행"},
+      {"method": "POST", "endpoint": "PaddleOCR /api/v1/ocr", "description": "PaddleOCR 실행"},
+      {"method": "GET", "endpoint": "OCR Ensemble /api/v1/info", "description": "앙상블 엔진 상태 조회"}
+    ],
+    "active-learning.mdx": [
+      {"method": "GET", "endpoint": "BOM /verification/auto-approve-candidates/{session_id}", "description": "자동 승인 후보"},
+      {"method": "POST", "endpoint": "BOM /verification/auto-approve/{session_id}", "description": "자동 승인 실행"},
+      {"method": "POST", "endpoint": "BOM /feedback/export/yolo", "description": "학습 데이터 내보내기"},
+      {"method": "PUT", "endpoint": "BOM /verification/thresholds", "description": "임계값 업데이트"}
+    ]
+  },
+
+  "frontend": {
+    "index.mdx": [
+      {"method": "GET", "endpoint": "Gateway /api/v1/health", "description": "게이트웨이 헬스체크"},
+      {"method": "GET", "endpoint": "BOM /health", "description": "BOM 서비스 헬스체크"}
+    ],
+    "component-library.mdx": [],
+    "state-management.mdx": [],
+    "routing.mdx": [],
+    "route-map.mdx": [],
+    "bom-frontend.mdx": [
+      {"method": "POST", "endpoint": "BOM /detection/{session_id}/detect", "description": "검출 실행"},
+      {"method": "GET", "endpoint": "BOM /detection/{session_id}/detections", "description": "검출 결과 조회"},
+      {"method": "PUT", "endpoint": "BOM /detection/{session_id}/verify", "description": "검출 검증"},
+      {"method": "POST", "endpoint": "BOM /bom/{session_id}/generate", "description": "BOM 생성"},
+      {"method": "GET", "endpoint": "BOM /bom/{session_id}", "description": "BOM 조회"}
+    ]
+  },
+
+  "frontend/pages": {
+    "index.mdx": [],
+    "dashboard.mdx": [
+      {"method": "GET", "endpoint": "BOM /sessions", "description": "전체 세션 목록"},
+      {"method": "GET", "endpoint": "BOM /projects", "description": "프로젝트 목록"},
+      {"method": "GET", "endpoint": "Gateway /admin/status", "description": "시스템 상태"}
+    ],
+    "session.mdx": [
+      {"method": "POST", "endpoint": "BOM /sessions/upload", "description": "도면 업로드"},
+      {"method": "GET", "endpoint": "BOM /sessions/{session_id}", "description": "세션 상세"},
+      {"method": "PATCH", "endpoint": "BOM /sessions/{session_id}", "description": "세션 수정"},
+      {"method": "DELETE", "endpoint": "BOM /sessions/{session_id}", "description": "세션 삭제"},
+      {"method": "POST", "endpoint": "BOM /detection/{session_id}/detect", "description": "검출 실행"},
+      {"method": "GET", "endpoint": "BOM /detection/{session_id}/detections", "description": "검출 결과"},
+      {"method": "PUT", "endpoint": "BOM /detection/{session_id}/verify", "description": "검출 검증"},
+      {"method": "POST", "endpoint": "BOM /bom/{session_id}/generate", "description": "BOM 생성"},
+      {"method": "POST", "endpoint": "BOM /analysis/run/{session_id}", "description": "분석 실행"},
+      {"method": "GET", "endpoint": "BOM /analysis/dimensions/{session_id}", "description": "치수 결과"},
+      {"method": "GET", "endpoint": "BOM /analysis/gdt/{session_id}", "description": "GD&T 결과"},
+      {"method": "GET", "endpoint": "BOM /analysis/lines/{session_id}", "description": "라인 결과"},
+      {"method": "POST", "endpoint": "BOM /pid-features/{session_id}/valve/detect", "description": "밸브 검출"},
+      {"method": "POST", "endpoint": "BOM /pid-features/{session_id}/equipment/detect", "description": "장비 검출"},
+      {"method": "POST", "endpoint": "BOM /pid-features/{session_id}/export", "description": "P&ID 결과 내보내기"},
+      {"method": "POST", "endpoint": "BOM /pid-features/{session_id}/export/pdf", "description": "PDF 리포트 내보내기"}
+    ],
+    "project.mdx": [
+      {"method": "POST", "endpoint": "BOM /projects", "description": "프로젝트 생성"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}", "description": "프로젝트 상세"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/upload-batch", "description": "배치 업로드"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/import-bom", "description": "BOM 임포트"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/bom-hierarchy", "description": "BOM 계층"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/match-drawings", "description": "도면 매칭"},
+      {"method": "POST", "endpoint": "BOM /projects/{project_id}/create-sessions", "description": "세션 생성"},
+      {"method": "POST", "endpoint": "BOM /analysis/batch/{project_id}", "description": "배치 분석"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/quotation", "description": "견적 집계"},
+      {"method": "GET", "endpoint": "BOM /projects/{project_id}/export", "description": "프로젝트 내보내기"}
+    ],
+    "blueprintflow.mdx": [
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute", "description": "워크플로우 실행"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute-stream", "description": "스트리밍 실행"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/workflow/templates", "description": "템플릿 목록"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/execute-template/{template_id}", "description": "템플릿 실행"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/workflow/running", "description": "실행 중 목록"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/workflow/cancel/{execution_id}", "description": "실행 취소"}
+    ],
+    "admin.mdx": [
+      {"method": "GET", "endpoint": "Gateway /admin/status", "description": "시스템 상태"},
+      {"method": "GET", "endpoint": "Gateway /admin/models", "description": "모델 목록"},
+      {"method": "GET", "endpoint": "Gateway /admin/models/{model_type}", "description": "모델 파일 상세"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers/status", "description": "컨테이너 상태"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/containers/{container_name}/restart", "description": "컨테이너 재시작"},
+      {"method": "POST", "endpoint": "Gateway /admin/docker/{action}/{service}", "description": "Docker 제어"},
+      {"method": "GET", "endpoint": "Gateway /admin/logs/{service}", "description": "서비스 로그"},
+      {"method": "GET", "endpoint": "Gateway /admin/api-keys", "description": "API 키 목록"},
+      {"method": "POST", "endpoint": "Gateway /admin/api-keys", "description": "API 키 등록"},
+      {"method": "POST", "endpoint": "Gateway /admin/api-keys/test", "description": "API 키 테스트"},
+      {"method": "GET", "endpoint": "Gateway /admin/container/status/{service}", "description": "GPU 컨테이너 상태"},
+      {"method": "POST", "endpoint": "Gateway /admin/container/configure/{service}", "description": "GPU 컨테이너 설정"},
+      {"method": "GET", "endpoint": "Gateway /admin/results/stats", "description": "분석 결과 통계"},
+      {"method": "GET", "endpoint": "Gateway /admin/results/recent", "description": "최근 결과"},
+      {"method": "POST", "endpoint": "Gateway /admin/results/cleanup", "description": "결과 정리"}
+    ]
+  },
+
+  "devops": {
+    "index.mdx": [
+      {"method": "GET", "endpoint": "Gateway /admin/status", "description": "시스템 상태"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers/status", "description": "컨테이너 상태"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers/gpu/stats", "description": "GPU 통계"}
+    ],
+    "docker-compose.mdx": [
+      {"method": "POST", "endpoint": "Gateway /admin/docker/{action}/{service}", "description": "Docker 컨테이너 제어 (start/stop/restart)"},
+      {"method": "GET", "endpoint": "Gateway /admin/docker/ps", "description": "Docker 컨테이너 목록"},
+      {"method": "GET", "endpoint": "Gateway /admin/logs/{service}", "description": "서비스 로그 조회"},
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers", "description": "컨테이너 목록"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/containers/{container_name}/start", "description": "컨테이너 시작"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/containers/{container_name}/stop", "description": "컨테이너 중지"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/containers/{container_name}/restart", "description": "컨테이너 재시작"}
+    ],
+    "gpu-config.mdx": [
+      {"method": "GET", "endpoint": "Gateway /api/v1/containers/gpu/stats", "description": "GPU 사용 통계"},
+      {"method": "GET", "endpoint": "Gateway /admin/container/status/{service}", "description": "GPU 컨테이너 상태"},
+      {"method": "POST", "endpoint": "Gateway /admin/container/configure/{service}", "description": "GPU 컨테이너 설정"},
+      {"method": "GET", "endpoint": "Gateway /admin/models", "description": "ML 모델 목록"}
+    ],
+    "ci-pipeline.mdx": [],
+    "cd-pipeline.mdx": [
+      {"method": "POST", "endpoint": "Gateway /admin/docker/{action}/{service}", "description": "서비스 배포 제어"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/registry/health-check", "description": "전체 헬스체크"},
+      {"method": "POST", "endpoint": "Gateway /api/v1/registry/load-specs", "description": "API 스펙 리로드"}
+    ]
+  },
+
+  "api-reference": {
+    "index.mdx": []
+  }
+}
