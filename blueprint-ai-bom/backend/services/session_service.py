@@ -4,7 +4,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Set
 
 from schemas.session import (
     SessionStatus,
@@ -20,13 +20,123 @@ from schemas.typed_dicts import SessionData, DetectionDict, BBoxDict
 import secrets
 
 
+_UNSET = object()
+
+
 class SessionService:
     """세션 관리 서비스"""
 
     def __init__(self, upload_dir: Path, results_dir: Path):
         self.upload_dir = upload_dir
         self.results_dir = results_dir
+        self.upload_dir.mkdir(parents=True, exist_ok=True)
+        self.results_dir.mkdir(parents=True, exist_ok=True)
         self.sessions: Dict[str, SessionData] = {}
+        self._session_list_cache: Optional[List[str]] = None
+        self._project_session_cache: Dict[str, List[str]] = {}
+        self._session_ids_by_project: Dict[str, Set[str]] = {}
+        self._sessions_loaded = False
+        self._load_all_sessions()
+
+    def _load_all_sessions(self):
+        """디스크의 세션 파일을 메모리로 초기화"""
+        self.sessions.clear()
+        self._session_ids_by_project.clear()
+
+        for session_file in self.upload_dir.glob("*/session.json"):
+            try:
+                with open(session_file, "r", encoding="utf-8") as f:
+                    session = json.load(f)
+            except Exception:
+                continue
+
+            session_id = session.get("session_id") or session_file.parent.name
+            self._store_session(session_id, session, invalidate_cache=False)
+
+        self._sessions_loaded = True
+        self.invalidate_session_list_cache()
+
+    def invalidate_session_cache(self, reload_from_disk: bool = False):
+        """세션 메모리 캐시 전체 무효화"""
+        self.sessions.clear()
+        self._session_ids_by_project.clear()
+        self._sessions_loaded = False
+        self.invalidate_session_list_cache()
+
+        if reload_from_disk:
+            self._load_all_sessions()
+
+    def invalidate_session_list_cache(self):
+        """세션 목록/프로젝트별 파생 캐시 무효화"""
+        self._session_list_cache = None
+        self._project_session_cache.clear()
+
+    def _ensure_sessions_loaded(self):
+        """세션 메모리 캐시 초기화 보장"""
+        if not self._sessions_loaded:
+            self._load_all_sessions()
+
+    def _get_sorted_session_ids(self) -> List[str]:
+        """생성일 기준 최신순 세션 ID 목록 반환"""
+        self._ensure_sessions_loaded()
+
+        if self._session_list_cache is None:
+            self._session_list_cache = sorted(
+                self.sessions.keys(),
+                key=lambda session_id: self.sessions[session_id].get("created_at", ""),
+                reverse=True,
+            )
+
+        return self._session_list_cache
+
+    def _add_project_index(self, session_id: str, project_id: Optional[str]):
+        """프로젝트별 세션 인덱스 추가"""
+        if not project_id:
+            return
+        self._session_ids_by_project.setdefault(project_id, set()).add(session_id)
+
+    def _remove_project_index(self, session_id: str, project_id: Optional[str]):
+        """프로젝트별 세션 인덱스 제거"""
+        if not project_id:
+            return
+
+        session_ids = self._session_ids_by_project.get(project_id)
+        if not session_ids:
+            return
+
+        session_ids.discard(session_id)
+        if not session_ids:
+            del self._session_ids_by_project[project_id]
+
+    def _store_session(
+        self,
+        session_id: str,
+        session: Dict[str, Any],
+        invalidate_cache: bool = True,
+        previous_project_id: Any = _UNSET,
+    ):
+        """세션 메모리 저장 및 프로젝트 인덱스 동기화"""
+        existing = self.sessions.get(session_id)
+        if existing:
+            project_id_to_remove = (
+                existing.get("project_id")
+                if previous_project_id is _UNSET
+                else previous_project_id
+            )
+            self._remove_project_index(session_id, project_id_to_remove)
+
+        session["session_id"] = session_id
+        self.sessions[session_id] = session
+        self._add_project_index(session_id, session.get("project_id"))
+
+        if invalidate_cache:
+            self.invalidate_session_list_cache()
+
+    def _copy_session_for_response(self, session: Dict[str, Any]) -> Dict[str, Any]:
+        """목록 응답용 세션 복사본 반환"""
+        session_copy = session.copy()
+        session_copy.pop("image_base64", None)
+        return session_copy
 
     def create_session(
         self,
@@ -88,7 +198,7 @@ class SessionService:
             "metadata": metadata,
         }
 
-        self.sessions[session_id] = session
+        self._store_session(session_id, session)
         self._save_session(session_id)
 
         return session
@@ -171,7 +281,7 @@ class SessionService:
             "export_ready": False,
         }
 
-        self.sessions[session_id] = session
+        self._store_session(session_id, session)
         self._save_session(session_id)
 
         return session
@@ -246,17 +356,8 @@ class SessionService:
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """세션 조회"""
-        # 메모리에 있으면 반환
-        if session_id in self.sessions:
-            return self.sessions[session_id]
-
-        # 파일에서 로드 시도
-        session = self._load_session(session_id)
-        if session:
-            self.sessions[session_id] = session
-            return session
-
-        return None
+        self._ensure_sessions_loaded()
+        return self.sessions.get(session_id)
 
     def update_session(
         self,
@@ -268,10 +369,15 @@ class SessionService:
         if not session:
             return None
 
+        previous_project_id = session.get("project_id")
         session.update(updates)
         session["updated_at"] = datetime.now().isoformat()
 
-        self.sessions[session_id] = session
+        self._store_session(
+            session_id,
+            session,
+            previous_project_id=previous_project_id,
+        )
         self._save_session(session_id)
 
         return session
@@ -339,7 +445,7 @@ class SessionService:
         session["approved_count"] = len([s for s in statuses if s in ("approved", "modified", "manual")])
         session["rejected_count"] = len([s for s in statuses if s == "rejected"])
 
-        self.sessions[session_id] = session
+        self._store_session(session_id, session)
         self._save_session(session_id)
 
         return session
@@ -359,22 +465,8 @@ class SessionService:
 
     def list_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:
         """세션 목록 조회"""
-        # 파일에서 모든 세션 로드
-        session_files = list(self.upload_dir.glob("*/session.json"))
-        sessions = []
-
-        for session_file in session_files[-limit:]:
-            try:
-                with open(session_file, "r", encoding="utf-8") as f:
-                    session = json.load(f)
-                    sessions.append(session)
-            except Exception:
-                continue
-
-        # 최신순 정렬
-        sessions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-
-        return sessions[:limit]
+        session_ids = self._get_sorted_session_ids()[:limit]
+        return [self._copy_session_for_response(self.sessions[session_id]) for session_id in session_ids]
 
     def list_sessions_by_project(
         self,
@@ -382,15 +474,17 @@ class SessionService:
         limit: int = 100
     ) -> List[Dict[str, Any]]:
         """프로젝트별 세션 목록 조회 (Phase 2)"""
-        all_sessions = self.list_sessions(limit=1000)  # 전체 조회
+        self._ensure_sessions_loaded()
 
-        # 프로젝트 ID로 필터
-        project_sessions = [
-            s for s in all_sessions
-            if s.get("project_id") == project_id
-        ]
+        if project_id not in self._project_session_cache:
+            self._project_session_cache[project_id] = [
+                session_id
+                for session_id in self._get_sorted_session_ids()
+                if session_id in self._session_ids_by_project.get(project_id, set())
+            ]
 
-        return project_sessions[:limit]
+        session_ids = self._project_session_cache[project_id][:limit]
+        return [self._copy_session_for_response(self.sessions[session_id]) for session_id in session_ids]
 
     def delete_session(self, session_id: str) -> bool:
         """세션 삭제"""
@@ -401,9 +495,11 @@ class SessionService:
         if session_dir.exists():
             shutil.rmtree(session_dir)
 
-        if session_id in self.sessions:
-            del self.sessions[session_id]
+        session = self.sessions.pop(session_id, None)
+        if session:
+            self._remove_project_index(session_id, session.get("project_id"))
 
+        self.invalidate_session_list_cache()
         return True
 
     def delete_all_sessions(self) -> int:
@@ -423,6 +519,9 @@ class SessionService:
 
         # 메모리에서도 삭제
         self.sessions.clear()
+        self._session_ids_by_project.clear()
+        self._sessions_loaded = True
+        self.invalidate_session_list_cache()
 
         return deleted_count
 
@@ -677,6 +776,9 @@ class SessionService:
         with open(session_file, "w", encoding="utf-8") as f:
             json.dump(session, f, ensure_ascii=False, indent=2, default=str)
 
+        self._sessions_loaded = True
+        self.invalidate_session_list_cache()
+
     def _load_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """세션 파일 로드"""
         session_file = self.upload_dir / session_id / "session.json"
@@ -686,6 +788,8 @@ class SessionService:
 
         try:
             with open(session_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                session = json.load(f)
+                session["session_id"] = session.get("session_id", session_id)
+                return session
         except Exception:
             return None

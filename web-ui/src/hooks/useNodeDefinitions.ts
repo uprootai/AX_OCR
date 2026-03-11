@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { nodeDefinitions } from '../config/nodeDefinitions';
 import type { NodeDefinition } from '../config/nodeDefinitions';
-import { fetchAllNodeDefinitions } from '../services/specService';
+import { fetchAllNodeDefinitions, getCachedNodeDefinitions } from '../services/specService';
 import { useTranslation } from 'react-i18next';
 
 interface UseNodeDefinitionsOptions {
@@ -64,25 +64,51 @@ export function useNodeDefinitions(
   const { i18n } = useTranslation();
   const lang = (i18n.language === 'ko' ? 'ko' : 'en') as 'ko' | 'en';
 
-  const [dynamicDefs, setDynamicDefs] = useState<Record<string, NodeDefinition>>({});
+  const [dynamicDefs, setDynamicDefs] = useState<Record<string, NodeDefinition>>(
+    () => (enableDynamicSpecs ? getCachedNodeDefinitions(lang) || {} : {})
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 동적 스펙 로드
-  const loadDynamicSpecs = useCallback(async () => {
+  const loadDynamicSpecs = useCallback(async (forceRefresh = false) => {
     if (!enableDynamicSpecs) return;
 
-    setIsLoading(true);
+    const cached = getCachedNodeDefinitions(lang);
+    const shouldShowLoading = !cached;
+
+    if (cached && !forceRefresh) {
+      setDynamicDefs(prev => (prev === cached ? prev : cached));
+    }
+
+    if (shouldShowLoading) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
-      const specs = await fetchAllNodeDefinitions(lang);
-      setDynamicDefs(specs);
+      const specs = await fetchAllNodeDefinitions(lang, { forceRefresh });
+      setDynamicDefs(prev => (prev === specs ? prev : specs));
     } catch (err) {
       console.error('Failed to load dynamic specs:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
+      if (shouldShowLoading) {
+        setIsLoading(false);
+      }
+    }
+  }, [enableDynamicSpecs, lang]);
+
+  useEffect(() => {
+    if (!enableDynamicSpecs) {
+      setDynamicDefs({});
       setIsLoading(false);
+      return;
+    }
+
+    const cached = getCachedNodeDefinitions(lang);
+    if (cached) {
+      setDynamicDefs(prev => (prev === cached ? prev : cached));
     }
   }, [enableDynamicSpecs, lang]);
 
@@ -94,7 +120,9 @@ export function useNodeDefinitions(
   // 자동 새로고침
   useEffect(() => {
     if (refreshInterval > 0 && enableDynamicSpecs) {
-      const intervalId = setInterval(loadDynamicSpecs, refreshInterval);
+      const intervalId = setInterval(() => {
+        void loadDynamicSpecs(true);
+      }, refreshInterval);
       return () => clearInterval(intervalId);
     }
   }, [refreshInterval, enableDynamicSpecs, loadDynamicSpecs]);
@@ -148,7 +176,7 @@ export function useNodeDefinitions(
     definitions,
     isLoading,
     error,
-    refresh: loadDynamicSpecs,
+    refresh: () => loadDynamicSpecs(true),
     categorizedNodes,
     getDefinition,
   };

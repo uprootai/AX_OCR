@@ -574,13 +574,15 @@ export function ProjectDetailPage() {
         </div>
 
         {/* 워크플로우: P&ID 검출 → BOM 견적 순서 */}
-        <PIDWorkflowSection
-          projectId={projectId!}
-          project={project}
-          onRefresh={loadProject}
-          onUnlinkSession={handleUnlinkSession}
-          unlinkingSessionId={unlinkingSessionId}
-        />
+        {(project.project_type === 'pid_detection' || (project.sessions ?? []).length > 0) && (
+          <PIDWorkflowSection
+            projectId={projectId!}
+            project={project}
+            onRefresh={loadProject}
+            onUnlinkSession={handleUnlinkSession}
+            unlinkingSessionId={unlinkingSessionId}
+          />
+        )}
         {project.project_type === 'bom_quotation' && (
           <BOMWorkflowSection
             projectId={projectId!}
@@ -609,18 +611,12 @@ export function ProjectDetailPage() {
           </div>
 
           {isLoadingUnlinked ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
             </div>
           ) : unlinkedSessions.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-400 dark:text-green-500" />
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 font-medium">미연결 세션이 없습니다.</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                모든 세션이 프로젝트에 연결되어 있습니다.
-              </p>
+            <div className="px-5 py-3 text-sm text-gray-400 dark:text-gray-500">
+              미연결 세션이 없습니다.
             </div>
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-700">

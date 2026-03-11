@@ -85,23 +85,27 @@ export function useWorkflowEffects({
 
   // Load initial data
   useEffect(() => {
-    const loadClasses = async () => {
-      try {
-        const { classes } = await detectionApi.getClasses();
-        setAvailableClasses(classes);
-      } catch (err) {
-        logger.error('Failed to load classes:', err);
-      }
-    };
-
-    const loadClassExamples = async () => {
+    const loadClassesAndExamples = async () => {
       try {
         const { data } = await axios.get<{ examples: ClassExample[] }>(
           `${API_BASE_URL}/api/config/class-examples`
         );
-        setClassExamples(data.examples || []);
+        const examples = data.examples || [];
+        setClassExamples(examples);
+        // 참조도면 기준 클래스명을 셀렉트박스에도 사용
+        if (examples.length > 0) {
+          setAvailableClasses(examples.map(e => e.class_name));
+        } else {
+          // 참조도면 없으면 기존 detection classes 사용
+          const { classes } = await detectionApi.getClasses();
+          setAvailableClasses(classes);
+        }
       } catch (err) {
         logger.error('Failed to load class examples:', err);
+        try {
+          const { classes } = await detectionApi.getClasses();
+          setAvailableClasses(classes);
+        } catch { /* ignore */ }
       }
     };
 
@@ -115,8 +119,7 @@ export function useWorkflowEffects({
     };
 
     loadSessions();
-    loadClasses();
-    loadClassExamples();
+    loadClassesAndExamples();
     loadSystemStatus();
 
     const interval = setInterval(loadSystemStatus, 30000);

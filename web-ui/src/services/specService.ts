@@ -7,6 +7,19 @@
 import type { NodeDefinition, NodeParameter, RecommendedInput, ProfilesConfig } from '../config/nodeDefinitions';
 import { GATEWAY_URL } from '../lib/apiServices';
 
+type SupportedLang = 'ko' | 'en';
+
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+interface FetchOptions {
+  forceRefresh?: boolean;
+}
+
+const SPEC_CACHE_TTL_MS = 30_000;
+
 export interface APISpec {
   apiVersion: string;
   kind: string;
@@ -85,6 +98,51 @@ export interface APISpec {
   };
 }
 
+let specCache: CacheEntry<Record<string, APISpec>> | null = null;
+let specRequest: Promise<Record<string, APISpec>> | null = null;
+const nodeDefinitionCache = new Map<SupportedLang, CacheEntry<Record<string, NodeDefinition>>>();
+const nodeDefinitionRequests = new Map<SupportedLang, Promise<Record<string, NodeDefinition>>>();
+
+function isCacheFresh<T>(cache: CacheEntry<T> | null | undefined): cache is CacheEntry<T> {
+  return Boolean(cache && cache.expiresAt > Date.now());
+}
+
+function setSpecCache(specs: Record<string, APISpec>): Record<string, APISpec> {
+  specCache = {
+    data: specs,
+    expiresAt: Date.now() + SPEC_CACHE_TTL_MS,
+  };
+  nodeDefinitionCache.clear();
+  return specs;
+}
+
+function setNodeDefinitionCache(
+  lang: SupportedLang,
+  definitions: Record<string, NodeDefinition>
+): Record<string, NodeDefinition> {
+  nodeDefinitionCache.set(lang, {
+    data: definitions,
+    expiresAt: Date.now() + SPEC_CACHE_TTL_MS,
+  });
+  return definitions;
+}
+
+export function getCachedSpecs(): Record<string, APISpec> | null {
+  return isCacheFresh(specCache) ? specCache.data : null;
+}
+
+export function getCachedNodeDefinitions(lang: SupportedLang): Record<string, NodeDefinition> | null {
+  const cached = nodeDefinitionCache.get(lang);
+  return isCacheFresh(cached) ? cached.data : null;
+}
+
+export function invalidateSpecCache(): void {
+  specCache = null;
+  specRequest = null;
+  nodeDefinitionCache.clear();
+  nodeDefinitionRequests.clear();
+}
+
 /**
  * API 스펙을 NodeDefinition으로 변환
  */
@@ -160,19 +218,44 @@ export function specToNodeDefinition(spec: APISpec, lang: 'ko' | 'en' = 'ko'): N
 /**
  * 모든 API 스펙 가져오기
  */
-export async function fetchAllSpecs(): Promise<Record<string, APISpec>> {
-  try {
-    const response = await fetch(`${GATEWAY_URL}/api/v1/specs`);
+export async function fetchAllSpecs(options: FetchOptions = {}): Promise<Record<string, APISpec>> {
+  const { forceRefresh = false } = options;
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  if (!forceRefresh) {
+    const cached = getCachedSpecs();
+    if (cached) {
+      return cached;
     }
 
-    const data = await response.json();
-    return data.specs || {};
-  } catch (error) {
-    console.error('Failed to fetch API specs:', error);
-    return {};
+    if (specRequest) {
+      return specRequest;
+    }
+  }
+
+  const request = (async () => {
+    try {
+      const response = await fetch(`${GATEWAY_URL}/api/v1/specs`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return setSpecCache(data.specs || {});
+    } catch (error) {
+      console.error('Failed to fetch API specs:', error);
+      return specCache?.data || {};
+    }
+  })();
+
+  specRequest = request;
+
+  try {
+    return await request;
+  } finally {
+    if (specRequest === request) {
+      specRequest = null;
+    }
   }
 }
 
@@ -180,6 +263,11 @@ export async function fetchAllSpecs(): Promise<Record<string, APISpec>> {
  * 특정 API 스펙 가져오기
  */
 export async function fetchSpec(apiId: string): Promise<APISpec | null> {
+  const cachedSpecs = getCachedSpecs();
+  if (cachedSpecs) {
+    return cachedSpecs[apiId] || null;
+  }
+
   try {
     const response = await fetch(`${GATEWAY_URL}/api/v1/specs/${apiId}`);
 
@@ -235,19 +323,55 @@ export async function fetchBlueprintFlowMeta(apiId: string): Promise<NodeDefinit
 /**
  * 모든 API 스펙을 NodeDefinition으로 변환
  */
-export async function fetchAllNodeDefinitions(lang: 'ko' | 'en' = 'ko'): Promise<Record<string, NodeDefinition>> {
-  const specs = await fetchAllSpecs();
-  const definitions: Record<string, NodeDefinition> = {};
+export async function fetchAllNodeDefinitions(
+  lang: SupportedLang = 'ko',
+  options: FetchOptions = {}
+): Promise<Record<string, NodeDefinition>> {
+  const { forceRefresh = false } = options;
 
-  for (const [apiId, spec] of Object.entries(specs)) {
-    try {
-      definitions[apiId] = specToNodeDefinition(spec, lang);
-    } catch (error) {
-      console.error(`Failed to convert spec ${apiId}:`, error);
+  if (!forceRefresh) {
+    const cached = getCachedNodeDefinitions(lang);
+    if (cached) {
+      return cached;
+    }
+
+    const pendingRequest = nodeDefinitionRequests.get(lang);
+    if (pendingRequest) {
+      return pendingRequest;
     }
   }
 
-  return definitions;
+  const request = (async () => {
+    const specs = await fetchAllSpecs({ forceRefresh });
+    const definitions: Record<string, NodeDefinition> = {};
+
+    for (const [apiId, spec] of Object.entries(specs)) {
+      try {
+        definitions[apiId] = specToNodeDefinition(spec, lang);
+      } catch (error) {
+        console.error(`Failed to convert spec ${apiId}:`, error);
+      }
+    }
+
+    return setNodeDefinitionCache(lang, definitions);
+  })();
+
+  nodeDefinitionRequests.set(lang, request);
+
+  try {
+    return await request;
+  } finally {
+    if (nodeDefinitionRequests.get(lang) === request) {
+      nodeDefinitionRequests.delete(lang);
+    }
+  }
+}
+
+export async function refreshAllNodeDefinitions(
+  lang: SupportedLang = 'ko'
+): Promise<Record<string, NodeDefinition>> {
+  invalidateSpecCache();
+  return fetchAllNodeDefinitions(lang, { forceRefresh: true });
 }
 
 /**
@@ -272,6 +396,10 @@ export default {
   fetchSpec,
   fetchBlueprintFlowMeta,
   fetchAllNodeDefinitions,
+  getCachedSpecs,
+  getCachedNodeDefinitions,
+  invalidateSpecCache,
+  refreshAllNodeDefinitions,
   mergeWithDynamicSpecs,
   specToNodeDefinition,
 };

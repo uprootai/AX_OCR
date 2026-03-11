@@ -27,6 +27,24 @@ async def get_all_specs():
     }
 
 
+@router.post("/refresh")
+async def refresh_specs():
+    """
+    스펙 캐시 강제 새로고침
+
+    Returns:
+        새로고침된 모든 API 스펙 목록
+    """
+    registry = get_api_registry()
+    specs = registry.refresh_spec_cache()
+
+    return {
+        "status": "success",
+        "count": len(specs),
+        "specs": specs,
+    }
+
+
 @router.get("/resources")
 async def get_all_resources():
     """

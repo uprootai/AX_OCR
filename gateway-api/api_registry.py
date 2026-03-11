@@ -8,7 +8,8 @@ import asyncio
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from threading import RLock
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from pydantic import BaseModel
 import httpx
@@ -55,6 +56,9 @@ class APIRegistry:
         self._health_check_interval = 60  # 60초마다 헬스체크
         self._health_check_task: Optional[asyncio.Task] = None
         self._health_check_started = False  # 중복 시작 방지 플래그
+        self._specs_cache: Optional[Dict[str, Dict[str, Any]]] = None
+        self._specs_cache_signature: Optional[Tuple[Tuple[str, int, int], ...]] = None
+        self._specs_cache_lock = RLock()
 
         # 기본 API 포트 목록 (자동 검색용)
         self.default_ports = [
@@ -105,6 +109,54 @@ class APIRegistry:
         # 스펙별 healthEndpoint 저장 (load_from_specs에서 설정)
         self.health_endpoints: Dict[str, str] = {}
 
+    def _build_spec_signature(self) -> Tuple[Tuple[str, int, int], ...]:
+        """스펙 디렉토리의 파일 변경 시그니처 생성"""
+        if not SPEC_DIR.exists():
+            return ()
+
+        signature = []
+        for spec_file in sorted(SPEC_DIR.glob("*.yaml")):
+            try:
+                stat = spec_file.stat()
+            except FileNotFoundError:
+                continue
+            signature.append((spec_file.name, stat.st_mtime_ns, stat.st_size))
+
+        return tuple(signature)
+
+    def _load_specs_from_disk(self) -> Dict[str, Dict[str, Any]]:
+        """모든 스펙 파일을 디스크에서 로드"""
+        specs: Dict[str, Dict[str, Any]] = {}
+
+        if not SPEC_DIR.exists():
+            return specs
+
+        for spec_file in SPEC_DIR.glob("*.yaml"):
+            try:
+                with open(spec_file, "r", encoding="utf-8") as f:
+                    spec = yaml.safe_load(f)
+                    if spec and spec.get("kind") == "APISpec":
+                        api_id = spec.get("metadata", {}).get("id", spec_file.stem)
+                        specs[api_id] = spec
+            except Exception as e:
+                logger.error(f"스펙 로드 실패 {spec_file}: {e}")
+
+        return specs
+
+    def invalidate_spec_cache(self):
+        """메모리 스펙 캐시 무효화"""
+        with self._specs_cache_lock:
+            self._specs_cache = None
+            self._specs_cache_signature = None
+
+    def refresh_spec_cache(self) -> Dict[str, Dict[str, Any]]:
+        """디스크 기준으로 스펙 캐시 강제 갱신"""
+        specs = self._load_specs_from_disk()
+        with self._specs_cache_lock:
+            self._specs_cache = specs
+            self._specs_cache_signature = self._build_spec_signature()
+        return specs
+
     def load_from_specs(self, host: str = "localhost", use_docker_hosts: bool = True) -> List[APIMetadata]:
         """
         YAML 스펙 파일에서 API 메타데이터 로드
@@ -117,24 +169,20 @@ class APIRegistry:
             로드된 API 목록
         """
         loaded = []
+        specs = self.get_all_specs()
+        self.health_endpoints.clear()
 
-        if not SPEC_DIR.exists():
-            logger.warning(f"Spec directory not found: {SPEC_DIR}")
+        if not specs:
+            if not SPEC_DIR.exists():
+                logger.warning(f"Spec directory not found: {SPEC_DIR}")
             return loaded
 
-        for spec_file in SPEC_DIR.glob("*.yaml"):
+        for api_id, spec in specs.items():
             try:
-                with open(spec_file, 'r', encoding='utf-8') as f:
-                    spec = yaml.safe_load(f)
-
-                if not spec or spec.get("kind") != "APISpec":
-                    continue
-
                 metadata = spec.get("metadata", {})
                 server = spec.get("server", {})
                 blueprintflow = spec.get("blueprintflow", {})
 
-                api_id = metadata.get("id", spec_file.stem)
                 port = metadata.get("port", 5000)
 
                 # Docker 환경에서는 컨테이너 이름 사용
@@ -183,7 +231,7 @@ class APIRegistry:
                 logger.info(f"✅ 스펙에서 로드: {api_metadata.display_name} ({effective_host}:{port})")
 
             except Exception as e:
-                logger.error(f"스펙 로드 실패 {spec_file}: {e}")
+                logger.error(f"스펙 로드 실패 {api_id}: {e}")
 
         logger.info(f"📂 스펙 파일에서 {len(loaded)}개 API 로드됨")
         return loaded
@@ -198,36 +246,26 @@ class APIRegistry:
         Returns:
             스펙 딕셔너리 또는 None
         """
-        spec_file = SPEC_DIR / f"{api_id}.yaml"
+        return self.get_all_specs().get(api_id)
 
-        if not spec_file.exists():
-            return None
-
-        try:
-            with open(spec_file, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"스펙 로드 실패 {api_id}: {e}")
-            return None
-
-    def get_all_specs(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_specs(self, force_refresh: bool = False) -> Dict[str, Dict[str, Any]]:
         """모든 스펙 파일 로드"""
-        specs = {}
+        if force_refresh:
+            return self.refresh_spec_cache()
 
-        if not SPEC_DIR.exists():
-            return specs
+        with self._specs_cache_lock:
+            current_signature = self._build_spec_signature()
+            if (
+                self._specs_cache is None
+                or self._specs_cache_signature is None
+                or self._specs_cache_signature != current_signature
+            ):
+                specs = self._load_specs_from_disk()
+                self._specs_cache = specs
+                self._specs_cache_signature = self._build_spec_signature()
+                return self._specs_cache
 
-        for spec_file in SPEC_DIR.glob("*.yaml"):
-            try:
-                with open(spec_file, 'r', encoding='utf-8') as f:
-                    spec = yaml.safe_load(f)
-                    if spec and spec.get("kind") == "APISpec":
-                        api_id = spec.get("metadata", {}).get("id", spec_file.stem)
-                        specs[api_id] = spec
-            except Exception as e:
-                logger.error(f"스펙 로드 실패 {spec_file}: {e}")
-
-        return specs
+            return self._specs_cache
 
     async def discover_apis(self, host: str = "localhost") -> List[APIMetadata]:
         """

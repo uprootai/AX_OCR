@@ -10,6 +10,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 
 from services.image_utils import resize_image_if_needed
+from services.project_service import get_project_service
 
 from schemas.session import (
     SessionResponse,
@@ -41,6 +42,17 @@ def get_session_service():
     if _session_service is None:
         raise HTTPException(status_code=500, detail="Session service not initialized")
     return _session_service
+
+
+def validate_project_filter(project_id: Optional[str]):
+    """프로젝트 필터 유효성 검사"""
+    if not project_id:
+        return
+
+    data_dir = Path(__file__).resolve().parent.parent / "data"
+    project_service = get_project_service(data_dir)
+    if not project_service.get_project(project_id):
+        raise HTTPException(status_code=404, detail=f"프로젝트를 찾을 수 없습니다: {project_id}")
 
 
 @router.post("/upload", response_model=SessionResponse)
@@ -156,6 +168,7 @@ async def list_sessions(
     """세션 목록 조회"""
     service = get_session_service()
     if project_id:
+        validate_project_filter(project_id)
         sessions = service.list_sessions_by_project(project_id, limit=limit)
     else:
         sessions = service.list_sessions(limit=limit)
@@ -171,29 +184,31 @@ async def get_session(session_id: str, include_image: bool = Query(default=False
     if not session:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
+    response_session = session.copy()
+
     # 이미지 base64 처리
-    if include_image and session.get("file_path"):
+    if include_image and response_session.get("file_path"):
         # 이미지 포함 요청 시 파일에서 로드
         try:
-            file_path = Path(session["file_path"])
+            file_path = Path(response_session["file_path"])
             if file_path.exists():
                 with open(file_path, "rb") as f:
                     image_data = f.read()
-                    session["image_base64"] = base64.b64encode(image_data).decode("utf-8")
+                    response_session["image_base64"] = base64.b64encode(image_data).decode("utf-8")
         except Exception:
             pass
     else:
         # 이미지 미포함 시 명시적으로 제거 (저장된 데이터에 있을 수 있음)
-        session.pop("image_base64", None)
+        response_session.pop("image_base64", None)
 
     # 커스텀 단가 파일 존재 여부 확인
-    if session.get("file_path"):
-        pricing_path = Path(session["file_path"]).parent / "pricing.json"
-        session["has_custom_pricing"] = pricing_path.exists()
+    if response_session.get("file_path"):
+        pricing_path = Path(response_session["file_path"]).parent / "pricing.json"
+        response_session["has_custom_pricing"] = pricing_path.exists()
     else:
-        session["has_custom_pricing"] = False
+        response_session["has_custom_pricing"] = False
 
-    return SessionDetail(**session)
+    return SessionDetail(**response_session)
 
 
 @router.patch("/{session_id}")
