@@ -6,10 +6,19 @@ tags: [고객사례, 동서기연, 베어링]
 ---
 
 import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+import { Aside } from '@astrojs/starlight/components';
 
 # 동서기연 — 터빈 베어링 (DSE Bearing Quotation)
 
 > 94개 터빈 베어링 도면에서 치수를 자동 추출하고, BOM 계층 분류 및 견적을 자동 산출하는 사례.
+
+<Aside type="note" title="용어 안내">
+- **BOM** (Bill of Materials) — 부품 명세서. 제품을 구성하는 모든 부품의 목록
+- **ASSY / SUB / PART** — BOM 계층. ASSY(최종 조립품) → SUB(중간 조립품) → PART(단품, 견적 대상)
+- **치수** — 도면에 기재된 크기 정보 (외경, 내경, 길이 등)
+- **견적** — 제조 예상 비용 산출 (재료비 + 가공비)
+- **eDOCr2** — AX POC의 OCR 엔진. 도면에서 텍스트와 치수를 자동 추출
+</Aside>
 
 > **고객**: (주)동서기연 (김동엽 대표)
 > **업종**: 터빈/발전기 베어링 제조 (주요 거래처: 두산에너빌리티)
@@ -30,7 +39,7 @@ import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
     { id: 'ocr', label: 'eDOCr2 + PaddleOCR\n치수 자동 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
     { id: 'bom', label: 'BOM 계층 분류\n(395→326 품목)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
     { id: 'verify', label: 'Human-in-the-Loop\n검증 (카드 그리드)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
-    { id: 'quote', label: '견적 자동 산출\n₩1.1억', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'quote', label: '견적 자동 산출\n₩110,747,678', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
   ]}
   edges={[
     { from: 'pdf', to: 'ocr' },
@@ -48,7 +57,7 @@ import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
 | 수령 도면 | **94개** PDF | 1UNIT PJT 전체 |
 | 자동 추출 치수 | **548개** | 11종 단품 도면 |
 | BOM 품목 분류 | **326개** (ASSY 7 / SUB 16 / PART 303) | 견적 대상 303개 |
-| 자동 산출 견적 | **₩110,747,678** | 54개 품목 기준 |
+| 자동 산출 견적 | **₩110,747,678 (약 1.1억)** | 54개 품목 기준 |
 | 기존 수작업 소요 | **12일** → 자동화 목표 **1일** | 사양확인 4일 + 외주 6일 + 검토 2일 |
 
 ### 타임라인
