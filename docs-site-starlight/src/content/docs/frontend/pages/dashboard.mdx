@@ -15,6 +15,8 @@ tags: [프론트엔드, React, 대시보드]
 |-----|------|------|
 | `/dashboard` | 공개 | 루트(`/`) 접근 시 자동 리다이렉트 |
 
+<a id="page-structure"></a>
+
 ## 페이지 구조
 
 Dashboard 컴포넌트(`pages/dashboard/Dashboard.tsx`)는 7개 섹션으로 구성된다. 상단 네비게이션 바에서 각 섹션으로 스크롤 이동할 수 있다.
@@ -29,6 +31,8 @@ Dashboard 컴포넌트(`pages/dashboard/Dashboard.tsx`)는 7개 섹션으로 구
 | `section-custom-apis` | Custom APIs | 인라인 | 사용자 등록 API 목록 (활성화/비활성화, 내보내기, 삭제) |
 | `section-getting-started` | Getting Started | 인라인 | 3단계 시작 가이드 |
 
+<a id="details"></a>
+
 ## 상세 설명
 
 ### API 자동 검색
@@ -39,6 +43,8 @@ Dashboard 컴포넌트(`pages/dashboard/Dashboard.tsx`)는 7개 섹션으로 구
 
 ### Custom API 관리
 `apiConfigStore`에서 관리하는 Custom API 목록을 표시한다. 각 API를 활성화/비활성화하거나, Built-in API 코드로 내보내기(`ExportToBuiltinDialog`)하거나, 삭제할 수 있다.
+
+<a id="related-api"></a>
 
 ## 관련 API
 

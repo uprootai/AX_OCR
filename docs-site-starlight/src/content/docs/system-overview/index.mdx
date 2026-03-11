@@ -16,6 +16,8 @@ import ArchitectureDiagram from '../../../components/ArchitectureDiagram';
 도면 이미지 → VLM 분류 → YOLO 검출 → OCR 추출 → 공차 분석 → 리비전 비교 → 견적 PDF
 ```
 
+<a id="metrics"></a>
+
 ## 핵심 지표
 
 | 지표 | 값 |
@@ -28,9 +30,13 @@ import ArchitectureDiagram from '../../../components/ArchitectureDiagram';
 | **노드 타입(Node Types)** | 29개 이상 |
 | **테스트** | 백엔드/프론트엔드 자동화 테스트 스위트 운영 |
 
+<a id="topology"></a>
+
 ## 상위 아키텍처
 
 <ArchitectureDiagram client:load />
+
+<a id="data-flow"></a>
 
 ## 데이터 흐름
 
@@ -68,6 +74,8 @@ import ArchitectureDiagram from '../../../components/ArchitectureDiagram';
   ]}
   layers={[['img'], ['vlm'], ['yolo', 'pid', 'table'], ['ocr', 'conn'], ['dim', 'dch'], ['tol', 'report'], ['bomb'], ['quote']]}
 />
+
+<a id="sections"></a>
 
 ## 섹션 안내
 

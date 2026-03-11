@@ -197,12 +197,12 @@ usageTips:
 
 ## API 엔드포인트
 
-| 엔드포인트 | 메서드 | 설명 |
-|-----------|--------|------|
-| `/api/v1/specs` | GET | 모든 스펙 조회 |
-| `/api/v1/specs/{api_id}` | GET | 특정 스펙 조회 |
-| `/api/v1/specs/{api_id}/parameters` | GET | 파라미터만 조회 |
-| `/api/v1/specs/{api_id}/blueprintflow` | GET | 노드 메타데이터 조회 |
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `/api/v1/specs` | 모든 스펙 조회 |
+| GET | `/api/v1/specs/{api_id}` | 특정 스펙 조회 |
+| GET | `/api/v1/specs/{api_id}/parameters` | 파라미터만 조회 |
+| GET | `/api/v1/specs/{api_id}/blueprintflow` | 노드 메타데이터 조회 |
 
 ## 스캐폴딩 스크립트 옵션
 

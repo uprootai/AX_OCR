@@ -90,8 +90,8 @@ tags: [API, 마이크로서비스, BOM, AI]
 
 ### 세션 관리
 
-| Method | Endpoint | 설명 |
-|--------|----------|------|
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
 | POST | `/sessions/upload` | 이미지 업로드 |
 | GET | `/sessions` | 세션 목록 |
 | GET | `/sessions/{id}` | 세션 상세 |
@@ -99,16 +99,16 @@ tags: [API, 마이크로서비스, BOM, AI]
 
 ### 분석
 
-| Method | Endpoint | 설명 |
-|--------|----------|------|
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
 | POST | `/analysis/detect/{id}` | YOLO 검출 |
 | POST | `/analysis/ocr/{id}` | OCR 인식 |
 | POST | `/analysis/full/{id}` | 전체 분석 |
 
 ### 검증 (Active Learning)
 
-| Method | Endpoint | 설명 |
-|--------|----------|------|
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
 | GET | `/verification/queue/{id}` | 검증 큐 조회 |
 | POST | `/verification/verify/{id}` | 단일 항목 검증 |
 | POST | `/verification/auto-approve/{id}` | 자동 승인 |
@@ -116,15 +116,15 @@ tags: [API, 마이크로서비스, BOM, AI]
 
 ### BOM
 
-| Method | Endpoint | 설명 |
-|--------|----------|------|
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
 | POST | `/bom/generate/{id}` | BOM 생성 |
 | GET | `/bom/export/{id}/{format}` | 내보내기 |
 
 ### Feedback Loop (v8.0)
 
-| Method | Endpoint | 설명 |
-|--------|----------|------|
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
 | GET | `/feedback/stats` | 피드백 통계 |
 | POST | `/feedback/export/yolo` | YOLO 데이터셋 내보내기 |
 | GET | `/feedback/exports` | 내보내기 목록 |

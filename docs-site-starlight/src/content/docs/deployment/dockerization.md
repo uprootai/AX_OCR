@@ -91,11 +91,11 @@ curl http://localhost:5173
 
 ### API 엔드포인트
 
-| 엔드포인트 | 메서드 | 설명 |
-|-----------|--------|------|
-| `/api/v1/health` | GET | 헬스체크 |
-| `/api/v1/info` | GET | API 메타데이터 (BlueprintFlow Auto Discover) |
-| `/api/v1/detect` | POST | 객체 검출 (이미지 -> 검출 결과) |
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `/api/v1/health` | 헬스체크 |
+| GET | `/api/v1/info` | API 메타데이터 (BlueprintFlow Auto Discover) |
+| POST | `/api/v1/detect` | 객체 검출 (이미지 -> 검출 결과) |
 
 ### Dockerfile
 
@@ -250,11 +250,11 @@ curl http://localhost:5005/api/v1/health
 
 ### API 엔드포인트
 
-| 엔드포인트 | 메서드 | 설명 |
-|-----------|--------|------|
-| `/api/v1/health` | GET | 헬스체크 |
-| `/api/v1/info` | GET | API 메타데이터 |
-| `/api/v1/ocr` | POST | OCR 수행 (이미지 -> 텍스트 추출) |
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `/api/v1/health` | 헬스체크 |
+| GET | `/api/v1/info` | API 메타데이터 |
+| POST | `/api/v1/ocr` | OCR 수행 (이미지 -> 텍스트 추출) |
 
 ### Dockerfile
 

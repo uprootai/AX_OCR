@@ -170,12 +170,12 @@ POST /export/package/{session_id}
 
 내보내기 외에도, 시스템은 백업 및 이관을 위한 세션 가져오기/내보내기를 지원합니다:
 
-| 엔드포인트 | 메서드 | 설명 |
-|-----------|--------|------|
-| `/session/export/{session_id}` | GET | 전체 세션 상태 내보내기 |
-| `/session/import` | POST | 내보낸 데이터에서 세션 가져오기 |
-| `/project/export/{project_id}` | GET | 프로젝트 내 모든 세션 내보내기 |
-| `/project/import` | POST | 모든 세션 포함 프로젝트 가져오기 |
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `/session/export/{session_id}` | 전체 세션 상태 내보내기 |
+| POST | `/session/import` | 내보낸 데이터에서 세션 가져오기 |
+| GET | `/project/export/{project_id}` | 프로젝트 내 모든 세션 내보내기 |
+| POST | `/project/import` | 모든 세션 포함 프로젝트 가져오기 |
 
 ## 관련 API
 

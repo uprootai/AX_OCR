@@ -17,6 +17,8 @@ tags: [프론트엔드, React, 세션, 분석]
 | `/guide` | 공개 | 시스템 사용 가이드 |
 | `/docs` | 공개 | docs-site로 리다이렉트 |
 
+<a id="pid-overlay"></a>
+
 ## P&ID 오버레이 뷰어 (`PIDOverlayPage`)
 
 컴포넌트: `pages/pid-overlay/PIDOverlayPage.tsx`
@@ -30,6 +32,8 @@ tags: [프론트엔드, React, 세션, 분석]
 | 분석 결과 요약 | 심볼/라인/텍스트/영역 검출 수 표시 |
 
 Design Checker API(`localhost:5019`)의 `pipeline/detect` 엔드포인트를 호출한다. 전체 분석(심볼+라인+텍스트+영역)이 필요한 경우 BlueprintFlow 사용을 권장한다.
+
+<a id="guide"></a>
 
 ## 가이드 페이지 (`Guide`)
 
@@ -50,11 +54,15 @@ Design Checker API(`localhost:5019`)의 `pipeline/detect` 엔드포인트를 호
 | Docs | 문서 안내 |
 | BlueprintFlow | BlueprintFlow 사용법 |
 
+<a id="docs-bridge"></a>
+
 ## 문서 브릿지 (`Docs`)
 
 컴포넌트: `pages/docs/Docs.tsx`
 
 `/docs` 접근 시 `window.location.href = '/docs/'`로 docs-site(Docusaurus)로 리다이렉트한다. 자동 이동이 안 되는 경우를 위한 수동 링크도 제공한다.
+
+<a id="related-api"></a>
 
 ## 관련 API
 
