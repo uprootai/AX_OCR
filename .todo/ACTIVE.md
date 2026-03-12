@@ -11,7 +11,7 @@
 |------|-----|
 | **기술 스택** | FastAPI + React 19 + YOLO v11 + eDOCr2 + Docker |
 | **API 서비스** | 21개 (전체 healthy) |
-| **테스트** | 805개 통과 (gateway 450, web-ui 349, model 6) |
+| **테스트** | 800개 통과 (gateway 450, web-ui 350, model 6) |
 | **빌드 상태** | ✅ 정상 (tsc + build 에러 0) |
 | **파일 크기** | 모두 600줄 이하 |
 | **문서 사이트** | 15섹션 117페이지 (localhost:3001) — 100% 표준 준수 |
@@ -19,6 +19,18 @@
 ---
 
 ## Active Epic
+
+### E04: AX 테스트 컴플렉스 온보딩 (🔵 In Progress — S01~S03 Done)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 납품 패키지 템플릿 | ✅ Done | generate-package.sh + 5 templates |
+| S02 커스터마이징 파이프라인 | ✅ Done | create_customer_api.py + test_coverage.py |
+| S03 사용자 교육 체계 | ✅ Done | quick-start + manual + FAQ (120p 빌드) |
+| S04 기존 3개사 통합 | ⬜ Todo | S01~S03 의존 완료, 착수 가능 |
+| S05 신규 7개사 온보딩 | ⬜ Blocked | 기업 모집 중 |
+
+**상세**: [.todo/epics/e04-ax-testcomplex/EPIC.md](epics/e04-ax-testcomplex/EPIC.md)
 
 ### E07: Operational Excellence — WeekdayCode 4축 적용 (✅ Done)
 
