@@ -116,7 +116,8 @@ class TableDetectorExecutor(BaseNodeExecutor):
                     return None
 
                 return result
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f"Table detection API 호출 실패: {e}")
             return None
 
     async def execute(self, inputs: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:

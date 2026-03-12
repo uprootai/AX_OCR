@@ -3,6 +3,7 @@ PID Analyzer Executor
 P&ID 연결성 분석 및 BOM 추출 API 호출
 """
 from typing import Dict, Any, Optional
+import logging
 import json
 
 from ..executors.base_executor import BaseNodeExecutor
@@ -168,7 +169,7 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
                 )
             except Exception as e:
                 # 장비 태그 검출 실패는 전체 실패로 처리하지 않음
-                print(f"장비 태그 검출 경고: {e}")
+                self.logger.warning(f"장비 태그 검출 경고: {e}")
 
         if not result.get("success", False):
             raise Exception(f"PID Analyzer 실패: {result.get('error', 'Unknown error')}")
@@ -295,7 +296,7 @@ class PidAnalyzerExecutor(BaseNodeExecutor):
                         excel_url = f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_base64}"
 
             except Exception as e:
-                print(f"Excel 생성 경고: {e}")
+                self.logger.warning(f"Excel 생성 경고: {e}")
 
         return equipment_list, summary, excel_url
 

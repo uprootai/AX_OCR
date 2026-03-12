@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import { PIDOverlayViewer } from '../../components/pid';
 import { Info, Settings } from 'lucide-react';
+import { DESIGN_CHECKER_BASE } from '../../lib/api';
 
 export function PIDOverlayPage() {
   const [lastResult, setLastResult] = useState<{
@@ -50,7 +51,7 @@ export function PIDOverlayPage() {
 
       {/* Main viewer */}
       <PIDOverlayViewer
-        apiUrl="http://localhost:5019"
+        apiUrl={DESIGN_CHECKER_BASE}
         onOverlayGenerated={(data) => {
           setLastResult({
             symbols: data.statistics.symbols_count,

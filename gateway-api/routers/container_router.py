@@ -209,8 +209,8 @@ def _list_containers_sync(include_stats: bool = False) -> ContainerListResponse:
                         if system_delta > 0:
                             num_cpus = cpu_stats.get("online_cpus", 1)
                             cpu_percent = round((cpu_delta / system_delta) * num_cpus * 100, 1)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"CPU 사용률 계산 실패 (컨테이너 stats 미지원): {e}")
 
             container_list.append(ContainerInfo(
                 id=c.short_id,

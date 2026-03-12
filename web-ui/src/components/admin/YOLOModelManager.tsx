@@ -94,8 +94,7 @@ export function YOLOModelManager({ apiBaseUrl = 'http://localhost:5005' }: YOLOM
       fetchModels();
       showToast(`✓ '${modelId}' 모델이 삭제되었습니다`, 'success');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      const errorMsg = error.response?.data?.detail || '알 수 없는 오류';
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ 모델 삭제 실패\n${errorMsg}`, 'error');
     }
   };

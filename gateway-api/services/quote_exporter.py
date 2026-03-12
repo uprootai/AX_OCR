@@ -281,7 +281,8 @@ class QuoteExporter:
                     pdfmetrics.registerFont(TTFont('Korean', font_path))
                     font_registered = True
                     break
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"폰트 등록 실패 ({font_path}): {e}")
                     continue
 
         if not font_registered:

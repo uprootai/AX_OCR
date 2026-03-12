@@ -86,7 +86,7 @@ export default function ContainerManager() {
         showToast(`✗ ${containerName} 작업 실패\n${errorMsg}`, 'error');
       }
     } catch (err) {
-      const errorMsg = (err as Error).message || '알 수 없는 오류';
+      const errorMsg = err instanceof Error ? err.message : '알 수 없는 오류';
       showToast(`✗ ${containerName} 작업 실패\n${errorMsg}`, 'error');
     } finally {
       setActionLoading(null);
