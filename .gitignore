@@ -75,6 +75,8 @@ datasets/
 *.png
 !web-ui/public/**/*.png
 !web-ui/public/**/*.jpg
+!docs-site-starlight/public/**/*.png
+!docs-site-starlight/public/**/*.jpg
 
 # Docker
 *.tar
