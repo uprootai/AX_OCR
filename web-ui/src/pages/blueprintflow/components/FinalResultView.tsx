@@ -10,6 +10,7 @@ import { Download, ExternalLink } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import Toast from '../../../components/ui/Toast';
 import { nodeDefinitions } from '../../../config/nodeDefinitions';
+import { BLUEPRINT_AI_BOM_BASE } from '../../../lib/api';
 import ResultSummaryCard from '../../../components/blueprintflow/ResultSummaryCard';
 import PipelineConclusionCard from '../../../components/blueprintflow/PipelineConclusionCard';
 import { OutputDisplay } from './OutputDisplays';
@@ -476,7 +477,7 @@ function UIActionDisplay({
 
   const handleDeleteSession = async () => {
     try {
-      await fetch(`http://localhost:5020/sessions/${sessionId}`, { method: 'DELETE' });
+      await fetch(`${BLUEPRINT_AI_BOM_BASE}/sessions/${sessionId}`, { method: 'DELETE' });
       showToast('✓ 세션이 삭제되었습니다', 'success');
     } catch {
       showToast('✗ 세션 삭제 실패', 'error');

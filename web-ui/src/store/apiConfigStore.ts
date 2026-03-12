@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { GATEWAY_URL } from '../lib/api';
 
 export interface APIConfig {
   id: string;
@@ -73,7 +74,7 @@ export const useAPIConfigStore = create<APIConfigStore>()(
 
         // ✅ 2. 백엔드에 동기화
         try {
-          const response = await fetch('http://localhost:8000/api/v1/api-configs', {
+          const response = await fetch(`${GATEWAY_URL}/api/v1/api-configs`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -100,7 +101,7 @@ export const useAPIConfigStore = create<APIConfigStore>()(
 
         // ✅ 2. 백엔드에서 삭제
         try {
-          await fetch(`http://localhost:8000/api/v1/api-configs/${id}`, {
+          await fetch(`${GATEWAY_URL}/api/v1/api-configs/${id}`, {
             method: 'DELETE',
           });
         } catch (error) {
@@ -118,7 +119,7 @@ export const useAPIConfigStore = create<APIConfigStore>()(
 
         // ✅ 2. 백엔드 업데이트
         try {
-          await fetch(`http://localhost:8000/api/v1/api-configs/${id}`, {
+          await fetch(`${GATEWAY_URL}/api/v1/api-configs/${id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -140,7 +141,7 @@ export const useAPIConfigStore = create<APIConfigStore>()(
 
         // ✅ 2. 백엔드 토글
         try {
-          await fetch(`http://localhost:8000/api/v1/api-configs/${id}/toggle`, {
+          await fetch(`${GATEWAY_URL}/api/v1/api-configs/${id}/toggle`, {
             method: 'POST',
           });
         } catch (error) {

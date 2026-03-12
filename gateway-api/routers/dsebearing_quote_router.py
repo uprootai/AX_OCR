@@ -159,17 +159,13 @@ async def generate_quote(
                 bom_items = data.get("matched_items", data.get("items", []))
             elif isinstance(data, list):
                 bom_items = data
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"BOM 데이터 JSON 파싱 실패: {e}")
+            raise HTTPException(status_code=400, detail=f"BOM 데이터 JSON 파싱 실패: {e}")
 
-    # BOM이 없으면 Mock 데이터
+    # BOM이 없으면 에러 반환
     if not bom_items:
-        bom_items = [
-            {"no": "1", "description": "RING UPPER", "material": "SF45A", "qty": 1, "weight": 15.0},
-            {"no": "2", "description": "RING LOWER", "material": "SF45A", "qty": 1, "weight": 15.0},
-            {"no": "3", "description": "HEX SOCKET HD BOLT", "material": "SCM435", "qty": 4, "weight": 0.5},
-            {"no": "4", "description": "DOWEL PIN", "material": "STS304", "qty": 2, "weight": 0.2},
-        ]
+        raise HTTPException(status_code=400, detail="BOM 데이터가 필요합니다. bom_data 필드를 제공해주세요.")
 
     # 가격 데이터베이스로 견적 계산
     quote_result = price_db.calculate_quote(

@@ -347,8 +347,8 @@ async def get_cost_report():
     try:
         from utils.result_manager import get_result_manager
         manager = get_result_manager()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"ResultManager 초기화 실패: {e}")
 
     # Count analyzed drawings from result manager
     drawings_analyzed = 0

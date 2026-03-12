@@ -6,6 +6,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { NODE_TO_CONTAINER } from '../../../../config/apiRegistry';
 import { ALWAYS_ACTIVE_NODE_TYPES, CONTAINER_STATUS_POLL_INTERVAL } from '../constants';
+import { GATEWAY_URL } from '../../../../lib/api';
 
 interface ContainerStatusResult {
   stoppedContainers: Set<string>;
@@ -26,7 +27,7 @@ export function useContainerStatus(): ContainerStatusResult {
   // 컨테이너 상태 가져오기
   const fetchContainerStatus = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/containers');
+      const response = await fetch(`${GATEWAY_URL}/api/v1/containers`);
       const data = await response.json();
       if (data.success && data.containers) {
         const stopped = new Set<string>(

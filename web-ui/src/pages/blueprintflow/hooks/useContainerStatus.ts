@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { NODE_TO_CONTAINER, CONTROL_NODES } from '../../../config/apiRegistry';
 import type { ContainerWarningModalState } from '../types';
 import type { Node } from 'reactflow';
+import { GATEWAY_URL } from '../../../lib/api';
 
 interface UseContainerStatusOptions {
   onExecute: () => Promise<void>;
@@ -35,7 +36,7 @@ export function useContainerStatus({ onExecute, onShowToast }: UseContainerStatu
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
-        const response = await fetch('http://localhost:8000/api/v1/containers/status', {
+        const response = await fetch(`${GATEWAY_URL}/api/v1/containers/status`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -73,7 +74,7 @@ export function useContainerStatus({ onExecute, onShowToast }: UseContainerStatu
     setContainerWarningModal(prev => ({ ...prev, isStarting: true }));
     try {
       for (const name of containerNames) {
-        await fetch(`http://localhost:8000/api/v1/containers/${name}/start`, {
+        await fetch(`${GATEWAY_URL}/api/v1/containers/${name}/start`, {
           method: 'POST'
         });
       }

@@ -1,62 +1,41 @@
-import { X, Info, ArrowRight, Settings, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Lightbulb, Link, Image, FileImage, HelpCircle, Plus, PlayCircle, CheckCircle2, XCircle, Clock, FileText } from 'lucide-react';
-import DetectionResultCard from './DetectionResultCard';
+import { X, Info, Settings, ChevronLeft, ChevronRight, Link } from 'lucide-react';
 import { useState, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNodeDefinitions } from '../../hooks/useNodeDefinitions';
 import { getRecommendedNodes, FEATURE_NODE_RECOMMENDATIONS } from '../../config/nodes/inputNodes';
-import {
-  getGroupImplementationStats,
-  formatImplementationCount,
-  getImplementationStatusIcon,
-  type FeatureGroup,
-} from '../../config/features';
 import { Button } from '../ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useWorkflowStore } from '../../store/workflowStore';
-import { ProfileManager } from './ProfileManager';
-import type { ProfileParams } from '../../store/profileStore';
-import type { Node } from 'reactflow';
-import type { SelectOption, CheckboxOption } from '../../config/nodes/types';
 
-// Helper to check if option is SelectOption object
-const isSelectOption = (opt: string | SelectOption): opt is SelectOption => {
-  return typeof opt === 'object' && 'value' in opt;
-};
+import { ImagePreviewCard, ImageModal } from './node-detail/ImagePreviewCard';
+import { RecommendedNodesCard } from './node-detail/RecommendedNodesCard';
+import { ExecutionResultCard } from './node-detail/ExecutionResultCard';
+import { ParametersCard } from './node-detail/ParametersCard';
+import { DescriptionCard, NodeIOCards, ExamplesCard, UsageTipsCard, RecommendedInputsCard } from './node-detail/MetaCards';
+import type { NodeDetailPanelProps } from './node-detail/types';
 
-// Helper to check if option is CheckboxOption object
-const isCheckboxOption = (opt: unknown): opt is CheckboxOption => {
-  return typeof opt === 'object' && opt !== null && 'value' in opt && 'label' in opt;
-};
+// Re-export types for consumers
+export type { NodeDetailPanelProps } from './node-detail/types';
 
-interface NodeDetailPanelProps {
-  selectedNode: Node | null;
-  onClose: () => void;
-  onUpdateNode: (nodeId: string, data: Record<string, unknown>) => void;
-  onAddNode?: (nodeType: string) => void;  // 추천 노드 추가 콜백
-}
-
-const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, onUpdateNode, onAddNode }: NodeDetailPanelProps) {
+const NodeDetailPanel = memo(function NodeDetailPanel({
+  selectedNode,
+  onClose,
+  onUpdateNode,
+  onAddNode,
+}: NodeDetailPanelProps) {
   const { t } = useTranslation();
   const [showParameters, setShowParameters] = useState(true);
   const [showExamples, setShowExamples] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
 
-  // Get node definitions with dynamic profiles
   const { getDefinition } = useNodeDefinitions();
 
-  // Get uploaded image from store
   const uploadedImage = useWorkflowStore((state) => state.uploadedImage);
   const uploadedFileName = useWorkflowStore((state) => state.uploadedFileName);
-
-  // GT file state (read-only display, attachment is in the toolbar)
   const uploadedGTFile = useWorkflowStore((state) => state.uploadedGTFile);
-
-  // Get node execution status from store
   const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
   const currentNodeStatus = selectedNode ? nodeStatuses[selectedNode.id] : null;
 
-  // features 기반 추천 노드 계산 (ImageInput 노드일 때만)
   const featuresRecommendation = useMemo(() => {
     if (!selectedNode || selectedNode.type !== 'imageinput') return null;
     const features: string[] = selectedNode.data?.parameters?.features || [];
@@ -65,18 +44,14 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
     const recommendedNodes = getRecommendedNodes(features);
     if (recommendedNodes.length === 0) return null;
 
-    // 활성화된 features에 대한 설명 생성
     const descriptions = features
-      .filter(f => FEATURE_NODE_RECOMMENDATIONS[f])
-      .map(f => FEATURE_NODE_RECOMMENDATIONS[f].description);
+      .filter((f) => FEATURE_NODE_RECOMMENDATIONS[f])
+      .map((f) => FEATURE_NODE_RECOMMENDATIONS[f].description);
 
-    return {
-      nodes: recommendedNodes,
-      descriptions,
-    };
+    return { nodes: recommendedNodes, descriptions };
   }, [selectedNode]);
 
-  // Collapsed state - show only toggle button
+  // Collapsed state
   if (isCollapsed) {
     return (
       <div className="w-12 bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 relative flex flex-col items-center pt-4">
@@ -145,27 +120,6 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
     );
   }
 
-  const handleParameterChange = (paramName: string, value: string | number | boolean | string[]) => {
-    const currentData = selectedNode.data || {};
-    const currentParams = currentData.parameters || {};
-
-    onUpdateNode(selectedNode.id, {
-      ...currentData,
-      parameters: {
-        ...currentParams,
-        [paramName]: value,
-      },
-    });
-  };
-
-  // checkboxGroup 값 토글 핸들러
-  const handleCheckboxToggle = (paramName: string, optionValue: string, currentValues: string[]) => {
-    const newValues = currentValues.includes(optionValue)
-      ? currentValues.filter(v => v !== optionValue)
-      : [...currentValues, optionValue];
-    handleParameterChange(paramName, newValues);
-  };
-
   return (
     <div className="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto relative">
       {/* Collapse Button */}
@@ -181,10 +135,7 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: definition.color }}
-            />
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: definition.color }} />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {definition.label}
             </h3>
@@ -200,723 +151,73 @@ const NodeDetailPanel = memo(function NodeDetailPanel({ selectedNode, onClose, o
 
       <div className="p-4 space-y-4">
         {/* Description */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              {t('nodeDetail.description')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              {definition.description}
-            </p>
-          </CardContent>
-        </Card>
+        <DescriptionCard definition={definition} />
 
         {/* Image Preview - Only for ImageInput node */}
         {nodeType === 'imageinput' && (
-          <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2 text-green-700 dark:text-green-300">
-                <FileImage className="w-4 h-4" />
-                {t('nodeDetail.currentImage')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {uploadedImage ? (
-                <div className="space-y-2">
-                  <div className="relative group">
-                    <img
-                      src={uploadedImage}
-                      alt="Uploaded preview"
-                      className="w-full h-auto rounded-lg border border-green-300 dark:border-green-700 max-h-48 object-contain bg-white cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => setShowImageModal(true)}
-                      title="클릭하여 확대"
-                    />
-                    {/* 클릭 힌트 */}
-                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                      🔍 클릭하여 확대
-                    </div>
-                  </div>
-                  <div
-                    className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 cursor-pointer hover:text-green-700"
-                    onClick={() => setShowImageModal(true)}
-                  >
-                    <Image className="w-3 h-3" />
-                    <span className="truncate font-medium">{uploadedFileName || t('nodeDetail.image')}</span>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('nodeDetail.size')}: {Math.round(uploadedImage.length / 1024)} KB (base64)
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-400 dark:text-gray-500">
-                  <Image className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">{t('nodeDetail.noImageUploaded')}</p>
-                  <p className="text-xs mt-1">{t('nodeDetail.useUploadButton')}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ImagePreviewCard
+            uploadedImage={uploadedImage}
+            uploadedFileName={uploadedFileName}
+            uploadedGTFile={uploadedGTFile}
+            showImageModal={showImageModal}
+            onShowModal={() => setShowImageModal(true)}
+          />
         )}
 
-        {/* GT File Status - Read-only display (GT attachment is in the toolbar) */}
-        {nodeType === 'imageinput' && uploadedGTFile && (
-          <div className="flex items-center gap-2 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-700">
-            <FileText className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">GT: {uploadedGTFile.name}</span>
-          </div>
-        )}
-
-        {/* Recommended Nodes - Based on selected features */}
+        {/* Recommended Nodes */}
         {nodeType === 'imageinput' && featuresRecommendation && (
-          <Card className="border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2 text-orange-700 dark:text-orange-300">
-                <Lightbulb className="w-4 h-4" />
-                📌 추천 노드
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Description list */}
-              <div className="space-y-1">
-                {featuresRecommendation.descriptions.map((desc, idx) => (
-                  <p key={idx} className="text-xs text-orange-800 dark:text-orange-200">
-                    • {desc}
-                  </p>
-                ))}
-              </div>
-
-              {/* Node buttons */}
-              <div className="flex flex-wrap gap-2">
-                {featuresRecommendation.nodes.map((nodeTypeId) => {
-                  const nodeDef = getDefinition(nodeTypeId);
-                  return (
-                    <button
-                      key={nodeTypeId}
-                      onClick={() => onAddNode?.(nodeTypeId)}
-                      disabled={!onAddNode}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-white dark:bg-gray-700 border border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                    >
-                      <Plus className="w-3 h-3" />
-                      {nodeDef?.label || nodeTypeId}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Tips */}
-              <div className="flex items-start gap-2 p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <span className="text-orange-500">💡</span>
-                <span className="text-xs text-orange-800 dark:text-orange-200">
-                  선택한 기능에 필요한 노드입니다. 클릭하여 추가하세요.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+          <RecommendedNodesCard
+            nodes={featuresRecommendation.nodes}
+            descriptions={featuresRecommendation.descriptions}
+            onAddNode={onAddNode}
+          />
         )}
 
-        {/* Inputs */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <ArrowRight className="w-4 h-4 rotate-180 text-blue-500" />
-              {t('nodeDetail.inputs')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {definition.inputs.map((input, idx) => (
-              <div key={idx} className="border-l-2 border-blue-500 pl-3 py-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
-                    {input.name}
-                  </span>
-                  <span className="text-xs text-gray-500">: {input.type}</span>
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {input.description}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        {/* Inputs / Outputs */}
+        <NodeIOCards definition={definition} />
 
-        {/* Outputs */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <ArrowRight className="w-4 h-4 text-green-500" />
-              {t('nodeDetail.outputs')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {definition.outputs.map((output, idx) => (
-              <div key={idx} className="border-l-2 border-green-500 pl-3 py-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-semibold text-green-600 dark:text-green-400">
-                    {output.name}
-                  </span>
-                  <span className="text-xs text-gray-500">: {output.type}</span>
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {output.description}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Execution Result Preview */}
+        {/* Execution Result */}
         {currentNodeStatus && (
-          <Card className={`border-l-4 ${
-            currentNodeStatus.status === 'completed' ? 'border-l-green-500 bg-green-50 dark:bg-green-900/20' :
-            currentNodeStatus.status === 'failed' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' :
-            currentNodeStatus.status === 'running' ? 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20' :
-            'border-l-gray-300'
-          }`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                {currentNodeStatus.status === 'completed' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                {currentNodeStatus.status === 'failed' && <XCircle className="w-4 h-4 text-red-500" />}
-                {currentNodeStatus.status === 'running' && <Clock className="w-4 h-4 text-blue-500 animate-spin" />}
-                {currentNodeStatus.status === 'pending' && <PlayCircle className="w-4 h-4 text-gray-400" />}
-                실행 결과
-                {currentNodeStatus.elapsedSeconds && !Array.isArray(currentNodeStatus.output?.detections) && (
-                  <span className="text-xs text-gray-500 ml-auto">
-                    {currentNodeStatus.elapsedSeconds.toFixed(1)}초
-                  </span>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-xs">
-              {currentNodeStatus.status === 'failed' && currentNodeStatus.error && (
-                <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded text-red-700 dark:text-red-300">
-                  ❌ {currentNodeStatus.error}
-                </div>
-              )}
-              {currentNodeStatus.status === 'completed' && currentNodeStatus.output && (
-                <>
-                  {/* Detection 결과가 있으면 DetectionResultCard 사용 */}
-                  {Array.isArray(currentNodeStatus.output.detections) && currentNodeStatus.output.detections.length > 0 ? (
-                    <DetectionResultCard
-                      nodeStatus={currentNodeStatus}
-                      uploadedImage={uploadedImage}
-                      uploadedFileName={uploadedFileName}
-                    />
-                  ) : (
-                    <div className="space-y-2">
-                      {/* 기존: Detection 외 결과 요약 */}
-                      {Array.isArray(currentNodeStatus.output.dimensions) && currentNodeStatus.output.dimensions.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">📏 치수:</span>
-                          <span>{currentNodeStatus.output.dimensions.length}개</span>
-                        </div>
-                      )}
-                      {Array.isArray(currentNodeStatus.output.tables) && currentNodeStatus.output.tables.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">📊 테이블:</span>
-                          <span>{currentNodeStatus.output.tables.length}개</span>
-                        </div>
-                      )}
-                      {Array.isArray(currentNodeStatus.output.texts) && currentNodeStatus.output.texts.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">📝 텍스트:</span>
-                          <span>{currentNodeStatus.output.texts.length}개</span>
-                        </div>
-                      )}
-                      {/* JSON 미리보기 (접기/펼치기) */}
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
-                          JSON 데이터 보기
-                        </summary>
-                        <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
-                          {JSON.stringify(currentNodeStatus.output, null, 2).slice(0, 2000)}
-                          {JSON.stringify(currentNodeStatus.output).length > 2000 && '...'}
-                        </pre>
-                      </details>
-                    </div>
-                  )}
-                </>
-              )}
-              {currentNodeStatus.status === 'running' && (
-                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                  <div className="animate-pulse">실행 중...</div>
-                  {currentNodeStatus.message && <span>({currentNodeStatus.message})</span>}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ExecutionResultCard
+            nodeStatus={currentNodeStatus}
+            uploadedImage={uploadedImage}
+            uploadedFileName={uploadedFileName}
+          />
         )}
 
         {/* Parameters */}
         {definition.parameters.length > 0 && (
-          <Card>
-            <CardHeader>
-              <button
-                onClick={() => setShowParameters(!showParameters)}
-                className="w-full flex items-center justify-between cursor-pointer"
-              >
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-purple-500" />
-                  {t('nodeDetail.parameters')}
-                </CardTitle>
-                {showParameters ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </button>
-            </CardHeader>
-            {showParameters && (
-              <CardContent className="space-y-3">
-                {/* Profile Manager */}
-                {definition.profiles && definition.profiles.available.length > 0 && (
-                  <ProfileManager
-                    nodeType={nodeType}
-                    definition={definition}
-                    currentParams={selectedNode.data?.parameters || {}}
-                    selectedProfile={selectedNode.data?.parameters?._profile}
-                    onProfileSelect={(profileName: string, params: ProfileParams) => {
-                      const currentData = selectedNode.data || {};
-                      const currentParams = currentData.parameters || {};
-                      onUpdateNode(selectedNode.id, {
-                        ...currentData,
-                        parameters: {
-                          ...currentParams,
-                          ...params,
-                          _profile: profileName,
-                        },
-                      });
-                    }}
-                    onParamsChange={(params) => {
-                      const currentData = selectedNode.data || {};
-                      onUpdateNode(selectedNode.id, {
-                        ...currentData,
-                        parameters: params,
-                      });
-                    }}
-                  />
-                )}
-
-                {definition.parameters.map((param) => {
-                  const currentValue =
-                    selectedNode.data?.parameters?.[param.name] ?? param.default;
-
-                  return (
-                    <div key={param.name} className="space-y-1">
-                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                        {param.name}
-                        {param.tooltip && (
-                          <span className="group relative">
-                            <HelpCircle className="w-3 h-3 text-gray-400 hover:text-blue-500 cursor-help" />
-                            <span className="absolute z-50 hidden group-hover:block w-64 p-2 text-xs bg-gray-900 text-white rounded-lg shadow-lg -left-28 top-5">
-                              {param.tooltip}
-                            </span>
-                          </span>
-                        )}
-                      </label>
-                      <p className="text-xs text-gray-500">{param.description}</p>
-
-                      {param.type === 'number' && (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="range"
-                            min={param.min}
-                            max={param.max}
-                            step={param.step}
-                            value={currentValue}
-                            onChange={(e) =>
-                              handleParameterChange(param.name, parseFloat(e.target.value))
-                            }
-                            className="flex-1"
-                          />
-                          <span className="text-xs font-mono w-12 text-right">
-                            {currentValue}
-                          </span>
-                        </div>
-                      )}
-
-                      {(param.type === 'string' || param.type === 'textarea') && (
-                        <textarea
-                          value={currentValue || ''}
-                          onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                          onFocus={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          placeholder={param.placeholder || t('nodeDetail.enterText')}
-                          rows={param.type === 'textarea' ? 4 : 3}
-                          className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-y min-h-[60px] nodrag nopan font-mono"
-                        />
-                      )}
-
-                      {param.type === 'select' && (
-                        <div className="space-y-2">
-                          <select
-                            value={currentValue}
-                            onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                            className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600"
-                          >
-                            {param.options?.map((opt) => {
-                              const value = isSelectOption(opt) ? opt.value : opt;
-                              const label = isSelectOption(opt) ? opt.label : opt;
-                              return (
-                                <option key={value} value={value}>
-                                  {label}
-                                </option>
-                              );
-                            })}
-                          </select>
-                          {/* Show description for selected option */}
-                          {param.options?.some(isSelectOption) && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-2 rounded border border-gray-200 dark:border-gray-600">
-                              {(() => {
-                                const selectedOpt = param.options?.find(
-                                  (opt) => isSelectOption(opt) && opt.value === currentValue
-                                );
-                                if (selectedOpt && isSelectOption(selectedOpt)) {
-                                  return (
-                                    <div className="flex items-start gap-2">
-                                      <HelpCircle className="w-3 h-3 mt-0.5 text-blue-500 flex-shrink-0" />
-                                      <span>{selectedOpt.description}</span>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {param.type === 'boolean' && (
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={currentValue}
-                            onChange={(e) =>
-                              handleParameterChange(param.name, e.target.checked)
-                            }
-                          />
-                          <span className="text-xs">{t('nodeDetail.enabled')}</span>
-                        </label>
-                      )}
-
-                      {param.type === 'checkboxGroup' && (
-                        <div className="space-y-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                          {(() => {
-                            // 그룹별로 옵션 분류
-                            const groupedOptions: Record<string, CheckboxOption[]> = {};
-                            const ungroupedOptions: CheckboxOption[] = [];
-
-                            param.options?.forEach((opt) => {
-                              if (!isCheckboxOption(opt)) return;
-                              const cbOpt = opt as CheckboxOption;
-                              if (cbOpt.group) {
-                                if (!groupedOptions[cbOpt.group]) groupedOptions[cbOpt.group] = [];
-                                groupedOptions[cbOpt.group]!.push(cbOpt);
-                              } else {
-                                ungroupedOptions.push(cbOpt);
-                              }
-                            });
-
-                            const groups = Object.keys(groupedOptions);
-                            const hasGroups = groups.length > 0;
-
-                            // 그룹 아이콘 매핑
-                            const groupIcons: Record<string, string> = {
-                              '기본 검출': '🎯',
-                              'GD&T / 기계': '🔧',
-                              'P&ID': '🔀',
-                              'BOM 생성': '📋',
-                              '장기 로드맵': '🚀',
-                            };
-
-                            // 그룹 색상 매핑
-                            const groupColors: Record<string, string> = {
-                              '기본 검출': 'border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/20',
-                              'GD&T / 기계': 'border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-900/20',
-                              'P&ID': 'border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/20',
-                              'BOM 생성': 'border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/20',
-                              '장기 로드맵': 'border-pink-300 dark:border-pink-700 bg-pink-50/50 dark:bg-pink-900/20',
-                            };
-
-                            const renderOption = (opt: CheckboxOption) => {
-                              if (!isCheckboxOption(opt)) return null;
-                              const isChecked = Array.isArray(currentValue)
-                                ? currentValue.includes(opt.value)
-                                : false;
-
-                              // 구현 상태 아이콘 결정
-                              const implStatus = opt.implementationStatus;
-                              const statusIcon = implStatus ? getImplementationStatusIcon(implStatus) : '';
-                              const statusLabel = implStatus === 'implemented' ? '완전 구현'
-                                : implStatus === 'partial' ? '부분 구현'
-                                : implStatus === 'stub' ? '스텁만'
-                                : implStatus === 'planned' ? '계획됨' : '';
-
-                              return (
-                                <div key={opt.value} className="group relative">
-                                  <label
-                                    className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${
-                                      isChecked
-                                        ? 'bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-600'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-600/50'
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() =>
-                                        handleCheckboxToggle(
-                                          param.name,
-                                          opt.value,
-                                          Array.isArray(currentValue) ? currentValue : []
-                                        )
-                                      }
-                                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span className="text-sm flex items-center gap-1">
-                                      {opt.icon && <span>{opt.icon}</span>}
-                                      {opt.label}
-                                      {/* 구현 상태 아이콘 */}
-                                      {statusIcon && (
-                                        <span title={statusLabel} className="text-xs opacity-70">
-                                          {statusIcon}
-                                        </span>
-                                      )}
-                                    </span>
-                                    {opt.hint && (
-                                      <span className="text-xs text-gray-400 ml-auto">
-                                        {opt.hint}
-                                      </span>
-                                    )}
-                                  </label>
-                                  {/* Hover Tooltip */}
-                                  {opt.description && (
-                                    <div className="absolute z-50 hidden group-hover:block w-72 p-3 text-xs bg-gray-900 text-white rounded-lg shadow-xl left-0 top-full mt-1 leading-relaxed">
-                                      <div className="flex items-start gap-2">
-                                        <span className="text-lg flex-shrink-0">{opt.icon}</span>
-                                        <div>
-                                          <div className="font-semibold text-blue-300 mb-1 flex items-center gap-2">
-                                            {opt.label}
-                                            {statusIcon && (
-                                              <span className="text-xs bg-gray-700 px-1.5 py-0.5 rounded">
-                                                {statusIcon} {statusLabel}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="text-gray-200">{opt.description}</div>
-                                          {opt.implementationLocation && (
-                                            <div className="text-gray-400 mt-1 text-[10px]">
-                                              📁 {opt.implementationLocation}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-900 rotate-45"></div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            };
-
-                            return (
-                              <>
-                                {/* 그룹화된 옵션 렌더링 */}
-                                {hasGroups && groups.map((group) => {
-                                  const opts = groupedOptions[group] || [];
-                                  // 구현 상태 통계 (SSOT에서 가져옴)
-                                  const stats = getGroupImplementationStats(group as FeatureGroup);
-                                  const implCount = formatImplementationCount(stats);
-
-                                  return (
-                                    <div
-                                      key={group}
-                                      className={`rounded-lg border p-2 ${groupColors[group] || 'border-gray-200 dark:border-gray-600'}`}
-                                    >
-                                      <div className="flex items-center justify-between mb-2 pb-1 border-b border-gray-200 dark:border-gray-600">
-                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                          {groupIcons[group] || '📁'} {group}
-                                        </span>
-                                        <span className="text-xs text-gray-500 dark:text-gray-400" title="구현됨/전체">
-                                          {implCount} 구현
-                                        </span>
-                                      </div>
-                                      <div className="space-y-1">
-                                        {opts.map(renderOption)}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-
-                                {/* 그룹 없는 옵션 렌더링 */}
-                                {ungroupedOptions.length > 0 && (
-                                  <div className="space-y-1">
-                                    {ungroupedOptions.map(renderOption)}
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
-                          {/* 활성화된 기능 수 표시 */}
-                          <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between">
-                            <span>{Array.isArray(currentValue) ? currentValue.length : 0}개 기능 활성화</span>
-                            <div className="flex gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const allValues = param.options
-                                    ?.filter(isCheckboxOption)
-                                    .map(opt => opt.value) || [];
-                                  handleParameterChange(param.name, allValues);
-                                }}
-                                className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800/50"
-                              >
-                                전체 선택
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleParameterChange(param.name, [])}
-                                className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500"
-                              >
-                                전체 해제
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </CardContent>
-            )}
-          </Card>
+          <ParametersCard
+            definition={definition}
+            selectedNode={selectedNode}
+            nodeType={nodeType}
+            showParameters={showParameters}
+            onToggle={() => setShowParameters(!showParameters)}
+            onUpdateNode={onUpdateNode}
+          />
         )}
 
         {/* Examples */}
-        {definition.examples.length > 0 && (
-          <Card>
-            <CardHeader>
-              <button
-                onClick={() => setShowExamples(!showExamples)}
-                className="w-full flex items-center justify-between cursor-pointer"
-              >
-                <CardTitle className="text-sm">💡 {t('nodeDetail.usageExample')}</CardTitle>
-                {showExamples ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </button>
-            </CardHeader>
-            {showExamples && (
-              <CardContent>
-                <ul className="space-y-2">
-                  {definition.examples.map((example, idx) => (
-                    <li key={idx} className="text-xs text-gray-600 dark:text-gray-400 flex gap-2">
-                      <span className="text-gray-400">•</span>
-                      <span>{example}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            )}
-          </Card>
-        )}
+        <ExamplesCard
+          definition={definition}
+          showExamples={showExamples}
+          onToggle={() => setShowExamples(!showExamples)}
+        />
 
         {/* Usage Tips */}
-        {definition.usageTips && definition.usageTips.length > 0 && (
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2 text-blue-900 dark:text-blue-300">
-                <Lightbulb className="w-4 h-4" />
-                💡 {t('nodeDetail.usageTip')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2.5">
-                {definition.usageTips.map((tip, idx) => (
-                  <li key={idx} className="text-xs text-blue-800 dark:text-blue-200 flex gap-2 leading-relaxed">
-                    <span className="text-blue-400 mt-0.5">•</span>
-                    <span>{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+        <UsageTipsCard definition={definition} />
 
         {/* Recommended Inputs */}
-        {definition.recommendedInputs && definition.recommendedInputs.length > 0 && (
-          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2 text-green-900 dark:text-green-300">
-                <Link className="w-4 h-4" />
-                🔗 {t('nodeDetail.recommendedConnections')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {definition.recommendedInputs.map((rec, idx) => (
-                  <div key={idx} className="border-l-2 border-green-500 pl-3 py-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-xs font-semibold text-green-700 dark:text-green-400">
-                        {rec.from}
-                      </span>
-                      <ArrowRight className="w-3 h-3 text-green-600" />
-                      <span className="font-mono text-xs text-green-600 dark:text-green-400">
-                        {rec.field}
-                      </span>
-                    </div>
-                    <p className="text-xs text-green-800 dark:text-green-200 leading-relaxed">
-                      {rec.reason}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <RecommendedInputsCard definition={definition} />
       </div>
 
-      {/* 이미지 확대 모달 */}
+      {/* Image Modal */}
       {showImageModal && uploadedImage && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setShowImageModal(false)}
-        >
-          <div
-            className="relative max-w-[90vw] max-h-[90vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* 닫기 버튼 */}
-            <button
-              onClick={() => setShowImageModal(false)}
-              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-              title="닫기 (ESC)"
-            >
-              ✕
-            </button>
-            {/* 이미지 */}
-            <img
-              src={uploadedImage}
-              alt="Uploaded preview full"
-              className="max-w-[85vw] max-h-[85vh] object-contain"
-            />
-            {/* 파일 정보 */}
-            {uploadedFileName && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                <div className="text-white text-sm font-medium">
-                  📁 {uploadedFileName}
-                </div>
-                <div className="text-white/70 text-xs mt-1">
-                  크기: {Math.round(uploadedImage.length / 1024)} KB (base64) | 클릭하여 닫기
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ImageModal
+          uploadedImage={uploadedImage}
+          uploadedFileName={uploadedFileName}
+          onClose={() => setShowImageModal(false)}
+        />
       )}
     </div>
   );

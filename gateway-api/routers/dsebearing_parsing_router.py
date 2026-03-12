@@ -294,22 +294,22 @@ async def parse_title_block(
             detail={"error_code": ErrorCodes.PARSING_ERROR, "message": get_error_message(ErrorCodes.PARSING_ERROR), "details": {"error": str(e)}}
         )
 
-    # 3. OCR 결과가 없으면 Mock 데이터 반환
+    # 3. OCR 결과가 없으면 빈 결과 반환
     if not ocr_texts:
-        logger.info("OCR 결과 없음 - Mock 데이터 반환")
+        logger.warning("OCR 결과 없음 - 빈 결과 반환")
         return TitleBlockResponse(
-            success=True,
-            drawing_number="TD0062016",
-            revision="A",
-            part_name="BEARING RING ASSY (T1)",
-            material="SF45A",
-            date=datetime.now().strftime("%Y-%m-%d"),
-            size="A1",
-            scale="N/S",
-            sheet="1/1",
-            company="DOOSAN Enerbility",
-            raw_texts=["Mock data - no OCR results"],
-            confidence=0.5
+            success=False,
+            drawing_number="",
+            revision="",
+            part_name="",
+            material="",
+            date="",
+            size="",
+            scale="",
+            sheet="",
+            company="",
+            raw_texts=["OCR 결과 없음"],
+            confidence=0.0
         )
 
     # 4. 실제 파싱 수행
@@ -388,21 +388,14 @@ async def parse_parts_list(
         if file_content:
             ocr_texts = await call_edocr2_ocr(file_content, file.filename)
 
-    # OCR 결과 없으면 Mock 데이터
+    # OCR 결과 없으면 빈 결과 반환
     if not ocr_texts and not table:
-        logger.info("Parts List OCR 결과 없음 - Mock 데이터 반환")
-        mock_items = [
-            PartsListItemResponse(no="1", description="RING UPPER", material="SF45A", size_dwg_no="TD0062017P001", qty=1),
-            PartsListItemResponse(no="2", description="RING LOWER", material="SF45A", size_dwg_no="TD0062017P002", qty=1),
-            PartsListItemResponse(no="3", description="HEX SOCKET HD BOLT", material="SEE EXCEL BOM", size_dwg_no="TD0060701P020L", qty=4),
-            PartsListItemResponse(no="4", description="DOWEL PIN", material="SEE EXCEL BOM", size_dwg_no="TD0060703SP009", qty=2),
-            PartsListItemResponse(no="5", description="SHIM PLATE", material="SEE EXCEL BOM", size_dwg_no="TD0060742P003", qty=4),
-        ]
+        logger.warning("Parts List OCR 결과 없음 - 빈 결과 반환")
         return PartsListResponse(
-            success=True,
-            items=mock_items,
-            total_count=len(mock_items),
-            confidence=0.5
+            success=False,
+            items=[],
+            total_count=0,
+            confidence=0.0
         )
 
     # 실제 파싱

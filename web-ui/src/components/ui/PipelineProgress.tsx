@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from './Card';
 import { CheckCircle, Circle, Loader2, AlertCircle, Clock, Timer } from 'lucide-react';
 import { useEstimatedTime } from '../../hooks/useEstimatedTime';
+import { GATEWAY_URL } from '../../lib/api';
 
 interface ProgressUpdate {
   timestamp: string;
@@ -42,7 +43,7 @@ export default function PipelineProgress({ jobId, pipelineMode, onComplete, onEr
     let eventSource: EventSource | null = null;
 
     const connectSSE = () => {
-      const url = `http://localhost:8000/api/v1/progress/${jobId}`;
+      const url = `${GATEWAY_URL}/api/v1/progress/${jobId}`;
       eventSource = new EventSource(url);
 
       eventSource.onopen = () => {

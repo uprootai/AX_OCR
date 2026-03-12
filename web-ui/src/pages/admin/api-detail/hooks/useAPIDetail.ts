@@ -9,7 +9,7 @@ import { ADMIN_ENDPOINTS } from '../../../../config/api';
 import { getHyperparamDefinitions, getDefaultHyperparams, type HyperparamDefinition } from '../../../../utils/specToHyperparams';
 import { DEFAULT_APIS } from '../../../../components/monitoring/constants';
 import type { APIInfo } from '../../../../components/monitoring/types';
-import { apiKeyApi, type AllAPIKeySettings } from '../../../../lib/api';
+import { apiKeyApi, GATEWAY_URL, type AllAPIKeySettings } from '../../../../lib/api';
 import { DEFAULT_HYPERPARAMS } from '../config/defaultHyperparams';
 import { HYPERPARAM_DEFINITIONS, type HyperparamDefinitionItem } from '../config/hyperparamDefinitions';
 
@@ -144,7 +144,7 @@ export function useAPIDetail(apiId: string | undefined) {
 
       // 2. Try Gateway Registry for additional info
       try {
-        const response = await axios.get('http://localhost:8000/api/v1/registry/list', { timeout: 3000 });
+        const response = await axios.get(`${GATEWAY_URL}/api/v1/registry/list`, { timeout: 3000 });
         const registryApis = response.data.apis || [];
         const registryApi = registryApis.find((a: APIInfo) =>
           a.id === apiId || a.name === apiId || a.id === normalizedId || a.name === normalizedId

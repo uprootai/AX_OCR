@@ -4,6 +4,7 @@ Human-in-the-Loop 기반 BOM 생성 노드 실행기
 """
 
 import logging
+import os
 import httpx
 from io import BytesIO
 from typing import Dict, Any, Optional, Tuple
@@ -27,7 +28,7 @@ class BOMExecutor(BaseNodeExecutor, APICallerMixin):
     # Blueprint AI BOM 백엔드 URL
     BASE_URL = "http://blueprint-ai-bom-backend:5020"
     API_BASE_URL = "http://blueprint-ai-bom-backend:5020"  # APICallerMixin용
-    FRONTEND_URL = "http://localhost:3000"
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
     # 재시도 설정 (APICallerMixin 오버라이드)
     DEFAULT_TIMEOUT = 60
