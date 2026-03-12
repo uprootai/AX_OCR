@@ -54,7 +54,14 @@
 2. [우선순위 2]
 3. [우선순위 3]
 
-## 7. 참고 컨텍스트
+## 7. Curated Context
+- Task state: [현재 단계/상태]
+- Relevant files: [다음 세션에 꼭 필요한 파일만]
+- Confirmed facts: [확정된 사실만]
+- Open risks: [남아 있는 리스크]
+- Next action: [다음 첫 액션]
+
+## 8. 참고 컨텍스트
 - 관련 파일: [파일 경로들]
 - 관련 문서: [문서 링크들]
 - 이슈/PR: [있다면 링크]
@@ -82,6 +89,11 @@ git branch --show-current
 
 ### Step 2: 핸드오프 문서 작성
 위 템플릿을 사용하여 `.claude/handoff/` 디렉토리에 저장
+
+작성 규칙:
+- 전체 대화 요약이 아니라 다음 세션에 필요한 안정 사실만 남긴다
+- 실패한 시도는 원문 로그 대신 Reflector 요약으로 압축한다
+- 다음 세션이 바로 시작할 수 있도록 Curated Context를 반드시 채운다
 
 ### Step 3: 사용자에게 안내
 ```
@@ -117,6 +129,13 @@ git branch --show-current
 3. **열린 파일/컨텍스트**
    - 최근 읽은 파일들
    - 수정한 파일들
+
+4. **Curator 패킷**
+   - task_state
+   - relevant_files
+   - confirmed_facts
+   - open_risks
+   - next_action
 
 ---
 
@@ -169,6 +188,13 @@ CLAUDE.md를 794줄에서 236줄로 최적화하고, 4개의 온디맨드 스킬
 2. Hooks 설정 (.claude/settings.json)
 3. Commands README 업데이트
 
+## 7. Curated Context
+- Task state: 컨텍스트 엔지니어링 정비 마무리 직전
+- Relevant files: CLAUDE.md, .claude/commands/handoff.md, .claude/hooks/pre-compact.sh
+- Confirmed facts: CLAUDE.md 축약 완료, 스킬 분리 완료
+- Open risks: Hooks 설정 일부 미완료
+- Next action: handoff 명령과 hooks 연결 확인
+
 ---
 **생성 시간**: 2026-01-16T14:30:00
 **컨텍스트 사용률**: 65%
@@ -176,4 +202,4 @@ CLAUDE.md를 794줄에서 236줄로 최적화하고, 4개의 온디맨드 스킬
 
 ---
 
-**마지막 업데이트**: 2026-01-16
+**마지막 업데이트**: 2026-03-12

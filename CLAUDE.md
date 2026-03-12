@@ -81,8 +81,15 @@ curl -s http://localhost:5005/health
 | `docs-site-guide` | 문서 사이트 관리 | `:3001`, Docusaurus | "문서", "docs-site" |
 | `diagram-strategy` | 다이어그램 TSX 컴포넌트 | Mermaid 금지 → TSX | "다이어그램" |
 | `presentation-guide` | PPT/PDF 산출물 생성 | 메트릭 카드, 3중 검증 | "PPT", "발표자료" |
+| `prompt-orchestration-guide` | XML 계약, 조기 종료, Codex 교차검증 | XML contract + stop rules | "프롬프트", "Codex", "XML" |
 
-**위치**: `.claude/skills/` (전체 16개 중 핵심 8개)
+**위치**: `.claude/skills/` (전체 17개 중 핵심 9개)
+
+## Prompt Control
+
+- 프롬프트는 장문 설명보다 `goal`, `scope`, `stop_conditions`, `output_schema`를 우선한다.
+- Claude Code/Codex 운영 프롬프트는 `.claude/templates/claude-skill-system-prompt.xml`, `.claude/templates/codex-cross-check-system-prompt.xml`을 기준으로 맞춘다.
+- 컨텍스트 오염이나 실패 반복 시 Reflector/Curator 요약으로 정제한 뒤 `/compact` 또는 `/handoff`를 사용한다.
 
 ---
 
@@ -139,8 +146,10 @@ curl -s http://localhost:5005/health
 | `/plan-epic` | Epic 기획 → Story 분해 (BMAD-Lite) |
 | `/add-feature` | 새 기능 추가 가이드 |
 | `/debug-issue` | 이슈 디버깅 워크플로우 |
+| `/codex-cross-check` | Codex 단일 턴 교차 검증 패킷 생성 |
 | `/rebuild-service` | Docker 서비스 재빌드 |
 | `/test-api` | API 엔드포인트 테스트 |
+| `/track-issue` | KNOWN_ISSUES 기반 이슈 추적 |
 
 ---
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreCompact Hook: 컨텍스트 압축 전 진행 중 작업 보존
-# 컴팩션 시 .todo/ACTIVE.md + 변경 파일 목록을 주입하여 작업 연속성 보장
+# 컴팩션 시 Curator 패킷 형태로 핵심 작업 상태만 주입
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
@@ -19,26 +19,43 @@ STAGED=$(git diff --cached --name-only 2>/dev/null | head -20)
 
 # --- 최근 커밋 ---
 RECENT_COMMITS=$(git log --oneline -3 2>/dev/null)
+BRANCH=$(git branch --show-current 2>/dev/null)
 
 # --- 출력 (컴팩션 시 보존할 컨텍스트) ---
 echo "<context-to-preserve>"
-echo "## Active Work"
+echo "  <curator>"
+echo "    <task_state>"
 if [ -n "$ACTIVE_SUMMARY" ]; then
-    echo "$ACTIVE_SUMMARY"
+    printf '%s\n' "$ACTIVE_SUMMARY"
 else
     echo "(no active stories found)"
 fi
-echo ""
-echo "## Uncommitted Changes"
-if [ -n "$CHANGED" ] || [ -n "$STAGED" ]; then
-    [ -n "$STAGED" ] && echo "Staged: $STAGED"
-    [ -n "$CHANGED" ] && echo "Modified: $CHANGED"
+echo "    </task_state>"
+echo "    <branch>"
+if [ -n "$BRANCH" ]; then
+    echo "$BRANCH"
+else
+    echo "(unknown branch)"
+fi
+echo "    </branch>"
+echo "    <relevant_files>"
+if [ -n "$STAGED" ] || [ -n "$CHANGED" ]; then
+    [ -n "$STAGED" ] && printf 'Staged: %s\n' "$STAGED"
+    [ -n "$CHANGED" ] && printf 'Modified: %s\n' "$CHANGED"
 else
     echo "(clean working tree)"
 fi
-echo ""
-echo "## Recent Commits"
-echo "$RECENT_COMMITS"
+echo "    </relevant_files>"
+echo "    <recent_commits>"
+printf '%s\n' "$RECENT_COMMITS"
+echo "    </recent_commits>"
+echo "    <open_risks>"
+echo "Infer from active work and uncommitted changes; avoid replaying full conversation."
+echo "    </open_risks>"
+echo "    <next_action>"
+echo "Resume the active story, inspect modified files, and re-establish the current phase contract."
+echo "    </next_action>"
+echo "  </curator>"
 echo "</context-to-preserve>"
 
 exit 0

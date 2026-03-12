@@ -1,6 +1,6 @@
 ---
 name: feature-implementer
-description: Executes feature implementation phase-by-phase based on plan documents. Tracks progress, runs quality checks, provides risk assessments, and integrates with Git. Use when implementing planned features, executing development phases, or building according to structured roadmaps.
+description: Executes feature implementation phase-by-phase based on plan documents using XML contracts, early-stop criteria, quality gates, and failure-context purification. Use when implementing planned features, executing development phases, or building according to structured roadmaps.
 user-invocable: true
 allowed-tools: [read, write, edit, glob, grep, bash]
 ---
@@ -8,6 +8,85 @@ allowed-tools: [read, write, edit, glob, grep, bash]
 # Feature Implementer Skill
 
 **목적**: 계획 문서 기반 단계별 기능 구현 및 리스크 관리
+
+---
+
+## Execution Contract
+
+구현을 시작하기 전에 현재 Phase 기준으로 계약을 먼저 채운다.
+
+기본 템플릿:
+- `/home/uproot/ax/poc/.claude/templates/claude-skill-system-prompt.xml`
+
+최소 계약:
+
+```xml
+<contract>
+  <goal>현재 Phase에서 완료할 단일 구현 목표</goal>
+  <scope>수정 허용 파일, 서비스, 테스트 범위</scope>
+  <success_definition>완료 조건 + 필수 검증</success_definition>
+  <forbidden_actions>
+    <item>계획 문서 밖 범위 확장 금지</item>
+    <item>검증되지 않은 API, 파라미터, 파일명 추정 금지</item>
+    <item>실패한 체크를 숨긴 채 진행 금지</item>
+  </forbidden_actions>
+  <tool_policy>
+    <read_first>계획 문서, 관련 rule/skill, 대상 파일</read_first>
+    <verify_with>phase에 맞는 최소 Quality Gate</verify_with>
+  </tool_policy>
+  <stop_conditions>
+    <condition>안전한 구현 경로가 1개로 수렴하면 추가 탐색 중지</condition>
+    <condition>핵심 정보가 없으면 추측 구현 대신 차단 질문 또는 보류</condition>
+  </stop_conditions>
+  <output_schema>
+    <status/>
+    <plan/>
+    <edits/>
+    <verification/>
+    <risks/>
+  </output_schema>
+</contract>
+```
+
+원칙:
+- 계약은 전체 기능이 아니라 `현재 Phase` 기준으로 좁게 유지
+- Phase가 바뀌면 계약을 다시 작성
+- 최종 응답에는 장문 사고 과정 대신 결정과 검증 결과만 노출
+
+## Private Think Scratchpad
+
+툴 호출 전 내부 메모는 짧게 유지한다.
+
+```xml
+<think_tool visibility="private">
+  <task_class>scaffold | refactor | bugfix | integration</task_class>
+  <unknowns/>
+  <evidence_needed/>
+  <tool_sequence/>
+  <risk_checks/>
+  <exit_test/>
+</think_tool>
+```
+
+사용 규칙:
+- 한 줄 체크리스트로만 작성
+- `unknowns`가 안전한 구현을 막으면 바로 멈춘다
+- scratchpad는 최종 출력에 그대로 노출하지 않는다
+
+## Reasoning and Early Stop
+
+- 기본 추론 노력은 `low`
+- 다음 경우만 `medium`으로 상향:
+  - 아키텍처 선택
+  - 다중 서비스 연쇄 수정
+  - High/Critical 리스크 변경
+  - Quality Gate 2회 이상 실패
+- `high`는 예외적 상황에서만 사용
+
+조기 종료 규칙:
+- 안전한 구현안 하나가 우세하면 대안 탐색을 멈춘다
+- 동일 진단을 지지하는 독립 신호 2개가 있으면 원인 탐색을 멈춘다
+- 추가 탐색이 결론을 바꾸지 못하면 바로 구현 또는 보고로 전환한다
 
 ---
 
@@ -26,6 +105,32 @@ allowed-tools: [read, write, edit, glob, grep, bash]
 ---
 
 ## 📋 실행 워크플로우
+
+### Step 0: 계약 및 작업 패킷 생성
+
+계획 문서를 읽기 전에 현재 작업 패킷을 확정한다.
+
+필수 입력:
+- 현재 Feature 또는 Epic 이름
+- 이번 Phase의 목표
+- 수정 가능 범위
+- 필수 검증 명령
+
+출력 형식:
+```markdown
+## Phase Contract
+- Goal:
+- Scope:
+- Success:
+- Stop if:
+- Verify with:
+```
+
+이 단계에서 해야 할 일:
+1. 계획 문서에서 이번 Phase만 분리
+2. 관련 파일과 검증 명령만 좁게 수집
+3. private think scratchpad 작성
+4. 구현 전에 멈출 조건을 먼저 선언
 
 ### Step 1: 계획 문서 로드
 
@@ -56,25 +161,11 @@ docs/plans/           # 기본 위치
 
 ### Step 2: Dry-Run 모드 (선택)
 
-실제 변경 전 프리뷰:
-
-```
-🔍 Dry-Run Preview
-
-Phase 1: API 스캐폴딩
-
-Would create:
-  - gateway-api/api_specs/new-ocr.yaml (~80 lines)
-  - models/new-ocr-api/api_server.py (~150 lines)
-  - models/new-ocr-api/Dockerfile (~20 lines)
-
-Would modify:
-  - docker-compose.yml (+15 lines)
-
-Risk Level: 🟢 Low (새 파일 생성만)
-
-Proceed with actual implementation? (Y/n)
-```
+실제 변경 전에는 아래만 간단히 보여준다:
+- 생성 파일
+- 수정 파일
+- 예상 리스크
+- 진행 여부
 
 ### Step 3: 단계별 실행
 
@@ -94,6 +185,15 @@ Proceed with actual implementation? (Y/n)
 Ready to start Phase 1? (Y/n)
 ```
 
+Pre-Phase 체크에는 아래 요약이 반드시 포함되어야 한다:
+
+```markdown
+### Contract Summary
+- Scope: [이번 단계의 파일/서비스만]
+- Success: [완료 기준]
+- Stop if: [추가 정보 필요 / 위험 상향 / 검증 실패 반복]
+```
+
 #### B. 리스크 평가 기준
 
 | 레벨 | 색상 | 조건 | 확인 필요 |
@@ -105,45 +205,10 @@ Ready to start Phase 1? (Y/n)
 
 #### C. 파괴적 작업 경고
 
-**Git 추적 파일 삭제** → 복구 가능, 일반 확인만:
-```
-ℹ️  File deletion: models/old-api/deprecated_handler.py
-    (Git tracked - recoverable via git checkout)
-
-Proceed? (Y/n): _
-```
-
-**Git 미추적 파일/데이터 삭제** → 복구 불가, 명시적 확인:
-```
-🔴 IRREVERSIBLE DELETION WARNING
-
-About to DELETE: /tmp/uploaded_images/batch_001/
-This is NOT tracked by git and CANNOT be recovered.
-
-Type 'DELETE' to confirm: _
-```
-
-**DB 데이터 삭제** → 복구 불가, 명시적 확인:
-```
-🔴 CRITICAL: DATABASE OPERATION
-
-About to: DROP TABLE sessions
-This data CANNOT be recovered without backup.
-
-Type 'I UNDERSTAND' to confirm: _
-```
-
-**Breaking API 변경 시**:
-```
-⚠️  BREAKING CHANGE WARNING
-
-About to modify: gateway-api/routers/workflow_router.py
-Change: Remove endpoint POST /api/v1/workflow/legacy
-
-Impact analysis: Found 3 usages in codebase
-
-Continue? (Y/n): _
-```
+- Git 추적 파일 삭제: 복구 가능하므로 일반 확인
+- Git 미추적 파일/데이터 삭제: `DELETE` 같은 명시적 확인
+- DB 파괴 작업: `I UNDERSTAND` 같은 강한 확인
+- Breaking API 변경: 영향 범위 요약 후 확인
 
 ### Step 4: Quality Gate 검증
 
@@ -174,9 +239,33 @@ docker-compose build <service>      # 빌드 테스트
 
 | 시도 | 동작 |
 |------|------|
-| 1회 | 오류 표시 → 자동 수정 시도 → 재실행 |
-| 2회 | 오류 표시 → 재시도? (Y/n) |
-| 3회 | 오류 분석 + 옵션 제시 |
+| 1회 | 오류 표시 → Reflector 요약 → 자동 수정 시도 → 재실행 |
+| 2회 | 오류 표시 → Reflector 요약 → 재시도 여부 판단 |
+| 3회 | 오류 분석 + Curator 패킷 생성 + 옵션 제시 |
+
+재시도 전 private Reflector 형식:
+
+```xml
+<reflector>
+  <failure_type/>
+  <confirmed_facts/>
+  <discarded_hypotheses/>
+  <root_cause_candidate/>
+  <next_probe/>
+</reflector>
+```
+
+3회 실패 시 다음 턴 또는 Codex 검증으로 넘길 수 있도록 Curator 패킷을 남긴다:
+
+```xml
+<curator>
+  <task_state/>
+  <relevant_files/>
+  <decisions/>
+  <open_risks/>
+  <next_action/>
+</curator>
+```
 
 **3회 실패 시 옵션**:
 ```markdown
@@ -193,13 +282,20 @@ docker-compose build <service>      # 빌드 테스트
 - Add type to src/types/index.ts
 - Check import path
 
+### Curated Context
+- Task state:
+- Relevant files:
+- Open risks:
+- Next action:
+
 ### Options
 1. Continue anyway (skip quality gate) - NOT RECOMMENDED
 2. Pause implementation to debug manually
 3. Abort and restore to previous phase
 4. Get detailed error context
+5. Send curated packet to Codex for cross-check
 
-Choice (1-4): _
+Choice (1-5): _
 ```
 
 ### Step 5: 변경 요약 생성
@@ -209,36 +305,19 @@ Phase 완료 시 자동 생성 (`.todos/` 폴더에 저장):
 ```markdown
 ## Phase 1 Complete: API 스캐폴딩
 
-**Duration**: 25분 (Estimated: 30분, Variance: -17%)
-**Status**: ✅ Complete
-**Date**: 2025-12-23 14:30
-
-### Files Changed (4 files)
-
-**Created** (3 files):
-- ✅ `gateway-api/api_specs/new-ocr.yaml` (82 lines) - 🟢 Low
-- ✅ `models/new-ocr-api/api_server.py` (145 lines) - 🟢 Low
-- ✅ `models/new-ocr-api/Dockerfile` (18 lines) - 🟢 Low
-
-**Modified** (1 file):
-- ✅ `docker-compose.yml` (+12 lines) - 🟡 Medium
-
-### Risk Assessment
-**Overall Risk**: 🟡 Medium
-
-**Destructive Changes**: None
-**Breaking Changes**: None
-
-### Quality Gate Results
-✅ Python import check passed
-✅ docker-compose config valid
-✅ YAML syntax valid
-
-### Next Phase Preview
-- Phase 2: Executor 구현
-- Estimated: 45분
-- Risk: 🟢 Low
+Status:
+Files Changed:
+Risk:
+Quality Gate Results:
+Next Phase:
+Curator Summary:
 ```
+
+Phase 요약에는 긴 작업 로그 대신 다음 정보만 남긴다:
+- 확정된 변경
+- 통과/실패한 검증
+- 다음 Phase의 차단 요소
+- 재개에 필요한 Curator 요약
 
 ### Step 6: Git 통합
 
@@ -288,8 +367,8 @@ Continue to Phase 2? (Y/n/pause)
 ```
 
 - **Y**: 다음 단계 진행
-- **n**: 구현 중단, 진행 상황 저장
-- **pause**: 나중에 재개 가능하도록 저장
+- **n**: 구현 중단, Curator 패킷 저장
+- **pause**: 나중에 재개 가능하도록 Curator 패킷 저장
 
 ### Step 8: 재개 기능
 
@@ -305,6 +384,13 @@ Found incomplete implementation:
 Resume from Phase 2, Task 2.2? (Y/n)
 ```
 
+재개 데이터는 전체 대화 기록이 아니라 아래만 포함해야 한다:
+- 마지막 완료 Phase
+- 현재 미완료 태스크
+- 관련 파일
+- 실패 원인 요약
+- 다음 액션
+
 ---
 
 ## 🛠️ 자동 적용
@@ -318,10 +404,12 @@ Resume from Phase 2, Task 2.2? (Y/n)
 
 Claude Code가 계획 문서를 감지하면 자동으로:
 1. 계획 파싱
-2. 리스크 평가
-3. 단계별 실행
-4. Quality Gate 검증
-5. Git 커밋 생성
+2. Phase 계약 생성
+3. 리스크 평가
+4. 단계별 실행
+5. Quality Gate 검증
+6. 실패 시 Reflector/Curator 정제
+7. Git 커밋 생성
 
 ---
 
@@ -360,6 +448,24 @@ docker:
   - docker-compose config
   - docker-compose build --dry-run {service}
 ```
+
+### Codex 교차 검증 사용 시점
+
+다음 상황에서만 단일 턴으로 Codex 교차 검증을 사용한다:
+- High/Critical 리스크 변경
+- Quality Gate 3회 실패
+- 구현안 2개가 끝까지 팽팽한 경우
+
+입력 패킷 기준:
+- `/home/uproot/ax/poc/.claude/templates/codex-cross-check-system-prompt.xml`
+
+Codex에 넘길 정보:
+- task
+- decision_request
+- constraints
+- relevant_files
+- current_hypothesis
+- diff_summary
 
 ### 리스크 자동 분류
 | 파일 패턴 | 기본 리스크 |

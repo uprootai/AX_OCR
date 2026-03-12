@@ -4,6 +4,35 @@ description: Add a new feature to an API following modular structure (project)
 
 Please add a new feature to the specified API following this workflow:
 
+## 0. Feature Contract
+
+Before implementation, define the current feature boundary.
+
+```xml
+<contract>
+  <goal>Add one feature with the minimum safe change set</goal>
+  <scope>Only the target API, directly related modules, specs, and tests</scope>
+  <success_definition>Feature implemented + minimum verification passed</success_definition>
+  <stop_conditions>
+    <condition>Stop broadening the design once one implementation path is clearly safe.</condition>
+    <condition>Stop and ask or escalate if required API details are missing.</condition>
+  </stop_conditions>
+</contract>
+```
+
+Use a short private scratchpad before edits:
+
+```xml
+<think_tool visibility="private">
+  <feature_goal/>
+  <unknowns/>
+  <evidence_needed/>
+  <edit_plan/>
+  <risk_checks/>
+  <exit_test/>
+</think_tool>
+```
+
 ## Pre-Flight Checks
 
 ### 1. Risk Assessment
@@ -29,6 +58,11 @@ Would modify:
 Risk Level: 🟡 Medium
 Proceed? (Y/n)
 ```
+
+Early-stop rules:
+- if one safe scaffold pattern already matches the project, stop comparing alternatives
+- if the change becomes High/Critical risk, narrow scope or escalate before editing
+- if verification fails repeatedly, switch to Reflector summary instead of continuing blind edits
 
 ---
 
@@ -173,6 +207,20 @@ curl http://localhost:8000/api/v1/health
 curl http://localhost:5008/api/v1/health  # 새 API
 ```
 
+### Failure Summary Before Retry
+
+If validation fails, summarize before changing more files:
+
+```xml
+<reflector>
+  <failed_check/>
+  <confirmed_facts/>
+  <discarded_hypotheses/>
+  <root_cause_candidate/>
+  <next_action/>
+</reflector>
+```
+
 ---
 
 ## Post-Implementation
@@ -198,6 +246,15 @@ git commit -m "feat: Add Tesseract OCR service
 ---
 
 ## Risk Mitigation
+
+### Escalate to Codex Cross-Check When
+- High or Critical change cannot be reduced
+- two implementation options remain after local inspection
+- validation fails more than twice with conflicting signals
+
+Prepare a compact packet using:
+- `/home/uproot/ax/poc/.claude/commands/codex-cross-check.md`
+- `/home/uproot/ax/poc/.claude/templates/codex-cross-check-system-prompt.xml`
 
 ### If Something Breaks:
 ```bash

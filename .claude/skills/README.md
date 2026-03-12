@@ -15,9 +15,9 @@
 
 ---
 
-## 사용 가능한 Skills (16개)
+## 사용 가능한 Skills (17개)
 
-### 핵심 가이드 (7개)
+### 핵심 가이드 (8개)
 
 | 스킬 | 용도 | Quick Ref | 자동 트리거 |
 |------|------|-----------|-------------|
@@ -28,6 +28,7 @@
 | `version-history` | BOM v10.5, Design Checker | BOM v10.5, DC v1.0 | "버전", "BOM" |
 | `devops-guide` | CI/CD, Docker, 배포 | `docker-compose up -d` | "CI", "배포", "Docker" |
 | `docs-site-guide` | 문서 사이트 관리 | `:3001`, Docusaurus | "문서", "docs-site" |
+| `prompt-orchestration-guide` | XML 계약, 조기 종료, 맥락 정화 | XML contract + stop rules | "프롬프트", "Codex", "XML" |
 
 ### 전략 가이드 (2개)
 
@@ -84,5 +85,5 @@
 
 ---
 
-**마지막 업데이트**: 2026-02-27
-**버전**: 4.1.0 (presentation-guide 추가, BMAD-Lite 연계)
+**마지막 업데이트**: 2026-03-12
+**버전**: 4.2.0 (prompt-orchestration-guide, XML prompt templates 추가)
