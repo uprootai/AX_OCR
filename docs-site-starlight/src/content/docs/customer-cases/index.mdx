@@ -6,55 +6,87 @@ tags: [고객사례, 개요]
 ---
 
 import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+import { Aside } from '@astrojs/starlight/components';
 
 # 고객 적용 사례 (Customer Cases)
 
 > AX POC 시스템을 실제 제조 현장에 적용한 고객사별 파이프라인 및 성과를 정리한다.
 
-## 적용 현황
+| 항목 | 값 |
+|------|-----|
+| 적용 고객사 | 2개사 |
+| 도면 유형 | 기계 부품도, P&ID |
+| 핵심 기술 | eDOCr2, YOLO v11, BOM 자동화 |
 
-| 고객사 | 업종 | 도면 유형 | 적용 기술 | 상태 |
-|--------|------|----------|----------|------|
-| **동서기연** | 터빈 베어링 제조 | 기계 부품도 | eDOCr2 치수 추출 + BOM 계층 분류 + 견적 자동 산출 | 개발 중 |
-| **파나시아** | 선박 환경장비 | P&ID (MCP Panel) | YOLO 27클래스 심볼 검출 + GT 비교 검증 | POC 완료 |
+---
+
+## 사례 1 — [동서기연: 터빈 베어링 견적 자동화](./dsebearing)
+
+> 94개 터빈 베어링 도면 → 치수 추출 → BOM 분류 → 견적 자동 산출
+
+| 항목 | 값 |
+|------|-----|
+| 고객사 | (주)동서기연 — 터빈/발전기 베어링 제조 |
+| 도면 | **94개** PDF (1UNIT PJT 전체) |
+| 치수 추출 | **548개** (eDOCr2 + PaddleOCR) |
+| BOM 분류 | **326개** (ASSY 7 / SUB 16 / PART 303) |
+| 자동 견적 | **₩110,747,678** (약 1.1억) |
+| 기존 소요 | 12일 → 목표 **1일** |
+| 상태 | 개발 중 (2차 미팅 대기) |
+
+<Aside type="tip" title="핵심 가치">
+사양 확인 4일 → eDOCr2 자동 추출로 대체. 도면별 재질·치수 수동 검토를 제거한다.
+</Aside>
+
+---
+
+## 사례 2 — [파나시아: MCP Panel P&ID 심볼 검출](./panasia)
+
+> MCP Panel 도면에서 27종 전력 설비 심볼 자동 검출 → GT 비교 검증 → BOM 생성
+
+| 항목 | 값 |
+|------|-----|
+| 고객사 | (주)파나시아 — 선박 환경장비 제조 |
+| 도면 유형 | P&ID (MCP Panel — 전력 설비 배선도) |
+| 검출 심볼 | **27종** (차단기, 변압기, 계전기, 계측기 등) |
+| 검증 방식 | GT 비교 + Human-in-the-Loop |
+| 납품 형태 | Docker 이미지 4개 (약 9.6GB) |
+| 상태 | **POC 완료** |
+
+<Aside type="tip" title="핵심 가치">
+YOLO 커스텀 모델로 P&ID 심볼을 자동 검출하고, 독립 실행 Docker 패키지로 납품한다.
+</Aside>
+
+---
 
 ## 도면 유형별 파이프라인
 
 <FlowDiagram client:load
-  direction="LR"
+  direction="TB"
   title="고객사별 파이프라인"
   nodes={[
     { id: 'drawing', label: '도면 업로드', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
     { id: 'vlm', label: 'VLM 분류', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
-    { id: 'mech', label: '기계 부품도', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
-    { id: 'pid', label: 'P&ID 도면', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
-    { id: 'yolo_eng', label: 'YOLO (Engineering)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
-    { id: 'yolo_pid', label: 'YOLO (P&ID 27cls)', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
-    { id: 'ocr', label: 'eDOCr2 치수 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
-    { id: 'gt', label: 'GT 비교 검증', color: '#880e4f', bg: '#fce4ec', shape: 'rounded' },
-    { id: 'bom', label: 'BOM + 견적', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
-    { id: 'export', label: '납품 패키지', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'mech', label: '기계 부품도\n(동서기연)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'pid', label: 'P&ID 도면\n(파나시아)', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'ocr', label: 'eDOCr2\n치수 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'yolo_pid', label: 'YOLO\nP&ID 27cls', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'bom', label: 'BOM + 견적\n₩1.1억', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'export', label: 'Docker\n납품 패키지', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
   ]}
   edges={[
     { from: 'drawing', to: 'vlm' },
-    { from: 'vlm', to: 'mech', label: '동서기연' },
-    { from: 'vlm', to: 'pid', label: '파나시아' },
-    { from: 'mech', to: 'yolo_eng' },
+    { from: 'vlm', to: 'mech' },
+    { from: 'vlm', to: 'pid' },
+    { from: 'mech', to: 'ocr' },
     { from: 'pid', to: 'yolo_pid' },
-    { from: 'yolo_eng', to: 'ocr' },
-    { from: 'yolo_pid', to: 'gt' },
     { from: 'ocr', to: 'bom' },
-    { from: 'gt', to: 'export' },
+    { from: 'yolo_pid', to: 'export' },
   ]}
-  layers={[['drawing'], ['vlm'], ['mech', 'pid'], ['yolo_eng', 'yolo_pid'], ['ocr', 'gt'], ['bom', 'export']]}
+  layers={[['drawing'], ['vlm'], ['mech', 'pid'], ['ocr', 'yolo_pid'], ['bom', 'export']]}
 />
 
-## 사례 목록
-
-| # | 사례 | 핵심 성과 |
-|---|------|----------|
-| 1 | [동서기연 — 터빈 베어링 견적 자동화](./dsebearing) | 94개 도면 분석, 548개 치수 추출, 326품목 BOM 분류, 1.1억원 자동 견적 |
-| 2 | [파나시아 — MCP Panel P&ID 심볼 검출](./panasia) | 27종 전력 설비 심볼 검출, GT 비교 검증, Docker 납품 패키지 |
+---
 
 ## 관련 문서
 
