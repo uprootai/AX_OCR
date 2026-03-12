@@ -190,6 +190,6 @@ ImageInput → YOLO → eDOCr2 → SkinModel → Knowledge
 
 ## 관련 문서
 
-- [eDOCr2 API](/api-reference/edocr2) -- 치수 추출 후 Knowledge 검색 입력
-- [SkinModel API](/api-reference/skinmodel) -- 공차 분석 결과로 유사 부품 검색
-- [YOLO Detection API](/api-reference/yolo) -- 전체 분석 파이프라인의 시작점
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 치수 추출 후 Knowledge 검색 입력
+- [SkinModel API](/docs/api-reference/skinmodel) -- 공차 분석 결과로 유사 부품 검색
+- [YOLO Detection API](/docs/api-reference/yolo) -- 전체 분석 파이프라인의 시작점

@@ -295,6 +295,6 @@ scripts/
 
 ## 관련 문서
 
-- [동적 API 추가 시스템](/developer/dynamic-api-system) — Dashboard 기반 동적 API 등록
-- [API 교체 가이드](/developer/api-replacement) — 기존 API 교체 절차
-- [Contributing](/developer/contributing) — 코드 기여 가이드라인
+- [동적 API 추가 시스템](/docs/developer/dynamic-api-system) — Dashboard 기반 동적 API 등록
+- [API 교체 가이드](/docs/developer/api-replacement) — 기존 API 교체 절차
+- [Contributing](/docs/developer/contributing) — 코드 기여 가이드라인

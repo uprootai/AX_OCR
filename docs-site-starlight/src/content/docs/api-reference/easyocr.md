@@ -185,6 +185,6 @@ ImageInput → EasyOCR (paragraph=true)
 
 ## 관련 문서
 
-- [PaddleOCR API](/api-reference/paddleocr) -- 다국어 OCR 대안
-- [Surya OCR API](/api-reference/surya-ocr) -- 레이아웃 분석 포함 OCR
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- 다중 OCR 엔진 앙상블
+- [PaddleOCR API](/docs/api-reference/paddleocr) -- 다국어 OCR 대안
+- [Surya OCR API](/docs/api-reference/surya-ocr) -- 레이아웃 분석 포함 OCR
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- 다중 OCR 엔진 앙상블

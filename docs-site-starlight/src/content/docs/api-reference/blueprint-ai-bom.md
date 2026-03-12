@@ -196,6 +196,6 @@ ImageInput → ESRGAN(2x) → Blueprint AI BOM
 
 ## 관련 문서
 
-- [YOLO Detection API](/api-reference/yolo) -- BOM 분석 전 심볼 검출
-- [eDOCr2 API](/api-reference/edocr2) -- 치수 인식 엔진
-- [ESRGAN API](/api-reference/esrgan) -- 저해상도 도면 전처리
+- [YOLO Detection API](/docs/api-reference/yolo) -- BOM 분석 전 심볼 검출
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 치수 인식 엔진
+- [ESRGAN API](/docs/api-reference/esrgan) -- 저해상도 도면 전처리

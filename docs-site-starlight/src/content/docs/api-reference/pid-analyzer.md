@@ -215,6 +215,6 @@ ImageInput → YOLO (model_type=pid_class_aware) → Line Detector → PID Analy
 
 ## 관련 문서
 
-- [Line Detector API](/api-reference/line-detector) -- PID Analyzer의 입력 라인 데이터 제공
-- [Design Checker API](/api-reference/design-checker) -- PID Analyzer 결과로 설계 규칙 검증
-- [YOLO Detection API](/api-reference/yolo) -- P&ID 심볼 검출 (model_type=pid_class_aware)
+- [Line Detector API](/docs/api-reference/line-detector) -- PID Analyzer의 입력 라인 데이터 제공
+- [Design Checker API](/docs/api-reference/design-checker) -- PID Analyzer 결과로 설계 규칙 검증
+- [YOLO Detection API](/docs/api-reference/yolo) -- P&ID 심볼 검출 (model_type=pid_class_aware)

@@ -114,7 +114,7 @@ tags: [연구, R&D, OCR, 도면]
 
 ## 관련 문서
 
-- [eDOCr2 API](/api-reference/edocr2) - eDOCr2 API 서비스 (Port 5002)
-- [eDOCr2 + VL](/research/edocr2-vision-language) - 후속 논문 (Vision Language 통합)
-- [Skin Model Tolerance](/research/geometric-tolerance) - 기하공차 분석 방법론
-- [OCR Ensemble Voting](/research/ocr-ensemble-voting) - 다중 OCR 앙상블
+- [eDOCr2 API](/docs/api-reference/edocr2) - eDOCr2 API 서비스 (Port 5002)
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 후속 논문 (Vision Language 통합)
+- [Skin Model Tolerance](/docs/research/geometric-tolerance) - 기하공차 분석 방법론
+- [OCR Ensemble Voting](/docs/research/ocr-ensemble-voting) - 다중 OCR 앙상블

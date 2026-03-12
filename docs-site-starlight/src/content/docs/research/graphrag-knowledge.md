@@ -60,5 +60,5 @@ tags: [연구, R&D, GraphRAG, 지식그래프]
 
 ## 관련 문서
 
-- [Knowledge Engine API](/api-reference/knowledge) - Knowledge API 서비스 (Port 5007)
-- [Qwen2-VL](/research/qwen2-vl) - Vision-Language 모델
+- [Knowledge Engine API](/docs/api-reference/knowledge) - Knowledge API 서비스 (Port 5007)
+- [Qwen2-VL](/docs/research/qwen2-vl) - Vision-Language 모델

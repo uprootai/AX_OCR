@@ -318,6 +318,6 @@ ax/poc/
 
 ## 관련 문서
 
-- [Git Workflow](/developer/git-workflow) — 브랜치 전략 및 커밋 워크플로우 상세
-- [LLM Usability](/developer/llm-usability) — LLM 친화적 코드 작성 가이드
-- [CI 파이프라인](/devops/ci-pipeline) — 자동화된 린트, 테스트, 빌드
+- [Git Workflow](/docs/developer/git-workflow) — 브랜치 전략 및 커밋 워크플로우 상세
+- [LLM Usability](/docs/developer/llm-usability) — LLM 친화적 코드 작성 가이드
+- [CI 파이프라인](/docs/devops/ci-pipeline) — 자동화된 린트, 테스트, 빌드

@@ -308,6 +308,6 @@ Non-text    345    13559
 
 ## 관련 문서
 
-- [EDGNet API](/api-reference/edgnet) - EDGNet API 서비스 (Port 5012)
-- [eDOCr2 + VL](/research/edocr2-vision-language) - 도면 텍스트 인식
-- [YOLOv11 Detection](/research/yolov11-detection) - 객체 검출 모델
+- [EDGNet API](/docs/api-reference/edgnet) - EDGNet API 서비스 (Port 5012)
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 도면 텍스트 인식
+- [YOLOv11 Detection](/docs/research/yolov11-detection) - 객체 검출 모델

@@ -637,7 +637,7 @@ PaddleOCR(lang="korean")
 
 ## 관련 문서
 
-- [Docker Compose](/devops/docker-compose) — 컨테이너 오케스트레이션 설정
-- [GPU 설정](/devops/gpu-config) — 서비스별 GPU 할당
-- [시스템 설치 가이드](/deployment/installation) — 설치 절차 및 환경 설정
-- [API 교체 가이드](/developer/api-replacement) — API 교체 및 마이그레이션
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션 설정
+- [GPU 설정](/docs/devops/gpu-config) — 서비스별 GPU 할당
+- [시스템 설치 가이드](/docs/deployment/installation) — 설치 절차 및 환경 설정
+- [API 교체 가이드](/docs/developer/api-replacement) — API 교체 및 마이그레이션

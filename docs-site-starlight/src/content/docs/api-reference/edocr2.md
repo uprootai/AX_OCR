@@ -225,6 +225,6 @@ ImageInput → ESRGAN(2x) → eDOCr2
 
 ## 관련 문서
 
-- [YOLO Detection API](/api-reference/yolo) -- eDOCr2 앞단에서 심볼 검출 수행
-- [SkinModel API](/api-reference/skinmodel) -- 추출된 치수로 공차 분석
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- eDOCr2를 포함한 4엔진 앙상블
+- [YOLO Detection API](/docs/api-reference/yolo) -- eDOCr2 앞단에서 심볼 검출 수행
+- [SkinModel API](/docs/api-reference/skinmodel) -- 추출된 치수로 공차 분석
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- eDOCr2를 포함한 4엔진 앙상블

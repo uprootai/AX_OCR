@@ -220,6 +220,6 @@ python batch_inference.py --gpus 0,1,2,3
 
 ## 관련 문서
 
-- [기술 스택](/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴
-- [서비스 카탈로그](/system-overview/service-catalog) — 21개 API 서비스 상세
-- [시스템 개요](/system-overview) — 전체 시스템 요약
+- [기술 스택](/docs/system-overview/tech-stack) — 기술 스택 및 아키텍처 패턴
+- [서비스 카탈로그](/docs/system-overview/service-catalog) — 21개 API 서비스 상세
+- [시스템 개요](/docs/system-overview) — 전체 시스템 요약

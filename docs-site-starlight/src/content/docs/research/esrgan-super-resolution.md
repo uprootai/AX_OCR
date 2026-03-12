@@ -66,6 +66,6 @@ SRGAN(Super-Resolution GAN)은 사실적인 텍스처를 생성할 수 있지만
 
 ## 관련 문서
 
-- [ESRGAN API](/api-reference/esrgan) - ESRGAN API 서비스 (Port 5010)
-- [YOLOv11 Detection](/research/yolov11-detection) - 객체 검출 모델
-- [eDOCr2 + VL](/research/edocr2-vision-language) - 도면 텍스트 인식 (전처리 후 사용)
+- [ESRGAN API](/docs/api-reference/esrgan) - ESRGAN API 서비스 (Port 5010)
+- [YOLOv11 Detection](/docs/research/yolov11-detection) - 객체 검출 모델
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 도면 텍스트 인식 (전처리 후 사용)

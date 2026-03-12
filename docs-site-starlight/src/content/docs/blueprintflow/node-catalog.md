@@ -143,8 +143,8 @@ type NodeCategory =
 
 ## 관련 문서
 
-- [BlueprintFlow](/blueprintflow/) -- BlueprintFlow 개요
-- [DAG 엔진](/blueprintflow/dag-engine) -- 노드 실행 엔진 및 실행기 레지스트리
-- [커스텀 API](/blueprintflow/custom-api) -- 새 노드 타입 추가 가이드
-- [템플릿](/blueprintflow/templates) -- 노드 조합 예시 템플릿
-- [분석 파이프라인](/analysis-pipeline/) -- 각 ML 서비스의 상세 설명
+- [BlueprintFlow](/docs/blueprintflow/) -- BlueprintFlow 개요
+- [DAG 엔진](/docs/blueprintflow/dag-engine) -- 노드 실행 엔진 및 실행기 레지스트리
+- [커스텀 API](/docs/blueprintflow/custom-api) -- 새 노드 타입 추가 가이드
+- [템플릿](/docs/blueprintflow/templates) -- 노드 조합 예시 템플릿
+- [분석 파이프라인](/docs/analysis-pipeline/) -- 각 ML 서비스의 상세 설명

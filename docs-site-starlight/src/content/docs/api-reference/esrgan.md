@@ -148,6 +148,6 @@ ImageInput → ESRGAN(4x) → OCR Ensemble
 
 ## 관련 문서
 
-- [eDOCr2 API](/api-reference/edocr2) -- 업스케일 후 치수 인식에 사용
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- 업스케일 후 앙상블 OCR 연계
-- [EDGNet API](/api-reference/edgnet) -- 업스케일 후 세그멘테이션 연계
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 업스케일 후 치수 인식에 사용
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- 업스케일 후 앙상블 OCR 연계
+- [EDGNet API](/docs/api-reference/edgnet) -- 업스케일 후 세그멘테이션 연계

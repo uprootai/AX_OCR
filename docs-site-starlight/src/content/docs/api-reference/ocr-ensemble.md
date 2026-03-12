@@ -196,6 +196,6 @@ ImageInput → eDOCr2 (단일)
 
 ## 관련 문서
 
-- [eDOCr2 API](/api-reference/edocr2) -- 앙상블 구성 엔진 (40% 가중치)
-- [PaddleOCR API](/api-reference/paddleocr) -- 앙상블 구성 엔진 (35% 가중치)
-- [ESRGAN API](/api-reference/esrgan) -- 저해상도 도면 전처리 후 앙상블 연계
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 앙상블 구성 엔진 (40% 가중치)
+- [PaddleOCR API](/docs/api-reference/paddleocr) -- 앙상블 구성 엔진 (35% 가중치)
+- [ESRGAN API](/docs/api-reference/esrgan) -- 저해상도 도면 전처리 후 앙상블 연계

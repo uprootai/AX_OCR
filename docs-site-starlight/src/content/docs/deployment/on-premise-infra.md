@@ -973,7 +973,7 @@ fi
 
 ## 관련 문서
 
-- [시스템 설치 가이드](/deployment/installation) — 설치 절차 및 환경 설정
-- [온프레미스 운영 가이드](/deployment/on-premise-operation) — 교육, 백업, 업데이트
-- [관리자 매뉴얼](/deployment/admin-manual) — 서비스 관리 및 모니터링
-- [GPU 설정](/devops/gpu-config) — 서비스별 GPU 할당
+- [시스템 설치 가이드](/docs/deployment/installation) — 설치 절차 및 환경 설정
+- [온프레미스 운영 가이드](/docs/deployment/on-premise-operation) — 교육, 백업, 업데이트
+- [관리자 매뉴얼](/docs/deployment/admin-manual) — 서비스 관리 및 모니터링
+- [GPU 설정](/docs/devops/gpu-config) — 서비스별 GPU 할당

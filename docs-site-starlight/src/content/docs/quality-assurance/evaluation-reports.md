@@ -213,7 +213,7 @@ tags: [QA, 품질, 평가, 리포트]
 
 ## 관련 문서
 
-- [품질 보증](/quality-assurance) — QA 체계 개요
-- [OCR 메트릭](/quality-assurance/ocr-metrics) — OCR 성능 측정 상세
-- [GT 비교](/quality-assurance/gt-comparison) — 정답 데이터 비교 평가
-- [시스템 개요](/system-overview) — 시스템 아키텍처 전체 구조
+- [품질 보증](/docs/quality-assurance) — QA 체계 개요
+- [OCR 메트릭](/docs/quality-assurance/ocr-metrics) — OCR 성능 측정 상세
+- [GT 비교](/docs/quality-assurance/gt-comparison) — 정답 데이터 비교 평가
+- [시스템 개요](/docs/system-overview) — 시스템 아키텍처 전체 구조

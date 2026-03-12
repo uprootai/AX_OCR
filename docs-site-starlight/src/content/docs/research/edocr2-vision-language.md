@@ -259,8 +259,8 @@ eDOCr2는 전통적인 OCR과 최신 Vision Language 모델을 결합하여:
 
 ## 관련 문서
 
-- [eDOCr2 API](/api-reference/edocr2) - eDOCr2 API 서비스 (Port 5002)
-- [eDOCr v1 — OCR on Engineering Drawings](/research/ocr-engineering-drawings) - 이전 버전 논문
-- [Qwen2-VL](/research/qwen2-vl) - Vision-Language 모델 논문
-- [VL API](/api-reference/vl) - Vision-Language API 서비스 (Port 5004)
-- [OCR Ensemble Voting](/research/ocr-ensemble-voting) - 다중 OCR 엔진 앙상블
+- [eDOCr2 API](/docs/api-reference/edocr2) - eDOCr2 API 서비스 (Port 5002)
+- [eDOCr v1 — OCR on Engineering Drawings](/docs/research/ocr-engineering-drawings) - 이전 버전 논문
+- [Qwen2-VL](/docs/research/qwen2-vl) - Vision-Language 모델 논문
+- [VL API](/docs/api-reference/vl) - Vision-Language API 서비스 (Port 5004)
+- [OCR Ensemble Voting](/docs/research/ocr-ensemble-voting) - 다중 OCR 엔진 앙상블

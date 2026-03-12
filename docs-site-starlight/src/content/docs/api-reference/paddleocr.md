@@ -177,6 +177,6 @@ ImageInput → OCR Ensemble (PaddleOCR 35% 가중치)
 
 ## 관련 문서
 
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- PaddleOCR 35% 가중치로 참여
-- [Dockerization](/deployment/dockerization) -- PaddleOCR API 도커라이징 상세
-- [eDOCr2 API](/api-reference/edocr2) -- 기계 도면 특화 OCR 대안
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- PaddleOCR 35% 가중치로 참여
+- [Dockerization](/docs/deployment/dockerization) -- PaddleOCR API 도커라이징 상세
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 기계 도면 특화 OCR 대안

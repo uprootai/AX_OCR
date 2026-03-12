@@ -360,7 +360,7 @@ curl http://localhost:5002/health  # eDOCr2 API
 
 ## 관련 문서
 
-- [온프레미스 인프라 구성](/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
-- [관리자 매뉴얼](/deployment/admin-manual) — 서비스 관리 및 모니터링
-- [시스템 설치 가이드](/deployment/installation) — 설치 절차 및 환경 설정
-- [Dockerization](/deployment/dockerization) — Docker 컨테이너화 가이드
+- [온프레미스 인프라 구성](/docs/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
+- [관리자 매뉴얼](/docs/deployment/admin-manual) — 서비스 관리 및 모니터링
+- [시스템 설치 가이드](/docs/deployment/installation) — 설치 절차 및 환경 설정
+- [Dockerization](/docs/deployment/dockerization) — Docker 컨테이너화 가이드

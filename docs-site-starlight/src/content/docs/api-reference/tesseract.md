@@ -161,6 +161,6 @@ ImageInput → OCR Ensemble (Tesseract 15% 가중치)
 
 ## 관련 문서
 
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- Tesseract 15% 가중치로 참여
-- [PaddleOCR API](/api-reference/paddleocr) -- 다국어 OCR 대안
-- [eDOCr2 API](/api-reference/edocr2) -- 기계 도면 특화 OCR
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- Tesseract 15% 가중치로 참여
+- [PaddleOCR API](/docs/api-reference/paddleocr) -- 다국어 OCR 대안
+- [eDOCr2 API](/docs/api-reference/edocr2) -- 기계 도면 특화 OCR

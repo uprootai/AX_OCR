@@ -406,7 +406,7 @@ services:
 
 ## 관련 문서
 
-- [시스템 설치 가이드](/deployment/installation) — 설치 절차 및 환경 설정
-- [온프레미스 운영 가이드](/deployment/on-premise-operation) — 교육, 백업, 업데이트
-- [온프레미스 인프라 구성](/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
-- [Docker Compose](/devops/docker-compose) — 컨테이너 오케스트레이션
+- [시스템 설치 가이드](/docs/deployment/installation) — 설치 절차 및 환경 설정
+- [온프레미스 운영 가이드](/docs/deployment/on-premise-operation) — 교육, 백업, 업데이트
+- [온프레미스 인프라 구성](/docs/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션

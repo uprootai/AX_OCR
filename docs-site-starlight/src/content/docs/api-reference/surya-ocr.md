@@ -183,6 +183,6 @@ ImageInput → Surya OCR (languages=ko,en)
 
 ## 관련 문서
 
-- [DocTR API](/api-reference/doctr) -- 2단계 파이프라인 OCR 대안
-- [EasyOCR API](/api-reference/easyocr) -- CPU 친화적 다국어 OCR
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- 다중 OCR 엔진 앙상블
+- [DocTR API](/docs/api-reference/doctr) -- 2단계 파이프라인 OCR 대안
+- [EasyOCR API](/docs/api-reference/easyocr) -- CPU 친화적 다국어 OCR
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- 다중 OCR 엔진 앙상블

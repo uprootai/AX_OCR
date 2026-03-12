@@ -182,6 +182,6 @@ ImageInput → ESRGAN(2x) → EDGNet
 
 ## 관련 문서
 
-- [ESRGAN API](/api-reference/esrgan) -- 저해상도 도면 전처리 후 EDGNet 연계
-- [YOLO Detection API](/api-reference/yolo) -- 심볼 검출과 병행 사용
-- [Line Detector API](/api-reference/line-detector) -- P&ID 라인 검출 세그멘테이션
+- [ESRGAN API](/docs/api-reference/esrgan) -- 저해상도 도면 전처리 후 EDGNet 연계
+- [YOLO Detection API](/docs/api-reference/yolo) -- 심볼 검출과 병행 사용
+- [Line Detector API](/docs/api-reference/line-detector) -- P&ID 라인 검출 세그멘테이션

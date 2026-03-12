@@ -228,8 +228,8 @@ Image → eDOCr2 (Full Image)
 
 ## 관련 문서
 
-- [BlueprintFlow](/blueprintflow/) -- BlueprintFlow 개요
-- [YOLO 검출](/analysis-pipeline/yolo-detection) -- YOLO 검출 파이프라인 상세
-- [OCR 처리](/analysis-pipeline/ocr-processing) -- 후처리 파이프라인의 OCR 단계
-- [템플릿](/blueprintflow/templates) -- 기존 워크플로우 템플릿
-- [노드 카탈로그](/blueprintflow/node-catalog) -- 노드 타입 전체 레퍼런스
+- [BlueprintFlow](/docs/blueprintflow/) -- BlueprintFlow 개요
+- [YOLO 검출](/docs/analysis-pipeline/yolo-detection) -- YOLO 검출 파이프라인 상세
+- [OCR 처리](/docs/analysis-pipeline/ocr-processing) -- 후처리 파이프라인의 OCR 단계
+- [템플릿](/docs/blueprintflow/templates) -- 기존 워크플로우 템플릿
+- [노드 카탈로그](/docs/blueprintflow/node-catalog) -- 노드 타입 전체 레퍼런스

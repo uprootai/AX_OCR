@@ -346,6 +346,6 @@ epsilon = epsilon_e + epsilon_p + epsilon_t (총 변형률)
 
 ## 관련 문서
 
-- [SkinModel API](/api-reference/skinmodel) - SkinModel API 서비스 (Port 5003)
-- [eDOCr2 + VL](/research/edocr2-vision-language) - 치수 및 GD&T 정보 추출
-- [eDOCr v1](/research/ocr-engineering-drawings) - 공학 도면 OCR
+- [SkinModel API](/docs/api-reference/skinmodel) - SkinModel API 서비스 (Port 5003)
+- [eDOCr2 + VL](/docs/research/edocr2-vision-language) - 치수 및 GD&T 정보 추출
+- [eDOCr v1](/docs/research/ocr-engineering-drawings) - 공학 도면 OCR

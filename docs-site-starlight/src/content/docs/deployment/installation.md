@@ -527,7 +527,7 @@ LOG_LEVEL=warn
 
 ## 관련 문서
 
-- [관리자 매뉴얼](/deployment/admin-manual) — 서비스 관리 및 모니터링
-- [온프레미스 인프라 구성](/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
-- [Dockerization](/deployment/dockerization) — Docker 컨테이너화 가이드
-- [Docker Compose](/devops/docker-compose) — 컨테이너 오케스트레이션
+- [관리자 매뉴얼](/docs/deployment/admin-manual) — 서비스 관리 및 모니터링
+- [온프레미스 인프라 구성](/docs/deployment/on-premise-infra) — 하드웨어 및 보안 요구사항
+- [Dockerization](/docs/deployment/dockerization) — Docker 컨테이너화 가이드
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션

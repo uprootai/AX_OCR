@@ -178,6 +178,6 @@ print(response.json())
 
 ## 관련 문서
 
-- [eDOCr2 API](/api-reference/edocr2) -- YOLO 검출 후 치수 인식에 사용
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- YOLO 검출 결과와 연계한 앙상블 OCR
-- [Dockerization](/deployment/dockerization) -- YOLO API 도커라이징 상세
+- [eDOCr2 API](/docs/api-reference/edocr2) -- YOLO 검출 후 치수 인식에 사용
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- YOLO 검출 결과와 연계한 앙상블 OCR
+- [Dockerization](/docs/deployment/dockerization) -- YOLO API 도커라이징 상세

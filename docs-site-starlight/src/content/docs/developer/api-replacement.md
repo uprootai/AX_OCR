@@ -572,10 +572,10 @@ curl http://localhost:8000/api/v1/health
 
 ## 관련 문서
 
-- [동적 API 추가 시스템](/developer/dynamic-api-system) — Dashboard를 통한 API 추가
-- [API 스펙 시스템](/developer/api-spec-system) — YAML 기반 API 표준화
-- [Dockerization](/deployment/dockerization) — Docker 컨테이너화 가이드
-- [Docker Compose](/devops/docker-compose) — 컨테이너 오케스트레이션
+- [동적 API 추가 시스템](/docs/developer/dynamic-api-system) — Dashboard를 통한 API 추가
+- [API 스펙 시스템](/docs/developer/api-spec-system) — YAML 기반 API 표준화
+- [Dockerization](/docs/deployment/dockerization) — Docker 컨테이너화 가이드
+- [Docker Compose](/docs/devops/docker-compose) — 컨테이너 오케스트레이션
 
 ---
 

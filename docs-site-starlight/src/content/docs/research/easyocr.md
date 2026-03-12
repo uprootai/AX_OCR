@@ -72,8 +72,8 @@ EasyOCR은 80개 이상의 언어를 지원하는 범용 OCR 파이썬 모듈로
 
 ## 관련 문서
 
-- [EasyOCR API](/api-reference/easyocr) - EasyOCR API 서비스 (Port 5015)
-- [OCR Ensemble Voting](/research/ocr-ensemble-voting) - 다중 OCR 엔진 앙상블 방법론
-- [DocTR](/research/doctr-document) - 2단계 파이프라인 OCR
-- [PaddleOCR](/research/paddleocr) - PP-OCR 경량 OCR 시스템
-- [Tesseract LSTM](/research/tesseract-lstm) - Tesseract LSTM OCR 엔진
+- [EasyOCR API](/docs/api-reference/easyocr) - EasyOCR API 서비스 (Port 5015)
+- [OCR Ensemble Voting](/docs/research/ocr-ensemble-voting) - 다중 OCR 엔진 앙상블 방법론
+- [DocTR](/docs/research/doctr-document) - 2단계 파이프라인 OCR
+- [PaddleOCR](/docs/research/paddleocr) - PP-OCR 경량 OCR 시스템
+- [Tesseract LSTM](/docs/research/tesseract-lstm) - Tesseract LSTM OCR 엔진

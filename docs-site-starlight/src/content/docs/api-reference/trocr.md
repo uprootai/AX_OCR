@@ -158,6 +158,6 @@ YOLO로 텍스트 영역 검출 → 각 영역을 TrOCR로 개별 처리
 
 ## 관련 문서
 
-- [OCR Ensemble](/api-reference/ocr-ensemble) -- TrOCR 10% 가중치로 참여
-- [YOLO Detection API](/api-reference/yolo) -- 텍스트 영역 검출 후 TrOCR로 인식
-- [EasyOCR API](/api-reference/easyocr) -- CPU 친화적 OCR 대안
+- [OCR Ensemble](/docs/api-reference/ocr-ensemble) -- TrOCR 10% 가중치로 참여
+- [YOLO Detection API](/docs/api-reference/yolo) -- 텍스트 영역 검출 후 TrOCR로 인식
+- [EasyOCR API](/docs/api-reference/easyocr) -- CPU 친화적 OCR 대안
