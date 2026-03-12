@@ -185,15 +185,18 @@ async def get_api_key_for_service(provider: str):
         model = service.get_model(provider)
 
         if api_key:
+            # 보안: 키 전체 노출 방지 — 앞 4자 + 마스킹
+            masked_key = api_key[:4] + "*" * max(0, len(api_key) - 8) + api_key[-4:] if len(api_key) > 8 else "****"
             return {
                 "status": "success",
-                "api_key": api_key,
+                "api_key_masked": masked_key,
+                "api_key_set": True,
                 "model": model
             }
         else:
             return {
                 "status": "not_found",
-                "api_key": None,
+                "api_key_set": False,
                 "model": model
             }
     except Exception as e:

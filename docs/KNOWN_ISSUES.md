@@ -31,7 +31,7 @@ None currently! 🎉
 
 ## 🟡 Medium Priority Issues
 
-None currently! 🎉
+> M003, M004, M005 — 아래 Resolved 섹션 이전 참조
 
 ---
 

@@ -220,3 +220,48 @@ class TestEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["model_type"] == "yolo"
+
+
+class TestCostReport:
+    """원가 지표 API 테스트"""
+
+    def test_cost_report_response_model(self):
+        """CostReportResponse 모델"""
+        from routers.admin_router import CostReportResponse
+
+        report = CostReportResponse(
+            drawings_analyzed=10,
+            avg_inference_ms=2300.0,
+            estimated_gpu_cost_krw=4.6,
+            breakdown_by_engine={
+                "yolo": {"avg_ms": 500, "cost_krw": 1.0}
+            },
+            report_generated_at="2026-03-12T10:00:00"
+        )
+        assert report.drawings_analyzed == 10
+        assert report.avg_inference_ms == 2300.0
+
+    @pytest.mark.asyncio
+    async def test_get_cost_report(self, client):
+        """GET /admin/cost-report 엔드포인트"""
+        response = await client.get("/admin/cost-report")
+        assert response.status_code == 200
+        data = response.json()
+        assert "drawings_analyzed" in data
+        assert "avg_inference_ms" in data
+        assert "estimated_gpu_cost_krw" in data
+        assert "breakdown_by_engine" in data
+        assert "report_generated_at" in data
+
+    @pytest.mark.asyncio
+    async def test_cost_report_breakdown_structure(self, client):
+        """breakdown_by_engine 구조 검증"""
+        response = await client.get("/admin/cost-report")
+        data = response.json()
+        breakdown = data["breakdown_by_engine"]
+        assert "yolo_detection" in breakdown
+        assert "ocr_edocr2" in breakdown
+        assert "post_processing" in breakdown
+        for engine_data in breakdown.values():
+            assert "avg_ms" in engine_data
+            assert "cost_krw" in engine_data

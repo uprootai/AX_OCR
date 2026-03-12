@@ -84,7 +84,6 @@ export const useAPIConfigStore = create<APIConfigStore>()(
           if (!response.ok) {
             console.error('Failed to sync API config to backend:', await response.text());
           } else {
-            console.log(`✅ API config synced to backend: ${config.id}`);
           }
         } catch (error) {
           console.error('Failed to sync API config to backend:', error);
@@ -104,7 +103,6 @@ export const useAPIConfigStore = create<APIConfigStore>()(
           await fetch(`http://localhost:8000/api/v1/api-configs/${id}`, {
             method: 'DELETE',
           });
-          console.log(`✅ API config removed from backend: ${id}`);
         } catch (error) {
           console.error('Failed to remove API config from backend:', error);
         }
@@ -127,7 +125,6 @@ export const useAPIConfigStore = create<APIConfigStore>()(
             },
             body: JSON.stringify(updates),
           });
-          console.log(`✅ API config updated in backend: ${id}`);
         } catch (error) {
           console.error('Failed to update API config in backend:', error);
         }
@@ -146,7 +143,6 @@ export const useAPIConfigStore = create<APIConfigStore>()(
           await fetch(`http://localhost:8000/api/v1/api-configs/${id}/toggle`, {
             method: 'POST',
           });
-          console.log(`✅ API config toggled in backend: ${id}`);
         } catch (error) {
           console.error('Failed to toggle API config in backend:', error);
         }

@@ -399,13 +399,9 @@ function WorkflowBuilderCanvas() {
   };
 
   // Delete handlers
-  const onNodesDelete = useCallback((deleted: { id: string }[]) => {
-    console.log('Deleting nodes:', deleted.map((n) => n.id));
-  }, []);
+  const onNodesDelete = useCallback((_deleted: { id: string }[]) => {}, []);
 
-  const onEdgesDelete = useCallback((deleted: { id: string }[]) => {
-    console.log('Deleting edges:', deleted.map((e) => e.id));
-  }, []);
+  const onEdgesDelete = useCallback((_deleted: { id: string }[]) => {}, []);
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">

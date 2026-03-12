@@ -159,7 +159,7 @@ async def generate_quote(
                 bom_items = data.get("matched_items", data.get("items", []))
             elif isinstance(data, list):
                 bom_items = data
-        except:
+        except Exception:
             pass
 
     # BOM이 없으면 Mock 데이터
@@ -409,7 +409,11 @@ async def export_quote_excel(
             }
 
     exporter = get_quote_exporter()
-    excel_bytes = exporter.export_to_excel(quote, customer_info)
+    try:
+        excel_bytes = exporter.export_to_excel(quote, customer_info)
+    except Exception as e:
+        logger.error(f"Excel export failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Excel 내보내기 실패: {str(e)}")
 
     quote_number = quote.get('quote_number', 'quote')
     filename = f"{quote_number}.xlsx"
@@ -452,7 +456,11 @@ async def export_quote_pdf(
             }
 
     exporter = get_quote_exporter()
-    pdf_bytes = exporter.export_to_pdf(quote, customer_info)
+    try:
+        pdf_bytes = exporter.export_to_pdf(quote, customer_info)
+    except Exception as e:
+        logger.error(f"PDF export failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"PDF 내보내기 실패: {str(e)}")
 
     quote_number = quote.get('quote_number', 'quote')
     filename = f"{quote_number}.pdf"

@@ -417,9 +417,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         config: {},
       };
 
-      console.log('🚀 Executing workflow:', workflowDefinition.name);
-      console.log('📋 Workflow definition:', workflowDefinition);
-
       // Call Gateway API
       const response = await fetch(`${GATEWAY_URL}/api/v1/workflow/execute`, {
         method: 'POST',
@@ -435,8 +432,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
       }
 
       const result = await response.json();
-
-      console.log('✅ Workflow execution completed:', result);
 
       set({
         isExecuting: false,
@@ -547,11 +542,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         },
       };
 
-      console.log('🚀 [SSE] Executing workflow:', workflowDefinition.name);
-      console.log('📋 [SSE] Nodes:', workflowDefinition.nodes.map(n => `${n.id} (${n.type})`));
-      console.log('🔗 [SSE] Edges (source -> target):', workflowDefinition.edges.map(e => `${e.source} -> ${e.target}`));
-      console.log('⚙️ [SSE] Execution mode:', executionMode);
-
       // Use EventSource for SSE
       const response = await fetch(`${GATEWAY_URL}/api/v1/workflow/execute-stream`, {
         method: 'POST',
@@ -581,7 +571,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log('✅ [SSE] Stream ended');
           break;
         }
 
@@ -598,8 +587,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
           try {
             const jsonStr = message.replace('data: ', '');
             const event = JSON.parse(jsonStr);
-
-            console.log('📨 [SSE] Event received:', event.type, event);
 
             // Handle different event types
             switch (event.type) {
@@ -680,7 +667,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
                   },
                   executionError: null,
                 });
-                console.log('✅ [SSE] Workflow completed:', event.status);
                 break;
 
               case 'error':
@@ -694,7 +680,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
     } catch (error) {
       // Check if it was cancelled
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('🛑 [SSE] Workflow execution cancelled by user');
         set({
           isExecuting: false,
           executionError: 'Execution cancelled by user',
@@ -717,8 +702,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
   cancelExecution: async () => {
     const { abortController, executionId } = get();
     if (abortController) {
-      console.log('🛑 Cancelling workflow execution...');
-
       // 1. 프론트엔드 SSE 연결 취소
       abortController.abort();
 
@@ -729,7 +712,6 @@ export const useWorkflowStore = create<WorkflowState>()((set, get) => ({
             method: 'POST',
           });
           if (response.ok) {
-            console.log('✅ Backend cancellation confirmed');
           } else {
             console.warn('⚠️ Backend cancellation failed:', await response.text());
           }

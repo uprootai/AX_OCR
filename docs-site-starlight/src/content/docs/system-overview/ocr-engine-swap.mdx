@@ -1,0 +1,175 @@
+---
+sidebar_position: 6
+title: OCR 엔진 교체 가이드
+description: ExecutorRegistry + YAML 기반 OCR 엔진 교체 3단계 절차
+tags: [시스템, OCR, 엔진교체]
+---
+
+# OCR 엔진 교체 가이드 (OCR Engine Swap Guide)
+
+> YAML 파일 1개로 OCR 엔진을 추가·교체하는 3단계 절차를 설명한다.
+
+---
+
+## 왜 엔진 교체가 쉬워야 하는가
+
+기계 도면 OCR 분야는 빠르게 발전한다. 6개월 전의 SOTA 모델이 오늘 2등이 되는 환경에서, **특정 엔진에 종속되면 기술 부채가 된다.** AX POC는 YAML 기반 플러그인 구조로 이 문제를 해결한다.
+
+| 항목 | 값 |
+|------|-----|
+| 현재 등록 엔진 | 8개 (eDOCr2, PaddleOCR, Ensemble 등) |
+| 교체 시 코드 수정 | **0줄** |
+| 교체 소요 시간 | 10~30분 (Docker 빌드 포함) |
+| 롤백 시간 | 5분 이내 (YAML 되돌리기) |
+
+---
+
+## 아키텍처: ExecutorRegistry
+
+Gateway API 시작 시 `api_specs/` 디렉토리의 모든 YAML 파일을 자동 스캔한다.
+
+```
+gateway-api/
+├── api_specs/
+│   ├── edocr2.yaml       ← OCR 엔진 A
+│   ├── paddleocr.yaml    ← OCR 엔진 B
+│   ├── newocr.yaml       ← 새 엔진 (추가만 하면 자동 등록)
+│   └── ...
+└── executors/
+    └── generic_api_executor.py  ← 모든 YAML 스펙에 공통 적용
+```
+
+**핵심 흐름:**
+1. Gateway 시작 → `api_specs/*.yaml` 스캔
+2. 각 YAML → `GenericAPIExecutor` 인스턴스 생성
+3. `ExecutorRegistry`에 자동 등록
+4. BlueprintFlow에서 노드로 사용 가능
+
+---
+
+## 3단계 교체 절차
+
+### 1단계: YAML 스펙 파일 작성
+
+```yaml
+# api_specs/newocr.yaml
+apiVersion: "1.0"
+metadata:
+  id: newocr
+  name: New OCR Engine
+  display_name: "New OCR (차세대)"
+  version: "1.0.0"
+  description: "새로운 OCR 엔진"
+  category: ocr
+  port: 5099
+
+server:
+  host: newocr-api
+  port: 5099
+  health_endpoint: /health
+
+blueprintflow:
+  icon: "🔤"
+  color: "#FF6B35"
+  category: ocr
+
+inputs:
+  - name: file
+    type: file
+    description: "이미지 파일"
+    required: true
+
+outputs:
+  - name: text
+    type: string
+    description: "인식된 텍스트"
+
+parameters:
+  - name: language
+    type: string
+    default: "ko+en"
+    description: "인식 언어"
+```
+
+### 2단계: Docker 서비스 추가
+
+`docker-compose.yml`에 서비스 추가:
+
+```yaml
+newocr-api:
+  build:
+    context: ../models/newocr-api
+    dockerfile: Dockerfile
+  ports:
+    - "5099:5099"
+  volumes:
+    - newocr-models:/app/models
+  restart: unless-stopped
+```
+
+### 3단계: 기존 워크플로우에서 교체
+
+BlueprintFlow 노드에서 OCR 엔진을 교체한다:
+
+1. 워크플로우 편집 화면에서 기존 OCR 노드 선택
+2. 노드 타입을 `newocr`로 변경
+3. 파라미터 조정 (language 등)
+4. 저장 → 실행
+
+코드 수정 없이 YAML + Docker 설정만으로 교체 완료.
+
+---
+
+## 실제 YAML 예시: 현재 운영 중인 엔진
+
+### eDOCr2 (주력)
+
+| 항목 | 값 |
+|------|-----|
+| 포트 | 5002 |
+| 용도 | 기계 도면 치수/GD&T |
+| 카테고리 | ocr |
+
+### PaddleOCR (보조)
+
+| 항목 | 값 |
+|------|-----|
+| 포트 | 5006 |
+| 용도 | 범용 텍스트 (106 언어) |
+| 카테고리 | ocr |
+
+### Ensemble (최고 정확도)
+
+| 항목 | 값 |
+|------|-----|
+| 포트 | 5011 |
+| 용도 | 4엔진 가중 투표 |
+| 카테고리 | ocr |
+
+---
+
+## 롤백 절차
+
+교체 후 문제 발생 시:
+
+1. `api_specs/newocr.yaml` 삭제 또는 이름 변경 (`.yaml.disabled`)
+2. Gateway API 재시작: `docker restart gateway-api`
+3. 기존 워크플로우 자동 복원 (이전 엔진으로 폴백)
+
+소요 시간: **5분 이내**.
+
+---
+
+## 관련 API
+
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| GET | `/admin/status` | 등록된 전체 API 상태 |
+| GET | `/api/v1/registry/apis` | API 레지스트리 목록 |
+
+## 관련 문서
+
+- [시스템 개요](/docs/system-overview/) — 전체 아키텍처
+- [기술 스택](/docs/system-overview/tech-stack/) — 사용 기술 목록
+- [서비스 카탈로그](/docs/system-overview/service-catalog/) — 전체 서비스 목록
+- [시스템 검증 & 결과](/docs/customer-cases/dsebearing/results/) — OCR 엔진 비교 현황

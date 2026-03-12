@@ -164,7 +164,7 @@ class QuoteExporter:
         ws[f'E{row}'].border = thin_border
 
         # 할인
-        discount = quote_data.get('discount_amount', quote_data.get('discount', 0))
+        discount = quote_data.get('discount_amount', quote_data.get('discount', 0)) or 0
         if discount > 0:
             row += 1
             ws.merge_cells(f'A{row}:D{row}')
@@ -364,7 +364,7 @@ class QuoteExporter:
         subtotal = quote_data.get('subtotal', 0)
         table_data.append(['', '', '', '', '소계', f"{subtotal:,.0f}"])
 
-        discount = quote_data.get('discount_amount', quote_data.get('discount', 0))
+        discount = quote_data.get('discount_amount', quote_data.get('discount', 0)) or 0
         if discount > 0:
             table_data.append(['', '', '', '', '할인', f"-{discount:,.0f}"])
 

@@ -217,5 +217,31 @@ def setup_logging_middleware(app, log_request_body: bool = False, slow_request_t
 __all__ = [
     'LoggingMiddleware',
     'PerformanceLoggingMiddleware',
-    'setup_logging_middleware'
+    'setup_logging_middleware',
+    'log_upload_event'
 ]
+
+
+def log_upload_event(filename: str, size_bytes: int, ttl_hours: int = 24):
+    """
+    파일 업로드 이벤트 로깅
+
+    Args:
+        filename: 업로드 파일명
+        size_bytes: 파일 크기 (바이트)
+        ttl_hours: 자동 삭제까지 남은 시간
+    """
+    from datetime import datetime, timedelta
+    deletion_time = datetime.now() + timedelta(hours=ttl_hours)
+
+    logger.info(
+        f"File uploaded: {filename} ({size_bytes / 1024:.1f} KB) — "
+        f"auto-delete at {deletion_time.strftime('%Y-%m-%d %H:%M')}",
+        extra={
+            "event": "file_upload",
+            "filename": filename,
+            "size_bytes": size_bytes,
+            "ttl_hours": ttl_hours,
+            "scheduled_deletion": deletion_time.isoformat()
+        }
+    )

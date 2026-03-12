@@ -1,7 +1,23 @@
 # 완료된 작업 아카이브
 
-> 마지막 업데이트: 2026-02-27
+> 마지막 업데이트: 2026-03-12
 > 완료된 작업들의 기록 (참조용)
+
+---
+
+## 2026-03-12 완료
+
+### E07: Operational Excellence — WeekdayCode 4축 적용
+
+WeekdayCode 27개 영상 인사이트 4축(테스트=해자, 모델비종속, 스택단순화, 운영비용+보안) 적용.
+
+- **S01**: Web-UI 컴포넌트 테스트 4개 추가 (46 tests)
+- **S02**: OCR A/B 비교 프레임워크 (edocr2/paddleocr/vl 3엔진, DSE GT 3장)
+- **S03**: `GET /admin/cost-report` 원가 지표 API
+- **S04**: 업로드 파일 24시간 TTL 자동 삭제 + 이벤트 로깅
+- **S05**: table-detector-api 테스트 + CI model-services job
+- **S06**: OCR 엔진 교체 가이드 문서 (ocr-engine-swap.mdx)
+- **검증**: gateway 450 + web-ui 349 + model 6 = 805개 테스트 통과, 117p 빌드
 
 ---
 

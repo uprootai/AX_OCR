@@ -36,6 +36,12 @@ DEFAULT_RESULT_DIR = os.getenv("RESULT_SAVE_DIR", "/tmp/gateway/results")
 # 기본 보관 기간 (일)
 DEFAULT_RETENTION_DAYS = int(os.getenv("RESULT_RETENTION_DAYS", "7"))
 
+# 업로드 파일 디렉토리
+DEFAULT_UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/tmp/gateway/uploads")
+
+# 업로드 파일 보관 기간 (시간)
+DEFAULT_UPLOAD_TTL_HOURS = int(os.getenv("UPLOAD_TTL_HOURS", "24"))
+
 
 class ResultManager:
     """파이프라인 결과 저장 및 정리 관리자"""
@@ -356,6 +362,64 @@ class ResultManager:
 
         return sessions
 
+    def cleanup_old_uploads(
+        self,
+        upload_dir: str = DEFAULT_UPLOAD_DIR,
+        max_age_hours: int = DEFAULT_UPLOAD_TTL_HOURS,
+        dry_run: bool = False
+    ) -> Dict[str, Any]:
+        """
+        업로드 파일 자동 삭제 (TTL 기반)
+
+        Args:
+            upload_dir: 업로드 디렉토리 경로
+            max_age_hours: 보관 기간 (시간)
+            dry_run: True면 실제 삭제 없이 목록만 반환
+        """
+        upload_path = Path(upload_dir)
+        if not upload_path.exists():
+            return {"deleted_count": 0, "total_size_bytes": 0, "max_age_hours": max_age_hours}
+
+        cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
+        deleted_files = []
+        total_size = 0
+
+        for file_path in upload_path.rglob('*'):
+            if not file_path.is_file():
+                continue
+
+            try:
+                mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                if mtime < cutoff_time:
+                    file_size = file_path.stat().st_size
+                    total_size += file_size
+
+                    if not dry_run:
+                        file_path.unlink()
+                        logger.info(
+                            f"업로드 파일 삭제: {file_path.name} "
+                            f"(크기: {file_size / 1024:.1f} KB, "
+                            f"수정: {mtime.isoformat()})"
+                        )
+
+                    deleted_files.append({
+                        "path": str(file_path),
+                        "size_bytes": file_size,
+                        "modified": mtime.isoformat(),
+                        "scheduled_deletion": (mtime + timedelta(hours=max_age_hours)).isoformat()
+                    })
+            except Exception as e:
+                logger.error(f"업로드 파일 삭제 실패: {file_path} - {e}")
+
+        return {
+            "deleted_count": len(deleted_files),
+            "total_size_bytes": total_size,
+            "total_size_mb": total_size / (1024 * 1024),
+            "max_age_hours": max_age_hours,
+            "dry_run": dry_run,
+            "deleted_files": deleted_files
+        }
+
 
 # 싱글톤 인스턴스
 _result_manager: Optional[ResultManager] = None
@@ -421,6 +485,14 @@ async def _scheduled_cleanup_loop():
             logger.info("🗑️ 자동 정리 시작...")
             manager = get_result_manager()
             result = manager.cleanup_old_results(max_age_days=DEFAULT_RETENTION_DAYS)
+
+            # 업로드 파일 정리
+            upload_result = manager.cleanup_old_uploads()
+            if upload_result["deleted_count"] > 0:
+                logger.info(
+                    f"🗑️ 업로드 파일 정리: {upload_result['deleted_count']}개 삭제 "
+                    f"({upload_result.get('total_size_mb', 0):.2f} MB)"
+                )
 
             if result["deleted_count"] > 0:
                 logger.info(

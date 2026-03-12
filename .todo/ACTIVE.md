@@ -1,7 +1,7 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-03-11
-> **기준 커밋**: 032a470 (feat: E05 Phase 2 — Starlight 마이그레이션 완료)
+> **마지막 업데이트**: 2026-03-12
+> **기준 커밋**: E07 Operational Excellence
 
 ---
 
@@ -11,14 +11,28 @@
 |------|-----|
 | **기술 스택** | FastAPI + React 19 + YOLO v11 + eDOCr2 + Docker |
 | **API 서비스** | 21개 (전체 healthy) |
-| **테스트** | 549개 통과 (gateway 364, web-ui 185) |
+| **테스트** | 805개 통과 (gateway 450, web-ui 349, model 6) |
 | **빌드 상태** | ✅ 정상 (tsc + build 에러 0) |
 | **파일 크기** | 모두 600줄 이하 |
-| **문서 사이트** | 15섹션 115페이지 (localhost:3001) — 100% 표준 준수 |
+| **문서 사이트** | 15섹션 117페이지 (localhost:3001) — 100% 표준 준수 |
 
 ---
 
 ## Active Epic
+
+### E07: Operational Excellence — WeekdayCode 4축 적용 (✅ Done)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 Web-UI 컴포넌트 테스트 | ✅ Done | 4개 카드 컴포넌트 46개 테스트 |
+| S02 OCR A/B 비교 실측 | ✅ Done | 3엔진 비교 프레임워크 + GT 데이터 |
+| S03 분석 원가 지표 API | ✅ Done | GET /admin/cost-report 엔드포인트 |
+| S04 업로드 TTL + 접근 로그 | ✅ Done | 24시간 TTL + 이벤트 로깅 |
+| S05 모델 서비스 CI 통합 | ✅ Done | table-detector-api 테스트 + CI job |
+| S06 OCR 교체 데모 문서 | ✅ Done | ocr-engine-swap.mdx 신규 |
+| S07 전체 검증 + 문서 갱신 | ✅ Done | 450+349+6 테스트, 117p 빌드 |
+
+**상세**: [.todo/epics/e07-operational-excellence/EPIC.md](epics/e07-operational-excellence/EPIC.md)
 
 ### E06: Docs 콘텐츠 스타일 규격 적용 (✅ Done)
 

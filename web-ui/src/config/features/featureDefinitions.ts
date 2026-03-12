@@ -150,6 +150,7 @@ export const FEATURE_DEFINITIONS: Record<string, FeatureDefinition> = {
     // 🔗 관계: 치수 OCR → 치수 검증 자동 활성화
     isPrimary: true,
     implies: ['dimension_verification'],
+    impliedBy: ['material_allowance'],
   },
   dimension_verification: {
     key: 'dimension_verification',
