@@ -564,8 +564,8 @@ class PriceDatabase:
         return 0.0
 
     def get_customer_config(self, customer_id: str) -> Optional[CustomerConfig]:
-        """고객 설정 조회"""
-        return self.customers.get(customer_id)
+        """고객 설정 조회 (대소문자 무관)"""
+        return self.customers.get(customer_id) or self.customers.get(customer_id.upper())
 
     def list_materials(self) -> List[Dict[str, Any]]:
         """모든 재질 목록 반환"""

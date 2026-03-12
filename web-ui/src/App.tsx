@@ -29,6 +29,15 @@ const PIDOverlayPage = lazy(() => import('./pages/pid-overlay/PIDOverlayPage'));
 const ProjectList = lazy(() => import('./pages/project/ProjectListPage'));
 const ProjectDetail = lazy(() => import('./pages/project/ProjectDetailPage'));
 
+// BOM 프론트엔드 리다이렉트 (web-ui → blueprint-ai-bom 앱)
+const BOMRedirect = () => {
+  useEffect(() => {
+    const bomBaseUrl = window.location.origin.replace(':5173', ':3000');
+    window.location.href = `${bomBaseUrl}${window.location.pathname}${window.location.search}`;
+  }, []);
+  return <PageLoader />;
+};
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -92,6 +101,9 @@ function App() {
                 <Route path="/projects" element={<ProjectList />} />
                 <Route path="/projects/:projectId" element={<ProjectDetail />} />
               </Route>
+
+              {/* BOM 프론트엔드로 리다이렉트 (/bom/* → blueprint-ai-bom 앱) */}
+              <Route path="/bom/*" element={<BOMRedirect />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

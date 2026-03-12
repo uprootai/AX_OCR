@@ -563,8 +563,8 @@ class CustomerConfigService:
                 logger.error(f"설정 파일 로드 실패 {config_file}: {e}")
 
     def get_customer(self, customer_id: str) -> Optional[CustomerSettings]:
-        """고객 설정 조회"""
-        return self.customers.get(customer_id)
+        """고객 설정 조회 (대소문자 무관)"""
+        return self.customers.get(customer_id) or self.customers.get(customer_id.upper())
 
     def list_customers(self) -> List[Dict[str, Any]]:
         """모든 고객 목록"""
