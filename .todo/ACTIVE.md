@@ -27,7 +27,7 @@
 | S01 납품 패키지 템플릿 | ✅ Done | generate-package.sh + 5 templates |
 | S02 커스터마이징 파이프라인 | ✅ Done | create_customer_api.py + test_coverage.py |
 | S03 사용자 교육 체계 | ✅ Done | quick-start + manual + FAQ (120p 빌드) |
-| S04 기존 3개사 통합 | ⬜ Todo | S01~S03 의존 완료, 착수 가능 |
+| S04 기존 3개사 통합 | ✅ Done | STATUS.md + README 3사 + techcross 스캐폴딩 |
 | S05 신규 7개사 온보딩 | ⬜ Blocked | 기업 모집 중 |
 
 **상세**: [.todo/epics/e04-ax-testcomplex/EPIC.md](epics/e04-ax-testcomplex/EPIC.md)

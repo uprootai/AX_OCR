@@ -37,7 +37,7 @@ AX 실증 산단 구축 사업을 통해 총 10개 제조 중소기업에 도면
 | S01 | [범용 납품 패키지 템플릿화](S01-delivery-template.md) | 고객명만 바꾸면 되는 범용 구조 | ✅ Done |
 | S02 | [커스터마이징 파이프라인 표준화](S02-customization-pipeline.md) | 신규 업종 대응 절차 정립 | ✅ Done |
 | S03 | [사용자 교육 체계 구축](S03-training-system.md) | 엔지니어용 교육 자료 + 영상 | ✅ Done (문서, 영상 제외) |
-| S04 | [기존 3개사 통합 관리](S04-existing-migration.md) | 파나시아/동서기연/테크로스 일원화 | ⬜ Todo (S01~S03 완료) |
+| S04 | [기존 3개사 통합 관리](S04-existing-migration.md) | 파나시아/동서기연/테크로스 일원화 | ✅ Done |
 | S05 | [신규 기업 순차 온보딩](S05-new-onboarding.md) | 7개사 확정 시 적용 | ⬜ Blocked (모집 중) |
 
 ## 의존 관계
