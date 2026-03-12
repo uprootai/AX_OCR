@@ -6,16 +6,23 @@ tags: [고객사례, 동서기연, 성과]
 ---
 
 import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+import { Aside } from '@astrojs/starlight/components';
 
 # 추출 & 견적 결과 (Extraction & Quotation Results)
 
-> 11종 단품 도면에서 548개 치수를 자동 추출하고, 326개 BOM 품목을 분류한 뒤, 54개 품목 기준 1.1억원 견적을 산출한 결과.
+> 대표 단품 11종에서 치수 추출과 초안 견적이 가능함을 검증한 단계이다. 전체 자동 견적 완성이 아닌 **1차 검증 결과**이다.
 
-## 소재 사이즈 자동 추출 (eDOCr2 + PaddleOCR)
+<Aside type="caution" title="현재 결과의 범위">
+이 페이지의 금액은 **고객사 단가표 없이 내부 추정 기준**으로 계산한 예비 수치이다. 전체 303개 단품 중 54개(17.8%)만 산출된 상태이며, 고객사 단가표 수령 후 재산출 예정이다.
+</Aside>
 
-11종 단품 도면에서 **548개 치수**를 자동 추출했습니다.
+## 소재 사이즈 자동 추출
+
+도면에서 부품의 크기 정보(외경, 내경, 길이 등)를 자동으로 읽어내는 단계이다. 11종 단품 도면에서 **548개 치수**를 추출했다.
 
 ### 저널 베어링 (T1) — 238개
+
+**저널 베어링**: 회전축을 옆에서 지지하는 부품. 터빈 축의 8개 지점(T1~T8)에 설치된다.
 
 | 도면번호 | 품명 | 추출 치수 | 검증 |
 |---------|------|----------|------|
@@ -29,6 +36,8 @@ import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
 </div>
 
 ### 스러스트 베어링 — 310개
+
+**스러스트 베어링**: 축 방향(앞뒤) 힘을 받아내는 부품. 터빈 축이 좌우로 밀리지 않도록 고정한다.
 
 | 도면번호 | 품명 | 추출 치수 | 검증 |
 |---------|------|----------|------|
@@ -54,7 +63,7 @@ import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
 - 두께/길이: 200, 100, 30 등
 - 나사 규격: M30x45, M8x16 등
 
-### 검증 방식 (Human-in-the-Loop)
+### 검증 방식 (사람 확인 검증)
 
 <FlowDiagram client:load
   direction="LR"
@@ -63,7 +72,7 @@ import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
     { id: 'upload', label: '도면 업로드', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
     { id: 'extract', label: 'eDOCr2 + PaddleOCR\n자동 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
     { id: 'cards', label: '카드 그리드\n(오버레이 표시)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
-    { id: 'auto', label: '자동 승인\n(신뢰도 90%+)', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'auto', label: '자동 승인\n(정확도 90% 이상)', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
     { id: 'manual', label: '수동 검토', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
     { id: 'done', label: '100% 검증 완료', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
   ]}
@@ -97,7 +106,7 @@ Z24018 BOM 326개 품목을 자동 분류했습니다.
 
 ## 견적 자동 산출
 
-54개 품목에 대해 내부 추정 단가 기반으로 자동 산출:
+54개 품목에 대해 내부 추정 단가 기반으로 자동 산출한 예비 결과이다.
 
 | 항목 | 금액 |
 |------|------|
