@@ -87,6 +87,42 @@ tags: [고객사례, 동서기연, 로드맵]
 
 ---
 
+## DSE Bearing 전용 API 현황
+
+Gateway API(`localhost:8000`)에서 동서기연 전용 엔드포인트가 운영 중이다.
+
+### 파싱 API (POST, multipart/form-data)
+
+| 엔드포인트 | 설명 | 출력 |
+|-----------|------|------|
+| `/api/v1/dsebearing/titleblock` | 도면 타이틀 블록 파싱 | 도면번호, 리비전, 품명, 재질 |
+| `/api/v1/dsebearing/partslist` | 부품 리스트 추출 | 품번, 품명, 재질, 수량, 도면번호 |
+| `/api/v1/dsebearing/dimensionparser` | 치수 추출 (17종 패턴) | 외경, 내경, 나사, ISO 공차, GD&T |
+| `/api/v1/dsebearing/bommatcher` | 타이틀+부품+치수 통합 매칭 | BOM 연동 결과 |
+
+### 견적 API
+
+| 엔드포인트 | 메서드 | 설명 |
+|-----------|--------|------|
+| `/api/v1/dsebearing/quotegenerator` | POST | BOM JSON → 견적 자동 산출 |
+| `/api/v1/dsebearing/prices/materials` | GET | 재질별 kg 단가 (21종) |
+| `/api/v1/dsebearing/prices/labor` | GET | 가공비 단가표 (25종) |
+| `/api/v1/dsebearing/prices/discounts` | GET | 수량 할인율 (5%/7%/10%/15%) |
+| `/api/v1/dsebearing/customers/dse` | GET | DSE 할인 프로필 (재료 5%, 가공 3%) |
+| `/api/v1/dsebearing/quote/export/excel` | POST | 견적서 Excel 다운로드 |
+| `/api/v1/dsebearing/quote/export/pdf` | POST | 견적서 PDF 다운로드 |
+
+### OCR 전략별 정확도
+
+| 전략 | 치수 인식률 | GD&T 인식률 | 비고 |
+|------|-----------|-----------|------|
+| basic (현재 사용) | ~50% | 0% | eDOCr2 원본 |
+| edgnet | ~60% | ~50% | EDGNet 전처리 추가 |
+| vl | ~85% | ~75% | Vision-Language 모델 |
+| **hybrid (권장)** | **~90%** | **~80%** | EDGNet + VL 조합 |
+
+---
+
 ## 보안 유의사항
 
 :::danger[도면 보안]
