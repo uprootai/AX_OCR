@@ -1,46 +1,18 @@
 """
-Result Manager
-파이프라인 실행 결과 저장 및 정리 관리
-
-저장 구조:
-/tmp/gateway/results/
-  └── 2025-12-08/
-      └── 14-30-25_workflow-name/
-          ├── metadata.json          # 워크플로우 메타정보
-          ├── node_1_imageinput.json  # 노드별 JSON 결과
-          ├── node_1_imageinput.jpg   # 노드별 오버레이 이미지
-          ├── node_2_edocr2.json
-          ├── node_2_edocr2.jpg
-          └── ...
-
-자동 정리:
-- Gateway API 시작 시 스케줄러 시작
-- 매일 새벽 2시에 오래된 결과 자동 삭제
-- 기본 보관 기간: 7일
+Result Manager - Core
+ResultManager 클래스: 세션 생성, 노드 결과 저장, 메타데이터, 통계, 정리
 """
-import os
 import json
 import base64
 import shutil
 import logging
-import asyncio
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 
+from .constants import DEFAULT_RESULT_DIR, DEFAULT_RETENTION_DAYS, DEFAULT_UPLOAD_DIR, DEFAULT_UPLOAD_TTL_HOURS
+
 logger = logging.getLogger(__name__)
-
-# 기본 결과 저장 디렉토리
-DEFAULT_RESULT_DIR = os.getenv("RESULT_SAVE_DIR", "/tmp/gateway/results")
-
-# 기본 보관 기간 (일)
-DEFAULT_RETENTION_DAYS = int(os.getenv("RESULT_RETENTION_DAYS", "7"))
-
-# 업로드 파일 디렉토리
-DEFAULT_UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/tmp/gateway/uploads")
-
-# 업로드 파일 보관 기간 (시간)
-DEFAULT_UPLOAD_TTL_HOURS = int(os.getenv("UPLOAD_TTL_HOURS", "24"))
 
 
 class ResultManager:
@@ -376,7 +348,8 @@ class ResultManager:
             max_age_hours: 보관 기간 (시간)
             dry_run: True면 실제 삭제 없이 목록만 반환
         """
-        upload_path = Path(upload_dir)
+        from pathlib import Path as _Path
+        upload_path = _Path(upload_dir)
         if not upload_path.exists():
             return {"deleted_count": 0, "total_size_bytes": 0, "max_age_hours": max_age_hours}
 
@@ -419,122 +392,3 @@ class ResultManager:
             "dry_run": dry_run,
             "deleted_files": deleted_files
         }
-
-
-# 싱글톤 인스턴스
-_result_manager: Optional[ResultManager] = None
-
-
-def get_result_manager() -> ResultManager:
-    """ResultManager 싱글톤 인스턴스 반환"""
-    global _result_manager
-    if _result_manager is None:
-        _result_manager = ResultManager()
-    return _result_manager
-
-
-def cleanup_results(max_age_days: int = DEFAULT_RETENTION_DAYS, dry_run: bool = False):
-    """
-    결과 정리 헬퍼 함수
-
-    사용 예:
-        from utils.result_manager import cleanup_results
-        cleanup_results(max_age_days=7)
-    """
-    manager = get_result_manager()
-    return manager.cleanup_old_results(max_age_days=max_age_days, dry_run=dry_run)
-
-
-# =============================================================================
-# 자동 정리 스케줄러
-# =============================================================================
-
-# 정리 스케줄 설정
-CLEANUP_INTERVAL_HOURS = int(os.getenv("RESULT_CLEANUP_INTERVAL_HOURS", "24"))  # 기본 24시간
-CLEANUP_HOUR = int(os.getenv("RESULT_CLEANUP_HOUR", "2"))  # 기본 새벽 2시
-
-_cleanup_task: Optional[asyncio.Task] = None
-
-
-async def _scheduled_cleanup_loop():
-    """
-    스케줄된 정리 루프
-
-    매일 지정된 시간(기본 새벽 2시)에 오래된 결과를 자동 삭제합니다.
-    """
-    logger.info(f"🗑️ 결과 자동 정리 스케줄러 시작 (매일 {CLEANUP_HOUR}시, 보관기간: {DEFAULT_RETENTION_DAYS}일)")
-
-    while True:
-        try:
-            # 다음 정리 시간 계산
-            now = datetime.now()
-            next_cleanup = now.replace(hour=CLEANUP_HOUR, minute=0, second=0, microsecond=0)
-
-            # 이미 지난 시간이면 다음 날로
-            if next_cleanup <= now:
-                next_cleanup += timedelta(days=1)
-
-            # 대기 시간 계산
-            wait_seconds = (next_cleanup - now).total_seconds()
-            logger.info(f"🗑️ 다음 정리 예정: {next_cleanup.strftime('%Y-%m-%d %H:%M')} ({wait_seconds/3600:.1f}시간 후)")
-
-            # 대기
-            await asyncio.sleep(wait_seconds)
-
-            # 정리 실행
-            logger.info("🗑️ 자동 정리 시작...")
-            manager = get_result_manager()
-            result = manager.cleanup_old_results(max_age_days=DEFAULT_RETENTION_DAYS)
-
-            # 업로드 파일 정리
-            upload_result = manager.cleanup_old_uploads()
-            if upload_result["deleted_count"] > 0:
-                logger.info(
-                    f"🗑️ 업로드 파일 정리: {upload_result['deleted_count']}개 삭제 "
-                    f"({upload_result.get('total_size_mb', 0):.2f} MB)"
-                )
-
-            if result["deleted_count"] > 0:
-                logger.info(
-                    f"🗑️ 자동 정리 완료: {result['deleted_count']}개 디렉토리 삭제 "
-                    f"({result['total_size_mb']:.2f} MB 확보)"
-                )
-            else:
-                logger.info("🗑️ 자동 정리 완료: 삭제할 항목 없음")
-
-        except asyncio.CancelledError:
-            logger.info("🗑️ 결과 자동 정리 스케줄러 중지됨")
-            break
-        except Exception as e:
-            logger.error(f"🗑️ 자동 정리 중 오류: {e}")
-            # 오류 발생 시 1시간 후 재시도
-            await asyncio.sleep(3600)
-
-
-def start_cleanup_scheduler():
-    """
-    자동 정리 스케줄러 시작
-
-    Gateway API startup에서 호출됩니다.
-    """
-    global _cleanup_task
-
-    if _cleanup_task is not None and not _cleanup_task.done():
-        logger.warning("🗑️ 정리 스케줄러가 이미 실행 중입니다")
-        return
-
-    _cleanup_task = asyncio.create_task(_scheduled_cleanup_loop())
-    logger.info("🗑️ 결과 자동 정리 스케줄러 등록됨")
-
-
-def stop_cleanup_scheduler():
-    """
-    자동 정리 스케줄러 중지
-
-    Gateway API shutdown에서 호출됩니다.
-    """
-    global _cleanup_task
-
-    if _cleanup_task is not None and not _cleanup_task.done():
-        _cleanup_task.cancel()
-        logger.info("🗑️ 결과 자동 정리 스케줄러 중지 요청됨")
