@@ -13,6 +13,7 @@ from .process_router import router as process_router
 from .quote_router import router as quote_router
 from .download_router import router as download_router
 from .dsebearing_router import router as dsebearing_router
+from .techcross_router import router as techcross_router
 # PID Overlay moved to pid-composer-api (port 5021)
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     'quote_router',
     'download_router',
     'dsebearing_router',
+    'techcross_router',
 ]

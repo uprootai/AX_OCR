@@ -13,7 +13,6 @@
  * - 호버 시 상세 정보 표시
  */
 
-import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   Eye, EyeOff, Upload, Loader2, Download,
   ZoomIn, ZoomOut, RotateCcw, Type
@@ -21,90 +20,35 @@ import {
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useLayerToggle, PID_LAYER_CONFIG } from '../../hooks/useLayerToggle';
-
-// Types
-interface BBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-interface Symbol {
-  class_id: number;
-  class_name: string;
-  confidence: number;
-  bbox: BBox;
-}
-
-interface Line {
-  id: number;
-  start_point: [number, number];
-  end_point: [number, number];
-  line_type: string;
-  line_style?: string;
-  waypoints?: [number, number][];
-}
-
-interface TextItem {
-  text: string;
-  confidence: number;
-  position: BBox;
-  bbox?: number[][];
-}
-
-interface Region {
-  id: number;
-  bbox: [number, number, number, number];
-  region_type: string;
-  region_type_korean?: string;
-}
-
-interface OverlayData {
-  symbols: Symbol[];
-  lines: Line[];
-  texts: TextItem[];
-  regions: Region[];
-  statistics: {
-    image_size: { width: number; height: number };
-    symbols_count: number;
-    lines_count: number;
-    texts_count: number;
-    regions_count: number;
-  };
-}
-
-// PID Layer 타입 (useLayerToggle에서 사용)
-type PIDLayerKey = 'symbols' | 'lines' | 'texts' | 'regions';
-
-const LINE_TYPE_COLORS: Record<string, string> = {
-  pipe: '#ff0000',
-  signal: '#0000ff',
-  unknown: '#00ff00',
-};
-
-interface PIDOverlayViewerProps {
-  initialImage?: string;
-  /** Design Checker API URL (default: http://localhost:5019) */
-  apiUrl?: string;
-  onOverlayGenerated?: (data: OverlayData) => void;
-}
+import type { PIDOverlayViewerProps, PIDSymbol, PIDLine, TextItem, Region } from './types';
+import { usePIDOverlay } from './usePIDOverlay';
+import { PIDSvgOverlay } from './PIDSvgOverlay';
 
 export function PIDOverlayViewer({
   initialImage,
   apiUrl = 'http://localhost:5019',
   onOverlayGenerated,
 }: PIDOverlayViewerProps) {
-  // State
-  const [image, setImage] = useState<string | null>(initialImage || null);
-  const [overlayData, setOverlayData] = useState<OverlayData | null>(null);
-  const [_svgOverlay, setSvgOverlay] = useState<string | null>(null);
-  const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'svg' | 'image'>('svg');
-  const [zoom, setZoom] = useState(1);
-  const [hoveredItem, setHoveredItem] = useState<{ type: string; data: unknown } | null>(null);
+  const {
+    image,
+    overlayData,
+    annotatedImage,
+    isLoading,
+    error,
+    viewMode,
+    zoom,
+    hoveredItem,
+    imageSize,
+    fileInputRef,
+    containerRef,
+    setViewMode,
+    setHoveredItem,
+    handleFileChange,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomReset,
+    handleDownload,
+  } = usePIDOverlay({ initialImage, apiUrl, onOverlayGenerated });
 
   // useLayerToggle 훅으로 레이어 가시성 관리
   const {
@@ -113,233 +57,9 @@ export function PIDOverlayViewer({
     showLabels,
     toggleLabels,
     layerConfigs,
-  } = useLayerToggle<PIDLayerKey>({
+  } = useLayerToggle({
     layers: PID_LAYER_CONFIG,
   });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Image size from overlay data
-  const imageSize = useMemo(() => {
-    if (overlayData?.statistics.image_size) {
-      return overlayData.statistics.image_size;
-    }
-    return { width: 1000, height: 800 };
-  }, [overlayData]);
-
-  // Handle file upload
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      if (evt.target?.result) {
-        setImage(evt.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
-
-    // Call Design Checker API for symbol detection
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('model_type', 'pid_class_aware');
-      formData.append('confidence', '0.3');
-      formData.append('use_sahi', 'true');
-      formData.append('visualize', 'true');
-
-      const response = await fetch(`${apiUrl}/api/v1/pipeline/detect`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Parse Design Checker response format
-        const detections = result.data?.detections || [];
-        const symbols: Symbol[] = detections.map((d: { class_name: string; class_id: number; confidence: number; bbox: BBox }) => ({
-          class_id: d.class_id,
-          class_name: d.class_name,
-          confidence: d.confidence,
-          bbox: d.bbox,
-        }));
-
-        const data: OverlayData = {
-          symbols: symbols,
-          lines: [],  // Line detection not available in this simple mode
-          texts: [],  // OCR not available in this simple mode
-          regions: [],  // Region segmentation not available in this simple mode
-          statistics: {
-            image_size: { width: 1000, height: 800 },  // Will be updated by actual image
-            symbols_count: symbols.length,
-            lines_count: 0,
-            texts_count: 0,
-            regions_count: 0,
-          },
-        };
-
-        setOverlayData(data);
-        setSvgOverlay(null);  // Use client-side SVG rendering
-        setAnnotatedImage(result.data?.visualized_image || null);
-        onOverlayGenerated?.(data);
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to detect symbols');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apiUrl, onOverlayGenerated]);
-
-  // Zoom controls
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
-  const handleZoomReset = () => setZoom(1);
-
-  // Download annotated image
-  const handleDownload = useCallback(() => {
-    if (annotatedImage) {
-      const link = document.createElement('a');
-      link.href = `data:image/png;base64,${annotatedImage}`;
-      link.download = 'pid_annotated.png';
-      link.click();
-    }
-  }, [annotatedImage]);
-
-  // Render SVG overlay manually (when we have overlay data but not SVG string)
-  const renderSvgOverlay = useMemo(() => {
-    if (!overlayData) return null;
-
-    return (
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
-        style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
-      >
-        {/* Regions layer (bottom) */}
-        {visibility.regions && overlayData.regions.map((region, i) => {
-          const [x1, y1, x2, y2] = region.bbox;
-          return (
-            <g key={`region-${i}`}>
-              <rect
-                x={x1}
-                y={y1}
-                width={x2 - x1}
-                height={y2 - y1}
-                fill="rgba(0, 255, 255, 0.1)"
-                stroke="#00ffff"
-                strokeWidth={2}
-                strokeDasharray="5,5"
-                className="pointer-events-auto cursor-pointer"
-                onMouseEnter={() => setHoveredItem({ type: 'region', data: region })}
-                onMouseLeave={() => setHoveredItem(null)}
-              />
-              {showLabels && (
-                <text x={x1 + 5} y={y1 + 15} fill="#00ffff" fontSize={12}>
-                  {region.region_type_korean || region.region_type}
-                </text>
-              )}
-            </g>
-          );
-        })}
-
-        {/* Lines layer */}
-        {visibility.lines && overlayData.lines.map((line, i) => {
-          const color = LINE_TYPE_COLORS[line.line_type] || LINE_TYPE_COLORS.unknown;
-
-          if (line.waypoints && line.waypoints.length >= 2) {
-            const points = line.waypoints.map(p => `${p[0]},${p[1]}`).join(' ');
-            return (
-              <polyline
-                key={`line-${i}`}
-                points={points}
-                fill="none"
-                stroke={color}
-                strokeWidth={2}
-                className="pointer-events-auto cursor-pointer"
-                onMouseEnter={() => setHoveredItem({ type: 'line', data: line })}
-                onMouseLeave={() => setHoveredItem(null)}
-              />
-            );
-          }
-
-          return (
-            <line
-              key={`line-${i}`}
-              x1={line.start_point[0]}
-              y1={line.start_point[1]}
-              x2={line.end_point[0]}
-              y2={line.end_point[1]}
-              stroke={color}
-              strokeWidth={2}
-              className="pointer-events-auto cursor-pointer"
-              onMouseEnter={() => setHoveredItem({ type: 'line', data: line })}
-              onMouseLeave={() => setHoveredItem(null)}
-            />
-          );
-        })}
-
-        {/* Symbols layer */}
-        {visibility.symbols && overlayData.symbols.map((symbol, i) => (
-          <g key={`symbol-${i}`}>
-            <rect
-              x={symbol.bbox.x}
-              y={symbol.bbox.y}
-              width={symbol.bbox.width}
-              height={symbol.bbox.height}
-              fill="rgba(255, 120, 0, 0.1)"
-              stroke="#ff7800"
-              strokeWidth={2}
-              className="pointer-events-auto cursor-pointer"
-              onMouseEnter={() => setHoveredItem({ type: 'symbol', data: symbol })}
-              onMouseLeave={() => setHoveredItem(null)}
-            />
-            {showLabels && (
-              <text
-                x={symbol.bbox.x}
-                y={symbol.bbox.y - 5}
-                fill="#ff7800"
-                fontSize={12}
-                fontWeight="bold"
-              >
-                {symbol.class_name} ({(symbol.confidence * 100).toFixed(0)}%)
-              </text>
-            )}
-          </g>
-        ))}
-
-        {/* Texts layer */}
-        {visibility.texts && overlayData.texts.map((text, i) => (
-          <g key={`text-${i}`}>
-            <rect
-              x={text.position.x}
-              y={text.position.y}
-              width={text.position.width}
-              height={text.position.height}
-              fill="none"
-              stroke="#ffa500"
-              strokeWidth={1}
-              className="pointer-events-auto cursor-pointer"
-              onMouseEnter={() => setHoveredItem({ type: 'text', data: text })}
-              onMouseLeave={() => setHoveredItem(null)}
-            />
-          </g>
-        ))}
-      </svg>
-    );
-  }, [overlayData, imageSize, visibility, showLabels, zoom]);
 
   return (
     <Card className="w-full">
@@ -415,7 +135,7 @@ export function PIDOverlayViewer({
               );
             })}
 
-            {/* Labels toggle - useLayerToggle 훅 사용 */}
+            {/* Labels toggle */}
             <button
               onClick={toggleLabels}
               className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs ${
@@ -492,7 +212,16 @@ export function PIDOverlayViewer({
                   alt="P&ID"
                   className="max-w-none"
                 />
-                {overlayData && renderSvgOverlay}
+                {overlayData && (
+                  <PIDSvgOverlay
+                    overlayData={overlayData}
+                    imageSize={imageSize}
+                    visibility={visibility}
+                    showLabels={showLabels}
+                    zoom={zoom}
+                    onHover={setHoveredItem}
+                  />
+                )}
               </>
             )}
           </div>
@@ -503,14 +232,14 @@ export function PIDOverlayViewer({
           <div className="absolute bottom-4 left-4 bg-black/80 text-white text-xs p-2 rounded shadow-lg z-50 max-w-xs">
             {hoveredItem.type === 'symbol' && (
               <div>
-                <div className="font-semibold">{(hoveredItem.data as Symbol).class_name}</div>
-                <div>신뢰도: {((hoveredItem.data as Symbol).confidence * 100).toFixed(1)}%</div>
+                <div className="font-semibold">{(hoveredItem.data as PIDSymbol).class_name}</div>
+                <div>신뢰도: {((hoveredItem.data as PIDSymbol).confidence * 100).toFixed(1)}%</div>
               </div>
             )}
             {hoveredItem.type === 'line' && (
               <div>
-                <div className="font-semibold">라인 #{(hoveredItem.data as Line).id}</div>
-                <div>유형: {(hoveredItem.data as Line).line_type}</div>
+                <div className="font-semibold">라인 #{(hoveredItem.data as PIDLine).id}</div>
+                <div>유형: {(hoveredItem.data as PIDLine).line_type}</div>
               </div>
             )}
             {hoveredItem.type === 'text' && (

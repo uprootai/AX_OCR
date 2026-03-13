@@ -1,0 +1,113 @@
+import type { TemplateInfo } from './types';
+
+export const techcrossTemplates: TemplateInfo[] = [
+  // ============ TECHCROSS TEMPLATES ============
+  {
+    nameKey: 'techcrossBwmsChecklist',
+    descKey: 'techcrossBwmsChecklistDesc',
+    useCaseKey: 'techcrossBwmsChecklistUseCase',
+    estimatedTime: '40-60s',
+    accuracy: '97%',
+    category: 'techcross',
+    featured: true,
+    workflow: {
+      name: 'TECHCROSS 1-1: BWMS Checklist',
+      description: 'BWMS P&ID 체크리스트 검증 - 96개 규칙 (ECS 58 + HYCHLOR 24 + Common 14), OCR Ensemble 4엔진',
+      nodes: [
+        { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+        { id: 'yolo_1', type: 'yolo', label: 'P&ID 심볼 검출', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 350, y: 100 } },
+        { id: 'aibom_1', type: 'blueprint-ai-bom', label: '심볼 검증 (AI BOM)', parameters: {}, position: { x: 600, y: 100 } },
+        { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'OCR Ensemble (4엔진)', parameters: {}, position: { x: 350, y: 300 } },
+        { id: 'linedetector_1', type: 'linedetector', label: '라인 검출', parameters: { method: 'lsd', min_length: 50, classify_types: true, classify_colors: true }, position: { x: 600, y: 300 } },
+        { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'BWMS 장비 분석', parameters: { generate_bom: false, generate_valve_list: true, generate_equipment_list: true }, position: { x: 850, y: 200 } },
+        { id: 'designchecker_1', type: 'designchecker', label: 'BWMS 체크리스트 (96규칙)', parameters: { rule_profile: 'bwms', product_type: 'ECS', severity_threshold: 'warning' }, position: { x: 1100, y: 200 } },
+      ],
+      edges: [
+        { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
+        { id: 'e2', source: 'imageinput_1', target: 'ocr_ensemble_1' },
+        { id: 'e3', source: 'imageinput_1', target: 'linedetector_1' },
+        { id: 'e4', source: 'yolo_1', target: 'aibom_1' },
+        { id: 'e5', source: 'imageinput_1', target: 'aibom_1' },
+        { id: 'e6', source: 'aibom_1', target: 'pidanalyzer_1' },
+        { id: 'e7', source: 'ocr_ensemble_1', target: 'pidanalyzer_1' },
+        { id: 'e8', source: 'linedetector_1', target: 'pidanalyzer_1' },
+        { id: 'e9', source: 'pidanalyzer_1', target: 'designchecker_1' },
+        { id: 'e10', source: 'aibom_1', target: 'designchecker_1' },
+      ],
+    },
+  },
+  {
+    nameKey: 'techcrossValveSignal',
+    descKey: 'techcrossValveSignalDesc',
+    useCaseKey: 'techcrossValveSignalUseCase',
+    estimatedTime: '30-45s',
+    accuracy: '96%',
+    category: 'techcross',
+    workflow: {
+      name: 'TECHCROSS 1-2: Valve Signal List',
+      description: '밸브 신호 목록 생성 - OCR Ensemble + Line Detector 영역 기반 추출, Excel 출력',
+      nodes: [
+        { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+        { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'OCR Ensemble (4엔진)', parameters: {}, position: { x: 350, y: 100 } },
+        { id: 'linedetector_1', type: 'linedetector', label: '영역 검출', parameters: { method: 'lsd', min_length: 50, detect_regions: true, classify_styles: true, min_region_area: 1000 }, position: { x: 350, y: 300 } },
+        { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'Valve Signal 추출', parameters: { generate_valve_list: true, valve_rule_id: 'valve_signal_bwms' }, position: { x: 650, y: 200 } },
+      ],
+      edges: [
+        { id: 'e1', source: 'imageinput_1', target: 'ocr_ensemble_1' },
+        { id: 'e2', source: 'imageinput_1', target: 'linedetector_1' },
+        { id: 'e3', source: 'ocr_ensemble_1', target: 'pidanalyzer_1' },
+        { id: 'e4', source: 'linedetector_1', target: 'pidanalyzer_1' },
+      ],
+    },
+  },
+  {
+    nameKey: 'techcrossEquipmentList',
+    descKey: 'techcrossEquipmentListDesc',
+    useCaseKey: 'techcrossEquipmentListUseCase',
+    estimatedTime: '25-40s',
+    accuracy: '93%',
+    category: 'techcross',
+    workflow: {
+      name: 'TECHCROSS 1-3: Equipment List',
+      description: '장비 목록 생성 - OCR Ensemble 기반 BWMS 11종 장비 검출 (ECU/FMU/ANU/TSU/APU/EWU/GDS 등), Excel 출력',
+      nodes: [
+        { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+        { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'OCR Ensemble (4엔진)', parameters: {}, position: { x: 400, y: 200 } },
+        { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'BWMS Equipment 검출', parameters: { generate_equipment_list: true, equipment_profile: 'bwms' }, position: { x: 700, y: 200 } },
+      ],
+      edges: [
+        { id: 'e1', source: 'imageinput_1', target: 'ocr_ensemble_1' },
+        { id: 'e2', source: 'ocr_ensemble_1', target: 'pidanalyzer_1' },
+      ],
+    },
+  },
+  {
+    nameKey: 'techcrossDeviation',
+    descKey: 'techcrossDeviationDesc',
+    useCaseKey: 'techcrossDeviationUseCase',
+    estimatedTime: '20-30s',
+    accuracy: '92%',
+    category: 'techcross',
+    workflow: {
+      name: 'TECHCROSS 1-4: Deviation Analysis (AI BOM)',
+      description: '편차 분석 - AI BOM 기반 Human-in-the-Loop 검증, ISO 10628/ISA 5.1/BWMS 표준 편차 검토 및 심각도 조정',
+      nodes: [
+        { id: 'imageinput_1', type: 'imageinput', label: 'P&ID 도면 입력', parameters: {}, position: { x: 100, y: 200 } },
+        { id: 'yolo_1', type: 'yolo', label: 'P&ID 심볼 검출', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 350, y: 100 } },
+        { id: 'linedetector_1', type: 'linedetector', label: '라인 검출', parameters: { method: 'lsd', min_length: 50, classify_types: true, detect_intersections: true }, position: { x: 350, y: 300 } },
+        { id: 'pidanalyzer_1', type: 'pidanalyzer', label: '연결성 분석', parameters: { generate_bom: false, generate_valve_list: false, generate_equipment_list: false }, position: { x: 600, y: 200 } },
+        { id: 'pidfeatures_1', type: 'pidfeatures', label: '편차 분석', parameters: { analyze_deviation: true, standards: ['ISO_10628', 'ISA_5.1', 'BWMS'], analysis_types: ['connectivity', 'symbol_validation'] }, position: { x: 850, y: 200 } },
+        { id: 'aibom_1', type: 'blueprint-ai-bom', label: '편차 검증 (AI BOM)', parameters: {}, position: { x: 1050, y: 200 } },
+      ],
+      edges: [
+        { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
+        { id: 'e2', source: 'imageinput_1', target: 'linedetector_1' },
+        { id: 'e3', source: 'yolo_1', target: 'pidanalyzer_1' },
+        { id: 'e4', source: 'linedetector_1', target: 'pidanalyzer_1' },
+        { id: 'e5', source: 'pidanalyzer_1', target: 'pidfeatures_1' },
+        { id: 'e6', source: 'imageinput_1', target: 'aibom_1' },
+        { id: 'e7', source: 'pidfeatures_1', target: 'aibom_1' },
+      ],
+    },
+  },
+];

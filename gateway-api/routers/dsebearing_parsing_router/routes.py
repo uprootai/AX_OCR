@@ -1,224 +1,27 @@
 """
-DSE Bearing Parsing Router - OCR 기반 도면 파싱 엔드포인트
-
-Title Block, Parts List, Dimension, BOM Matcher
+DSE Bearing Parsing — FastAPI route handlers
 """
 
 import json
 import logging
-import httpx
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from pydantic import BaseModel
 
 from services.dsebearing_parser import get_parser
+
+from .errors import (
+    DSEBearingError, ErrorCodes, get_error_message,
+    validate_file, MAX_FILE_SIZE,
+)
+from .models import (
+    TitleBlockResponse, PartsListResponse, PartsListItemResponse,
+    DimensionItem, DimensionParserResponse,
+    BOMItem, BOMMatcherResponse,
+)
+from .ocr_client import call_edocr2_ocr
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# eDOCr2 API URL
-EDOCR2_URL = "http://edocr2-v2-api:5002"
-
-
-# =====================
-# Error Handling
-# =====================
-
-class DSEBearingError(Exception):
-    """DSE Bearing 서비스 오류"""
-    def __init__(self, message: str, error_code: str = "UNKNOWN", details: Optional[Dict] = None):
-        self.message = message
-        self.error_code = error_code
-        self.details = details or {}
-        super().__init__(message)
-
-
-# 에러 코드 정의
-class ErrorCodes:
-    FILE_NOT_FOUND = "FILE_NOT_FOUND"
-    FILE_TOO_LARGE = "FILE_TOO_LARGE"
-    INVALID_FILE_TYPE = "INVALID_FILE_TYPE"
-    OCR_SERVICE_ERROR = "OCR_SERVICE_ERROR"
-    PARSING_ERROR = "PARSING_ERROR"
-    CUSTOMER_NOT_FOUND = "CUSTOMER_NOT_FOUND"
-    INVALID_JSON = "INVALID_JSON"
-    QUOTE_GENERATION_ERROR = "QUOTE_GENERATION_ERROR"
-
-
-# 에러 메시지 (한국어)
-ERROR_MESSAGES = {
-    ErrorCodes.FILE_NOT_FOUND: "파일이 제공되지 않았습니다. 이미지 파일을 업로드해주세요.",
-    ErrorCodes.FILE_TOO_LARGE: "파일 크기가 너무 큽니다. 최대 20MB까지 지원합니다.",
-    ErrorCodes.INVALID_FILE_TYPE: "지원하지 않는 파일 형식입니다. PNG, JPG, PDF 파일만 지원합니다.",
-    ErrorCodes.OCR_SERVICE_ERROR: "OCR 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
-    ErrorCodes.PARSING_ERROR: "도면 파싱 중 오류가 발생했습니다.",
-    ErrorCodes.CUSTOMER_NOT_FOUND: "등록되지 않은 고객입니다.",
-    ErrorCodes.INVALID_JSON: "잘못된 JSON 형식입니다.",
-    ErrorCodes.QUOTE_GENERATION_ERROR: "견적 생성 중 오류가 발생했습니다.",
-}
-
-
-def get_error_message(error_code: str, default: str = "") -> str:
-    """에러 코드에 해당하는 사용자 친화적 메시지 반환"""
-    return ERROR_MESSAGES.get(error_code, default or "알 수 없는 오류가 발생했습니다.")
-
-
-# 지원 파일 형식
-SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".pdf", ".tiff", ".tif"}
-MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
-
-
-def validate_file(file: Optional[UploadFile]) -> None:
-    """파일 유효성 검사"""
-    if not file or not file.filename:
-        return  # 파일 선택 사항
-
-    # 확장자 검사
-    ext = file.filename.lower().split(".")[-1] if "." in file.filename else ""
-    if f".{ext}" not in SUPPORTED_EXTENSIONS:
-        raise DSEBearingError(
-            get_error_message(ErrorCodes.INVALID_FILE_TYPE),
-            ErrorCodes.INVALID_FILE_TYPE,
-            {"filename": file.filename, "supported": list(SUPPORTED_EXTENSIONS)}
-        )
-
-
-# =====================
-# Response Models
-# =====================
-
-class ErrorResponse(BaseModel):
-    """공통 에러 응답"""
-    success: bool = False
-    error_code: str
-    message: str
-    details: Dict[str, Any] = {}
-
-class TitleBlockResponse(BaseModel):
-    success: bool
-    drawing_number: str
-    revision: str
-    part_name: str
-    material: str
-    date: str
-    size: str = ""
-    scale: str = ""
-    sheet: str = ""
-    company: str = ""
-    raw_texts: List[str] = []
-    confidence: float = 0.0
-
-class PartsListItemResponse(BaseModel):
-    no: str
-    description: str
-    material: str
-    size_dwg_no: str = ""
-    qty: int
-    remark: str = ""
-    weight: Optional[float] = None
-
-class PartsListResponse(BaseModel):
-    success: bool
-    items: List[PartsListItemResponse]
-    total_count: int
-    confidence: float = 0.0
-
-class DimensionItem(BaseModel):
-    type: str
-    value: Optional[float] = None
-    outer_diameter: Optional[float] = None
-    inner_diameter: Optional[float] = None
-    tolerance: Optional[str] = None
-    upper_tolerance: Optional[float] = None
-    lower_tolerance: Optional[float] = None
-    unit: str = "mm"
-    raw_text: str = ""
-
-class DimensionParserResponse(BaseModel):
-    success: bool
-    dimensions: List[DimensionItem]
-    gdt_symbols: List[str] = []
-    confidence: float = 0.0
-
-class BOMItem(BaseModel):
-    no: str
-    description: str
-    material: str
-    size_dwg_no: str = ""
-    dimensions: List[DimensionItem] = []
-    qty: int
-    weight: Optional[float] = None
-
-class BOMMatcherResponse(BaseModel):
-    success: bool
-    matched_items: List[BOMItem]
-    unmatched_count: int
-    match_confidence: float
-
-
-# =====================
-# Helper Functions
-# =====================
-
-async def call_edocr2_ocr(file_content: bytes, filename: str) -> List[Dict[str, Any]]:
-    """eDOCr2 API 호출하여 OCR 수행"""
-    try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            files = {"file": (filename, file_content, "image/png")}
-            response = await client.post(
-                f"{EDOCR2_URL}/api/v2/ocr",
-                files=files,
-                data={"profile": "bearing", "output_format": "json"}
-            )
-
-            if response.status_code == 200:
-                result = response.json()
-                # eDOCr2 응답에서 텍스트 추출
-                texts = []
-                if result.get("status") == "success" and "data" in result:
-                    data = result["data"]
-
-                    # 1. dimensions에서 값 추출
-                    if "dimensions" in data:
-                        for dim in data["dimensions"]:
-                            if isinstance(dim, dict) and "value" in dim:
-                                texts.append(dim["value"])
-
-                    # 2. possible_text에서 텍스트 추출
-                    if "possible_text" in data:
-                        for item in data["possible_text"]:
-                            if isinstance(item, dict) and "text" in item:
-                                texts.append(item["text"])
-
-                    # 3. text 섹션에서 추출
-                    if "text" in data and isinstance(data["text"], dict):
-                        for key, value in data["text"].items():
-                            if isinstance(value, str):
-                                texts.append(value)
-                            elif isinstance(value, list):
-                                texts.extend([str(v) for v in value])
-
-                    # 4. gdt 섹션에서 추출
-                    if "gdt" in data:
-                        for gdt in data["gdt"]:
-                            if isinstance(gdt, dict) and "value" in gdt:
-                                texts.append(gdt["value"])
-
-                elif "texts" in result:
-                    texts = result["texts"]
-                elif "results" in result:
-                    texts = result["results"]
-
-                logger.info(f"eDOCr2 응답: {len(texts)} 텍스트 추출됨")
-                return texts
-            else:
-                logger.warning(f"eDOCr2 API 실패: {response.status_code}")
-                return []
-    except Exception as e:
-        logger.error(f"eDOCr2 호출 오류: {e}")
-        return []
 
 
 # =====================
@@ -247,7 +50,6 @@ async def parse_title_block(
     try:
         logger.info(f"Title Block 파싱 시작, profile={profile}")
 
-        # 파일 유효성 검사
         validate_file(file)
 
         parser = get_parser()
@@ -271,7 +73,6 @@ async def parse_title_block(
         if file and file.filename:
             file_content = await file.read()
 
-            # 파일 크기 검사
             if len(file_content) > MAX_FILE_SIZE:
                 raise DSEBearingError(
                     get_error_message(ErrorCodes.FILE_TOO_LARGE),
@@ -291,10 +92,14 @@ async def parse_title_block(
         logger.exception(f"Title Block 파싱 오류: {e}")
         raise HTTPException(
             status_code=500,
-            detail={"error_code": ErrorCodes.PARSING_ERROR, "message": get_error_message(ErrorCodes.PARSING_ERROR), "details": {"error": str(e)}}
+            detail={
+                "error_code": ErrorCodes.PARSING_ERROR,
+                "message": get_error_message(ErrorCodes.PARSING_ERROR),
+                "details": {"error": str(e)}
+            }
         )
 
-    # 3. OCR 결과가 없으면 빈 결과 반환
+    # 3. OCR 결과 없으면 빈 결과 반환
     if not ocr_texts:
         logger.warning("OCR 결과 없음 - 빈 결과 반환")
         return TitleBlockResponse(
@@ -337,7 +142,7 @@ async def parse_title_block(
         scale=result.scale,
         sheet=result.sheet,
         company=result.company,
-        raw_texts=result.raw_texts[:20],  # 최대 20개
+        raw_texts=result.raw_texts[:20],
         confidence=confidence
     )
 
@@ -366,7 +171,6 @@ async def parse_parts_list(
     ocr_texts = []
     table = None
 
-    # OCR 결과 파싱
     if ocr_results:
         try:
             ocr_texts = json.loads(ocr_results)
@@ -375,20 +179,17 @@ async def parse_parts_list(
         except json.JSONDecodeError:
             pass
 
-    # Table 데이터 파싱
     if table_data:
         try:
             table = json.loads(table_data)
         except json.JSONDecodeError:
             pass
 
-    # 파일에서 OCR 수행
     if file and file.filename and not ocr_texts:
         file_content = await file.read()
         if file_content:
             ocr_texts = await call_edocr2_ocr(file_content, file.filename)
 
-    # OCR 결과 없으면 빈 결과 반환
     if not ocr_texts and not table:
         logger.warning("Parts List OCR 결과 없음 - 빈 결과 반환")
         return PartsListResponse(
@@ -398,10 +199,8 @@ async def parse_parts_list(
             confidence=0.0
         )
 
-    # 실제 파싱
     parsed_items = parser.parse_parts_list(ocr_texts, table)
 
-    # 결과 변환
     items = [
         PartsListItemResponse(
             no=item.no,
@@ -468,7 +267,6 @@ async def parse_dimensions(
             confidence=0.5
         )
 
-    # 실제 파싱
     dims = parser.extract_dimensions(ocr_texts)
 
     items = [
@@ -509,7 +307,6 @@ async def match_bom(
     """
     logger.info(f"BOM Matching 시작, profile={profile}")
 
-    # 입력 데이터 파싱
     tb_data = {}
     pl_data = []
     dim_data = []
@@ -517,7 +314,7 @@ async def match_bom(
     if title_block:
         try:
             tb_data = json.loads(title_block)
-        except:
+        except Exception:
             pass
 
     if parts_list:
@@ -525,7 +322,7 @@ async def match_bom(
             pl_data = json.loads(parts_list)
             if isinstance(pl_data, dict):
                 pl_data = pl_data.get("items", [])
-        except:
+        except Exception:
             pass
 
     if dimensions:
@@ -533,10 +330,9 @@ async def match_bom(
             dim_data = json.loads(dimensions)
             if isinstance(dim_data, dict):
                 dim_data = dim_data.get("dimensions", [])
-        except:
+        except Exception:
             pass
 
-    # 통합 BOM 생성
     matched_items = []
     for item in pl_data:
         if isinstance(item, dict):
@@ -551,7 +347,6 @@ async def match_bom(
             )
             matched_items.append(bom_item)
 
-    # 항목이 없으면 Mock 데이터
     if not matched_items:
         matched_items = [
             BOMItem(

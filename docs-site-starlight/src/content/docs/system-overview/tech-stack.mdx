@@ -373,7 +373,7 @@ IF 노드는 조건을 평가하고 `branch: "true"` 또는 `"false"`를 출력 
 | 파일 | 역할 |
 |------|------|
 | `gateway-api/blueprintflow/validators/dag_algorithms.py` | 토폴로지 정렬, 사이클 검출, 병렬 그룹 |
-| `gateway-api/blueprintflow/engine/pipeline_engine.py` | 파이프라인 실행 엔진 (3가지 모드) |
+| `gateway-api/blueprintflow/engine/pipeline_engine/` | 파이프라인 실행 엔진 (3가지 모드) |
 | `gateway-api/blueprintflow/engine/input_collector.py` | 부모 노드 출력 → 자식 노드 입력 전달 |
 | `gateway-api/blueprintflow/engine/execution_context.py` | 노드 상태 + 출력 관리 |
 | `web-ui/src/store/workflowStore.ts` | 프론트엔드 SSE 스트림 수신 + UI 업데이트 |

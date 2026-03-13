@@ -1,0 +1,73 @@
+import type { TemplateInfo } from './types';
+
+export const featuredTemplates: TemplateInfo[] = [
+  // ============ FEATURED TEMPLATES ============
+  {
+    nameKey: 'completeAnalysis',
+    descKey: 'completeAnalysisDesc',
+    useCaseKey: 'completeAnalysisUseCase',
+    estimatedTime: '30-40s',
+    accuracy: '98%',
+    category: 'advanced',
+    featured: true,
+    workflow: {
+      name: 'Complete Drawing Analysis',
+      description: 'Full analysis with AI BOM Human-in-the-Loop, detection, OCR, tolerance analysis, and AI description',
+      nodes: [
+        { id: 'imageinput_1', type: 'imageinput', label: 'Drawing Input', parameters: {}, position: { x: 100, y: 200 } },
+        { id: 'esrgan_1', type: 'esrgan', label: 'Image Enhancement', parameters: { scale: 2 }, position: { x: 300, y: 200 } },
+        { id: 'yolo_1', type: 'yolo', label: 'Symbol Detection', parameters: { confidence: 0.35, imgsz: 1280 }, position: { x: 500, y: 100 } },
+        { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Symbol Verification (AI BOM)', parameters: {}, position: { x: 700, y: 100 } },
+        { id: 'edgnet_1', type: 'edgnet', label: 'Segmentation', parameters: { threshold: 0.5 }, position: { x: 500, y: 300 } },
+        { id: 'edocr2_1', type: 'edocr2', label: 'Dimension OCR', parameters: {}, position: { x: 750, y: 300 } },
+        { id: 'ocr_ensemble_1', type: 'ocr_ensemble', label: 'OCR Ensemble', parameters: {}, position: { x: 900, y: 100 } },
+        { id: 'skinmodel_1', type: 'skinmodel', label: 'Tolerance Analysis', parameters: {}, position: { x: 950, y: 300 } },
+        { id: 'vl_1', type: 'vl', label: 'AI Description', parameters: { prompt: 'Describe this engineering drawing' }, position: { x: 1100, y: 150 } },
+        { id: 'merge_1', type: 'merge', label: 'Final Results', parameters: {}, position: { x: 1300, y: 200 } },
+      ],
+      edges: [
+        { id: 'e1', source: 'imageinput_1', target: 'esrgan_1' },
+        { id: 'e2', source: 'esrgan_1', target: 'yolo_1' },
+        { id: 'e3', source: 'esrgan_1', target: 'edgnet_1' },
+        { id: 'e4', source: 'esrgan_1', target: 'aibom_1' },
+        { id: 'e5', source: 'yolo_1', target: 'aibom_1' },
+        { id: 'e6', source: 'aibom_1', target: 'ocr_ensemble_1' },
+        { id: 'e7', source: 'edgnet_1', target: 'edocr2_1' },
+        { id: 'e8', source: 'edocr2_1', target: 'skinmodel_1' },
+        { id: 'e9', source: 'ocr_ensemble_1', target: 'vl_1' },
+        { id: 'e10', source: 'skinmodel_1', target: 'vl_1' },
+        { id: 'e11', source: 'vl_1', target: 'merge_1' },
+      ],
+    },
+  },
+  {
+    nameKey: 'pidAnalysis',
+    descKey: 'pidAnalysisDesc',
+    useCaseKey: 'pidAnalysisUseCase',
+    estimatedTime: '25-35s',
+    accuracy: '96%',
+    category: 'pid',
+    featured: true,
+    workflow: {
+      name: 'P&ID Analysis Pipeline',
+      description: 'Complete P&ID analysis with AI BOM Human-in-the-Loop, symbol detection, line detection, connectivity analysis',
+      nodes: [
+        { id: 'imageinput_1', type: 'imageinput', label: 'P&ID Image Input', parameters: {}, position: { x: 100, y: 200 } },
+        { id: 'yolo_1', type: 'yolo', label: 'YOLO P&ID Symbol Detection', parameters: { model_type: 'pid_class_aware', confidence: 0.25, iou: 0.45, imgsz: 640, use_sahi: true }, position: { x: 350, y: 100 } },
+        { id: 'aibom_1', type: 'blueprint-ai-bom', label: 'Symbol Verification (AI BOM)', parameters: {}, position: { x: 600, y: 100 } },
+        { id: 'linedetector_1', type: 'linedetector', label: 'Line Detector', parameters: { method: 'lsd', min_length: 50, merge_lines: true, classify_types: true }, position: { x: 350, y: 300 } },
+        { id: 'pidanalyzer_1', type: 'pidanalyzer', label: 'P&ID Analyzer', parameters: { generate_bom: true, generate_valve_list: true, generate_equipment_list: true }, position: { x: 850, y: 200 } },
+        { id: 'designchecker_1', type: 'designchecker', label: 'Design Checker', parameters: { severity_threshold: 'warning' }, position: { x: 1100, y: 200 } },
+      ],
+      edges: [
+        { id: 'e1', source: 'imageinput_1', target: 'yolo_1' },
+        { id: 'e2', source: 'imageinput_1', target: 'aibom_1' },
+        { id: 'e3', source: 'yolo_1', target: 'aibom_1' },
+        { id: 'e4', source: 'imageinput_1', target: 'linedetector_1' },
+        { id: 'e5', source: 'aibom_1', target: 'pidanalyzer_1' },
+        { id: 'e6', source: 'linedetector_1', target: 'pidanalyzer_1' },
+        { id: 'e7', source: 'pidanalyzer_1', target: 'designchecker_1' },
+      ],
+    },
+  },
+];
