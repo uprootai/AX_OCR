@@ -21,7 +21,7 @@ interface UseBuilderHandlersOptions {
 export function useBuilderHandlers({
   reactFlowInstance,
   selectedNodeId,
-  uploadedImage,
+  uploadedImage: _uploadedImage,
   showToast,
 }: UseBuilderHandlersOptions) {
   const customAPIs = useAPIConfigStore((state) => state.customAPIs);

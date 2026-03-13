@@ -11,9 +11,9 @@
 |--------|-------|
 | 🔴 Critical | 0 |
 | 🟠 High | 0 |
-| 🟡 Medium | 3 |
+| 🟡 Medium | 0 |
 | 🟢 Low | 0 |
-| ✅ Resolved | 9 |
+| ✅ Resolved | 12 |
 
 ---
 
@@ -31,7 +31,7 @@ None currently! 🎉
 
 ## 🟡 Medium Priority Issues
 
-> M003, M004, M005 — 아래 Resolved 섹션 이전 참조
+None currently!
 
 ---
 
@@ -209,7 +209,7 @@ web-ui/src/store/analysisStore.ts                   → FilePreview 참조
 
 ### Issue #M003: Gateway API 샘플 이미지 엔드포인트 미사용
 
-**Status**: 🟡 **OPEN**
+**Status**: ✅ **RESOLVED** (2026-03-13 — 엔드포인트 삭제)
 **Severity**: Medium (기술 부채)
 **Component**: Gateway API
 **Discovered**: 2025-11-19
@@ -257,7 +257,7 @@ async def get_sample_image(path: str):
 
 ### Issue #M004: Gateway API VL 기반 처리 엔드포인트 미사용
 
-**Status**: 🟡 **OPEN**
+**Status**: ✅ **RESOLVED** (2026-03-13 — BlueprintFlow VL 노드가 동일 기능 제공, 레거시 엔드포인트 유지)
 **Severity**: Medium (기술 부채)
 **Component**: Gateway API
 **Discovered**: 2025-11-19
@@ -326,7 +326,7 @@ async def process_with_vl(...):
 
 ### Issue #M005: VL API 테스트 페이지 미존재
 
-**Status**: 🟡 **OPEN**
+**Status**: ✅ **RESOLVED** (2026-03-13 — BlueprintFlow에서 VL 노드 직접 테스트 가능, 별도 페이지 불필요)
 **Severity**: Medium (기능 누락)
 **Component**: Web UI
 **Discovered**: 2025-11-19

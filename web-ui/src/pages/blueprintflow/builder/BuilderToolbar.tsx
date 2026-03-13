@@ -16,6 +16,7 @@ import { ExecutionModeToggle } from './ExecutionModeToggle';
 import { ExecutionStatusPanel } from '../components';
 import type { Project } from '../../../lib/blueprintBomApi';
 import type { ReactFlowNode } from './types';
+import type { NodeStatus } from '../../../store/workflowStore';
 
 export interface BuilderToolbarProps {
   // Workflow state
@@ -25,13 +26,13 @@ export interface BuilderToolbarProps {
   isExecuting: boolean;
   executionResult: Record<string, unknown> | null;
   executionError: string | null;
-  nodeStatuses: Record<string, string>;
+  nodeStatuses: Record<string, NodeStatus>;
   executionId: string | null;
   executionMode: 'sequential' | 'parallel' | 'eager';
   isCheckingContainers: boolean;
 
   // Image upload
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   uploadedImage: string | null;
   uploadedFileName: string | null;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -40,13 +41,13 @@ export interface BuilderToolbarProps {
   loadSampleImage: (path: string) => void;
 
   // GT file
-  gtFileInputRef: React.RefObject<HTMLInputElement>;
+  gtFileInputRef: React.RefObject<HTMLInputElement | null>;
   uploadedGTFile: { name: string; content: string } | null;
   handleGTFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setUploadedGTFile: (file: null) => void;
 
   // Pricing file
-  pricingFileInputRef: React.RefObject<HTMLInputElement>;
+  pricingFileInputRef: React.RefObject<HTMLInputElement | null>;
   uploadedPricingFile: { name: string; content: string } | null;
   handlePricingFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setUploadedPricingFile: (file: null) => void;
@@ -74,7 +75,7 @@ export interface BuilderToolbarProps {
 export function BuilderToolbar({
   workflowName,
   nodes,
-  edges,
+  edges: _edges,
   isExecuting,
   executionResult,
   executionError,

@@ -290,36 +290,6 @@ async def health_check():
     }
 
 
-@app.get("/api/v1/sample-image")
-async def get_sample_image(path: str):
-    """Serve sample image files"""
-    try:
-        allowed_paths = [
-            "/datasets/combined/images/test/synthetic_random_synthetic_test_000003.jpg",
-            "/datasets/combined/images/test/synthetic_random_synthetic_test_000001.jpg",
-            "/datasets/combined/images/test/synthetic_random_synthetic_test_000002.jpg"
-        ]
-
-        if path not in allowed_paths:
-            raise HTTPException(status_code=403, detail="Access to this path is not allowed")
-
-        file_path = Path(path)
-
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail=f"Image not found: {path}")
-
-        return FileResponse(
-            path=str(file_path),
-            media_type="image/jpeg",
-            filename=file_path.name
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error serving sample image: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # =====================
 # Main
 # =====================

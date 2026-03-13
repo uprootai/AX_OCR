@@ -1,20 +1,7 @@
 import { PlayCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import DetectionResultCard from '../DetectionResultCard';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/Card';
-
-interface NodeStatus {
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  error?: string;
-  message?: string;
-  elapsedSeconds?: number;
-  output?: {
-    detections?: unknown[];
-    dimensions?: unknown[];
-    tables?: unknown[];
-    texts?: unknown[];
-    [key: string]: unknown;
-  };
-}
+import type { NodeStatus } from '../../../store/workflowStore';
 
 interface ExecutionResultCardProps {
   nodeStatus: NodeStatus;
