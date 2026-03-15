@@ -14,6 +14,7 @@ export default defineConfig({
         customCss: ['./src/styles/custom.css'],
         components: {
             SocialIcons: './src/components/NavLinks.astro',
+            Head: './src/components/Head.astro',
         },
         sidebar: [
             {

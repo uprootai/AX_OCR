@@ -54,3 +54,110 @@
     background-color: var(--sl-color-accent-low);
     border-color: var(--sl-color-accent);
 }
+
+/* ============================================
+   Sidebar Toggle — 왼쪽/오른쪽 사이드바 접기/펴기
+   ============================================ */
+
+/* 토글 버튼 공통 */
+.sidebar-toggle-btn {
+    position: fixed;
+    z-index: 200;
+    width: 1.5rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sl-color-bg, var(--sl-color-gray-6));
+    border: 1px solid var(--sl-color-gray-4);
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-2);
+    transition: all 0.2s ease;
+    opacity: 0.85;
+    padding: 0;
+    line-height: 1;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-toggle-btn:hover {
+    background: var(--sl-color-accent-low);
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-accent);
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 왼쪽 사이드바 토글 */
+#toggle-left-sidebar {
+    top: 50%;
+    transform: translateY(-50%);
+    left: var(--sl-sidebar-width, 18.75rem);
+    border-radius: 0 0.375rem 0.375rem 0;
+    border-left: none;
+}
+
+/* 오른쪽 사이드바 토글 */
+#toggle-right-sidebar {
+    top: 50%;
+    transform: translateY(-50%);
+    right: var(--sl-sidebar-width, 18.75rem);
+    border-radius: 0.375rem 0 0 0.375rem;
+    border-right: none;
+}
+
+/* ---- 왼쪽 사이드바 숨김 ---- */
+body.hide-left-sidebar nav.sidebar {
+    display: none !important;
+}
+
+/* 왼쪽 숨김 시 토글 버튼을 왼쪽 가장자리로 이동 */
+body.hide-left-sidebar #toggle-left-sidebar {
+    left: 0;
+}
+
+/* 왼쪽 숨김 시 콘텐츠 확장: sidebar width를 0으로 */
+body.hide-left-sidebar {
+    --sl-content-inline-start: 0rem;
+}
+
+/* ---- 오른쪽 사이드바 숨김 ---- */
+body.hide-right-sidebar .right-sidebar-panel {
+    display: none !important;
+}
+
+/* 오른쪽 숨김 시 토글 버튼을 오른쪽 가장자리로 이동 */
+body.hide-right-sidebar #toggle-right-sidebar {
+    right: 0;
+}
+
+/* 오른쪽 숨김 시 TOC 열 제거 + 콘텐츠 확장 */
+@media (min-width: 72rem) {
+    body.hide-right-sidebar .main-frame {
+        --__toc-width: 0rem;
+    }
+    body.hide-right-sidebar .right-sidebar-container {
+        display: none !important;
+    }
+
+    /* 한쪽 숨김 시 콘텐츠 확장 */
+    body.hide-left-sidebar .main-pane,
+    body.hide-left-sidebar .content-panel,
+    body.hide-right-sidebar .main-pane,
+    body.hide-right-sidebar .content-panel {
+        --sl-content-width: 70rem;
+    }
+
+    /* 양쪽 다 숨김 시 최대한 넓게 */
+    body.hide-left-sidebar.hide-right-sidebar .main-pane,
+    body.hide-left-sidebar.hide-right-sidebar .content-panel {
+        --sl-content-width: 90rem;
+    }
+}
+
+/* 모바일/태블릿: 토글 버튼 숨김 */
+@media (max-width: 72rem) {
+    .sidebar-toggle-btn {
+        display: none;
+    }
+}

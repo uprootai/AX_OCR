@@ -1,0 +1,68 @@
+---
+/**
+ * SidebarToggle — 왼쪽/오른쪽 사이드바 접기/펴기 버튼
+ * Starlight Head 컴포넌트에서 로드
+ */
+---
+
+<script is:inline>
+(function () {
+  // 페이지 로드 후 토글 버튼 삽입
+  function initSidebarToggles() {
+    // 이미 있으면 스킵
+    if (document.getElementById('toggle-left-sidebar')) return;
+
+    // 왼쪽 토글 버튼
+    var leftBtn = document.createElement('button');
+    leftBtn.id = 'toggle-left-sidebar';
+    leftBtn.className = 'sidebar-toggle-btn';
+    leftBtn.title = '사이드바 접기/펴기';
+    leftBtn.setAttribute('aria-label', '왼쪽 사이드바 토글');
+    leftBtn.textContent = '◀';
+
+    // 오른쪽 토글 버튼
+    var rightBtn = document.createElement('button');
+    rightBtn.id = 'toggle-right-sidebar';
+    rightBtn.className = 'sidebar-toggle-btn';
+    rightBtn.title = '목차 접기/펴기';
+    rightBtn.setAttribute('aria-label', '오른쪽 사이드바 토글');
+    rightBtn.textContent = '▶';
+
+    document.body.appendChild(leftBtn);
+    document.body.appendChild(rightBtn);
+
+    // 저장된 상태 복원
+    var leftHidden = localStorage.getItem('ax-hide-left-sidebar') === '1';
+    var rightHidden = localStorage.getItem('ax-hide-right-sidebar') === '1';
+
+    if (leftHidden) {
+      document.body.classList.add('hide-left-sidebar');
+      leftBtn.textContent = '▶';
+    }
+    if (rightHidden) {
+      document.body.classList.add('hide-right-sidebar');
+      rightBtn.textContent = '◀';
+    }
+
+    // 이벤트
+    leftBtn.addEventListener('click', function () {
+      var hidden = document.body.classList.toggle('hide-left-sidebar');
+      leftBtn.textContent = hidden ? '▶' : '◀';
+      localStorage.setItem('ax-hide-left-sidebar', hidden ? '1' : '0');
+    });
+
+    rightBtn.addEventListener('click', function () {
+      var hidden = document.body.classList.toggle('hide-right-sidebar');
+      rightBtn.textContent = hidden ? '◀' : '▶';
+      localStorage.setItem('ax-hide-right-sidebar', hidden ? '1' : '0');
+    });
+  }
+
+  // DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSidebarToggles);
+  } else {
+    initSidebarToggles();
+  }
+})();
+</script>

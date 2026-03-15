@@ -22,15 +22,15 @@ import { Aside } from '@astrojs/starlight/components';
 
 ## 사례 1 — [동서기연: 터빈 베어링 견적 자동화](./dsebearing)
 
-> 94개 터빈 베어링 도면 → 치수 추출 → BOM 분류 → 견적 자동 산출
+> 94개 PDF 자료 패키지 → 치수 추출 → BOM 분류 → 견적 자동 산출
 
 | 항목 | 값 |
 |------|-----|
 | 고객사 | (주)동서기연 — 터빈/발전기 베어링 제조 |
-| 도면 | **94개** PDF (1UNIT PJT 전체) |
+| 전달 자료 | **94개** PDF (BOM 1 + 사양서 2 + 품질기준서 4 + 부품 도면 87) |
 | 치수 추출 | **548개** (eDOCr2 + PaddleOCR) |
 | BOM 분류 | **326개** (ASSY 7 / SUB 16 / PART 303) |
-| 자동 견적 | **₩110,747,678** (약 1.1억) |
+| 자동 견적 | **₩3,200,466** (11종 54개 품목 기준, 내부 추정 단가) |
 | 기존 소요 | 12일 → 목표 **1일** |
 | 상태 | 개발 중 (2차 미팅 대기) |
 
@@ -71,7 +71,7 @@ YOLO 커스텀 모델로 P&ID 심볼을 자동 검출하고, 독립 실행 Docke
     { id: 'pid', label: 'P&ID 도면\n(파나시아)', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
     { id: 'ocr', label: 'eDOCr2\n치수 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
     { id: 'yolo_pid', label: 'YOLO\nP&ID 27cls', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
-    { id: 'bom', label: 'BOM + 견적\n₩1.1억', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'bom', label: 'BOM + 견적\n₩3.2M (1차)', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
     { id: 'export', label: 'Docker\n납품 패키지', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
   ]}
   edges={[
