@@ -102,6 +102,7 @@ class DimensionUpdate(BaseModel):
     verification_status: Optional[VerificationStatus] = None
     linked_to: Optional[str] = None
     modified_bbox: Optional[BoundingBox] = None
+    material_role: Optional[MaterialRole] = None
 
 
 class DimensionResult(BaseModel):

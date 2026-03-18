@@ -153,7 +153,9 @@ class DimensionService:
                 d.confidence *= 0.5
 
         # 후처리: OCR 소수점 교정 + 소재 역할 분류
-        dimensions = postprocess_dimensions(dimensions, image_width, image_height)
+        dimensions = postprocess_dimensions(
+            dimensions, image_width, image_height, image_path=image_path
+        )
 
         model_id = "+".join(used_engines) if used_engines else "none"
         processing_time = (time.time() - start_time) * 1000

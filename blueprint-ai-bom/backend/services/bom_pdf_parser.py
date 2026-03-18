@@ -111,11 +111,10 @@ class BOMPDFParser:
             if not rows or len(rows) < 2:
                 continue
 
-            # 헤더 행 분석 → 컬럼 매핑
-            header_row = rows[0]
-            col_map = self._detect_columns(header_row)
-            if not col_map:
-                logger.warning(f"페이지 {page_num + 1}: 컬럼 매핑 실패 (헤더: {header_row})")
+            # 헤더 행 탐색 — rows[0]이 프리앰블일 수 있으므로 스캔
+            header_idx, col_map = self._find_header_row(rows)
+            if col_map is None:
+                logger.warning(f"페이지 {page_num + 1}: 컬럼 매핑 실패 (rows[:3]: {rows[:3]})")
                 continue
 
             # 테이블의 행 bounding boxes
@@ -124,8 +123,8 @@ class BOMPDFParser:
             # Level 컬럼 존재 여부 확인
             level_col_idx = col_map.get("level_depth")
 
-            # 데이터 행 처리
-            for row_idx in range(1, len(rows)):
+            # 데이터 행 처리 (헤더 다음 행부터)
+            for row_idx in range(header_idx + 1, len(rows)):
                 row = rows[row_idx]
 
                 # 빈 행 건너뛰기
@@ -146,6 +145,37 @@ class BOMPDFParser:
                     items.append(item)
 
         return items
+
+    def _find_header_row(
+        self, rows: list
+    ) -> Tuple[int, Optional[Dict[str, int]]]:
+        """테이블 행 목록에서 실제 BOM 헤더 행을 찾습니다.
+
+        PyMuPDF가 프리앰블(Project NO, 작성자 등)과 BOM 테이블을
+        하나의 테이블로 합칠 수 있으므로, rows[0]이 항상 헤더가 아닙니다.
+        drawing_number가 매핑되는 첫 행을 진짜 헤더로 사용합니다.
+
+        Returns:
+            (header_index, col_map) — col_map이 None이면 헤더를 못 찾은 것
+        """
+        # drawing_number가 있는 행을 우선 탐색 (최대 10행)
+        scan_limit = min(len(rows), 10)
+        for idx in range(scan_limit):
+            col_map = self._detect_columns(rows[idx])
+            if col_map and "drawing_number" in col_map:
+                if idx > 0:
+                    logger.info(
+                        f"프리앰블 감지: 실제 헤더는 rows[{idx}] "
+                        f"(rows[0]: {rows[0][:3]}...)"
+                    )
+                return idx, col_map
+
+        # drawing_number 없이라도 유효한 매핑이 있으면 사용 (기존 동작)
+        col_map = self._detect_columns(rows[0])
+        if col_map:
+            return 0, col_map
+
+        return 0, None
 
     def _detect_columns(self, header_row: list) -> Optional[Dict[str, int]]:
         """헤더 행에서 컬럼 인덱스 매핑

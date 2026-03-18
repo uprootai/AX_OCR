@@ -6,12 +6,15 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 
+type MaterialRole = 'outer_diameter' | 'inner_diameter' | 'length' | 'other' | null;
+
 interface Dimension {
   id: string;
   bbox: { x1: number; y1: number; x2: number; y2: number };
   value: string;
   modified_value: string | null;
   verification_status: 'pending' | 'approved' | 'rejected' | 'modified' | 'manual';
+  material_role?: MaterialRole;
 }
 
 interface DimensionOverlayProps {
@@ -29,6 +32,12 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: '#ef4444',
   modified: '#3b82f6',
   manual: '#a855f7',
+};
+
+const ROLE_COLORS: Record<string, { color: string; label: string }> = {
+  outer_diameter: { color: '#ef4444', label: 'OD' },
+  inner_diameter: { color: '#3b82f6', label: 'ID' },
+  length: { color: '#22c55e', label: 'W' },
 };
 
 export function DimensionOverlay({
@@ -98,11 +107,13 @@ export function DimensionOverlay({
           >
             {dimensions.map((dim) => {
               const isSelected = dim.id === selectedId;
-              const color = STATUS_COLORS[dim.verification_status] || STATUS_COLORS.pending;
+              const roleConfig = dim.material_role ? ROLE_COLORS[dim.material_role] : null;
+              const color = roleConfig?.color || STATUS_COLORS[dim.verification_status] || STATUS_COLORS.pending;
               const { x1, y1, x2, y2 } = dim.bbox;
               const w = x2 - x1;
               const h = y2 - y1;
               const label = dim.modified_value || dim.value;
+              const roleLabel = roleConfig ? `[${roleConfig.label}] ` : '';
 
               return (
                 <g key={dim.id} style={{ pointerEvents: 'auto', cursor: 'pointer' }}>
@@ -113,10 +124,11 @@ export function DimensionOverlay({
                     width={w}
                     height={h}
                     fill={color}
-                    fillOpacity={isSelected ? 0.35 : 0.15}
+                    fillOpacity={isSelected ? 0.35 : roleConfig ? 0.25 : 0.15}
                     stroke={color}
-                    strokeWidth={isSelected ? px(3) : px(2)}
+                    strokeWidth={isSelected ? px(3) : roleConfig ? px(2.5) : px(2)}
                     strokeOpacity={isSelected ? 1 : 0.8}
+                    strokeDasharray={roleConfig ? undefined : 'none'}
                     rx={px(2)}
                     onClick={() => onSelect(isSelected ? null : dim.id)}
                   />
@@ -125,14 +137,14 @@ export function DimensionOverlay({
                     y={y1 - px(3)}
                     textAnchor="middle"
                     fill={color}
-                    fontSize={px(11)}
-                    fontWeight={isSelected ? 'bold' : '600'}
+                    fontSize={px(roleConfig ? 13 : 11)}
+                    fontWeight={roleConfig ? 'bold' : isSelected ? 'bold' : '600'}
                     stroke="white"
                     strokeWidth={px(0.5)}
                     paintOrder="stroke"
                     style={{ pointerEvents: 'none' }}
                   >
-                    {label}
+                    {roleLabel}{label}
                   </text>
                 </g>
               );

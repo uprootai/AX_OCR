@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple
 
 from schemas.dimension import Dimension, DimensionType, MaterialRole
 from schemas.detection import VerificationStatus, BoundingBox
+from services.opencv_classifier import classify_od_id_width
 
 logger = logging.getLogger(__name__)
 
@@ -415,52 +416,270 @@ def _format_corrected(v_fixed: float, original_str: str) -> str:
     return f"{v_fixed:.{target_decimals}f}".rstrip('0').rstrip('.')
 
 
+def filter_non_dimension_text(dimensions: List[Dimension]) -> List[Dimension]:
+    """비치수 텍스트 필터링 — 날짜, 도면번호, 섹션 라벨, 벌룬 번호 제거
+
+    패턴:
+    - 날짜: 2020.02.18, 202.004.28 → Ø 접두어와 함께 오인식됨
+    - 도면번호: TD0060700, 9Z09000L 등
+    - 섹션 라벨: E-3, B-2, F-6, D-5 등
+    - 벌룬/아이템 번호: Ø01~Ø19 (conf < 0.55) — 조립도 원형 번호
+    - 후행 소수점: 3., 6., 1. (값 불완전)
+    - 단위 포함 텍스트: 1mm, 71mm
+    """
+    # 비치수 패턴 (제거 대상)
+    non_dim_patterns = [
+        # 날짜 패턴 (Ø 접두어 포함)
+        re.compile(r'^[ØφΦ⌀]?\s*\d{2,4}[.\-/]\d{2}[.\-/]\d{2}'),
+        # 도면번호 패턴
+        re.compile(r'(?i)^T[D0][\d]{5,}'),
+        re.compile(r'(?i)[a-z]*[Z9]0?[a-z]?900[0-9GLI]*', re.IGNORECASE),
+        # 섹션/뷰 라벨 (E-3, B-2, F-6, D-5 등)
+        re.compile(r'^[A-GS]-\d$'),
+        # ISO 표준 참조
+        re.compile(r'(?i)^[1I]?SO\s*276'),
+        # 용지 크기
+        re.compile(r'(?i)\d+[x×]\d+\s*mm$'),
+        # 순수 가비지
+        re.compile(r'^[a-z]{2,}\d*$', re.IGNORECASE),
+    ]
+
+    result: List[Dimension] = []
+    for d in dimensions:
+        text = d.value.strip()
+
+        # 패턴 매칭으로 비치수 제거
+        skip = False
+        for pat in non_dim_patterns:
+            if pat.search(text):
+                logger.debug(f"비치수 텍스트 제거: '{text}' (패턴: {pat.pattern})")
+                skip = True
+                break
+        if skip:
+            continue
+
+        # 벌룬/아이템 번호 필터: Ø + 1~2자리 정수, 낮은 신뢰도
+        balloon_match = re.match(r'^[ØφΦ⌀]\s*0?(\d{1,2})$', text)
+        if balloon_match:
+            num = int(balloon_match.group(1))
+            if 1 <= num <= 19 and d.confidence < 0.55:
+                logger.debug(f"벌룬 번호 제거: '{text}' (conf={d.confidence:.2f})")
+                continue
+
+        # 후행 소수점만 있는 값 (3., 6., 1.) — 불완전한 OCR
+        if re.match(r'^\d+\.$', text) and len(text) <= 3:
+            logger.debug(f"불완전 후행소수점 제거: '{text}'")
+            continue
+
+        # 단위 접미사 정리 (1mm → 1, 71mm → 71)
+        unit_cleaned = re.sub(r'\s*mm\s*$', '', text, flags=re.IGNORECASE)
+        if unit_cleaned != text and re.match(r'^\d+\.?\d*$', unit_cleaned):
+            d = d.model_copy(update={"value": unit_cleaned})
+
+        result.append(d)
+
+    removed = len(dimensions) - len(result)
+    if removed > 0:
+        logger.info(f"비치수 텍스트 필터: {removed}개 제거 (원본 {len(dimensions)}개)")
+    return result
+
+
+def fix_tolerance_absorption(dimensions: List[Dimension]) -> List[Dimension]:
+    """공차 흡수 오류 교정 — 공차값이 치수에 병합된 패턴 분리
+
+    패턴:
+    - 486.001 → 486 ±0.01 (3자리 정수 + .00X 패턴)
+    - 202.505.22 → 202.5 +0.05/-0.22 (소수 + .XX.XX 패턴)
+    - 160.003 → 160 +0.003 (3자리 정수 + .00X 패턴)
+    - 250.01 → 250 ±0.01 (3자리 정수 + .0X 패턴)
+    """
+    result: List[Dimension] = []
+    for d in dimensions:
+        text = d.value.strip()
+        # Ø 접두어 제거 후 숫자 분석
+        prefix = ''
+        cleaned = text
+        prefix_match = re.match(r'^([ØφΦ⌀]\s*)', text)
+        if prefix_match:
+            prefix = prefix_match.group(1)
+            cleaned = text[len(prefix):]
+
+        # 패턴 1: NNN.00X → NNN ±0.00X (3자리 정수 + 매우 작은 소수)
+        m = re.match(r'^(\d{3,})\.0{1,2}(\d{1,3})$', cleaned)
+        if m and d.tolerance is None:
+            base = m.group(1)
+            tol_digits = '0' * (len(cleaned.split('.')[1]) - len(m.group(2))) + m.group(2)
+            tol_val = f"0.{tol_digits}"
+            new_value = f"{prefix}{base}"
+            new_tolerance = f"±{tol_val}"
+            logger.info(f"공차 흡수 교정: '{text}' → value='{new_value}', tol='{new_tolerance}'")
+            d = d.model_copy(update={
+                "value": new_value,
+                "tolerance": new_tolerance,
+                "ocr_corrected": True,
+                "confidence": round(d.confidence * 0.9, 4),
+            })
+            result.append(d)
+            continue
+
+        # 패턴 2: NNN.N + XX.XX (이중 소수점 — 공차 양쪽 값 병합)
+        m = re.match(r'^(\d+\.\d+?)(\d{2})\.(\d{2})$', cleaned)
+        if m and d.tolerance is None:
+            base = m.group(1)
+            upper = f"0.{m.group(2)}"
+            lower = f"0.{m.group(3)}"
+            new_value = f"{prefix}{base}"
+            new_tolerance = f"+{upper}/-{lower}"
+            logger.info(f"공차 흡수 교정 (이중): '{text}' → value='{new_value}', tol='{new_tolerance}'")
+            d = d.model_copy(update={
+                "value": new_value,
+                "tolerance": new_tolerance,
+                "ocr_corrected": True,
+                "confidence": round(d.confidence * 0.9, 4),
+            })
+
+        result.append(d)
+    return result
+
+
+def fix_character_confusion(dimensions: List[Dimension]) -> List[Dimension]:
+    """OCR 문자 혼동 교정
+
+    패턴:
+    - B ↔ 8: Ø2B7 → Ø287, 3B.1 → 38.1
+    - Ø 뒤 숫자 전위: Ø01 → Ø10, Ø02 → Ø20 (conf > 0.7인 경우만)
+    """
+    result: List[Dimension] = []
+    for d in dimensions:
+        text = d.value.strip()
+        modified = False
+
+        # B → 8 교정 (숫자 컨텍스트 내의 B — 소수점 사이도 포함)
+        if re.search(r'\d[Bb][\d.]', text) or re.search(r'[Bb]\d+\.\d', text):
+            new_text = re.sub(r'(?<=\d)[Bb](?=[\d.])', '8', text)
+            new_text = re.sub(r'^([ØφΦ⌀]\s*)(\d+)[Bb](\d)', r'\g<1>\g<2>8\3', new_text)
+            if new_text != text:
+                logger.info(f"문자 혼동 교정 B→8: '{text}' → '{new_text}'")
+                d = d.model_copy(update={"value": new_text, "ocr_corrected": True})
+                modified = True
+
+        # Ø 뒤 숫자 전위 교정 (Ø01 → Ø10, Ø02 → Ø20 등)
+        # 단, conf >= 0.7이고 Ø + 0 + 단일숫자인 경우
+        if not modified and d.confidence >= 0.7:
+            m = re.match(r'^([ØφΦ⌀])\s*0(\d)$', text)
+            if m and m.group(2) != '0':
+                new_text = f"{m.group(1)}{m.group(2)}0"
+                logger.info(f"Ø 숫자 전위 교정: '{text}' → '{new_text}'")
+                d = d.model_copy(update={
+                    "value": new_text,
+                    "ocr_corrected": True,
+                    "confidence": round(d.confidence * 0.9, 4),
+                })
+
+        result.append(d)
+    return result
+
+
+def fix_decimal_by_confidence(dimensions: List[Dimension]) -> List[Dimension]:
+    """신뢰도 기반 소수점 교정 — conf=0.85 구간에서 체계적 ÷10 오류 감지
+
+    MAD 기반 교정의 보완: conf가 정확히 0.85(±0.01)인 값 중
+    ×10 결과가 도면에서 더 합리적인 정수가 되는 경우 교정.
+
+    예: 34.7 (conf=0.85) → 347, 6.81 (conf=0.85) → 68.1
+    """
+    result: List[Dimension] = []
+    for d in dimensions:
+        v = _parse_numeric(d.value)
+        if v is None or d.ocr_corrected:
+            result.append(d)
+            continue
+
+        # conf ≈ 0.85 (±0.015) — 체계적 ÷10 오류 지표
+        is_suspect_conf = 0.835 <= d.confidence <= 0.865
+
+        if is_suspect_conf and d.dimension_type in (
+            DimensionType.LENGTH, DimensionType.DIAMETER, DimensionType.UNKNOWN
+        ):
+            v10 = v * 10
+            # ×10이 깔끔한 정수 또는 소수점 1자리가 되는지 확인
+            # IEEE 754 부동소수점 오차 허용 (116.82*10=1168.1999...98)
+            is_cleaner = (
+                abs(v10 - round(v10)) < 0.001  # 347.0 → 정수
+                or abs(v10 * 10 - round(v10 * 10)) < 0.01  # 68.1 → 소수점 1자리
+            )
+            # 원본 텍스트의 소수점 자릿수 확인 (str(float)는 .0 추가하므로 부정확)
+            num_match = re.search(r'(\d+\.?\d*)', re.sub(r'^[ØφΦ⌀RrMmCc]', '', d.value.strip()))
+            num_str = num_match.group(1) if num_match else str(v)
+            decimal_part = num_str.split('.')[1] if '.' in num_str else ''
+            # 인치-미터 변환 표준값 제외 (25.4=1", 12.7=0.5", 50.8=2")
+            inch_standards = {25.4, 12.7, 50.8, 76.2, 38.1, 19.05, 6.35}
+            is_inch_standard = any(abs(v - s) < 0.01 for s in inch_standards)
+            # 2자리 이상: 116.82→1168.2, 또는 1자리 + ×10=정수≥100: 34.7→347
+            has_suspicious_decimal = not is_inch_standard and (
+                len(decimal_part) >= 2
+                or (len(decimal_part) == 1 and v >= 10
+                    and abs(v10 - round(v10)) < 0.001 and v10 >= 100)
+            )
+
+            if is_cleaner and has_suspicious_decimal and 1 < v < 500:
+                raw_str = re.search(r'(\d+\.?\d*)', re.sub(r'^[ØφΦ⌀RrMmCc]', '', d.value.strip()))
+                if raw_str:
+                    old = raw_str.group(1)
+                    new = _format_corrected(v10, old)
+                    new_value = d.value.replace(old, new, 1)
+                    logger.info(
+                        f"신뢰도 기반 ÷10 교정: '{d.value}' → '{new_value}' "
+                        f"(conf={d.confidence:.3f})"
+                    )
+                    d = d.model_copy(update={
+                        "value": new_value,
+                        "confidence": round(d.confidence * 0.85, 4),
+                        "ocr_corrected": True,
+                    })
+
+        result.append(d)
+    return result
+
+
 def correct_decimal_artifacts(dimensions: List[Dimension]) -> List[Dimension]:
-    """OCR 소수점 오인식 교정 (MAD 기반 이상치 감지)
+    """OCR 소수점 오인식 교정 (클러스터 친화도 기반)
 
-    패턴: PaddleOCR이 `490.02` → `4900.2`, `450` → `4500` 으로 읽는 오류.
-    전략: MAD(Median Absolute Deviation) 로 이상치를 감지하고,
-    /10 교정값이 합리적 범위면 자동 적용한다.
+    패턴: PaddleOCR이 `490` → `4900`, `490.02` → `4900.2` 로 읽는 ×10 오류.
+    전략: 값이 다른 치수들의 분포에서 고립되어 있고,
+    ÷10 결과가 기존 치수 클러스터에 합류하면 교정한다.
 
-    MAD는 중앙값 기반이므로 이상치가 50% 미만이면 항상 robust하다.
-    (IQR 방식은 이상치가 Q3를 직접 왜곡하는 취약점이 있음)
+    기존 MAD 방식은 이분포(bimodal) 데이터에서 큰 정상 값을 오교정.
+    → 개선: 최대값 구간(상위 10%)만 후보로 삼고, ÷10 후 기존 값과의
+    최근접 거리가 줄어드는 경우만 교정한다.
 
-    - 이상치 기준: 값 > median + 3 × MAD
-    - 교정 수락 조건: 교정값 ≤ median × 4 (비율 기반)
     - 교정 시 confidence *= 0.85 (불확실성 반영)
     """
-    # MAD 계산용 숫자 수집 — 명백한 단위 노이즈(>50000) 제외
+    # 이전 단계에서 교정된 치수 제외하고 숫자 수집
     numeric_vals: List[float] = []
     for d in dimensions:
+        if d.ocr_corrected:
+            continue
         v = _parse_numeric(d.value)
         if v is not None and 0 < v < 50000:
             numeric_vals.append(v)
 
     if len(numeric_vals) < 5:
-        return dimensions  # 샘플 부족 → 교정 건너뜀
+        return dimensions
 
     numeric_vals.sort()
-    n = len(numeric_vals)
-    # 중앙값 계산 (이상치에 무관하게 stable)
-    if n % 2 == 0:
-        median = (numeric_vals[n // 2 - 1] + numeric_vals[n // 2]) / 2
-    else:
-        median = numeric_vals[n // 2]
+    max_val = numeric_vals[-1]
 
-    # MAD = 편차의 중앙값
-    deviations = sorted([abs(v - median) for v in numeric_vals])
-    if n % 2 == 0:
-        mad = (deviations[n // 2 - 1] + deviations[n // 2]) / 2
-    else:
-        mad = deviations[n // 2]
-
-    if mad < 1:
-        return dimensions  # 치수가 모두 유사 (나사 등) → 교정 불필요
-
-    fence = median + 3 * mad  # 3-MAD fence (≈ 3σ)
+    # 상위 10% 이상이면서 ×10 격차가 있는 값만 후보
+    # (정상 분포에서는 ×10 격차가 없음)
+    p90 = numeric_vals[int(len(numeric_vals) * 0.9)]
 
     corrected: List[Dimension] = []
     for d in dimensions:
+        if d.ocr_corrected:
+            corrected.append(d)
+            continue
+
         raw_num_str = re.search(r'(\d+\.?\d*)', re.sub(r'^[ØφΦ⌀RrMmCc]', '', d.value.strip()))
         if not raw_num_str:
             corrected.append(d)
@@ -471,15 +690,28 @@ def correct_decimal_artifacts(dimensions: List[Dimension]) -> List[Dimension]:
             corrected.append(d)
             continue
 
-        if v > fence:
+        # 후보 조건: 값이 상위 10% 이상이고 max 대비 같은 자릿수
+        if v >= p90 and v >= max_val * 0.5:
             v_fixed = v / 10
-            if v_fixed <= 5000:  # 기계 부품 물리적 한계 (5m 이하) — 도메인 지식 기반 수락 조건
+            # ÷10 결과가 기존 치수 클러스터에 가까운지 확인
+            # "가까움" = 기존 치수 중 ±20% 범위에 다른 값이 존재
+            has_neighbor = any(
+                abs(nv - v_fixed) / max(v_fixed, 0.1) < 0.2
+                for nv in numeric_vals if nv != v
+            )
+            # 원본은 고립 (±20% 범위에 이웃 없음)
+            is_isolated = not any(
+                abs(nv - v) / max(v, 0.1) < 0.2
+                for nv in numeric_vals if nv != v
+            )
+
+            if has_neighbor and is_isolated and v_fixed <= 5000:
                 old_str = raw_num_str.group(1)
                 new_str = _format_corrected(v_fixed, old_str)
                 new_value = d.value.replace(old_str, new_str, 1)
                 logger.info(
                     f"OCR 소수점 교정: '{d.value}' → '{new_value}' "
-                    f"(median={median:.1f}, MAD={mad:.1f}, fence={fence:.1f})"
+                    f"(÷10 후 클러스터 합류, p90={p90:.1f})"
                 )
                 d = d.model_copy(update={
                     "value": new_value,
@@ -573,28 +805,63 @@ def postprocess_dimensions(
     dimensions: List[Dimension],
     image_width: int = 0,
     image_height: int = 0,
+    image_path: Optional[str] = None,
 ) -> List[Dimension]:
     """치수 후처리 파이프라인
 
-    1. OCR 소수점 오류 교정 (correct_decimal_artifacts)
-    2. 소재 역할 분류 (classify_material_role)
+    1. 비치수 텍스트 필터링 (날짜, 도번, 섹션 라벨, 벌룬 번호)
+    2. 공차 흡수 오류 교정 (486.001 → 486 ±0.01)
+    3. 문자 혼동 교정 (B↔8, Ø 숫자 전위)
+    4. 신뢰도 기반 ÷10 소수점 교정 (conf=0.85 구간)
+    5. MAD 기반 이상치 소수점 교정 (기존)
+    6. ★ OpenCV OD/ID/폭 분류기 (신규 — Ø 기호 + 동심원 + 위치)
+    7. 소재 역할 분류 (OpenCV가 미분류한 치수만 fallback)
 
     dimension_service.py의 extract_dimensions()에서 호출한다.
     """
-    # 1. 소수점 아티팩트 교정
+    original_count = len(dimensions)
+
+    # 1. 비치수 텍스트 필터링
+    dimensions = filter_non_dimension_text(dimensions)
+
+    # 2. 공차 흡수 오류 교정
+    dimensions = fix_tolerance_absorption(dimensions)
+
+    # 3. 문자 혼동 교정
+    dimensions = fix_character_confusion(dimensions)
+
+    # 4. 신뢰도 기반 ÷10 소수점 교정
+    dimensions = fix_decimal_by_confidence(dimensions)
+
+    # 5. MAD 기반 이상치 소수점 교정 (기존)
     dimensions = correct_decimal_artifacts(dimensions)
 
-    # 2. 역할 분류용 정렬 값 목록 (상대 크기 판단)
+    if len(dimensions) != original_count:
+        logger.info(
+            f"후처리 파이프라인: {original_count}개 → {len(dimensions)}개 "
+            f"({original_count - len(dimensions)}개 제거)"
+        )
+
+    # 6. ★ OpenCV OD/ID/폭 분류기 (Ø 기호 + 동심원 + 위치)
+    dimensions = classify_od_id_width(
+        dimensions, image_path=image_path,
+        image_width=image_width, image_height=image_height,
+    )
+
+    # 7. 역할 분류용 정렬 값 목록 (상대 크기 판단)
     sorted_vals: List[float] = sorted(
         v for d in dimensions
         if (v := _parse_numeric(d.value)) is not None and 0 < v < 5000
     )
 
-    # 3. material_role 분류
+    # 8. material_role fallback 분류 (OpenCV가 미분류한 치수만)
     result: List[Dimension] = []
     for d in dimensions:
-        role = classify_material_role(d, image_width, image_height, sorted_vals)
-        result.append(d.model_copy(update={"material_role": role}))
+        if d.material_role is None:
+            role = classify_material_role(d, image_width, image_height, sorted_vals)
+            result.append(d.model_copy(update={"material_role": role}))
+        else:
+            result.append(d)
 
     return result
 

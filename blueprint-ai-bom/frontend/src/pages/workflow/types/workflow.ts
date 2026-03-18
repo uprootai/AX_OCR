@@ -16,6 +16,7 @@ export interface Dimension {
   verification_status: 'pending' | 'approved' | 'rejected' | 'modified' | 'manual';
   modified_value: string | null;
   linked_to: string | null;
+  material_role?: 'outer_diameter' | 'inner_diameter' | 'length' | 'other' | null;
 }
 
 export interface DimensionStats {

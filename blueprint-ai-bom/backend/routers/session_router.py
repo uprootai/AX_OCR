@@ -221,7 +221,7 @@ async def update_session(session_id: str, updates: dict):
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
 
     # 허용된 필드만 업데이트 (features, ocr_texts, connections, texts, table_results, metadata 추가)
-    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source", "texts", "texts_count", "tables_count", "table_regions_count", "table_results", "metadata", "project_id", "model_type", "template_id"}
+    allowed_fields = {"image_width", "image_height", "status", "features", "ocr_texts", "connections", "drawing_type", "drawing_type_source", "texts", "texts_count", "tables_count", "table_regions_count", "table_results", "metadata", "project_id", "model_type", "template_id", "filename"}
     filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
 
     if filtered_updates:

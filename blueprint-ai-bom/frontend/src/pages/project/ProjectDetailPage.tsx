@@ -22,6 +22,9 @@ import {
   ExternalLink,
   Settings,
   Database,
+  ChevronDown,
+  ChevronRight,
+  Images,
 } from 'lucide-react';
 import { projectApi, sessionApi, type ProjectDetail } from '../../lib/api';
 import { BOMWorkflowSection } from './components/BOMWorkflowSection';
@@ -30,6 +33,278 @@ import { ProjectSettingsModal } from './components/ProjectSettingsModal';
 import { GTManagementModal } from './components/GTManagementModal';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { useTheme } from '../../hooks/useTheme';
+
+// 카테고리 정렬 순서 (BOM PDF 분홍색 구조)
+const CATEGORY_ORDER = [
+  '저널베어링 (Journal Bearing) — 8 SET',
+  '스러스트베어링 (Thrust Bearing) — 2 SET',
+  '체결부품 (Fasteners)',
+  '조정부품 (Adjustment Parts)',
+  '기타부품 (Miscellaneous)',
+];
+
+// 카테고리 색상 (BOM PDF 분홍색 계열)
+const CATEGORY_COLORS: Record<string, string> = {
+  '저널베어링 (Journal Bearing) — 8 SET':
+    'bg-pink-50 dark:bg-pink-950/30 border-pink-200 dark:border-pink-800',
+  '스러스트베어링 (Thrust Bearing) — 2 SET':
+    'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800',
+  '체결부품 (Fasteners)':
+    'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800',
+  '조정부품 (Adjustment Parts)':
+    'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800',
+  '기타부품 (Miscellaneous)':
+    'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700',
+};
+
+const CATEGORY_HEADER_COLORS: Record<string, string> = {
+  '저널베어링 (Journal Bearing) — 8 SET':
+    'text-pink-700 dark:text-pink-300 bg-pink-100 dark:bg-pink-900/40',
+  '스러스트베어링 (Thrust Bearing) — 2 SET':
+    'text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/40',
+  '체결부품 (Fasteners)':
+    'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40',
+  '조정부품 (Adjustment Parts)':
+    'text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/40',
+  '기타부품 (Miscellaneous)':
+    'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/40',
+};
+
+type SessionItem = {
+  session_id: string;
+  filename: string;
+  status: string;
+  detection_count: number;
+  verified_count: number;
+  image_count?: number;
+  metadata?: Record<string, unknown>;
+};
+
+function SubImageTable({ sessionId }: { sessionId: string }) {
+  const [images, setImages] = useState<Array<{
+    image_id: string; filename: string;
+    od?: string | null; id?: string | null; width?: string | null;
+    dimension_count?: number;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    sessionApi.listImages(sessionId)
+      .then((imgs) => setImages(imgs as typeof images))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [sessionId]);
+
+  if (loading) {
+    return (
+      <div className="px-6 py-3 text-xs text-gray-400 dark:text-gray-500">
+        <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
+        이미지 로딩 중...
+      </div>
+    );
+  }
+
+  if (images.length === 0) return null;
+
+  const hasAnyDims = images.some((img) => img.od || img.id || img.width);
+
+  return (
+    <div className="px-4 pb-3">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+            <th className="text-left py-1.5 pl-2 font-medium">도면</th>
+            {hasAnyDims && (
+              <>
+                <th className="text-right py-1.5 px-2 font-medium w-20">OD</th>
+                <th className="text-right py-1.5 px-2 font-medium w-20">ID</th>
+                <th className="text-right py-1.5 px-2 font-medium w-20">W</th>
+              </>
+            )}
+            <th className="text-right py-1.5 pr-2 font-medium w-16">치수</th>
+          </tr>
+        </thead>
+        <tbody>
+          {images.map((img) => (
+            <tr
+              key={img.image_id}
+              className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30"
+            >
+              <td className="py-1.5 pl-2 text-gray-700 dark:text-gray-300 truncate max-w-[200px]">
+                {img.filename?.replace('.png', '')}
+              </td>
+              {hasAnyDims && (
+                <>
+                  <td className="text-right py-1.5 px-2 font-mono text-gray-900 dark:text-white">
+                    {img.od ? <span className="text-pink-600 dark:text-pink-400">{img.od}</span> : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                  </td>
+                  <td className="text-right py-1.5 px-2 font-mono text-gray-900 dark:text-white">
+                    {img.id ? <span className="text-blue-600 dark:text-blue-400">{img.id}</span> : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                  </td>
+                  <td className="text-right py-1.5 px-2 font-mono text-gray-900 dark:text-white">
+                    {img.width ? <span className="text-amber-600 dark:text-amber-400">{img.width}</span> : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                  </td>
+                </>
+              )}
+              <td className="text-right py-1.5 pr-2 text-gray-500 dark:text-gray-400">
+                {img.dimension_count ?? 0}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function GroupedSessionList({ sessions }: { sessions: SessionItem[] }) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+
+  if (sessions.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-12 text-center">
+        <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+        <p className="text-gray-500 dark:text-gray-400">세션이 없습니다.</p>
+      </div>
+    );
+  }
+
+  // 카테고리별 그룹핑
+  const groups: Record<string, SessionItem[]> = {};
+  for (const s of sessions) {
+    const cat = (s.metadata?.category as string) || '미분류';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(s);
+  }
+
+  // 정렬: CATEGORY_ORDER 순서, 없는 카테고리는 뒤로
+  const sortedCategories = Object.keys(groups).sort((a, b) => {
+    const ai = CATEGORY_ORDER.indexOf(a);
+    const bi = CATEGORY_ORDER.indexOf(b);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+
+  const toggle = (cat: string) =>
+    setCollapsed((prev) => ({ ...prev, [cat]: !prev[cat] }));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-gray-900 dark:text-white">
+          세션 목록
+        </h2>
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          {sortedCategories.length}개 카테고리 · {sessions.length}개 세션
+        </span>
+      </div>
+
+      {sortedCategories.map((category) => {
+        const items = groups[category];
+        const isCollapsed = collapsed[category] ?? false;
+        const borderColor =
+          CATEGORY_COLORS[category] ||
+          'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700';
+        const headerColor =
+          CATEGORY_HEADER_COLORS[category] ||
+          'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/40';
+
+        return (
+          <div
+            key={category}
+            className={`rounded-xl border overflow-hidden ${borderColor}`}
+          >
+            {/* 카테고리 헤더 (분홍색 그룹) */}
+            <button
+              onClick={() => toggle(category)}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left font-semibold text-sm ${headerColor} transition-colors hover:opacity-90`}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-4 h-4 flex-shrink-0" />
+              ) : (
+                <ChevronDown className="w-4 h-4 flex-shrink-0" />
+              )}
+              <span className="flex-1">{category}</span>
+              <span className="text-xs font-normal opacity-70">
+                {items.length}개 세션
+              </span>
+            </button>
+
+            {/* 세션 목록 (노란색 서브) */}
+            {!isCollapsed && (
+              <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                {items.map((session) => {
+                  const isExpanded = expandedSession === session.session_id;
+                  return (
+                    <div key={session.session_id}>
+                      <div
+                        className="flex items-center gap-4 px-4 py-3 hover:bg-white/60 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
+                        onClick={() =>
+                          setExpandedSession(isExpanded ? null : session.session_id)
+                        }
+                      >
+                        <div className="w-9 h-9 bg-white dark:bg-gray-700 rounded-lg flex items-center justify-center border dark:border-gray-600">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                            {session.filename}
+                          </p>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            <span>
+                              검출: {session.detection_count}개
+                            </span>
+                            <span>
+                              검증: {session.verified_count}개
+                            </span>
+                            {(session.image_count ?? 0) > 0 && (
+                              <span className="inline-flex items-center gap-1">
+                                <Images className="w-3 h-3" />
+                                {session.image_count}장
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              session.status === 'completed'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                : session.status === 'error'
+                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                            }`}
+                          >
+                            {session.status}
+                          </span>
+                          <Link
+                            to={`/workflow?session=${session.session_id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                            title="워크플로우 열기"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          </Link>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <SubImageTable sessionId={session.session_id} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -417,60 +692,8 @@ export function ProjectDetailPage() {
           />
         )}
 
-        {/* 세션 목록 */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700">
-          <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900 dark:text-white">세션 목록</h2>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {(project.sessions ?? []).length}개
-            </span>
-          </div>
-          {(project.sessions ?? []).length === 0 ? (
-            <div className="p-12 text-center">
-              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-              <p className="text-gray-500 dark:text-gray-400">세션이 없습니다.</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                "도면 추가" 버튼을 클릭하여 도면을 업로드하세요.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y dark:divide-gray-700">
-              {(project.sessions ?? []).map((session) => (
-                <Link
-                  key={session.session_id}
-                  to={`/workflow?session=${session.session_id}`}
-                  className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white truncate">
-                      {session.filename}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      검출: {session.detection_count}개 | 검증: {session.verified_count}개
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        session.status === 'completed'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                          : session.status === 'error'
-                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                      }`}
-                    >
-                      {session.status}
-                    </span>
-                    <ExternalLink className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* 세션 목록 — 카테고리별 그룹핑 */}
+        <GroupedSessionList sessions={project.sessions ?? []} />
         {/* 프로젝트 Import용 hidden input */}
         <input
           ref={importFileRef}

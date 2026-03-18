@@ -475,6 +475,8 @@ export interface SessionDetail {
 
 export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'modified' | 'manual';
 
+export type MaterialRole = 'outer_diameter' | 'inner_diameter' | 'length' | 'other' | null;
+
 export interface SessionDimension {
   id: string;
   bbox: { x1: number; y1: number; x2: number; y2: number };
@@ -489,4 +491,6 @@ export interface SessionDimension {
   model_id: string;
   verification_status: VerificationStatus;
   linked_to: string | null;
+  material_role: MaterialRole;
+  ocr_corrected?: boolean;
 }

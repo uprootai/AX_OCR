@@ -264,6 +264,12 @@ export interface SessionImage {
   reviewed_by?: string;
   review_notes?: string;
   order_index: number;
+  // OD/ID/W 분석 결과 (sub-image 분석 후)
+  dimensions?: unknown[];
+  dimension_count?: number;
+  od?: string | null;
+  id?: string | null;
+  width?: string | null;
 }
 
 export interface SessionImageProgress {

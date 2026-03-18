@@ -145,6 +145,52 @@ export function DimensionSection({
         </div>
       )}
 
+      {/* 소재 핵심 치수 (OD/ID/W) */}
+      {(() => {
+        const od = dimensions.find(d => d.material_role === 'outer_diameter');
+        const id = dimensions.find(d => d.material_role === 'inner_diameter');
+        const w = dimensions.find(d => d.material_role === 'length');
+        if (!od && !id && !w) return null;
+
+        const specs = [
+          { dim: od, label: 'OD (외경)', color: '#ef4444', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-800' },
+          { dim: id, label: 'ID (내경)', color: '#3b82f6', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800' },
+          { dim: w, label: 'W (폭)', color: '#22c55e', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800' },
+        ];
+
+        return (
+          <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              🎯 소재 핵심 치수
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {specs.map(({ dim, label, color, bg, border }) => (
+                <div
+                  key={label}
+                  className={`${bg} border ${border} rounded-lg p-3 text-center cursor-pointer transition-all hover:shadow-md`}
+                  style={dim && dim.id === selectedDimensionId ? { outlineColor: color, outlineWidth: 2, outlineStyle: 'solid', outlineOffset: 2, borderRadius: 8 } : undefined}
+                  onClick={() => dim && setSelectedDimensionId(dim.id === selectedDimensionId ? null : dim.id)}
+                >
+                  <p className="text-xs font-medium mb-1" style={{ color }}>{label}</p>
+                  {dim ? (
+                    <>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white">
+                        {dim.modified_value || dim.value}
+                      </p>
+                      {dim.tolerance && (
+                        <p className="text-xs text-gray-500 mt-0.5">{dim.tolerance}</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400">미분류</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 도면 오버레이 */}
       {imageData && imageSize && dimensions.length > 0 && (
         <DimensionOverlay

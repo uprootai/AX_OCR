@@ -39,6 +39,13 @@ const DIMENSION_TYPE_LABELS: Record<string, string> = {
   unknown: '기타',
 };
 
+const MATERIAL_ROLE_LABELS: Record<string, { label: string; color: string }> = {
+  outer_diameter: { label: 'OD (외경)', color: '#ef4444' },
+  inner_diameter: { label: 'ID (내경)', color: '#3b82f6' },
+  length: { label: '폭 (Width)', color: '#22c55e' },
+  other: { label: '기타', color: '#9ca3af' },
+};
+
 // ============ Types ============
 
 interface BOMSessionOverlayProps {
@@ -142,6 +149,8 @@ export function BOMSessionOverlay({
           const isSelected = dim.id === selectedDimensionId;
           const isHovered = dim.id === hoveredId;
           const statusConfig = STATUS_COLORS[dim.verification_status] || STATUS_COLORS.pending;
+          const roleConfig = dim.material_role ? MATERIAL_ROLE_LABELS[dim.material_role] : null;
+          const useRoleColor = roleConfig && dim.material_role !== 'other';
           const bbox = dim.modified_bbox || dim.bbox;
           const displayValue = dim.modified_value || dim.value;
 
@@ -158,10 +167,10 @@ export function BOMSessionOverlay({
                 y={y}
                 width={width}
                 height={height}
-                fill={isSelected || isHovered ? statusConfig.bg : 'transparent'}
-                stroke={statusConfig.border}
-                strokeWidth={isSelected ? 3 : isHovered ? 2.5 : 2}
-                strokeDasharray={dim.verification_status === 'pending' ? '4,2' : undefined}
+                fill={isSelected || isHovered ? (useRoleColor ? `${roleConfig.color}20` : statusConfig.bg) : 'transparent'}
+                stroke={useRoleColor ? roleConfig.color : statusConfig.border}
+                strokeWidth={isSelected ? 3 : useRoleColor ? 2.5 : isHovered ? 2.5 : 2}
+                strokeDasharray={dim.verification_status === 'pending' && !useRoleColor ? '4,2' : undefined}
                 className="pointer-events-auto cursor-pointer"
                 onMouseEnter={() => setHoveredId(dim.id)}
                 onMouseLeave={() => setHoveredId(null)}
@@ -173,11 +182,12 @@ export function BOMSessionOverlay({
                 <text
                   x={x}
                   y={y - 4}
-                  fill={statusConfig.border}
+                  fill={useRoleColor ? roleConfig.color : statusConfig.border}
                   fontSize={Math.max(10, 14 / zoom)}
                   fontWeight="bold"
                   className="pointer-events-none"
                 >
+                  {useRoleColor && `[${roleConfig.label}] `}
                   {displayValue}
                   {dim.tolerance && ` ${dim.tolerance}`}
                 </text>
@@ -339,6 +349,17 @@ export function BOMSessionOverlay({
               <div className="col-span-2">
                 <span className="text-gray-500">공차:</span>
                 <span className="ml-1">{selectedDimension.tolerance}</span>
+              </div>
+            )}
+            {selectedDimension.material_role && selectedDimension.material_role !== 'other' && (
+              <div className="col-span-2">
+                <span className="text-gray-500">소재 역할:</span>
+                <span
+                  className="ml-1 font-semibold"
+                  style={{ color: MATERIAL_ROLE_LABELS[selectedDimension.material_role]?.color }}
+                >
+                  {MATERIAL_ROLE_LABELS[selectedDimension.material_role]?.label || selectedDimension.material_role}
+                </span>
               </div>
             )}
           </div>
