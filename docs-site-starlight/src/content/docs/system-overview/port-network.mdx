@@ -23,12 +23,16 @@ import ArchitectureDiagram from '../../../components/ArchitectureDiagram';
 
 ## 문서 사이트(3001) 운영 방식
 
-`http://localhost:3001`은 Docusaurus 문서 사이트이며 기본 `docker-compose.yml`에 포함되지 않습니다.
+`http://localhost:3001`은 Starlight(Astro) 문서 사이트이며 `docker-compose.yml`의 `docs-site` 서비스로 정의되어 있습니다. 빌드된 정적 파일을 Nginx 컨테이너가 서빙합니다.
 
 ```bash
-cd docs-site
+# 로컬 개발
+cd docs-site-starlight
 npm install
-npm run start   # http://localhost:3001
+npx astro dev    # http://localhost:4321
+
+# Docker (docker-compose.yml에 포함)
+docker compose up docs-site   # http://localhost:3001
 ```
 
 <ArchitectureDiagram client:load />

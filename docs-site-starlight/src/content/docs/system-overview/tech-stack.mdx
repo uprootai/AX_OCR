@@ -17,11 +17,11 @@ import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 |------|------|------|
 | **React** | 19 | UI 프레임워크 |
 | **TypeScript** | 5.x | 타입 안정성(Type Safety) |
-| **Vite** | 6.x | 빌드 도구 |
+| **Vite** | 7.x | 빌드 도구 |
 | **Tailwind CSS** | 3.x | 스타일링 |
-| **Zustand** | 4.x | 상태 관리(State Management) |
+| **Zustand** | 5.x | 상태 관리(State Management) |
 | **React Flow** | 11.x | 워크플로우 캔버스 |
-| **React Router** | 6.x | 라우팅 |
+| **React Router** | 7.x | 라우팅 |
 
 ## 백엔드
 
@@ -115,7 +115,7 @@ import FlowDiagram from '../../../components/diagrams/FlowDiagram';
 
 **동작 원리**:
 
-1. **YAML 스펙 기반 라우팅** - `gateway-api/api_specs/` 디렉토리에 21개 YAML 파일이 각 서비스의 URL, 포트, 엔드포인트, 파라미터를 정의합니다
+1. **YAML 스펙 기반 라우팅** - `gateway-api/api_specs/` 디렉토리에 31개 YAML 파일이 각 서비스의 URL, 포트, 엔드포인트, 파라미터를 정의합니다
 2. **Docker 호스트 매핑** - `yolo` → `yolo-api:5005`, `edocr2` → `edocr2-v2-api:5002` 식으로 컨테이너명을 자동 변환합니다
 3. **3단계 실행기 탐색** - 요청이 들어오면 (1) 전용 Executor → (2) YAML 스펙 → (3) 런타임 설정 순서로 실행기를 찾습니다
 

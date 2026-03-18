@@ -1,7 +1,7 @@
 ---
 sidebar_position: 2
 title: 서비스 카탈로그
-description: 21개 외부 API 서비스 상세 카탈로그
+description: 26개 외부 API 서비스 상세 카탈로그
 tags: [시스템, 아키텍처, 서비스, 카탈로그]
 ---
 
@@ -9,7 +9,7 @@ import ServiceTable from '../../../components/ServiceTable';
 
 # 서비스 카탈로그 (Service Catalog)
 
-> 21개 외부 API 서비스와 9개 Gateway 내부 분석 도구의 카테고리별 상세 목록.
+> 26개 외부 API 서비스와 9개 Gateway 내부 분석 도구의 카테고리별 상세 목록.
 추가로 Gateway 내부 분석 도구 9개(DSE: `titleblock`, `partslist`, `dimensionparser`, `bommatcher`, `quotegenerator` / Techcross: `techcross/titleblock`, `techcross/partslist`, `techcross/equipment`, `techcross/valves`)가 있습니다.
 
 <ServiceTable client:load />
@@ -29,11 +29,11 @@ import ServiceTable from '../../../components/ServiceTable';
 | 서비스 | 포트 | GPU | 설명 |
 |--------|------|-----|------|
 | **eDOCr2** | 5002 | 사용 | 한국어 치수 인식 |
-| **PaddleOCR** | 5006 | 사용 | 다국어 OCR |
+| **PaddleOCR** | 5006 | 미사용 | 다국어 OCR |
 | **Tesseract** | 5008 | 미사용 | 문서 OCR |
 | **TrOCR** | 5009 | 사용 | 필기체 OCR |
 | **OCR Ensemble** | 5011 | 사용 | 4엔진 가중 투표 |
-| **Surya OCR** | 5013 | 사용 | 90+ 언어, 레이아웃 분석 |
+| **Surya OCR** | 5013 | 미사용 | 90+ 언어, 레이아웃 분석 |
 | **DocTR** | 5014 | 사용 | 2단계 파이프라인 OCR |
 | **EasyOCR** | 5015 | 미사용 | 80+ 언어, CPU 친화적 |
 

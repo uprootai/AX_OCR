@@ -48,7 +48,7 @@ tags: [QA, 품질, 평가, 리포트]
 
 | API | 엔드포인트 | 상태 |
 |-----|----------|------|
-| eDOCr2 API (5001) | `POST /api/v1/ocr`, `/ocr/enhanced`, `/health` | 정상 |
+| eDOCr2 API (5002) | `POST /api/v2/ocr`, `/ocr/enhanced`, `/health` | 정상 |
 | EDGNet API (5012) | `POST /api/v1/segment`, `/vectorize`, `/health` | 정상 |
 | Skin Model API (5003) | `POST /api/v1/predict`, `/health` | 정상 |
 | Gateway API (8000) | `POST /api/v1/process`, `/health`, `/docs` | 정상 |

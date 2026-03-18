@@ -58,14 +58,14 @@ tags: [배포, 운영, 온프레미스, 인프라]
 |---------|------|------|-----|-----------|
 | **Web UI** | 5173 | 사용자 인터페이스 | - | - |
 | **Gateway API** | 8000 | 파이프라인 오케스트레이터 | - | - |
-| **eDOCr2 API** | 5001 | 한글 OCR 엔진 | Yes | - |
+| **eDOCr2 API** | 5002 | 한글 OCR 엔진 | Yes | - |
 | **YOLO API** | 5005 | 객체 탐지 | Yes | - |
 | **EDGNet API** | 5012 | 그래프 기반 세그멘테이션 | - | - |
 | **Skin Model API** | 5003 | 공차 예측 (XGBoost) | - | - |
 | **VL API** | 5004 | Vision-Language 모델 | - | 있음 (선택적) |
 | **PaddleOCR API** | 5006 | 중국어 OCR (선택) | - | - |
 | **Prometheus** | 9090 | 메트릭 수집 | - | - |
-| **Grafana** | 3000 | 모니터링 대시보드 | - | - |
+| **Grafana** | 3001 | 모니터링 대시보드 | - | - |
 
 ---
 
@@ -143,7 +143,7 @@ curl, wget, tar, gzip
 
 # 내부 통신 (서비스 간)
 8000/tcp  - Gateway API
-5001/tcp  - eDOCr2 API
+5002/tcp  - eDOCr2 API
 5005/tcp  - YOLO API
 5012/tcp  - EDGNet API
 5003/tcp  - Skin Model API
@@ -153,7 +153,7 @@ curl, wget, tar, gzip
 
 # 모니터링 (관리자만)
 9090/tcp  - Prometheus
-3000/tcp  - Grafana
+3001/tcp  - Grafana
 
 # SSH (관리자만)
 22/tcp    - SSH 접속
@@ -479,9 +479,9 @@ scrape_configs:
       - targets: ['gateway-api:8000']
     metrics_path: '/metrics'
 
-  - job_name: 'edocr2-api'
+  - job_name: 'edocr2-v2-api'
     static_configs:
-      - targets: ['edocr2-api:5001']
+      - targets: ['edocr2-v2-api:5002']
 
   - job_name: 'yolo-api'
     static_configs:
@@ -631,7 +631,7 @@ echo "Docker 이미지 Export 시작..."
 IMAGES=(
     "poc_web-ui:latest"
     "poc_gateway-api:latest"
-    "poc_edocr2-api:latest"
+    "edocr2-v2-api:latest"
     "poc_yolo-api:latest"
     "poc_edgnet-api:latest"
     "poc_skinmodel-api:latest"
@@ -664,7 +664,7 @@ du -sh "$EXPORT_DIR"
 docker-images/
 ├── poc_web-ui_latest.tar          (200 MB)
 ├── poc_gateway-api_latest.tar     (1.2 GB)
-├── poc_edocr2-api_latest.tar      (2.5 GB)
+├── edocr2-v2-api_latest.tar        (2.5 GB)
 ├── poc_yolo-api_latest.tar        (1.8 GB)
 ├── poc_edgnet-api_latest.tar      (1.1 GB)
 ├── poc_skinmodel-api_latest.tar   (800 MB)
@@ -925,7 +925,7 @@ echo ""
 echo "접속 정보:"
 echo "  Web UI: http://localhost:5173"
 echo "  Admin 대시보드: http://localhost:5173/admin"
-echo "  Grafana: http://localhost:3000 (admin/admin)"
+echo "  Grafana: http://localhost:3001 (admin/admin)"
 echo "  API 문서: http://localhost:8000/docs"
 ```
 
@@ -937,7 +937,7 @@ echo "  API 문서: http://localhost:8000/docs"
 
 SERVICES=(
     "http://localhost:8000/api/v1/health"
-    "http://localhost:5001/api/v1/health"
+    "http://localhost:5002/api/v2/health"
     "http://localhost:5005/api/v1/health"
     "http://localhost:5012/api/v1/health"
     "http://localhost:5003/api/v1/health"

@@ -258,7 +258,7 @@ export default function EnhancementStrategySelector({
 
 ```bash
 # Python tests
-cd edocr2-api
+cd models/edocr2-v2-api
 pytest tests/
 
 # TypeScript tests
@@ -289,7 +289,7 @@ npm test
 
 ```
 ax/poc/
-├── edocr2-api/          # eDOCr v1/v2 API
+├── models/edocr2-v2-api/ # eDOCr v2 API
 │   ├── enhancers/       # Enhancement modules
 │   │   ├── base.py      # Abstract interfaces
 │   │   ├── strategies.py # Strategy implementations

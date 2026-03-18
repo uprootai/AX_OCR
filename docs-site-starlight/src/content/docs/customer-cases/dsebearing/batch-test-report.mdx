@@ -1,0 +1,253 @@
+---
+sidebar_position: 7
+title: 전수 분석 실험 보고서
+description: 동서기연 87개 부품도면 전수 배치 분석 — 6,790개 치수 추출, 100% 성공률
+tags: [고객사례, 동서기연, 실험, 배치분석, OCR]
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+> 동서기연 터빈 베어링 87개 부품도면을 전수 업로드하여 자동 분석한 실험 결과.
+
+---
+
+## 실험 개요
+
+| 항목 | 값 |
+|------|-----|
+| 실험일시 | 2026-03-16 18:10 ~ 2026-03-17 04:25 |
+| 프로젝트 | `b97237fd` (동서기연 베어링 자료 분석) |
+| 분석 기능 | dimension_ocr, table_extraction, bom_generation, title_block_ocr |
+| OCR 엔진 | eDOCr2 (주) + PaddleOCR (보조) |
+| 도면 형식 | PDF → PNG 변환 (200 DPI) |
+
+---
+
+## 전체 요약
+
+| 항목 | 값 |
+|------|-----|
+| 전체 세션 수 | 89개 |
+| 성공 | **89개 (100.0%)** |
+| 실패 | 0개 |
+| 총 추출 치수 | **6,790개** |
+| 총 추출 텍스트 | 317개 |
+| 총 추출 테이블 | 141개 |
+| 타이틀블록 검출 | 0/89 (0.0%) |
+| 평균 치수 신뢰도 | **86.0%** |
+| 평균 분석 시간 | 424초 |
+| 총 분석 시간 | 23,734초 (약 6.6시간) |
+
+<Aside type="tip" title="100% 성공률">
+87개 부품도면 + 기존 2개 세션, 총 89개 전부 분석 성공. 실패 0건.
+</Aside>
+
+---
+
+## 카테고리별 분석
+
+| 카테고리 | 도면 수 | 성공 | 치수 | 텍스트 | 평균 신뢰도 | 총 시간 |
+|---------|--------|------|------|--------|-----------|--------|
+| 저널 베어링 | 40 | 40 | 2,484 | 140 | 81.9% | 17,932s |
+| 스러스트 베어링 | 12 | 12 | 487 | 47 | 87.6% | 510s |
+| 체결부품 | 13 | 13 | 2,485 | 43 | **94.2%** | 2,320s |
+| 조정부품 | 11 | 11 | 403 | 38 | 84.7% | 2,584s |
+| 기타 | 11 | 11 | 741 | 43 | 90.3% | 388s |
+| 기존 세션 | 2 | 2 | 190 | 6 | 90.8% | - |
+
+---
+
+## 개별 도면 상세 결과
+
+### 체결부품 (13개 — 2,485 치수, 94.2%)
+
+| # | 도면번호 | 이름 | 치수 | 신뢰도 |
+|---|---------|------|------|--------|
+| 1 | TD0060700 | BOLT TORQUE TABLE | 207 | 92% |
+| 2 | TD0060701 | HEX SOCKET HD BOLT | 586 | 93% |
+| 3 | TD0060702 | SPRING WASHER | 257 | 92% |
+| 4 | TD0060703 | DOWEL PIN | 296 | 96% |
+| 5 | TD0060704 | HEX NUT | 174 | 96% |
+| 6 | TD0060707 | LOCKING PIN | 103 | 96% |
+| 7 | TD0060708 | HEX HD BOLT | 370 | 97% |
+| 8 | TD0060709 | BUTTON HD SOCKET BOLT | 80 | 96% |
+| 9 | TD0060711 | PIN | 93 | 94% |
+| 10 | TD0060712 | SET PIN | 84 | 98% |
+| 11 | TD0060729 | LOCKING PIN | 110 | 93% |
+| 12 | TD0060746 | LOCKING PIN | 21 | 88% |
+| 13 | TD0060748 | NORD LOCK WASHER | 104 | 95% |
+
+### 저널 베어링 (40개 — 2,484 치수, 81.9%)
+
+| # | 도면번호 | 이름 | 치수 | 신뢰도 |
+|---|---------|------|------|--------|
+| 1 | TD0062015 | T1 BEARING ASSY (360X190) | 44 | 81% |
+| 2 | TD0062016 | BEARING RING ASSY (T1) | 54 | 79% |
+| 3 | TD0062017 | BEARING RING (T1,T2,T3) | 92 | 87% |
+| 4 | TD0062018 | BEARING CASING ASSY (T1) | 59 | 83% |
+| 5 | TD0062019 | BEARING CASING (T1) | 75 | 84% |
+| 6 | TD0062020 | LINER PAD (T1) | 68 | 87% |
+| 7 | TD0062021 | T2 BEARING ASSY (380X190) | 45 | 78% |
+| 8 | TD0062022 | BEARING RING ASSY (T2) | 43 | 75% |
+| 9 | TD0062023 | BEARING CASING ASSY (T2) | 70 | 84% |
+| 10 | TD0062024 | BEARING CASING (T2) | 74 | 83% |
+| 11 | TD0062025 | LINER PAD (T2) | 67 | 82% |
+| 12 | TD0062026 | T3 BEARING ASSY (380X260) | 42 | 82% |
+| 13 | TD0062027 | BEARING RING ASSY (T3) | 45 | 79% |
+| 14 | TD0062028 | BEARING CASING ASSY (T3) | 45 | 80% |
+| 15 | TD0062029 | BEARING CASING (T3) | 65 | 92% |
+| 16 | TD0062030 | LINER PAD (T3) | 91 | 82% |
+| 17 | TD0062031 | T4 BEARING ASSY (420x260) | 54 | 76% |
+| 18 | TD0062032 | BEARING RING ASSY (T4) | 15 | 75% |
+| 19 | TD0062033 | BEARING RING (T4) | 102 | 86% |
+| 20 | TD0062034 | BEARING CASING ASSY (T4) | 62 | 81% |
+| 21 | TD0062035 | BEARING CASING (T4) | 87 | 88% |
+| 22 | TD0062036 | LINER PAD (T4) | 64 | 88% |
+| 23 | TD0062037 | T5 BEARING ASSY (460x260) | 38 | 81% |
+| 24 | TD0062038 | BEARING RING ASSY (T5) | 53 | 83% |
+| 25 | TD0062039 | BEARING RING (T5,T6,T7) | 113 | 88% |
+| 26 | TD0062040 | BEARING CASING ASSY (T5) | 39 | 71% |
+| 27 | TD0062041 | BEARING CASING (T5) | 43 | 89% |
+| 28 | TD0062042 | T6 BEARING ASSY (460X260) | 34 | 81% |
+| 29 | TD0062043 | BEARING RING ASSY (T6) | 41 | 84% |
+| 30 | TD0062044 | BEARING CASING ASSY (T6) | 33 | 70% |
+| 31 | TD0062045 | BEARING CASING (T6) | 106 | 90% |
+| 32 | TD0062046 | T7 BEARING ASSY (460X260) | 39 | 79% |
+| 33 | TD0062047 | BEARING RING ASSY (T7) | 50 | 82% |
+| 34 | TD0062048 | BEARING CASING ASSY (T7) | 34 | 71% |
+| 35 | TD0062049 | BEARING CASING (T7) | 84 | 91% |
+| 36 | TD0062050 | T8 BEARING ASSY (500x260) | 71 | 73% |
+| 37 | TD0062051 | BEARING RING ASSY (T8) | 88 | 81% |
+| 38 | TD0062052 | BEARING RING (T8) | 112 | 88% |
+| 39 | TD0062053 | BEARING CASING ASSY (T8) | 36 | 71% |
+| 40 | TD0062054 | BEARING CASING (T8) | 107 | 89% |
+
+### 스러스트 베어링 (12개 — 487 치수, 87.6%)
+
+| # | 도면번호 | 이름 | 치수 | 신뢰도 |
+|---|---------|------|------|--------|
+| 1 | TD0062055 | THRUST BEARING ASSY (OD670XID440) | 35 | 77% |
+| 2 | TD0062056 | THRUST BEARING RING ASSY | 41 | 75% |
+| 3 | TD0062057 | THRUST BEARING RING | 89 | 91% |
+| 4 | TD0062058 | THRUST CASING ASSY (TBN) | 52 | 77% |
+| 5 | TD0062059 | THRUST CASING (TBN) | 54 | 95% |
+| 6 | TD0062060 | THRUST PAD (TBN) | 23 | 93% |
+| 7 | TD0062061 | UPPER LEVELING PLATE | 8 | 90% |
+| 8 | TD0062062 | LOWER LEVELING PLATE | 24 | 96% |
+| 9 | TD0062063 | THRUST SHIM PLATE | 38 | 93% |
+| 10 | TD0062064 | THRUST CASING ASSY (GEN) | 49 | 75% |
+| 11 | TD0062065 | THRUST CASING (GEN) | 51 | 97% |
+| 12 | TD0062066 | THRUST PAD (GEN) | 23 | 92% |
+
+### 조정부품 (11개 — 403 치수, 84.7%)
+
+| # | 도면번호 | 이름 | 치수 | 신뢰도 |
+|---|---------|------|------|--------|
+| 1 | TD0060742 | SHIM PLATE | 8 | 93% |
+| 2 | TD0060743 | SOLID SHIM PLATE | 44 | 82% |
+| 3 | TD0060744 | MOVING WEDGE | 40 | 80% |
+| 4 | TD0060745 | FIXED WEDGE | 63 | 84% |
+| 5 | TD0060747 | JOINT SHIM | 23 | 85% |
+| 6 | TD0060749 | SHIM PLATE | 95 | 97% |
+| 7 | TD0060750 | ADJUST SHIM | 39 | 85% |
+| 8 | TD0060751 | ADJUST SHIM | 32 | 88% |
+| 9 | TD0060752 | LOWER ADJUST WEDGE ASSY | 15 | 79% |
+| 10 | TD0060753 | SIDE ADJUST WEDGE ASSY | 20 | 79% |
+| 11 | TD0060754 | SIDE ADJUST SHIM ASSY | 24 | 80% |
+
+### 기타 (11개 — 741 치수, 90.3%)
+
+| # | 도면번호 | 이름 | 치수 | 신뢰도 |
+|---|---------|------|------|--------|
+| 1 | TD0060706 | ANTI WEAR PAD | 52 | 90% |
+| 2 | TD0060710 | WIRE CLIP | 31 | 86% |
+| 3 | TD0060717 | LOCKING PLATE | 221 | 97% |
+| 4 | TD0060718 | PIPE PLUG | 76 | 96% |
+| 5 | TD0060720 | BUSHING | 73 | 96% |
+| 6 | TD0060722 | PIPE PLUG | 42 | 88% |
+| 7 | TD0060728 | PIVOT | 53 | 94% |
+| 8 | TD0060730 | NOZZLE | 29 | 94% |
+| 9 | TD0060731 | BEARING MARKING | 21 | 80% |
+| 10 | TD0339626 | CONE COVER FOR CV | 109 | 88% |
+| 11 | TD0339628 | PERFORATED CYLINDER FOR CV | 34 | 84% |
+
+---
+
+## 치수 추출 분포
+
+| 구간 | 도면 수 | 비중 |
+|------|--------|------|
+| 0개 (치수 없음) | 0 | 0% |
+| 1~20개 | 5 | 6% |
+| 21~50개 | 35 | 39% |
+| 51~100개 | 32 | 36% |
+| 101~200개 | 11 | 12% |
+| 201개 이상 | 6 | 7% |
+
+---
+
+## 치수 추출 TOP 10
+
+| # | 도면번호 | 이름 | 치수 수 | 신뢰도 |
+|---|---------|------|--------|--------|
+| 1 | TD0060701 | HEX SOCKET HD BOLT | 586 | 93% |
+| 2 | TD0060708 | HEX HD BOLT | 370 | 97% |
+| 3 | TD0060703 | DOWEL PIN | 296 | 96% |
+| 4 | TD0060702 | SPRING WASHER | 257 | 92% |
+| 5 | TD0060717 | LOCKING PLATE | 221 | 97% |
+| 6 | TD0060700 | BOLT TORQUE TABLE | 207 | 92% |
+| 7 | TD0060704 | HEX NUT | 174 | 96% |
+| 8 | TD0062039 | BEARING RING (T5,T6,T7) | 113 | 88% |
+| 9 | TD0062052 | BEARING RING (T8) | 112 | 88% |
+| 10 | TD0060729 | LOCKING PIN | 110 | 93% |
+
+---
+
+## 저신뢰도 도면 (75% 미만)
+
+8개 도면이 75% 미만 신뢰도. 모두 ASSY(조립) 도면으로, 겹치는 치수선과 복잡한 뷰가 원인.
+
+| 도면번호 | 이름 | 치수 수 | 신뢰도 |
+|---------|------|--------|--------|
+| TD0062044 | BEARING CASING ASSY (T6) | 33 | 70.5% |
+| TD0062040 | BEARING CASING ASSY (T5) | 39 | 70.7% |
+| TD0062048 | BEARING CASING ASSY (T7) | 34 | 70.8% |
+| TD0062053 | BEARING CASING ASSY (T8) | 36 | 70.9% |
+| TD0062050 | T8 BEARING ASSY (500x260) | 71 | 73.3% |
+| TD0062056 | THRUST BEARING RING ASSY | 41 | 74.6% |
+| TD0062032 | BEARING RING ASSY (T4) | 15 | 74.6% |
+| TD0062022 | BEARING RING ASSY (T2) | 43 | 74.6% |
+
+<Aside type="caution" title="ASSY 도면 신뢰도">
+CASING ASSY 계열(T5~T8)이 70~71%로 가장 낮음. 복수 뷰와 겹치는 치수선이 OCR 정확도를 낮춤.
+단품 도면(RING, CASING, PAD)은 대부분 80%↑.
+</Aside>
+
+---
+
+## 결론
+
+### 핵심 성과
+- 87개 부품도면 **100% 분석 성공** (실패 0건)
+- 총 **6,790개 치수** 자동 추출
+- 평균 신뢰도 **86.0%** — 기존 11종 테스트(84%)보다 향상
+- 총 분석 시간 약 6.6시간 (평균 7분/도면)
+
+### 카테고리별 인사이트
+- **체결부품** (볼트, 와셔, 핀): 반복 치수가 많아 추출 수가 가장 많고, 신뢰도 94.2%로 최고
+- **저널/스러스트 베어링**: ASSY 도면은 치수 적음, RING/CASING은 50~110개
+- **조정부품** (심 플레이트, 웨지): 단순 형상으로 치수 20~60개
+
+### 개선 필요 사항
+- 타이틀블록 검출률 0% — OCR은 성공하나 파싱 로직 개선 필요
+- 일부 도면 분석 시간 > 20분 (eDOCr2 타일 처리 병목)
+- 저신뢰도 8건은 ASSY 도면의 해상도 또는 복잡도 문제
+
+---
+
+## 관련 문서
+
+- [전달 자료 & 도면 분석](/docs/customer-cases/dsebearing/data-overview) — BOM 계층 및 도면 분류
+- [1차 테스트 결과](/docs/customer-cases/dsebearing/results) — 11종 기초 분석 결과
+- [2차 미팅 (03-17)](/docs/customer-cases/dsebearing/2nd-meeting) — 추출 범위 확정 (OD/ID/폭), 방향 전환
+- [OCR 처리](/docs/analysis-pipeline/ocr-processing) — eDOCr2 + 앙상블 엔진 상세

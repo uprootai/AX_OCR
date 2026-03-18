@@ -173,14 +173,13 @@ sudo chown -R $(whoami):$(whoami) /opt/ax-drawing-analysis
 ├── docker-compose.yml          # Docker Compose 설정
 ├── .env.example                # 환경변수 템플릿
 ├── web-ui/                     # 웹 UI 소스
-├── services/                   # 각 AI 모델 서비스
+├── models/                     # 각 AI 모델 서비스
 │   ├── gateway-api/
 │   ├── yolo-api/
-│   ├── edocr2-api/
+│   ├── edocr2-v2-api/
 │   ├── edgnet-api/
 │   ├── paddleocr-api/
 │   └── skinmodel-api/
-├── models/                     # AI 모델 가중치
 ├── data/                       # 데이터 저장소
 ├── logs/                       # 로그 파일
 └── docs/                       # 문서

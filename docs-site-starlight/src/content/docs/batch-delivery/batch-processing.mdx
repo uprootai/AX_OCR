@@ -42,7 +42,7 @@ import SequenceDiagram from '../../../components/diagrams/SequenceDiagram';
 ### 배치 분석 시작
 
 ```
-POST /api/batch/analyze
+POST /analysis/batch/{project_id}
 Content-Type: multipart/form-data
 ```
 
@@ -55,7 +55,7 @@ Content-Type: multipart/form-data
 ### 배치 상태 확인
 
 ```
-GET /api/batch/status/{project_id}
+GET /analysis/batch/{project_id}/status
 ```
 
 응답:

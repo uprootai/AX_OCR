@@ -304,7 +304,7 @@ services:
       - ./models/paddleocr-api/results:/tmp/paddleocr-api/results
     environment:
       - PADDLEOCR_PORT=5006
-      - USE_GPU=true
+      - USE_GPU=false
       - USE_ANGLE_CLS=true
       - OCR_LANG=en
       - PYTHONUNBUFFERED=1
@@ -319,7 +319,7 @@ services:
               count: 1
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5006/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
       interval: 30s
       timeout: 10s
       retries: 3

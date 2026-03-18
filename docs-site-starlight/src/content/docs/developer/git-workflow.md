@@ -283,12 +283,10 @@ git checkout -b recovered-branch <commit-hash>
 
 When pushing, GitHub Actions will:
 
-1. Lint code (black, eslint)
+1. Lint code (ruff, eslint)
 2. Run tests (pytest, jest)
 3. Build Docker images
-4. Security scan
-5. Deploy to staging (on develop)
-6. Deploy to production (on main)
+4. Deploy to production (on main)
 
 ## 관련 문서
 
