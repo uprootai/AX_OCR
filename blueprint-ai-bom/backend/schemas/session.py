@@ -72,6 +72,18 @@ class SessionImage(BaseModel):
     reviewed_by: Optional[str] = Field(None, description="검토자")
     review_notes: Optional[str] = Field(None, description="검토 메모")
 
+    # 치수 분석 결과 (OD/ID/W)
+    dimensions: Optional[List[Dict[str, Any]]] = Field(None, description="치수 OCR 결과")
+    dimension_count: Optional[int] = Field(None, description="검출된 치수 수")
+    od: Optional[str] = Field(None, description="외경 (Outer Diameter)")
+    id: Optional[str] = Field(None, description="내경 (Inner Diameter)")
+    width: Optional[str] = Field(None, description="폭 (Width)")
+
+    # 검증 품질
+    quality_grade: Optional[str] = Field(None, description="검증 등급: pass/warn/fail")
+    validation_summary: Optional[str] = Field(None, description="검증 요약 (예: 1E/2W/1C)")
+    correction_applied: bool = Field(default=False, description="자동 보정 적용 여부")
+
     # 정렬용
     order_index: int = Field(default=0, description="표시 순서")
 

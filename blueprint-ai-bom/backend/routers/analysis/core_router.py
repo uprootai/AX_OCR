@@ -601,3 +601,144 @@ async def run_analysis(session_id: str) -> AnalysisResult:
         session_service.update_status(session_id, SessionStatus.VERIFIED)
 
     return result
+
+
+@router.post("/run/{session_id}/image/{image_id}")
+async def run_sub_image_analysis(session_id: str, image_id: str):
+    """세션 서브이미지 분석 — 치수 OCR + OD/ID/W 분류
+
+    Primary 분석과 달리 치수 인식 + 분류만 수행 (YOLO 심볼 검출 생략).
+    결과는 session.images[image_id]에 저장.
+    """
+    session_service = get_session_service()
+    dimension_service = get_dimension_service()
+
+    session = session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다")
+
+    # 이미지 찾기
+    images = session.get("images", [])
+    target_img = None
+    for img in images:
+        if img.get("image_id") == image_id:
+            target_img = img
+            break
+
+    if not target_img:
+        raise HTTPException(status_code=404, detail=f"이미지를 찾을 수 없습니다: {image_id}")
+
+    image_path = target_img.get("file_path", "")
+    if not image_path:
+        raise HTTPException(status_code=400, detail="이미지 파일 경로가 없습니다")
+
+    from pathlib import Path
+    if not Path(image_path).exists():
+        raise HTTPException(status_code=404, detail=f"이미지 파일이 없습니다: {image_path}")
+
+    # 1. 치수 OCR
+    dimension_result = dimension_service.extract_dimensions(
+        image_path=image_path,
+        confidence_threshold=0.3,
+        ocr_engines=["edocr2"],
+    )
+    dimensions = dimension_result.get("dimensions", [])
+
+    # 2. 이미지 크기
+    import cv2
+    img_cv = cv2.imread(image_path)
+    iw = img_cv.shape[1] if img_cv is not None else 0
+    ih = img_cv.shape[0] if img_cv is not None else 0
+
+    # 3. OD/ID/W 분류
+    from services.opencv_classifier import classify_od_id_width, clean_dimension_value
+    from schemas.dimension import Dimension, BoundingBox, MaterialRole
+
+    dim_objects = []
+    for d in dimensions:
+        bbox = d.get("bbox", {})
+        try:
+            dim_obj = Dimension(
+                id=d["id"],
+                value=d.get("value", ""),
+                raw_text=d.get("raw_text", d.get("value", "")),
+                bbox=BoundingBox(
+                    x1=bbox.get("x1", 0), y1=bbox.get("y1", 0),
+                    x2=bbox.get("x2", 0), y2=bbox.get("y2", 0),
+                ),
+                dimension_type=d.get("dimension_type", "unknown"),
+                confidence=d.get("confidence", 0.5),
+                tolerance=d.get("tolerance"),
+                material_role=None,
+            )
+            dim_objects.append(dim_obj)
+        except Exception:
+            continue
+
+    # 세션명 전달 (BOM 기준값 활용)
+    session_name = session.get("filename", "")
+    classified = classify_od_id_width(
+        dim_objects, image_width=iw, image_height=ih,
+        session_name=session_name,
+    )
+
+    # 4. 결과 변환
+    classified_dims = []
+    for dim in classified:
+        d_dict = dim.model_dump()
+        d_dict["material_role"] = dim.material_role.value if dim.material_role else None
+        classified_dims.append(d_dict)
+
+    # 5. OD/ID/W 요약 (정제된 숫자값)
+    od = next((d for d in classified if d.material_role == MaterialRole.OUTER_DIAMETER), None)
+    id_ = next((d for d in classified if d.material_role == MaterialRole.INNER_DIAMETER), None)
+    w = next((d for d in classified if d.material_role == MaterialRole.LENGTH), None)
+    od_clean = clean_dimension_value(od.value) if od else None
+    id_clean = clean_dimension_value(id_.value) if id_ else None
+    w_clean = clean_dimension_value(w.value) if w else None
+
+    # 6. 검증 + 자기수정 루프
+    from services.validation import validate_and_correct
+
+    raw_result = {
+        "od": od_clean, "id": id_clean, "width": w_clean,
+        "dimension_count": len(classified_dims),
+        "dimensions": classified_dims,
+    }
+    val_context = {"session_name": session_name, "image_path": image_path}
+    corrected, val_report = validate_and_correct(raw_result, val_context)
+
+    od_clean = corrected.get("od")
+    id_clean = corrected.get("id")
+    w_clean = corrected.get("width")
+
+    # 7. session.images[image_id]에 저장
+    for i, img_data in enumerate(images):
+        if img_data.get("image_id") == image_id:
+            images[i]["dimensions"] = classified_dims
+            images[i]["dimension_count"] = len(classified_dims)
+            images[i]["image_width"] = iw
+            images[i]["image_height"] = ih
+            images[i]["od"] = od_clean
+            images[i]["id"] = id_clean
+            images[i]["width"] = w_clean
+            images[i]["quality_grade"] = val_report.grade.value
+            images[i]["validation_summary"] = val_report.summary
+            images[i]["correction_applied"] = len(val_report.corrections) > 0
+            break
+
+    session_service.update_session(session_id, {"images": images})
+
+    return {
+        "session_id": session_id,
+        "image_id": image_id,
+        "dimension_count": len(classified_dims),
+        "od": od_clean,
+        "id": id_clean,
+        "width": w_clean,
+        "image_width": iw,
+        "image_height": ih,
+        "quality_grade": val_report.grade.value,
+        "validation_summary": val_report.summary,
+        "corrections": [c.model_dump() for c in val_report.corrections],
+    }
