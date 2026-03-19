@@ -69,12 +69,14 @@ interface RelationStatisticsLike {
 
 interface UseAnalysisHandlersProps {
   sessionId: string | undefined;
+  selectedImageId?: string | null;
   setIsAnalyzing: (value: boolean) => void;
   setAnalysisOptions: (options: AnalysisOptionsData) => void;
   setLines: (lines: LineData[]) => void;
   setIntersections: (intersections: IntersectionData[]) => void;
   setConnectivity: (result: ConnectivityResult | null) => void;
   loadSession: (sessionId: string) => Promise<void>;
+  loadImage?: (sessionId: string, imageId: string) => Promise<void>;
   // Dimension handling (optional for backward compatibility)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setDimensions?: (dimensions: any[]) => void;
@@ -87,12 +89,14 @@ interface UseAnalysisHandlersProps {
 
 export function useAnalysisHandlers({
   sessionId,
+  selectedImageId,
   setIsAnalyzing,
   setAnalysisOptions,
   setLines,
   setIntersections,
   setConnectivity,
   loadSession,
+  loadImage,
   setDimensions,
   setDimensionStats,
   setRelations,
@@ -101,49 +105,87 @@ export function useAnalysisHandlers({
   const [isRunningLineDetection, setIsRunningLineDetection] = useState(false);
   const [isAnalyzingConnectivity, setIsAnalyzingConnectivity] = useState(false);
 
+  // 선택된 이미지가 서브이미지인지 판단
+  const isSubImage = selectedImageId && selectedImageId !== 'main';
+
   const handleRunAnalysis = useCallback(async () => {
     if (!sessionId) return null;
 
     setIsAnalyzing(true);
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/analysis/run/${sessionId}`);
-      logger.info('분석 완료:', data);
+      // 서브이미지가 선택되면 이미지별 분석 API 호출
+      const url = isSubImage
+        ? `${API_BASE_URL}/analysis/run/${sessionId}/image/${selectedImageId}`
+        : `${API_BASE_URL}/analysis/run/${sessionId}`;
 
-      // 심볼 검출 결과는 기존 detections로 처리
-      if (data.detections && data.detections.length > 0) {
-        await loadSession(sessionId);
-      }
+      const { data } = await axios.post(url);
+      logger.info(isSubImage ? `서브이미지 분석 완료 (${selectedImageId}):` : '분석 완료:', data);
 
-      // 치수 OCR 결과
-      if (data.dimensions && setDimensions && setDimensionStats) {
-        setDimensions(data.dimensions);
-        // 통계 계산
-        const stats: DimensionStatsLike = { pending: 0, approved: 0, rejected: 0, modified: 0, manual: 0 };
-        data.dimensions.forEach((d: DimensionLike) => {
-          const status = d.verification_status || 'pending';
-          if (status in stats) stats[status as keyof DimensionStatsLike]++;
-        });
-        setDimensionStats(stats);
-      }
-
-      // Phase 2: 관계 추출 결과
-      if (data.relations && setRelations && setRelationStats) {
-        setRelations(data.relations);
-        // 통계 다시 로드
-        try {
-          const statsRes = await axios.get(`${API_BASE_URL}/relations/${sessionId}/statistics`);
-          setRelationStats(statsRes.data || null);
-        } catch {
-          // 통계 로드 실패 시 기본값
-          setRelationStats({
-            total: data.relations.length,
-            by_method: {},
-            by_confidence: { high: 0, medium: 0, low: 0 },
-            linked_count: 0,
-            unlinked_count: data.relations.length,
-          });
+      if (isSubImage && selectedImageId) {
+        // 서브이미지: loadImage로 해당 이미지 데이터 + 검출 결과 반영
+        if (loadImage) {
+          await loadImage(sessionId, selectedImageId);
         }
-        logger.info(`관계 추출 완료: ${data.relations.length}개`);
+
+        // 치수 OCR 결과 (서브이미지 분석 응답에서 직접 적용)
+        if (data.dimensions && data.dimensions.length > 0 && setDimensions && setDimensionStats) {
+          setDimensions(data.dimensions);
+          const stats: DimensionStatsLike = { pending: 0, approved: 0, rejected: 0, modified: 0, manual: 0 };
+          data.dimensions.forEach((d: DimensionLike) => {
+            const status = d.verification_status || 'pending';
+            if (status in stats) stats[status as keyof DimensionStatsLike]++;
+          });
+          setDimensionStats(stats);
+        }
+
+        // 분석 결과 요약 알림
+        const dimCount = data.dimension_count ?? data.dimensions?.length ?? 0;
+        const detCount = data.detection_count ?? data.detections?.length ?? 0;
+        const parts = [];
+        if (dimCount > 0) parts.push(`치수 ${dimCount}개`);
+        if (detCount > 0) parts.push(`검출 ${detCount}개`);
+        if (data.od) parts.push(`OD: ${data.od}`);
+        if (data.id) parts.push(`ID: ${data.id}`);
+        if (data.width) parts.push(`W: ${data.width}`);
+        alert(parts.length > 0
+          ? `서브이미지 분석 완료: ${parts.join(', ')}`
+          : '서브이미지 분석 완료: 검출된 치수/심볼이 없습니다.'
+        );
+      } else {
+        // 메인 이미지: 기존 로직
+        // 심볼 검출 결과는 기존 detections로 처리
+        if (data.detections && data.detections.length > 0) {
+          await loadSession(sessionId);
+        }
+
+        // 치수 OCR 결과
+        if (data.dimensions && setDimensions && setDimensionStats) {
+          setDimensions(data.dimensions);
+          const stats: DimensionStatsLike = { pending: 0, approved: 0, rejected: 0, modified: 0, manual: 0 };
+          data.dimensions.forEach((d: DimensionLike) => {
+            const status = d.verification_status || 'pending';
+            if (status in stats) stats[status as keyof DimensionStatsLike]++;
+          });
+          setDimensionStats(stats);
+        }
+
+        // Phase 2: 관계 추출 결과
+        if (data.relations && setRelations && setRelationStats) {
+          setRelations(data.relations);
+          try {
+            const statsRes = await axios.get(`${API_BASE_URL}/relations/${sessionId}/statistics`);
+            setRelationStats(statsRes.data || null);
+          } catch {
+            setRelationStats({
+              total: data.relations.length,
+              by_method: {},
+              by_confidence: { high: 0, medium: 0, low: 0 },
+              linked_count: 0,
+              unlinked_count: data.relations.length,
+            });
+          }
+          logger.info(`관계 추출 완료: ${data.relations.length}개`);
+        }
       }
 
       return data;
@@ -153,7 +195,7 @@ export function useAnalysisHandlers({
     } finally {
       setIsAnalyzing(false);
     }
-  }, [sessionId, setIsAnalyzing, loadSession, setDimensions, setDimensionStats, setRelations, setRelationStats]);
+  }, [sessionId, selectedImageId, isSubImage, setIsAnalyzing, loadSession, loadImage, setDimensions, setDimensionStats, setRelations, setRelationStats]);
 
   const handleAnalysisOptionsChange = useCallback((options: AnalysisOptionsData) => {
     setAnalysisOptions(options);

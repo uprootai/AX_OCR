@@ -1,8 +1,9 @@
 ---
 name: workflow-optimizer
-description: Analyzes drawing types and recommends optimal BlueprintFlow pipeline combinations based on content, accuracy requirements, and performance needs
+description: 파이프라인 추천/도면 분석 최적화/BlueprintFlow 워크플로우 설계. 도면 유형별 최적 조합 추천. Triggers — pipeline, workflow optimization, 도면 분석, BlueprintFlow
 user-invocable: true
-allowed-tools: [read, grep, glob, bash]
+allowed-tools: [Read, Grep, Glob, Bash]
+skill-type: workflow
 ---
 
 # Workflow Optimizer Skill

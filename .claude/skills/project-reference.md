@@ -1,8 +1,9 @@
 ---
 name: project-reference
-description: R&D 논문 35개, API 스펙, 고객사 정보, 문서 구조 참조.
+description: 논문/스펙/레퍼런스/참조 자료 조회. R&D 논문 35개, API 스펙, 고객사 정보, 문서 구조. Triggers — 논문, paper, spec, 참조, reference
 user-invocable: false
 allowed-tools: [Read, Grep, Glob]
+skill-type: workflow
 ---
 
 # 프로젝트 레퍼런스

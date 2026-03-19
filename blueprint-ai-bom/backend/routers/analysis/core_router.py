@@ -605,12 +605,12 @@ async def run_analysis(session_id: str) -> AnalysisResult:
 
 @router.post("/run/{session_id}/image/{image_id}")
 async def run_sub_image_analysis(session_id: str, image_id: str):
-    """세션 서브이미지 분석 — 치수 OCR + OD/ID/W 분류
+    """세션 서브이미지 분석 — 심볼 검출 + 치수 OCR + OD/ID/W 분류
 
-    Primary 분석과 달리 치수 인식 + 분류만 수행 (YOLO 심볼 검출 생략).
-    결과는 session.images[image_id]에 저장.
+    세션의 분석 옵션을 따르되, 결과는 session.images[image_id]에 저장.
     """
     session_service = get_session_service()
+    detection_service = get_detection_service()
     dimension_service = get_dimension_service()
 
     session = session_service.get_session(session_id)
@@ -635,6 +635,26 @@ async def run_sub_image_analysis(session_id: str, image_id: str):
     from pathlib import Path
     if not Path(image_path).exists():
         raise HTTPException(status_code=404, detail=f"이미지 파일이 없습니다: {image_path}")
+
+    options = _resolve_options(session_id, session)
+    detections = []
+
+    # 0. 심볼 검출 (YOLO)
+    if options.enable_symbol_detection:
+        try:
+            from schemas.detection import DetectionConfig
+            config = DetectionConfig(
+                confidence=options.confidence_threshold,
+                model_type=options.symbol_model_type,
+            )
+            detection_result = detection_service.detect(
+                image_path=image_path,
+                config=config,
+            )
+            detections = detection_result.get("detections", [])
+            logger.info(f"[서브이미지] {image_id}: 심볼 {len(detections)}개 검출")
+        except Exception as e:
+            logger.warning(f"[서브이미지] 심볼 검출 실패: {e}")
 
     # 1. 치수 OCR
     dimension_result = dimension_service.extract_dimensions(
@@ -717,6 +737,8 @@ async def run_sub_image_analysis(session_id: str, image_id: str):
         if img_data.get("image_id") == image_id:
             images[i]["dimensions"] = classified_dims
             images[i]["dimension_count"] = len(classified_dims)
+            images[i]["detections"] = detections
+            images[i]["detection_count"] = len(detections)
             images[i]["image_width"] = iw
             images[i]["image_height"] = ih
             images[i]["od"] = od_clean
@@ -732,6 +754,8 @@ async def run_sub_image_analysis(session_id: str, image_id: str):
     return {
         "session_id": session_id,
         "image_id": image_id,
+        "detections": detections,
+        "detection_count": len(detections),
         "dimension_count": len(classified_dims),
         "od": od_clean,
         "id": id_clean,

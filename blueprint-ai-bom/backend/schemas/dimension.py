@@ -158,3 +158,204 @@ class BulkDimensionImportResponse(BaseModel):
     auto_approved_count: int = 0
     dimensions: List[Dimension]
     message: str
+
+
+# ==================== Dimension Lab (OCR 엔진 비교) ====================
+
+class DimensionCompareRequest(BaseModel):
+    """OCR 엔진 비교 요청"""
+    session_id: str = Field(..., description="분석 대상 세션 ID")
+    ocr_engines: List[str] = Field(
+        default=["paddleocr", "edocr2"],
+        description="비교할 OCR 엔진 목록"
+    )
+    confidence_threshold: float = Field(
+        default=0.5, ge=0, le=1,
+        description="최소 신뢰도 임계값"
+    )
+    classify_roles: bool = Field(
+        default=True,
+        description="OD/ID/W 소재 역할 분류 수행 여부"
+    )
+
+
+class EngineResult(BaseModel):
+    """개별 엔진 결과"""
+    engine: str = Field(..., description="엔진 이름")
+    dimensions: List[Dimension] = Field(default_factory=list)
+    count: int = Field(0, description="검출 수")
+    processing_time_ms: float = Field(0, description="처리 시간(ms)")
+    error: Optional[str] = Field(None, description="에러 메시지 (실패 시)")
+
+
+class DimensionCompareResponse(BaseModel):
+    """OCR 엔진 비교 응답"""
+    session_id: str
+    image_width: int
+    image_height: int
+    engine_results: List[EngineResult]
+
+
+# ==================== 방법론 비교 ====================
+
+class MethodDimension(BaseModel):
+    """방법론별 분류된 치수 (간소화)"""
+    value: str
+    confidence: float
+    role: Optional[str] = None  # outer_diameter, inner_diameter, length, other, None
+    bbox: Optional[dict] = None
+
+
+class MethodResult(BaseModel):
+    """개별 분류 방법 결과"""
+    method_id: str = Field(..., description="방법 ID")
+    method_name: str = Field(..., description="방법 이름")
+    description: str = Field("", description="방법 설명")
+    od: Optional[str] = Field(None, description="추출된 외경 값")
+    id_val: Optional[str] = Field(None, description="추출된 내경 값")
+    width: Optional[str] = Field(None, description="추출된 폭 값")
+    od_confidence: float = Field(0)
+    id_confidence: float = Field(0)
+    width_confidence: float = Field(0)
+    classified_dims: List[MethodDimension] = Field(default_factory=list)
+
+
+class RawDimension(BaseModel):
+    """오버레이용 원본 치수"""
+    id: str
+    value: str
+    confidence: float
+    dimension_type: str
+    bbox: dict
+
+
+class MethodCompareResponse(BaseModel):
+    """방법론 비교 응답"""
+    session_id: str
+    image_width: int
+    image_height: int
+    ocr_engine: str
+    ocr_time_ms: float
+    total_dims: int
+    raw_dimensions: List[RawDimension] = Field(default_factory=list)
+    method_results: List[MethodResult]
+
+
+# ==================== Ground Truth ====================
+
+class GroundTruthDimension(BaseModel):
+    """수동 Ground Truth 치수"""
+    role: str = Field(..., description="od / id / w")
+    value: str = Field(..., description="치수 값 (예: 150)")
+    bbox: dict = Field(..., description="{x1, y1, x2, y2} 이미지 좌표")
+
+
+class GroundTruthRequest(BaseModel):
+    """Ground Truth 저장 요청"""
+    dimensions: List[GroundTruthDimension] = Field(default_factory=list)
+
+
+class GroundTruthResponse(BaseModel):
+    """Ground Truth 응답"""
+    session_id: str
+    dimensions: List[GroundTruthDimension] = Field(default_factory=list)
+    image_width: int = 0
+    image_height: int = 0
+
+
+# ==================== 전체 비교 (엔진×방법 매트릭스) ====================
+
+class FullCompareRequest(BaseModel):
+    """전체 엔진×방법 비교 요청"""
+    session_id: str
+    ocr_engines: List[str] = Field(
+        default=["paddleocr", "edocr2", "easyocr", "trocr", "suryaocr", "doctr", "paddleocr_tiled"],
+    )
+    confidence_threshold: float = Field(default=0.5)
+    methods: Optional[List[str]] = Field(
+        default=None,
+        description="실행할 방법 ID 목록 (None이면 전체 실행)",
+    )
+
+
+class CircleInfo(BaseModel):
+    """검출된 원 정보"""
+    cx: float
+    cy: float
+    radius: float
+    confidence: float = 0.5
+
+
+class DimLineInfo(BaseModel):
+    """치수선 정보"""
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    near_center: bool = False
+    endpoint_type: str = "unknown"  # "center"|"circumference"|"unknown"
+
+
+class RoiInfo(BaseModel):
+    """OCR ROI 영역 정보"""
+    x: float
+    y: float
+    w: float
+    h: float
+    ocr_text: str = ""
+    symbol: str = ""
+
+
+class RayCastInfo(BaseModel):
+    """레이캐스트 정보"""
+    origin_cx: float
+    origin_cy: float
+    angle_deg: float
+    hit_x: float
+    hit_y: float
+    distance: float
+
+
+class GeometryDebugInfo(BaseModel):
+    """기하학 디버그 오버레이용 정보"""
+    circles: List[CircleInfo] = Field(default_factory=list)
+    dim_lines: List[DimLineInfo] = Field(default_factory=list)
+    rois: List[RoiInfo] = Field(default_factory=list)
+    rays: List[RayCastInfo] = Field(default_factory=list)
+    symbols_found: List[dict] = Field(default_factory=list)
+
+
+class ClassifiedDim(BaseModel):
+    """분류된 치수 (오버레이용)"""
+    value: str
+    role: Optional[str] = None  # outer_diameter, inner_diameter, length
+    confidence: float = 0
+    bbox: Optional[dict] = None
+    diameter_from_radius: bool = False
+
+
+class CellResult(BaseModel):
+    """엔진×방법 교차 셀 결과"""
+    engine: str
+    method_id: str
+    od: Optional[str] = None
+    id_val: Optional[str] = None
+    width: Optional[str] = None
+    od_match: Optional[bool] = None
+    id_match: Optional[bool] = None
+    w_match: Optional[bool] = None
+    score: float = Field(0, description="정확도 (0~1)")
+    classified_dims: List[ClassifiedDim] = Field(default_factory=list)
+    geometry_debug: Optional[GeometryDebugInfo] = None
+
+
+class FullCompareResponse(BaseModel):
+    """전체 비교 응답"""
+    session_id: str
+    image_width: int
+    image_height: int
+    ground_truth: List[GroundTruthDimension] = Field(default_factory=list)
+    engine_times: dict = Field(default_factory=dict, description="엔진별 처리시간(ms)")
+    matrix: List[CellResult] = Field(default_factory=list)
+    total_engines: int = 0
+    total_methods: int = 0

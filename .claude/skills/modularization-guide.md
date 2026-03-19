@@ -1,8 +1,9 @@
 ---
 name: modularization-guide
-description: 1000줄 제한, 배럴 re-export 패턴, 분리 전략. 리팩토링 시 필수 참조.
+description: 파일 분리/모듈화/리팩토링 가이드. 1000줄 제한, 배럴 re-export 패턴, 파일 크기 초과 시 분리 전략. Triggers — 파일 크기, 줄수 초과, modularize, split file
 user-invocable: true
 allowed-tools: [Read, Grep, Glob, Bash, Edit, Write]
+skill-type: workflow
 ---
 
 # 파일 크기 및 모듈화 규칙 (LLM 최적화)

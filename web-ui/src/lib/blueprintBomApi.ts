@@ -455,6 +455,16 @@ export const sessionApi = {
   unlinkProjectId: async (sessionId: string): Promise<void> => {
     await api.patch(`/sessions/${sessionId}`, { project_id: null });
   },
+
+  delete: async (sessionId: string): Promise<void> => {
+    await api.delete(`/sessions/${sessionId}`);
+  },
+
+  /** 프로젝트에 속하지 않은 고아 세션 목록 */
+  listOrphans: async (limit = 100): Promise<SessionListItem[]> => {
+    const { data } = await api.get<SessionListItem[]>('/sessions', { params: { limit } });
+    return data.filter((s) => !s.project_id);
+  },
 };
 
 // ========================================

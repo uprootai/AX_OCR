@@ -88,6 +88,69 @@ export const inputNodes: Record<string, NodeDefinition> = {
       '기능 선택 → 추천 노드 확인 → 파이프라인 구성',
     ],
   },
+  reference_drawing: {
+    type: 'reference_drawing',
+    label: 'Reference Drawing',
+    category: 'input',
+    color: '#a855f7',
+    icon: 'BookOpen',
+    description:
+      '참조 도면 유형과 참조 세트를 설정합니다. 도면 유형(drawing_type)을 선택하고, 심볼 검증에 사용할 참조 이미지 세트를 지정합니다. 커스텀 참조 세트를 ZIP으로 업로드할 수도 있습니다.',
+    inputs: [],
+    outputs: [
+      {
+        name: 'drawing_type',
+        type: 'string',
+        description: '📐 도면 유형 (electrical_panel, pid, dimension, assembly 등)',
+      },
+      {
+        name: 'reference_set_id',
+        type: 'string',
+        description: '📚 참조 세트 ID (기본 제공 또는 커스텀)',
+      },
+    ],
+    parameters: [
+      {
+        name: 'drawing_type',
+        type: 'select',
+        default: 'auto',
+        options: [
+          { value: 'auto', label: '자동 감지 (VLM)', description: 'VLM이 도면 유형을 자동 분류' },
+          { value: 'electrical_panel', label: '전기 제어판', description: 'MCP Panel, 배전반 등 전력 설비 도면' },
+          { value: 'pid', label: 'P&ID (배관계장도)', description: '배관 계장도, 공정 흐름도' },
+          { value: 'dimension', label: '치수 도면', description: '기계 부품 치수 도면 (OD/ID/W 분석)' },
+          { value: 'assembly', label: '조립도', description: '부품 조립 구성도' },
+          { value: 'dimension_bom', label: '치수 + BOM', description: '치수 도면과 BOM이 포함된 도면' },
+        ],
+        description: '도면 유형 — 분석 파이프라인과 UI 기능을 결정합니다',
+        tooltip: '세션 생성 시 drawing_type으로 전달됩니다. "auto"를 선택하면 VLM이 자동으로 분류합니다.',
+      },
+      {
+        name: 'reference_set',
+        type: 'select',
+        default: 'electrical',
+        options: [
+          { value: 'electrical', label: '전기 도면 심볼', description: '전기 회로도, 배선도 심볼 (기본 제공)' },
+          { value: 'pid', label: 'P&ID 심볼', description: '배관 계장도 심볼 (기본 제공)' },
+          { value: 'sld', label: 'SLD 심볼', description: '단선 결선도 심볼 (기본 제공)' },
+          { value: 'mechanical', label: '기계 도면 심볼', description: '기계 부품도 심볼 (기본 제공)' },
+        ],
+        description: '참조 이미지 세트 — 심볼 검증 시 비교 대상으로 표시됩니다',
+        tooltip: '커스텀 세트는 /reference-sets API로 ZIP 업로드 후 사용 가능합니다.',
+      },
+    ],
+    examples: [
+      '파나시아 MCP Panel → drawing_type: electrical_panel, reference_set: electrical',
+      'DSE Bearing → drawing_type: dimension, reference_set: mechanical',
+      'P&ID 도면 → drawing_type: pid, reference_set: pid',
+    ],
+    usageTips: [
+      '📐 도면 유형은 세션에서 활성화할 기능과 UI 섹션을 결정합니다',
+      '📚 참조 세트는 심볼 검증 시 오른쪽 패널에 표시되는 참조 이미지입니다',
+      '📦 커스텀 참조 세트: ZIP 파일 업로드 (파일명 = 클래스명)',
+      '🔗 Image Input과 함께 사용하여 도면 유형을 명시적으로 설정하세요',
+    ],
+  },
   textinput: {
     type: 'textinput',
     label: 'Text Input',

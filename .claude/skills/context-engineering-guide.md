@@ -1,8 +1,10 @@
 ---
 name: context-engineering-guide
-description: 컨텍스트 윈도우 관리 전략. 60% 규칙, 서브에이전트 격리, 핸드오프 패턴.
+description: 컨텍스트 부족/메모리 관리/context window 최적화 전략. 60% 규칙, 서브에이전트 격리, 핸드오프 패턴. Triggers — 컨텍스트 초과, token limit, compact
 user-invocable: false
 allowed-tools: [Read, Grep]
+skill-type: capability-uplift
+retirement_date: 2027-03-01
 ---
 
 # 컨텍스트 엔지니어링 가이드

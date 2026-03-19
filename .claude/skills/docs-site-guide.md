@@ -1,8 +1,9 @@
 ---
 name: docs-site-guide
-description: Docusaurus 3.x 문서 사이트 관리. 페이지 추가, sidebars.ts, MDX 컴포넌트 가이드.
+description: docs-site/문서 사이트/Docusaurus 관리. 페이지 추가, sidebars.ts, MDX 컴포넌트 가이드. Triggers — docs-site, Docusaurus, MDX, 문서 페이지 추가
 user-invocable: true
 allowed-tools: [Read, Grep, Glob, Bash, Edit, Write]
+skill-type: workflow
 ---
 
 # Docs Site Guide

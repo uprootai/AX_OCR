@@ -1,0 +1,138 @@
+[
+  {
+    "case_id": "bearing_6205",
+    "description": "Standard deep groove ball bearing 6205 (ISO 15)",
+    "session_name": "6205",
+    "ground_truth": {
+      "od": 52.0,
+      "id": 25.0,
+      "w": 15.0
+    },
+    "image_path": "test_images/bearing_6205.png",
+    "expected_methods": {
+      "catalog": {"should_pass": true, "note": "ISO 15 standard bearing, catalog lookup reliable"},
+      "diameter_symbol": {"should_pass": true},
+      "value_ranking": {"should_pass": true},
+      "full_pipeline": {"should_pass": true}
+    }
+  },
+  {
+    "case_id": "bearing_NJ2220",
+    "description": "Cylindrical roller bearing NJ2220 (large, OD/ID ratio ~2)",
+    "session_name": "NJ2220",
+    "ground_truth": {
+      "od": 180.0,
+      "id": 100.0,
+      "w": 46.0
+    },
+    "image_path": "test_images/bearing_NJ2220.png",
+    "expected_methods": {
+      "catalog": {"should_pass": true, "note": "NJ series in ISO 15"},
+      "diameter_symbol": {"should_pass": true},
+      "value_ranking": {"should_pass": true},
+      "full_pipeline": {"should_pass": true}
+    }
+  },
+  {
+    "case_id": "bearing_7210",
+    "description": "Angular contact ball bearing 7210 (contact angle 40deg)",
+    "session_name": "7210",
+    "ground_truth": {
+      "od": 90.0,
+      "id": 50.0,
+      "w": 20.0
+    },
+    "image_path": "test_images/bearing_7210.png",
+    "expected_methods": {
+      "catalog": {"should_pass": true, "note": "72xx series angular contact"},
+      "diameter_symbol": {"should_pass": true},
+      "value_ranking": {"should_pass": true},
+      "full_pipeline": {"should_pass": true}
+    }
+  },
+  {
+    "case_id": "bearing_51108",
+    "description": "Thrust ball bearing 51108 (flat profile, W < ID)",
+    "session_name": "51108",
+    "ground_truth": {
+      "od": 60.0,
+      "id": 40.0,
+      "w": 13.0
+    },
+    "image_path": "test_images/bearing_51108.png",
+    "expected_methods": {
+      "catalog": {"should_pass": true, "note": "511xx thrust bearing"},
+      "diameter_symbol": {"should_pass": false, "note": "Thrust bearing drawing may lack Ø symbols"},
+      "value_ranking": {"should_pass": true},
+      "full_pipeline": {"should_pass": true}
+    }
+  },
+  {
+    "case_id": "bearing_32210",
+    "description": "Tapered roller bearing 32210 (tapered cross-section complicates OD extraction)",
+    "session_name": "32210",
+    "ground_truth": {
+      "od": 90.0,
+      "id": 50.0,
+      "w": 24.75
+    },
+    "image_path": "test_images/bearing_32210.png",
+    "expected_methods": {
+      "catalog": {"should_pass": true, "note": "322xx tapered roller"},
+      "diameter_symbol": {"should_pass": false, "note": "Tapered profile may confuse symbol parser"},
+      "value_ranking": {"should_pass": true},
+      "full_pipeline": {"should_pass": true}
+    }
+  },
+  {
+    "case_id": "bearing_6308",
+    "description": "Deep groove ball bearing 6308 (medium-large, 3 series)",
+    "session_name": "6308",
+    "ground_truth": {
+      "od": 90.0,
+      "id": 40.0,
+      "w": 23.0
+    },
+    "image_path": "test_images/bearing_6308.png",
+    "expected_methods": {
+      "catalog": {"should_pass": true},
+      "diameter_symbol": {"should_pass": true},
+      "value_ranking": {"should_pass": true},
+      "full_pipeline": {"should_pass": true}
+    }
+  },
+  {
+    "case_id": "custom_bushing",
+    "description": "Non-standard custom bushing (no catalog match expected)",
+    "session_name": "BUSHING-A1",
+    "ground_truth": {
+      "od": 75.0,
+      "id": 50.0,
+      "w": 30.0
+    },
+    "image_path": "test_images/custom_bushing.png",
+    "expected_methods": {
+      "catalog": {"should_pass": false, "note": "Custom part, no ISO catalog entry"},
+      "diameter_symbol": {"should_pass": true},
+      "value_ranking": {"should_pass": true},
+      "full_pipeline": {"should_pass": true}
+    }
+  },
+  {
+    "case_id": "bearing_6001_small",
+    "description": "Small deep groove ball bearing 6001 (close OD/ID values, W nearly same as ID)",
+    "session_name": "6001",
+    "ground_truth": {
+      "od": 28.0,
+      "id": 12.0,
+      "w": 8.0
+    },
+    "image_path": "test_images/bearing_6001.png",
+    "expected_methods": {
+      "catalog": {"should_pass": true},
+      "diameter_symbol": {"should_pass": true},
+      "value_ranking": {"should_pass": true, "note": "Small values may cause noise filtering issues"},
+      "full_pipeline": {"should_pass": true}
+    }
+  }
+]

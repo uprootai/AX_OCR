@@ -1,10 +1,13 @@
-"""Dimension Router - 치수 관리 API
+"""Dimension Router - 치수 관리 API (CRUD only)
 
 치수 CRUD, 검증, 일괄 처리 기능:
 - 치수 목록 조회
 - 치수 수정/삭제
 - 일괄 검증
 - eDOCr2 결과 가져오기
+
+Lab 실험 엔드포인트(compare, full-compare, ground-truth)는
+routers/analysis/lab/dimension_lab_router.py로 분리됨.
 """
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException

@@ -750,8 +750,17 @@ def classify_material_role(
     if raw.startswith("PCD"):
         return MaterialRole.OTHER
 
-    # 반경 단독 (R접두사) → 형상 특징이지 소재 사이즈 아님
+    # 반경: 정규화 후 DIAMETER로 변환된 것은 여기에 도달하지 않음
+    # 정규화되지 않은 소형 반경(R5 미만)만 OTHER
     if dim.dimension_type == DimensionType.RADIUS:
+        v = _parse_numeric(dim.value)
+        if v is not None and v >= 5:
+            # R→Ø 정규화가 누락된 경우 직경으로 취급
+            dia_val = v * 2
+            if dia_val > 80:
+                return MaterialRole.OUTER_DIAMETER
+            elif dia_val > 30:
+                return MaterialRole.INNER_DIAMETER
         return MaterialRole.OTHER
 
     # 2. 직경 분류 (Ø 접두사 or diameter type)
@@ -820,6 +829,10 @@ def postprocess_dimensions(
     dimension_service.py의 extract_dimensions()에서 호출한다.
     """
     original_count = len(dimensions)
+
+    # 0. R(반지름) → Ø(직경) 사전 정규화
+    from services.opencv_classifier import _normalize_radius_to_diameter
+    dimensions = _normalize_radius_to_diameter(dimensions)
 
     # 1. 비치수 텍스트 필터링
     dimensions = filter_non_dimension_text(dimensions)

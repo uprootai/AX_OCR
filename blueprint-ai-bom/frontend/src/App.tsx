@@ -4,7 +4,7 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/layout';
-import { HomePage, DetectionPage, VerificationPage, BOMPage, WorkflowPage, GuidePage, AgentVerificationPage, AgentDashboardPage } from './pages';
+import { HomePage, DetectionPage, VerificationPage, BOMPage, WorkflowPage, GuidePage, AgentVerificationPage, AgentDashboardPage, DimensionLabPage } from './pages';
 import { ProjectListPage, ProjectDetailPage } from './pages/project';
 import { CustomerWorkflowPage, CustomerImageReviewPage, CustomerSessionPage } from './pages/customer';
 
@@ -16,6 +16,7 @@ function App() {
         <Route path="/" element={<WorkflowPage />} />
         <Route path="/workflow" element={<WorkflowPage />} />
         <Route path="/guide" element={<GuidePage />} />
+        <Route path="/dimension-lab" element={<DimensionLabPage />} />
 
         {/* Phase 2D: 프로젝트 관리 */}
         <Route path="/projects" element={<ProjectListPage />} />

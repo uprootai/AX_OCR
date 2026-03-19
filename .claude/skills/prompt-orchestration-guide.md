@@ -1,8 +1,9 @@
 ---
 name: prompt-orchestration-guide
-description: XML contract, early-stop criteria, private think scratchpad, and reflector-curator context purification patterns for Claude Code and Codex collaboration
+description: 프롬프트/XML 계약/Codex 교차검증/컨텍스트 정제 패턴. early-stop, reflector-curator 정화, Claude Code·Codex 협업. Triggers — prompt engineering, XML contract, Codex
 user-invocable: true
-allowed-tools: [read, grep]
+allowed-tools: [Read, Grep]
+skill-type: workflow
 ---
 
 # Prompt Orchestration Guide

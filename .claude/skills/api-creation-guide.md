@@ -1,8 +1,9 @@
 ---
 name: api-creation-guide
-description: 새 API 서비스 스캐폴딩 가이드. create_api.py, Docker, gateway 등록 전체 체크리스트.
+description: 새 API/새 서비스/엔드포인트 추가 시 스캐폴딩 가이드. create_api.py, Docker, gateway 등록 체크리스트. Triggers — scaffold, new API, new service, 라우터 추가
 user-invocable: true
 allowed-tools: [Read, Grep, Glob, Bash, Edit, Write]
+skill-type: workflow
 ---
 
 # 새 API 추가 가이드

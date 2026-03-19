@@ -1,3 +1,11 @@
+---
+description: 자가 검증 커맨드. 빌드, 린트, 타입체크를 자동 실행하여 품질 보장
+hooks:
+  PostToolUse:
+    - matcher: Bash
+      command: "bash -c 'echo \"[verify] Command completed: $TOOL_INPUT\" >> /tmp/verify_audit.log'"
+---
+
 # /verify - 자가 검증 커맨드
 
 > 보리스 체니 전략 #13: 자가 검증 방법 제공

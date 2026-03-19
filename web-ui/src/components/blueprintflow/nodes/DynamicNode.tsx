@@ -47,6 +47,7 @@ const ICON_EMOJI_MAP: Record<string, string> = {
   // Input
   Image: '🖼️',
   Type: '📝',
+  BookOpen: '📚',
   // Default
   FileSpreadsheet: '📋',
 };

@@ -62,6 +62,17 @@ services:
             - gpu
             count: 1
             driver: nvidia
+  easyocr-api:
+    environment:
+      - EASYOCR_GPU=true
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities:
+            - gpu
+            count: 1
+            driver: nvidia
   table-detector-api:
     deploy:
       resources:

@@ -25,6 +25,9 @@ const BlueprintFlowTemplates = lazy(() => import('./pages/blueprintflow/Blueprin
 // PID Overlay Page (lazy)
 const PIDOverlayPage = lazy(() => import('./pages/pid-overlay/PIDOverlayPage'));
 
+// Lab Pages (lazy)
+const LabHub = lazy(() => import('./pages/lab/LabHubPage'));
+
 // Project Pages (lazy)
 const ProjectList = lazy(() => import('./pages/project/ProjectListPage'));
 const ProjectDetail = lazy(() => import('./pages/project/ProjectDetailPage'));
@@ -93,6 +96,9 @@ function App() {
                 {/* 관리 페이지 */}
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/api/:apiId" element={<APIDetail />} />
+
+                {/* Lab 허브 */}
+                <Route path="/lab" element={<LabHub />} />
 
                 {/* P&ID 오버레이 페이지 */}
                 <Route path="/pid-overlay" element={<PIDOverlayPage />} />

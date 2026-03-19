@@ -21,6 +21,37 @@ from schemas.dimension import Dimension, DimensionType, MaterialRole
 logger = logging.getLogger(__name__)
 
 
+def _normalize_radius_to_diameter(dimensions: List[Dimension]) -> List[Dimension]:
+    """R(반지름) 접두사 치수를 직경(Ø)으로 변환
+
+    R550 → Ø1100 (value*2), dimension_type → DIAMETER
+    원본 radius 여부는 diameter_from_radius 플래그로 추적.
+    """
+    result = list(dimensions)
+    for i, d in enumerate(result):
+        if d.dimension_type != DimensionType.RADIUS:
+            continue
+        val_text = d.value.strip()
+        m = re.match(r'^[Rr]\s*(\d+\.?\d*)', val_text)
+        if not m:
+            continue
+        try:
+            r_val = float(m.group(1))
+        except ValueError:
+            continue
+        if r_val < 5:
+            continue
+        dia_val = r_val * 2
+        dia_str = str(int(dia_val)) if dia_val == int(dia_val) else f"{dia_val:.1f}"
+        new_value = f"Ø{dia_str}"
+        logger.info(f"R→Ø 변환: '{val_text}' → '{new_value}' (반지름 {r_val} → 직경 {dia_val})")
+        result[i] = d.model_copy(update={
+            "value": new_value,
+            "dimension_type": DimensionType.DIAMETER,
+        })
+    return result
+
+
 def _is_ocr_noise(text: str) -> bool:
     """OCR 노이즈 판별 — 도면번호, 파트코드, 주석 등 비치수 텍스트 차단
 
@@ -187,21 +218,24 @@ def classify_by_diameter_symbol(
     - Ø 없는 치수 → 분류하지 않음 (None 유지)
     """
     # Ø 치수 수집: (index, value) — OCR 쓰레기 필터링
+    # 1차: Ø 접두사, 2차: dimension_type=DIAMETER (기하학 보강 치수)
     dia_entries: List[Tuple[int, float]] = []
     for i, d in enumerate(dimensions):
-        if _has_diameter_prefix(d.value):
-            if _is_ocr_noise(d.value):
-                continue
-            v = _parse_numeric_value(d.value)
-            if v is None or v <= 0 or v >= 2000:
-                continue
-            # Ø 뒤에 바로 숫자가 오는 깨끗한 패턴만 허용
-            if not re.search(r'[ØφΦ⌀]\s*\d', d.value):
-                continue
-            # 최소 5mm — Ø02, Ø3 등은 OCR 오인식
-            if v < 5:
-                continue
-            dia_entries.append((i, v))
+        has_prefix = _has_diameter_prefix(d.value)
+        has_type = d.dimension_type == DimensionType.DIAMETER
+        if not (has_prefix or has_type):
+            continue
+        if _is_ocr_noise(d.value):
+            continue
+        v = _parse_numeric_value(d.value)
+        if v is None or v <= 0 or v >= 2000:
+            continue
+        if has_prefix and not re.search(r'[ØφΦ⌀]\s*\d', d.value):
+            continue
+        # 최소 5mm — Ø02, Ø3 등은 OCR 오인식
+        if v < 5:
+            continue
+        dia_entries.append((i, v))
 
     if not dia_entries:
         return dimensions
@@ -431,7 +465,7 @@ def classify_width_by_position(
         if d.dimension_type in (
             DimensionType.THREAD, DimensionType.SURFACE_FINISH,
             DimensionType.ANGLE, DimensionType.CHAMFER,
-            DimensionType.TOLERANCE, DimensionType.RADIUS,
+            DimensionType.TOLERANCE,
         ):
             continue
 
@@ -545,7 +579,7 @@ def classify_by_dimension_type(
             if d.dimension_type in (
                 DimensionType.THREAD, DimensionType.SURFACE_FINISH,
                 DimensionType.ANGLE, DimensionType.CHAMFER,
-                DimensionType.TOLERANCE, DimensionType.RADIUS,
+                DimensionType.TOLERANCE,
             ):
                 continue
             # unknown 타입: 값이 깨끗한 숫자면 허용 (=120MM → 120)
@@ -745,15 +779,15 @@ def infer_inner_diameter(
             continue
         if _is_ocr_noise(d.value):
             continue
-        # 나사, 표면거칠기, 각도, 챔퍼, 반경 제외
+        # 나사, 표면거칠기, 각도, 챔퍼 제외 (RADIUS는 정규화 후 DIAMETER로 변환됨)
         if d.dimension_type in (
             DimensionType.THREAD, DimensionType.SURFACE_FINISH,
-            DimensionType.ANGLE, DimensionType.CHAMFER, DimensionType.RADIUS,
+            DimensionType.ANGLE, DimensionType.CHAMFER,
         ):
             continue
-        # M-prefix = thread (M10, M20), R-prefix = radius (R30, R  40)
+        # M-prefix = thread (M10, M20)
         val_text = d.value.strip()
-        if re.match(r'^[Mm]\s*\d', val_text) or re.match(r'^[Rr]\s*\d', val_text):
+        if re.match(r'^[Mm]\s*\d', val_text):
             continue
 
         v = _parse_numeric_value(d.value)
@@ -867,7 +901,10 @@ def classify_od_id_width(
 
     logger.info(f"OpenCV OD/ID/폭 분류기 시작: {len(dimensions)}개 치수")
 
-    # Step 0: 세션명에서 기준값 확보
+    # Step 0a: R(반지름) → Ø(직경) 정규화
+    dimensions = _normalize_radius_to_diameter(dimensions)
+
+    # Step 0b: 세션명에서 기준값 확보
     from services.session_name_parser import parse_session_name_dimensions
     ref = parse_session_name_dimensions(session_name or "")
     if ref["pattern"]:

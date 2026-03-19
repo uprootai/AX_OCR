@@ -1,8 +1,11 @@
 ---
 name: doc-updater
-description: Automatically tracks project changes and updates relevant documentation including CLAUDE.md, README, CHANGELOG, and API docs
+description: 문서 업데이트/README 갱신/CHANGELOG 작성 자동화. CLAUDE.md, API docs 등 프로젝트 문서 추적·동기화. Triggers — doc update, 문서 동기화, release notes
 user-invocable: true
-allowed-tools: [read, glob, grep, bash]
+allowed-tools: [Read, Glob, Grep, Bash]
+context: fork
+agent: sonnet
+skill-type: workflow
 ---
 
 # Documentation Updater Skill

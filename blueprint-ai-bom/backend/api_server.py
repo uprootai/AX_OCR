@@ -23,6 +23,7 @@ from routers.bom_router import router as bom_router_api, set_bom_service
 from routers.analysis import (
     core_router,
     dimension_router,
+    dimension_lab_router,
     line_router,
     region_router,
     gdt_router,
@@ -188,6 +189,7 @@ app.include_router(bom_router_api, tags=["BOM"])
 # Analysis 패키지 라우터 등록 (5개 모듈)
 app.include_router(core_router, tags=["Analysis Core"])
 app.include_router(dimension_router, tags=["Dimensions"])
+app.include_router(dimension_lab_router, tags=["Dimension Lab"])
 app.include_router(line_router, tags=["Lines & Connectivity"])
 app.include_router(region_router, tags=["Regions"])
 app.include_router(gdt_router, tags=["GD&T & Title Block"])

@@ -1,0 +1,1 @@
+export { DimensionLabPage } from './DimensionLabPage';

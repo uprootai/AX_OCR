@@ -1,5 +1,9 @@
 ---
 description: Rebuild and restart a Docker service safely
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      command: "bash -c 'if echo \"$TOOL_INPUT\" | grep -q \"docker\"; then docker ps --format \"table {{.Names}}\\t{{.Status}}\" 2>/dev/null; fi'"
 ---
 
 Please rebuild the specified service following this workflow:

@@ -1,8 +1,13 @@
 ---
 name: feature-implementer
-description: Executes feature implementation phase-by-phase based on plan documents using XML contracts, early-stop criteria, quality gates, and failure-context purification. Use when implementing planned features, executing development phases, or building according to structured roadmaps.
+description: 기능 구현/Phase 실행/계획 문서 기반 단계별 구현. XML 계약, 품질 게이트, 조기 종료 기준 적용. Triggers — implement feature, 기능 개발, phase execution, roadmap 실행
 user-invocable: true
-allowed-tools: [read, write, edit, glob, grep, bash]
+allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
+hooks:
+  PostToolUse:
+    - matcher: "Edit|Write"
+      command: "bash -c 'FILE=$(echo \"$TOOL_INPUT\" | grep -oP \"file_path.*?:\\s*\\K[^,}]+\" | tr -d \"\\\"\" | head -1); if [ -n \"$FILE\" ] && [ -f \"$FILE\" ]; then LINES=$(wc -l < \"$FILE\"); if [ \"$LINES\" -gt 1000 ]; then echo \"⚠️ [feature-implementer] $FILE is $LINES lines — exceeds 1000 line limit!\"; fi; fi'"
+skill-type: workflow
 ---
 
 # Feature Implementer Skill

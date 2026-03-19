@@ -1,8 +1,10 @@
 ---
 name: ux-enhancer
-description: Applies 2025 enterprise UI/UX best practices including accessibility (WCAG 2.1), dark mode, performance optimization, and interactive visualizations
+description: UI 개선/UX 고도화/접근성/다크모드/반응형 적용. WCAG 2.1, 성능 최적화, 인터랙티브 시각화. Triggers — UI enhancement, accessibility, dark mode, responsive
 user-invocable: true
-allowed-tools: [read, write, glob, grep]
+allowed-tools: [Read, Write, Glob, Grep]
+skill-type: capability-uplift
+retirement_date: 2027-03-01
 ---
 
 # UX Enhancer Skill

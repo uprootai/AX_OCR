@@ -92,7 +92,8 @@ export function WorkflowPage() {
   } = useSessionStore();
 
   // Multi-image session state (Phase 2C)
-  const [, setSelectedImageId] = useState<string | null>(null);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [selectedImageAnalyzed, setSelectedImageAnalyzed] = useState(false);
   const [sessionImageCount, setSessionImageCount] = useState(0);
 
   // 참조 도면 유형 (사용자 오버라이드)
@@ -207,12 +208,14 @@ export function WorkflowPage() {
   // Handler hooks
   const analysisHandlers = useAnalysisHandlers({
     sessionId: currentSession?.session_id,
+    selectedImageId,
     setIsAnalyzing: state.setIsRunningAnalysis,
     setAnalysisOptions: () => {},
     setLines: state.setLines,
     setIntersections: state.setIntersections,
     setConnectivity: state.setConnectivityData,
     loadSession,
+    loadImage,
     setDimensions: state.setDimensions,
     setDimensionStats: state.setDimensionStats,
     setRelations: state.setRelations,
@@ -361,6 +364,11 @@ export function WorkflowPage() {
   const handleImageSelect = useCallback(async (imageId: string, image: SessionImage) => {
     if (!currentSession) return;
     setSelectedImageId(imageId);
+    // 서브이미지 분석 여부: dimension_count 또는 detection_count로 판단
+    const isImageAnalyzed = imageId === 'main'
+      ? false  // 메인은 세션 status로 판단
+      : (image.dimension_count ?? 0) > 0 || image.detection_count > 0;
+    setSelectedImageAnalyzed(isImageAnalyzed);
     try {
       if (imageId === 'main') {
         // 'main'은 세션 생성 시 업로드된 메인 이미지
@@ -511,7 +519,14 @@ export function WorkflowPage() {
 
           {/* 활성화된 기능 */}
           {effectiveFeatures && effectiveFeatures.length > 0 && (
-            <ActiveFeaturesSection features={effectiveFeatures} />
+            <ActiveFeaturesSection
+              features={effectiveFeatures}
+              onRunAnalysis={analysisHandlers.handleRunAnalysis}
+              isLoading={isLoading}
+              sessionStatus={currentSession?.status}
+              selectedImageId={selectedImageId}
+              imageAnalyzed={selectedImageAnalyzed}
+            />
           )}
 
           {/* VLM 도면 분류 */}

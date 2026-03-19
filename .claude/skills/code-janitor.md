@@ -1,8 +1,12 @@
 ---
 name: code-janitor
-description: Automatically detects and fixes code quality issues including unused imports, type hints, security vulnerabilities, and performance problems across Python and TypeScript codebases
+description: 코드 정리/린트/unused import/코드 스멜 자동 감지·수정. Python·TypeScript 타입 힌트, 보안 취약점, 성능 개선. Triggers — code cleanup, lint fix, dead code
 user-invocable: true
-allowed-tools: [grep, glob, read, bash]
+allowed-tools: [Grep, Glob, Read, Bash]
+context: fork
+agent: haiku
+skill-type: capability-uplift
+retirement_date: 2027-03-01
 ---
 
 # Code Janitor Skill

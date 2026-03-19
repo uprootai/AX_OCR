@@ -15,9 +15,14 @@ import {
   ArrowLeft,
   Building,
   ChevronDown,
+  AlertTriangle,
+  Trash2,
+  ChevronRight,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
-import { projectApi, type Project } from '../../lib/blueprintBomApi';
+import { projectApi, sessionApi, type Project, type SessionListItem } from '../../lib/blueprintBomApi';
 import { ProjectCard } from './components/ProjectCard';
 import { ProjectCreateModal } from './components/ProjectCreateModal';
 
@@ -29,6 +34,37 @@ export function ProjectListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [customerFilter, setCustomerFilter] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [orphanSessions, setOrphanSessions] = useState<SessionListItem[]>([]);
+  const [showOrphans, setShowOrphans] = useState(false);
+  const [orphanSelectedIds, setOrphanSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeletingOrphans, setIsDeletingOrphans] = useState(false);
+
+  const loadOrphans = useCallback(async () => {
+    try {
+      const orphans = await sessionApi.listOrphans();
+      setOrphanSessions(orphans);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleDeleteOrphans = useCallback(async (ids: Set<string>) => {
+    if (ids.size === 0) return;
+    if (!confirm(`미연결 세션 ${ids.size}개를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+    setIsDeletingOrphans(true);
+    try {
+      for (const id of ids) {
+        await sessionApi.delete(id);
+      }
+      setOrphanSelectedIds(new Set());
+      await loadOrphans();
+    } catch (err) {
+      console.error('Failed to delete orphan sessions:', err);
+      alert('일부 세션 삭제에 실패했습니다.');
+    } finally {
+      setIsDeletingOrphans(false);
+    }
+  }, [loadOrphans]);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -46,7 +82,8 @@ export function ProjectListPage() {
 
   useEffect(() => {
     loadProjects();
-  }, [loadProjects]);
+    loadOrphans();
+  }, [loadProjects, loadOrphans]);
 
   const customers = [...new Set(projects.map((p) => p.customer))].sort();
 
@@ -176,6 +213,97 @@ export function ProjectListPage() {
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totalPending}</p>
           </div>
         </div>
+
+        {/* 미연결 세션 배너 */}
+        {orphanSessions.length > 0 && (
+          <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowOrphans(!showOrphans)}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  미연결 세션 {orphanSessions.length}개
+                </span>
+                <span className="text-xs text-amber-500 dark:text-amber-400">
+                  — 프로젝트에 속하지 않은 세션
+                </span>
+              </div>
+              <ChevronRight className={`w-4 h-4 text-amber-500 transition-transform ${showOrphans ? 'rotate-90' : ''}`} />
+            </button>
+
+            {showOrphans && (
+              <div className="px-4 pb-3 border-t border-amber-200 dark:border-amber-700">
+                <div className="flex items-center justify-between py-2">
+                  <button
+                    onClick={() => {
+                      const allIds = orphanSessions.map(s => s.session_id);
+                      setOrphanSelectedIds(prev =>
+                        prev.size === allIds.length ? new Set() : new Set(allIds)
+                      );
+                    }}
+                    className="text-xs px-2 py-1 rounded bg-amber-100 dark:bg-amber-800/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800 transition-colors"
+                  >
+                    {orphanSelectedIds.size === orphanSessions.length ? '전체 해제' : '전체 선택'}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {orphanSelectedIds.size > 0 && (
+                      <button
+                        onClick={() => handleDeleteOrphans(orphanSelectedIds)}
+                        disabled={isDeletingOrphans}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50 transition-colors disabled:opacity-50"
+                      >
+                        {isDeletingOrphans ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                        <span>{orphanSelectedIds.size}개 삭제</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteOrphans(new Set(orphanSessions.map(s => s.session_id)))}
+                      disabled={isDeletingOrphans}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                    >
+                      {isDeletingOrphans ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      <span>전체 삭제</span>
+                    </button>
+                  </div>
+                </div>
+                <ul className="space-y-1 max-h-[200px] overflow-y-auto">
+                  {orphanSessions.map(session => {
+                    const isSelected = orphanSelectedIds.has(session.session_id);
+                    return (
+                      <li
+                        key={session.session_id}
+                        onClick={() => {
+                          setOrphanSelectedIds(prev => {
+                            const next = new Set(prev);
+                            if (next.has(session.session_id)) next.delete(session.session_id);
+                            else next.add(session.session_id);
+                            return next;
+                          });
+                        }}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-800/30 transition-colors"
+                      >
+                        {isSelected
+                          ? <CheckSquare className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                          : <Square className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                        }
+                        <span className="flex-1 truncate text-gray-700 dark:text-gray-300">{session.filename}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          session.status === 'verified' || session.status === 'completed'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                        }`}>
+                          {session.status}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 에러 메시지 */}
         {error && (

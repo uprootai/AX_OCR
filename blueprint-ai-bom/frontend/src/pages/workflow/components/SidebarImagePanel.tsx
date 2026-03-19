@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronDown,
   Upload,
+  Download,
   ImagePlus,
   Images,
   FileArchive,
@@ -95,13 +96,30 @@ export function SidebarImagePanel({
   const [sampleImages, setSampleImages] = useState<TestImage[]>([]);
   const [uploadingGTFor, setUploadingGTFor] = useState<string | null>(null);
 
-  // 이미지 목록 로드 (메인 이미지 포함)
+  // 이미지 목록 로드 (메인 이미지 포함, GT 매칭)
   const loadImageData = useCallback(async () => {
     if (!currentSession) return;
     setIsLoadingImages(true);
     setImageError(null);
     try {
       const imageList = await sessionApi.listImages(currentSession.session_id);
+
+      // GT 라벨 목록 조회하여 파일명 매칭
+      let gtFilenames = new Set<string>();
+      try {
+        const gtRes = await fetch(`${API_BASE_URL}/api/ground-truth`);
+        if (gtRes.ok) {
+          const gtData = await gtRes.json();
+          gtFilenames = new Set(
+            (gtData.labels || []).map((l: { filename: string }) => l.filename)
+          );
+        }
+      } catch { /* GT 조회 실패해도 이미지 목록은 표시 */ }
+
+      const checkGT = (filename: string): boolean => {
+        const stem = filename.replace(/\.[^.]+$/, '');
+        return gtFilenames.has(stem);
+      };
 
       const mainImage: ImageWithGT = {
         image_id: 'main',
@@ -114,13 +132,14 @@ export function SidebarImagePanel({
         approved_count: 0,
         rejected_count: 0,
         order_index: 0,
-        has_gt: false,
+        has_gt: checkGT(currentSession.filename),
+        gt_filename: checkGT(currentSession.filename) ? currentSession.filename.replace(/\.[^.]+$/, '.txt') : undefined,
       };
 
       const imagesWithGT: ImageWithGT[] = imageList.map(img => ({
         ...img,
-        has_gt: (img as ImageWithGT).has_gt || false,
-        gt_filename: (img as ImageWithGT).gt_filename,
+        has_gt: (img as ImageWithGT).has_gt || checkGT(img.filename),
+        gt_filename: (img as ImageWithGT).gt_filename || (checkGT(img.filename) ? img.filename.replace(/\.[^.]+$/, '.txt') : undefined),
       }));
 
       setImages([mainImage, ...imagesWithGT]);
@@ -277,6 +296,81 @@ export function SidebarImagePanel({
       onImagesSelect?.([], []);
     }
   };
+
+  // base64 → 파일 다운로드 헬퍼
+  const downloadBlob = (base64: string, mimeType: string, filename: string) => {
+    const byteChars = atob(base64);
+    const byteArray = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) {
+      byteArray[i] = byteChars.charCodeAt(i);
+    }
+    const blob = new Blob([byteArray], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // 텍스트 → 파일 다운로드 헬퍼
+  const downloadText = (text: string, filename: string) => {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // 이미지 다운로드 핸들러
+  const handleDownloadImage = useCallback(async (image: ImageWithGT) => {
+    if (!currentSession) return;
+    try {
+      const isMain = image.image_id === 'main';
+      const url = isMain
+        ? `${API_BASE_URL}/sessions/${currentSession.session_id}/image`
+        : `${API_BASE_URL}/sessions/${currentSession.session_id}/images/${image.image_id}/data`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Download failed');
+      const data = await response.json();
+      downloadBlob(data.image_base64, data.mime_type || 'image/jpeg', image.filename);
+    } catch (err) {
+      console.error('Image download failed:', err);
+      alert('이미지 다운로드에 실패했습니다.');
+    }
+  }, [currentSession]);
+
+  // GT 파일 다운로드 핸들러
+  const handleDownloadGT = useCallback(async (image: ImageWithGT) => {
+    try {
+      const baseName = image.filename.replace(/\.[^.]+$/, '');
+      const response = await fetch(`${API_BASE_URL}/api/ground-truth/${image.filename}`);
+      if (!response.ok) throw new Error('GT download failed');
+      const data = await response.json();
+
+      if (!data.has_ground_truth || !data.labels?.length) {
+        alert('GT 라벨 데이터가 없습니다.');
+        return;
+      }
+
+      // YOLO normalized format: class_id x_center y_center width height
+      const gtText = data.labels.map((l: { class_id: number; x_center: number; y_center: number; width: number; height: number }) =>
+        `${l.class_id} ${l.x_center.toFixed(6)} ${l.y_center.toFixed(6)} ${l.width.toFixed(6)} ${l.height.toFixed(6)}`
+      ).join('\n');
+
+      downloadText(gtText, `${baseName}.txt`);
+    } catch (err) {
+      console.error('GT download failed:', err);
+      alert('GT 파일 다운로드에 실패했습니다.');
+    }
+  }, []);
 
   // 샘플 이미지 목록 로드 (마운트 시 1회)
   useEffect(() => {
@@ -447,9 +541,21 @@ export function SidebarImagePanel({
                           <span className="text-gray-400">{image.detection_count}개</span>
                         )}
                         {(image as ImageWithGT).has_gt ? (
-                          <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded" title={`GT: ${(image as ImageWithGT).gt_filename}`}>
-                            <Link2 className="w-3 h-3" />GT
-                          </span>
+                          <>
+                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded" title={`GT: ${(image as ImageWithGT).gt_filename}`}>
+                              <Link2 className="w-3 h-3" />GT
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadGT(image);
+                              }}
+                              className="flex items-center gap-0.5 px-1 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 rounded transition-colors"
+                              title="GT 라벨 파일 다운로드 (.txt)"
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                          </>
                         ) : (
                           <button
                             onClick={(e) => {
@@ -464,6 +570,16 @@ export function SidebarImagePanel({
                             {uploadingGTFor === image.image_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}GT
                           </button>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadImage(image);
+                          }}
+                          className="flex items-center gap-0.5 px-1 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                          title={`"${image.filename}" 이미지 다운로드`}
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                     {!isMultiSelectMode && isSelected && (

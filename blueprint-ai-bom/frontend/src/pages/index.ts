@@ -6,3 +6,4 @@ export { WorkflowPage } from './WorkflowPage';
 export { GuidePage } from './GuidePage';
 export { AgentVerificationPage } from './AgentVerificationPage';
 export { default as AgentDashboardPage } from './AgentDashboardPage';
+export { DimensionLabPage } from './dimension-lab';

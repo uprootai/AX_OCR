@@ -7,6 +7,7 @@ import {
   Shield,
   Workflow,
   FolderOpen,
+  FlaskConical,
   ExternalLink,
 } from "lucide-react";
 
@@ -117,6 +118,38 @@ export default function Sidebar() {
           })}
         </div>
       </div>
+
+      {/* Lab (실험/비교 분석) */}
+      <Link
+        to="/lab"
+        className={`mt-4 block p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg border-2 transition-colors ${
+          location.pathname.startsWith("/lab")
+            ? "border-amber-400 dark:border-amber-600"
+            : "border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700"
+        }`}
+        title={t("sidebar.labTooltip")}
+      >
+        <div className="flex items-center gap-2 mb-1.5">
+          <FlaskConical className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <h3 className="font-semibold text-sm text-amber-900 dark:text-amber-100">
+            {t("sidebar.lab")}
+          </h3>
+          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-600 text-white rounded">
+            LAB
+          </span>
+        </div>
+        <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
+          {t("sidebar.labDesc")}
+        </p>
+        <div className="flex items-center gap-2 text-[10px]">
+          <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />1 Active
+          </span>
+          <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600" />5 Planned
+          </span>
+        </div>
+      </Link>
 
       {/* 프로젝트 관리 (Blueprint AI BOM) */}
       <div

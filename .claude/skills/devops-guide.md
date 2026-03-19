@@ -1,8 +1,10 @@
 ---
 name: devops-guide
-description: CI/CD 파이프라인, Docker Compose, GPU 설정, 배포 전략 가이드.
+description: CI/CD 파이프라인, Docker Compose, GPU 설정, 배포 전략 가이드. 트리거 키워드 — CI, CD, 배포, 파이프라인, Docker, 환경변수
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: [Read, Grep, Glob, Bash]
+skill-type: workflow
 ---
 
 # DevOps 가이드

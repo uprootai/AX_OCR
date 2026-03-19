@@ -25,6 +25,9 @@ export const baseNodeTypes = {
   imageinput: ImageInputNode,
   textinput: TextInputNode,
 
+  // Reference
+  reference_drawing: DynamicNode,
+
   // Detection nodes
   yolo: YoloNode,
   table_detector: DynamicNode,
@@ -171,6 +174,7 @@ export const getNodeColor = (nodeType: string | undefined): string => {
     // Input - green
     case 'imageinput':
     case 'textinput':
+    case 'reference_drawing':
       return '#22c55e';
 
     // Detection - blue

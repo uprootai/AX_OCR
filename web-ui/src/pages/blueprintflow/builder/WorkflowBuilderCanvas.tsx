@@ -224,7 +224,7 @@ export function WorkflowBuilderCanvas() {
   const onEdgesDelete = useCallback((_deleted: { id: string }[]) => {}, []);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
       {/* Node Palette */}
       <NodePalette
         onNodeDragStart={onNodeDragStart}
