@@ -167,6 +167,12 @@ export function DimensionLabPage() {
           <Ruler className="w-6 h-6 text-blue-600" />
           <h1 className="text-lg font-bold text-gray-900 dark:text-white">Dimension Lab</h1>
           <span className="text-sm text-gray-500">OD/ID/W 추출 정확도 비교</span>
+          <a
+            href="/bom/dimension-lab/batch-eval"
+            className="ml-auto text-sm text-blue-600 hover:text-blue-800 transition"
+          >
+            배치 평가 &rarr;
+          </a>
         </div>
       </header>
 

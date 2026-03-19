@@ -6,7 +6,9 @@
 - (향후) tolerance_lab_router: 공차 해석 실험
 """
 from .dimension_lab_router import router as dimension_lab_router
+from .batch_eval_router import router as batch_eval_router
 
 __all__ = [
     'dimension_lab_router',
+    'batch_eval_router',
 ]
