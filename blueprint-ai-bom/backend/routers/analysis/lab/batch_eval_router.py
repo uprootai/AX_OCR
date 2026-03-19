@@ -86,9 +86,42 @@ class SessionEvalUpdate(BaseModel):
     w_correct: Optional[bool] = None
 
 
-# ==================== In-memory 상태 ====================
+# ==================== 영속화 + In-memory 상태 ====================
+
+import json
+from pathlib import Path
+
+_BATCH_DIR = Path(__file__).resolve().parent.parent.parent.parent / "uploads" / "batch_evals"
+_BATCH_DIR.mkdir(parents=True, exist_ok=True)
 
 _batches: Dict[str, BatchEvalStatus] = {}
+
+
+def _save_batch(batch: BatchEvalStatus):
+    """배치 상태를 디스크에 JSON 저장"""
+    path = _BATCH_DIR / f"{batch.batch_id}.json"
+    path.write_text(json.dumps(batch.model_dump(), ensure_ascii=False, indent=2))
+
+
+def _load_all_batches():
+    """서버 시작 시 디스크에서 모든 배치 복원"""
+    for f in _BATCH_DIR.glob("*.json"):
+        try:
+            data = json.loads(f.read_text())
+            b = BatchEvalStatus(**data)
+            # 실행 중이었던 배치는 error로 표시 (서버 재시작으로 중단)
+            if b.status == "running":
+                b.status = "error"
+                for r in b.rows:
+                    if r.status in ("pending", "running"):
+                        r.status = "error"
+                        r.error = "서버 재시작으로 중단"
+            _batches[b.batch_id] = b
+        except Exception:
+            pass
+
+
+_load_all_batches()
 
 
 def _get_services():
@@ -277,9 +310,11 @@ async def _run_batch(batch_id: str):
             row.error = str(e)[:200]
             batch.failed += 1
 
+        _save_batch(batch)
         await asyncio.sleep(0.1)
 
     batch.status = "completed"
+    _save_batch(batch)
 
 
 # ==================== 엔드포인트 ====================
@@ -362,7 +397,8 @@ async def save_session_eval(batch_id: str, session_id: str, update: SessionEvalU
     if update.w_correct is not None:
         row.w_correct = update.w_correct
 
-    # 세션에도 영속화
+    # 디스크 + 세션에 영속화
+    _save_batch(batch)
     session_service, _ = _get_services()
     session_service.update_session(session_id, {
         "batch_eval": {
