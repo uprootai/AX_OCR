@@ -1,15 +1,15 @@
 /**
  * BatchEvalPage — 다수 도면 일괄 치수 분석 + 후행 평가
  *
- * 세션을 랜덤 선택해 K(기하학)·H(값순위) 방법으로 OD/ID/W 추출,
+ * 세션을 랜덤 선택해 K(기하학)·H(값순위)·S(세션명) 방법으로 OD/ID/W 추출,
  * 사용자가 맞음/틀림을 토글하여 후행 평가.
+ *
+ * 새로고침 복원: batch_id를 URL 파라미터로 유지 → 페이지 로드 시 자동 복원.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { analysisApi, type SessionEvalRow, type BatchEvalStatus } from '../../lib/api/analysis';
-
-// ==================== 상수 ====================
 
 const POLL_INTERVAL = 2000;
 
@@ -77,24 +77,12 @@ function SummaryBar({ rows }: { rows: SessionEvalRow[] }) {
         flexWrap: 'wrap',
       }}
     >
-      <span>
-        총 <b>{rows.length}</b>개
-      </span>
-      <span>
-        완료 <b>{done.length}</b>
-      </span>
-      <span>
-        평가 <b>{evaluated}</b>
-      </span>
-      <span style={{ color: '#22c55e' }}>
-        OD 정확 <b>{odOk}</b>
-      </span>
-      <span style={{ color: '#3b82f6' }}>
-        ID 정확 <b>{idOk}</b>
-      </span>
-      <span style={{ color: '#f59e0b' }}>
-        W 정확 <b>{wOk}</b>
-      </span>
+      <span>총 <b>{rows.length}</b>개</span>
+      <span>완료 <b>{done.length}</b></span>
+      <span>평가 <b>{evaluated}</b></span>
+      <span style={{ color: '#22c55e' }}>OD 정확 <b>{odOk}</b></span>
+      <span style={{ color: '#3b82f6' }}>ID 정확 <b>{idOk}</b></span>
+      <span style={{ color: '#f59e0b' }}>W 정확 <b>{wOk}</b></span>
     </div>
   );
 }
@@ -118,22 +106,115 @@ function ProgressBar({ total, completed, failed }: { total: number; completed: n
   );
 }
 
+// ==================== 이전 배치 목록 ====================
+
+interface BatchListItem {
+  batch_id: string;
+  status: string;
+  total: number;
+  completed: number;
+  failed: number;
+}
+
+function PreviousBatches({
+  onSelect,
+  currentBatchId,
+}: {
+  onSelect: (id: string) => void;
+  currentBatchId: string | null;
+}) {
+  const [batches, setBatches] = useState<BatchListItem[]>([]);
+
+  useEffect(() => {
+    analysisApi.listBatchEvals().then(setBatches).catch(() => {});
+  }, [currentBatchId]); // 새 배치 시작 시 리프레시
+
+  if (batches.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <span style={{ fontSize: 12, color: '#6b7280', marginRight: 8 }}>이전 배치:</span>
+      {batches.map((b) => (
+        <button
+          key={b.batch_id}
+          onClick={() => onSelect(b.batch_id)}
+          style={{
+            marginRight: 6,
+            padding: '2px 10px',
+            borderRadius: 4,
+            border: b.batch_id === currentBatchId ? '2px solid #3b82f6' : '1px solid #d1d5db',
+            background: b.batch_id === currentBatchId ? '#eff6ff' : '#fff',
+            cursor: 'pointer',
+            fontSize: 12,
+          }}
+        >
+          {b.batch_id} ({b.completed}/{b.total})
+          {b.status === 'running' && ' ...'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ==================== 메인 페이지 ====================
 
 export function BatchEvalPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [count, setCount] = useState(10);
-  const [batchId, setBatchId] = useState<string | null>(null);
+  const [batchId, setBatchId] = useState<string | null>(searchParams.get('batch') ?? null);
   const [batch, setBatch] = useState<BatchEvalStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 폴링 정리
+  // URL에서 batch_id 복원 — 페이지 로드 시 자동
   useEffect(() => {
+    const urlBatch = searchParams.get('batch');
+    if (urlBatch && !batch) {
+      loadBatch(urlBatch);
+    }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // batch_id → URL 동기화
+  useEffect(() => {
+    if (batchId) {
+      setSearchParams({ batch: batchId }, { replace: true });
+    }
+  }, [batchId, setSearchParams]);
+
+  // 배치 로드 (복원 또는 이전 배치 선택)
+  const loadBatch = useCallback(async (id: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    setBatchId(id);
+    try {
+      const s = await analysisApi.getBatchEvalStatus(id);
+      setBatch(s);
+      if (s.status === 'running' || s.status === 'pending') {
+        startPolling(id);
+      }
+    } catch {
+      setError(`배치 ${id}를 찾을 수 없습니다`);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startPolling = (id: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const s = await analysisApi.getBatchEvalStatus(id);
+        setBatch(s);
+        if (s.status === 'completed' || s.status === 'error') {
+          if (pollRef.current) clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      } catch { /* 폴링 에러 무시 */ }
+    }, POLL_INTERVAL);
+  };
 
   // 배치 시작
   const startBatch = useCallback(async () => {
@@ -142,36 +223,22 @@ export function BatchEvalPage() {
     try {
       const res = await analysisApi.startBatchEval(count);
       setBatchId(res.batch_id);
-      // 즉시 첫 상태 조회
       const status = await analysisApi.getBatchEvalStatus(res.batch_id);
       setBatch(status);
-      // 폴링 시작
-      if (pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = setInterval(async () => {
-        try {
-          const s = await analysisApi.getBatchEvalStatus(res.batch_id);
-          setBatch(s);
-          if (s.status === 'completed' || s.status === 'error') {
-            if (pollRef.current) clearInterval(pollRef.current);
-            pollRef.current = null;
-          }
-        } catch {
-          /* 폴링 에러 무시 */
-        }
-      }, POLL_INTERVAL);
+      startPolling(res.batch_id);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '배치 시작 실패';
       setError(msg);
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count]);
 
   // 후행 평가 저장
   const saveEval = useCallback(
     async (sessionId: string, field: 'od_correct' | 'id_correct' | 'w_correct', value: TriState) => {
       if (!batchId || !batch) return;
-      // 낙관적 업데이트
       setBatch((prev) => {
         if (!prev) return prev;
         return {
@@ -183,9 +250,7 @@ export function BatchEvalPage() {
       });
       try {
         await analysisApi.saveBatchSessionEval(batchId, sessionId, { [field]: value });
-      } catch {
-        /* 실패 시 다음 폴링에서 복구 */
-      }
+      } catch { /* 실패 시 다음 폴링에서 복구 */ }
     },
     [batchId, batch],
   );
@@ -201,18 +266,18 @@ export function BatchEvalPage() {
         </Link>
         <span style={{ color: '#9ca3af' }}>/</span>
         <h1 style={{ margin: 0, fontSize: 20 }}>배치 평가</h1>
+        {batchId && (
+          <span style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'monospace' }}>
+            #{batchId}
+          </span>
+        )}
       </div>
 
+      {/* 이전 배치 목록 */}
+      <PreviousBatches onSelect={loadBatch} currentBatchId={batchId} />
+
       {/* 컨트롤 */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 16,
-          flexWrap: 'wrap',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <label style={{ fontSize: 14 }}>
           세션 수:
           <input
@@ -222,11 +287,8 @@ export function BatchEvalPage() {
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
             style={{
-              width: 60,
-              marginLeft: 8,
-              padding: '4px 8px',
-              borderRadius: 4,
-              border: '1px solid #d1d5db',
+              width: 60, marginLeft: 8, padding: '4px 8px',
+              borderRadius: 4, border: '1px solid #d1d5db',
             }}
             disabled={isRunning}
           />
@@ -235,13 +297,9 @@ export function BatchEvalPage() {
           onClick={startBatch}
           disabled={loading || isRunning}
           style={{
-            padding: '6px 20px',
-            borderRadius: 6,
-            border: 'none',
+            padding: '6px 20px', borderRadius: 6, border: 'none',
             background: isRunning ? '#9ca3af' : '#3b82f6',
-            color: '#fff',
-            cursor: isRunning ? 'not-allowed' : 'pointer',
-            fontSize: 14,
+            color: '#fff', cursor: isRunning ? 'not-allowed' : 'pointer', fontSize: 14,
           }}
         >
           {isRunning ? '실행 중...' : '랜덤 선택 & 실행'}
@@ -265,13 +323,7 @@ export function BatchEvalPage() {
       {/* 결과 테이블 */}
       {batch && batch.rows.length > 0 && (
         <div style={{ overflowX: 'auto', marginTop: 16 }}>
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: 13,
-            }}
-          >
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
                 <th style={thStyle}>#</th>
@@ -363,14 +415,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   const { bg, label } = map[status] ?? { bg: '#e5e7eb', label: status };
   return (
-    <span
-      style={{
-        background: bg,
-        padding: '2px 8px',
-        borderRadius: 4,
-        fontSize: 11,
-      }}
-    >
+    <span style={{ background: bg, padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>
       {label}
     </span>
   );
@@ -379,13 +424,9 @@ function StatusBadge({ status }: { status: string }) {
 // ==================== 스타일 ====================
 
 const thStyle: React.CSSProperties = {
-  padding: '8px 10px',
-  fontSize: 12,
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
+  padding: '8px 10px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: '6px 10px',
-  whiteSpace: 'nowrap',
+  padding: '6px 10px', whiteSpace: 'nowrap',
 };

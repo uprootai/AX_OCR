@@ -628,6 +628,12 @@ export const analysisApi = {
     return data;
   },
 
+  /** 배치 목록 조회 (새로고침 복원용) */
+  listBatchEvals: async (): Promise<Array<{ batch_id: string; status: string; total: number; completed: number; failed: number }>> => {
+    const { data } = await api.get('/analysis/dimensions/batch-eval/list');
+    return data;
+  },
+
   /** 배치 평가 상태/결과 조회 */
   getBatchEvalStatus: async (batchId: string): Promise<BatchEvalStatus> => {
     const { data } = await api.get(`/analysis/dimensions/batch-eval/${batchId}/status`);
