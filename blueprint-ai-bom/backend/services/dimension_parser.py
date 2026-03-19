@@ -855,6 +855,35 @@ def postprocess_dimensions(
             f"({original_count - len(dimensions)}개 제거)"
         )
 
+    # 5.5. 기하학 보강 — 원 검출 + 크롭 OCR 보충 치수 (image_path 있을 때만)
+    if image_path:
+        try:
+            from services.geometry_guided_extractor import (
+                get_geometry_supplementary_dims, filter_ocr_noise,
+            )
+            supp_dims, circle_r = get_geometry_supplementary_dims(
+                image_path, "paddleocr", 0.3,
+            )
+            if supp_dims and circle_r:
+                supp_dims = filter_ocr_noise(supp_dims, circle_r)
+                # 보충 치수 병합 (기존에 없는 값만)
+                existing_vals = {d.value.strip() for d in dimensions}
+                added = 0
+                for sd in supp_dims:
+                    sv = sd.get("value", "").strip() if isinstance(sd, dict) else ""
+                    if sv and sv not in existing_vals:
+                        dimensions.append(Dimension(**sd))
+                        existing_vals.add(sv)
+                        added += 1
+                # 전체 노이즈 필터 적용
+                dim_dicts = [d.model_dump() for d in dimensions]
+                dim_dicts = filter_ocr_noise(dim_dicts, circle_r)
+                dimensions = [Dimension(**d) for d in dim_dicts]
+                if added > 0:
+                    logger.info(f"기하학 보강: +{added}개 보충 치수 병합")
+        except Exception as e:
+            logger.debug(f"기하학 보강 스킵: {e}")
+
     # 6. ★ OpenCV OD/ID/폭 분류기 (Ø 기호 + 동심원 + 위치)
     dimensions = classify_od_id_width(
         dimensions, image_path=image_path,
