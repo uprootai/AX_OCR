@@ -225,9 +225,19 @@ async def _run_batch(batch_id: str):
                 )
                 return supp, geo
 
-            ocr_result, (supp_result, geo_result) = await asyncio.gather(
-                _run_ocr(), _run_geometry(),
-            )
+            # 병렬 실행 (각 120초 타임아웃)
+            try:
+                ocr_result, (supp_result, geo_result) = await asyncio.wait_for(
+                    asyncio.gather(_run_ocr(), _run_geometry()),
+                    timeout=120,
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"세션 {row.session_id} OCR/기하학 타임아웃 (120s)")
+                row.status = "error"
+                row.error = "OCR/기하학 타임아웃 (120s)"
+                batch.failed += 1
+                _save_batch(batch)
+                continue
 
             # OCR 결과 + 기하학 보강 병합
             raw_dims = ocr_result.get("dimensions", [])
