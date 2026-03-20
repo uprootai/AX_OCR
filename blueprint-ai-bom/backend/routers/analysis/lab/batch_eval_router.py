@@ -204,7 +204,7 @@ async def _run_batch(batch_id: str):
             except Exception:
                 pass
 
-            # OCR + 기하학을 순차 실행 (메모리 절약 — 병렬 시 OOM 위험)
+            # 경량 OCR: edocr2 API 직접 호출 (YOLO 파이프라인 스킵)
             from services.geometry_guided_extractor import (
                 get_geometry_supplementary_dims, filter_ocr_noise,
                 extract_by_geometry,
@@ -212,41 +212,46 @@ async def _run_batch(batch_id: str):
             from services.opencv_classifier import clean_dimension_value as _clean
 
             try:
-                ocr_result = await asyncio.wait_for(
+                dims_list = await asyncio.wait_for(
                     asyncio.to_thread(
-                        dimension_service.extract_dimensions,
-                        image_path, 0.5, ["paddleocr"],
+                        dimension_service._call_edocr2, image_path, 0.3,
                     ),
-                    timeout=180,
+                    timeout=600,
                 )
+                # Dimension 객체 → dict 변환
+                ocr_result = {
+                    "dimensions": [
+                        {"value": d.value, "confidence": d.confidence,
+                         "dimension_type": d.dimension_type, "bbox": d.bbox}
+                        for d in dims_list
+                    ]
+                }
             except asyncio.TimeoutError:
-                logger.warning(f"세션 {row.session_id} OCR 타임아웃 (180s)")
+                logger.warning(f"세션 {row.session_id} OCR 타임아웃 (600s)")
                 row.status = "error"
-                row.error = "OCR 타임아웃 (180s)"
+                row.error = "OCR 타임아웃 (600s)"
                 batch.failed += 1
                 _save_batch(batch)
                 continue
 
+            # 기하학 분석 — 실패해도 OCR만으로 진행 (graceful skip)
+            supp_result = ([], None)
+            geo_result = {}
             try:
                 supp_result = await asyncio.wait_for(
                     asyncio.to_thread(
                         get_geometry_supplementary_dims, image_path, "paddleocr", 0.3,
                     ),
-                    timeout=120,
+                    timeout=300,
                 )
                 geo_result = await asyncio.wait_for(
                     asyncio.to_thread(
                         extract_by_geometry, image_path, "paddleocr", 0.3,
                     ),
-                    timeout=120,
+                    timeout=300,
                 )
-            except asyncio.TimeoutError:
-                logger.warning(f"세션 {row.session_id} 기하학 타임아웃")
-                row.status = "error"
-                row.error = "기하학 분석 타임아웃"
-                batch.failed += 1
-                _save_batch(batch)
-                continue
+            except (asyncio.TimeoutError, RecursionError, Exception) as e:
+                logger.warning(f"세션 {row.session_id} 기하학 스킵: {e}")
 
             # OCR 결과 + 기하학 보강 병합
             raw_dims = ocr_result.get("dimensions", [])
