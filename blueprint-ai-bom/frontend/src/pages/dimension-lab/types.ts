@@ -10,6 +10,7 @@ export interface GtAnnotation {
 }
 
 export type LabStep = 'annotate' | 'running' | 'results';
+export type LabTab = 'single' | 'batch' | 'leaderboard';
 
 export const ROLE_COLORS: Record<GtRole, string> = {
   od: '#ef4444', // red
