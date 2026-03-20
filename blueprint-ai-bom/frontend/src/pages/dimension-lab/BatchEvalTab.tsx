@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { analysisApi, type SessionEvalRow, type BatchEvalStatus } from '../../lib/api/analysis';
-import { Play, Loader2, CheckCircle2, XCircle, Minus } from 'lucide-react';
+import { Play, Loader2, CheckCircle2, XCircle, Minus, LayoutList } from 'lucide-react';
 
 const POLL_INTERVAL = 2000;
 
@@ -257,11 +257,40 @@ export function BatchEvalTab() {
 
       {/* 빈 상태 */}
       {!batch && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">배치 평가</h3>
-          <p className="text-sm text-gray-500">
-            랜덤 도면 N개를 선택하여 OD/ID/W를 자동 추출하고, 결과를 후행 평가합니다.
-          </p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+          <div className="max-w-xl mx-auto text-center">
+            <LayoutList className="w-12 h-12 text-blue-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">배치 평가</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              <b>다수 도면</b>을 한 번에 분석하여 알고리즘의 실제 정확도를 검증합니다.
+            </p>
+            <div className="text-left space-y-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg p-5">
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">세션 수 설정</span>
+                  <p className="text-xs text-gray-500 mt-0.5">위에서 분석할 도면 수를 입력합니다 (1~100개). 랜덤으로 선택됩니다.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">자동 실행</span>
+                  <p className="text-xs text-gray-500 mt-0.5">각 도면에 edocr2 OCR + K(기하학)/H(값순위)/S(세션명) 방법으로 OD/ID/W를 추출합니다.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">후행 평가</span>
+                  <p className="text-xs text-gray-500 mt-0.5">결과 테이블에서 각 OD/ID/W 값이 맞는지 토글로 평가합니다. 이 데이터가 리더보드에 반영됩니다.</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-4">
+              대형 도면은 OCR에 수 분이 소요될 수 있습니다. 순차 처리로 안정적으로 진행됩니다.
+            </p>
+          </div>
         </div>
       )}
     </div>

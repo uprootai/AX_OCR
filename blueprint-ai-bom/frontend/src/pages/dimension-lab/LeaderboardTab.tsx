@@ -5,7 +5,7 @@
  * 데이터: 완료된 배치의 후행 평가 (od_correct/id_correct/w_correct)
  */
 import { useState, useEffect } from 'react';
-import { Trophy, RefreshCw, Loader2, BarChart3 } from 'lucide-react';
+import { Trophy, RefreshCw, Loader2 } from 'lucide-react';
 import { analysisApi, type BatchEvalStatus } from '../../lib/api/analysis';
 
 type DimFilter = 'all' | 'od' | 'id' | 'w';
@@ -236,12 +236,40 @@ export function LeaderboardTab() {
           </table>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-          <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">데이터 부족</h3>
-          <p className="text-sm text-gray-500">
-            배치 평가를 실행하고 후행 평가를 완료하면 여기에 알고리즘 순위가 표시됩니다.
-          </p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+          <div className="max-w-xl mx-auto text-center">
+            <Trophy className="w-12 h-12 text-amber-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">알고리즘 리더보드</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              배치 평가의 후행 평가 결과를 집계하여 <b>어떤 방법이 가장 정확한지</b> 순위를 매깁니다.
+            </p>
+            <div className="text-left space-y-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg p-5">
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">배치 평가 실행</span>
+                  <p className="text-xs text-gray-500 mt-0.5">"배치 평가" 탭에서 도면을 일괄 분석합니다.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">후행 평가 완료</span>
+                  <p className="text-xs text-gray-500 mt-0.5">결과 테이블에서 각 OD/ID/W가 맞는지 토글로 평가합니다.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">순위 확인</span>
+                  <p className="text-xs text-gray-500 mt-0.5">K(기하학), H(값순위), S(세션명), 최종 선택의 OD/ID/W별 정확도와 전체 순위를 확인합니다.</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-4">
+              배치를 많이 실행하고 평가할수록 순위의 신뢰도가 높아집니다.
+            </p>
+          </div>
         </div>
       )}
     </div>

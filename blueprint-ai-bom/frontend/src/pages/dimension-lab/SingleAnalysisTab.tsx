@@ -359,11 +359,38 @@ function MethodChip({ method, isRunning, isCompleted, isSelected, isDisabled, re
 
 function EmptyState() {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">개별 분석</h3>
-      <p className="text-sm text-gray-500">
-        도면을 선택하면 Ground Truth 설정 → 14개 방법 실행 → 정확도 매트릭스를 확인할 수 있습니다.
-      </p>
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+      <div className="max-w-xl mx-auto text-center">
+        <FlaskIcon className="w-12 h-12 text-blue-300 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">개별 도면 분석</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          단일 도면에서 OD/ID/W를 추출하는 <b>14개 분류 방법</b>을 <b>7개 OCR 엔진</b>으로 비교합니다.
+        </p>
+        <div className="text-left space-y-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg p-5">
+          <Step num={1} title="도면 선택" desc="위 드롭다운에서 분석할 세션(도면)을 선택합니다." />
+          <Step num={2} title="Ground Truth 설정" desc="도면 위에 드래그로 OD/ID/W 정답 영역과 값을 표시합니다. 이미 설정된 경우 자동 로드됩니다." />
+          <Step num={3} title="방법 실행" desc="14개 분류 방법 중 개별 또는 전체를 실행합니다. 기호 기반, 통계/위치, 파이프라인, 기하학 4개 카테고리로 구분됩니다." />
+          <Step num={4} title="결과 비교" desc="엔진×방법 정확도 매트릭스에서 어떤 조합이 가장 정확한지 확인합니다. 셀 클릭으로 상세 결과를 볼 수 있습니다." />
+        </div>
+      </div>
     </div>
   );
+}
+
+function Step({ num, title, desc }: { num: number; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+        {num}
+      </span>
+      <div>
+        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{title}</span>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+function FlaskIcon(props: { className?: string }) {
+  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6M10 3v7.4a2 2 0 0 1-.5 1.3L4.26 18.7A1 1 0 0 0 5 20h14a1 1 0 0 0 .74-1.3L14.5 11.7a2 2 0 0 1-.5-1.3V3"/><path d="M8.5 14h7"/></svg>;
 }
