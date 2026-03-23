@@ -1,6 +1,6 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-03-12
+> **마지막 업데이트**: 2026-03-23
 > **기준 커밋**: E07 Operational Excellence
 
 ---
@@ -31,6 +31,20 @@
 | S05 신규 7개사 온보딩 | ⬜ Blocked | 기업 모집 중 |
 
 **상세**: [.todo/epics/e04-ax-testcomplex/EPIC.md](epics/e04-ax-testcomplex/EPIC.md)
+
+### E08: Gstack 운영체계 최대 도입 (✅ Done)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 기준점 + 채택 매트릭스 | ✅ Done | pin 고정 + 27개 스킬 AX 채택 매트릭스 + `.gstack` 정책 확정 |
+| S02 이중 UI 브라우저 QA | ✅ Done | web-ui Playwright 다중 webServer + `/bom/*` redirect fix + dual-ui smoke 2개 통과 |
+| S03 `.claude` 체계 재배치 | ✅ Done | /review, /investigate, /plan-eng-review, /qa-only 추가 + 역할 매트릭스/agent README 정리 |
+| S04 QA 시나리오 재편 | ✅ Done | AX 5개 시나리오 그룹 문서화 + BOM/도면 매칭 test id 보강 |
+| S05 기존 훅 체인 재설계 | ✅ Done | 차단형 Bash/Write 훅 + `.gstack/state` freeze 정책 + 회귀 테스트 6개 |
+| S06 인증/아티팩트 정책 | ✅ Done | auth matrix + `.gstack/auth` 정책 + Playwright storage state env 지원 |
+| S07 smoke/full 롤아웃 | ✅ Done | `frontend-smoke` CI job + rollout guide + verify/command 문서 반영 |
+
+**상세**: [.todo/epics/e08-gstack-max-adoption/EPIC.md](epics/e08-gstack-max-adoption/EPIC.md)
 
 ### E07: Operational Excellence — WeekdayCode 4축 적용 (✅ Done)
 
@@ -98,4 +112,4 @@
 
 ---
 
-*마지막 업데이트: 2026-03-11*
+*마지막 업데이트: 2026-03-23*

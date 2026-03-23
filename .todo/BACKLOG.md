@@ -1,6 +1,6 @@
 # 백로그 — Epic 인덱스
 
-> 마지막 업데이트: 2026-02-27
+> 마지막 업데이트: 2026-03-23
 > Epic/Story 기반 작업 관리 (BMAD-Lite)
 
 ---
@@ -21,6 +21,7 @@
 | ID | Epic | 고객 | 메모 | 상태 |
 |----|------|------|------|------|
 | E04 | [AX 테스트 컴플렉스 온보딩](epics/e04-ax-testcomplex/EPIC.md) | 10개 중소기업 | 2025.09~2028.12, 249억 규모, 5 Stories | ⬜ Ready |
+| E08 | [Gstack 운영체계 최대 도입](epics/e08-gstack-max-adoption/EPIC.md) | 내부 | 내부 fork 방식으로 browser QA, commands, hooks, smoke/full rollout 정리 | ✅ Done |
 
 ## 기술 개선 (Epic 미배정)
 
@@ -84,4 +85,4 @@ cd {customer}-delivery && sha256sum **/* > CHECKSUMS.sha256
 
 ---
 
-*마지막 업데이트: 2026-02-27 (BMAD-Lite Epic 인덱스 도입)*
+*마지막 업데이트: 2026-03-23 (E08 gstack 최대 도입 완료 반영)*

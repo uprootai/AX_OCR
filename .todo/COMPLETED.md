@@ -1,7 +1,39 @@
 # 완료된 작업 아카이브
 
-> 마지막 업데이트: 2026-03-12
+> 마지막 업데이트: 2026-03-23
 > 완료된 작업들의 기록 (참조용)
+
+---
+
+## 2026-03-23 완료
+
+### E08: Gstack 운영체계 최대 도입
+
+AX 저장소 기준으로 `gstack` 전체를 그대로 복제하지 않고, 내부 fork 방식으로 browser QA, command 체계, safety hook, artifact/auth 정책, smoke/full rollout까지 흡수.
+
+- **S01**: `gstack` pinned commit 고정 + 27개 스킬 `Adopt / Adapt / Rewrite / Defer` 매트릭스 작성
+- **S02**: `web-ui` Playwright dual-ui 표면 통합 + `/bom/*` redirect 보정 + smoke 2개 검증
+- **S03**: `/review`, `/investigate`, `/plan-eng-review`, `/qa-only`를 `.claude/commands`에 흡수
+- **S04**: AX 핵심 시나리오 팩 정리 + BOM/도면 매칭용 안정 선택자 보강
+- **S05**: `careful`/`freeze` 대체 안전 훅 재작성 + quoted command / prefix bypass 회귀 테스트 6개 통과
+- **S06**: `.gstack/auth`, storage state, artifact ignore 정책 확정
+- **S07**: `frontend-smoke` CI job 추가 + local full QA + deploy guard rollout 문서화
+
+**핵심 산출물**:
+- `.todo/epics/e08-gstack-max-adoption/EPIC.md`
+- `.todo/epics/e08-gstack-max-adoption/adoption-matrix.md`
+- `.todo/epics/e08-gstack-max-adoption/rollout-guide.md`
+- `.claude/commands/README.md`
+- `.claude/hooks/pre-bash-safety.sh`
+- `.claude/hooks/pre-write-safety.sh`
+- `web-ui/playwright.config.ts`
+- `.github/workflows/ci.yml`
+
+**검증**:
+- `pytest -q tests/hooks/test_ax_safety_hooks.py` → 6 passed
+- `cd web-ui && npx tsc --noEmit` → 통과
+- `cd web-ui && npx playwright test e2e/dual-ui-smoke.spec.ts` → 2 passed
+- `python3` + PyYAML로 `.github/workflows/ci.yml`, `.github/workflows/cd.yml` 파싱 확인
 
 ---
 

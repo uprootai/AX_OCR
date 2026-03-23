@@ -52,6 +52,51 @@ jobs:
           retention-days: 7
 
   # ============================================================
+  # Frontend Smoke (Dual UI) - Playwright smoke only
+  # ============================================================
+  frontend-smoke:
+    name: Frontend Smoke (Dual UI)
+    runs-on: ubuntu-latest
+    needs: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            ./web-ui/package-lock.json
+            ./blueprint-ai-bom/frontend/package-lock.json
+
+      - name: Install web-ui dependencies
+        working-directory: ./web-ui
+        run: npm ci
+
+      - name: Install Blueprint AI BOM frontend dependencies
+        working-directory: ./blueprint-ai-bom/frontend
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: ./web-ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Run dual-ui smoke
+        working-directory: ./web-ui
+        run: npm run test:e2e:dual-ui
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-smoke-playwright
+          path: .gstack/reports/playwright/
+          retention-days: 7
+
+  # ============================================================
   # Backend (gateway-api) - Lint, Test
   # ============================================================
   backend:
