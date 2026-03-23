@@ -98,6 +98,7 @@ git branch --show-current
 - 전체 대화 요약이 아니라 다음 세션에 필요한 안정 사실만 남긴다
 - 실패한 시도는 원문 로그 대신 Reflector 요약으로 압축한다
 - 다음 세션이 바로 시작할 수 있도록 Curated Context를 반드시 채운다
+- 이번 세션에서 사용한 주요 command(`/review`, `/verify`, `/investigate`, `/qa-only` 등)와 남은 artifact 경로(`.gstack/reports/...`)를 함께 남긴다
 
 ### Step 3: 사용자에게 안내
 ```

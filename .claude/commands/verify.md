@@ -14,6 +14,11 @@ hooks:
 
 코드 변경 후 빌드, 린트, 타입체크를 자동으로 실행하여 품질을 보장합니다.
 
+역할 경계:
+- `/verify`는 실행 검증 명령입니다.
+- `/review`는 읽기 전용 코드 리뷰입니다.
+- `/qa-only`는 브라우저 기반 read-only QA 보고입니다.
+
 ## Verification Contract
 
 검증 전 현재 변경 범위에 맞는 최소 계약을 정의합니다.
@@ -83,12 +88,47 @@ cd blueprint-ai-bom/backend && python -m py_compile api_server.py
 docker-compose config --quiet
 ```
 
-### 5. API 헬스체크
+### 5. 브라우저 smoke/full 검증 (UI 변경 시)
+
+**CI parity smoke:**
+```bash
+cd web-ui && npm run test:e2e:dual-ui
+```
+
+**로컬 full workflow:**
+```bash
+cd web-ui && npm run test:e2e:bom
+```
+
+규칙:
+- 라우팅, shell, dual-ui 연결 변경은 `smoke`를 기본으로 실행
+- BOM workflow, 세션, 매칭, overlay 변경은 `full`까지 확장
+- `smoke`가 앱 부팅 단계에서 실패하면 `full`은 중단
+- CI는 `smoke`만 담당하고, `full`은 로컬 수동 검증으로 유지
+
+### 6. API 헬스체크
 
 ```bash
 curl -s http://localhost:5020/health
-curl -s http://localhost:8000/api/v1/health
+curl -s http://localhost:5050/api/v1/health
 ```
+
+### 7. 브라우저 인증 전제 확인
+
+브라우저 QA까지 포함할 경우:
+
+```bash
+test -f .gstack/auth/playwright.storage-state.json && echo "storage state present"
+```
+
+규칙:
+- 인증이 필요 없는 시나리오는 storage state 없이 실행
+- 인증이 필요하면 `PLAYWRIGHT_STORAGE_STATE`로 명시 전달
+- 토큰/쿠키 파일 내용을 로그나 문서에 붙이지 않음
+
+관련 운영 문서:
+- `.todo/epics/e08-gstack-max-adoption/rollout-guide.md`
+- `scripts/browser-auth/README.md`
 
 ## Early Stop Rules
 

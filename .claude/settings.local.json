@@ -14,8 +14,23 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Bash",
         "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && .claude/hooks/pre-bash-safety.sh'",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && .claude/hooks/pre-write-safety.sh'",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": "bash -c 'cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && .claude/hooks/pre-edit-check.sh'"

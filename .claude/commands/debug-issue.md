@@ -2,6 +2,8 @@
 description: Debug common issues following systematic workflow
 ---
 
+> 새 조사 작업은 `/investigate`를 기본값으로 사용하세요. `/debug-issue`는 빠른 트리아지와 legacy workflow 호환용으로 유지합니다.
+
 Please debug the issue using this systematic approach:
 
 ## 0. Debug Contract

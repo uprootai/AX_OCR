@@ -131,3 +131,6 @@ test-results/
 # Onboarding CLI (runtime artifacts)
 **/dry_run_results/
 onboard_state_*.json
+
+# Claude/gstack local runtime artifacts
+.gstack/
