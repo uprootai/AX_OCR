@@ -7,8 +7,10 @@
 """
 from .dimension_lab_router import router as dimension_lab_router
 from .batch_eval_router import router as batch_eval_router
+from .geometry_debug_router import router as geometry_debug_router
 
 __all__ = [
     'dimension_lab_router',
     'batch_eval_router',
+    'geometry_debug_router',
 ]

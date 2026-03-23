@@ -25,6 +25,7 @@ from routers.analysis import (
     dimension_router,
     dimension_lab_router,
     batch_eval_router,
+    geometry_debug_router,
     line_router,
     region_router,
     gdt_router,
@@ -192,6 +193,7 @@ app.include_router(core_router, tags=["Analysis Core"])
 app.include_router(dimension_router, tags=["Dimensions"])
 app.include_router(dimension_lab_router, tags=["Dimension Lab"])
 app.include_router(batch_eval_router, tags=["Dimension Lab - Batch Eval"])
+app.include_router(geometry_debug_router, tags=["Dimension Lab - Geometry Debug"])
 app.include_router(line_router, tags=["Lines & Connectivity"])
 app.include_router(region_router, tags=["Regions"])
 app.include_router(gdt_router, tags=["GD&T & Title Block"])

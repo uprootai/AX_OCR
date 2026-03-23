@@ -136,7 +136,7 @@ def filter_ocr_noise(dims: list, r_outer: float = None) -> list:
         # 각도/기타 비치수 제거
         if re.search(r'°|deg|UNC|UNF|TPI', val, re.IGNORECASE):
             continue
-        # 괄호 참조치수 제거
+        # 괄호 참조치수 제거 — 기계 도면에서 괄호는 참조치수 표기
         if val.startswith('(') and val.endswith(')'):
             continue
 
@@ -526,12 +526,12 @@ def _classify_by_circle_proximity(
 
     # ── 2단계: 값 크기 기반 분류 ──
     # 중복/유사 값 병합 (같은 치수를 다른 크롭에서 약간 다르게 읽은 경우)
-    # 예: 440과 450은 같은 치수(460)를 OCR이 다르게 읽은 것
+    # 2% 임계값: 565 vs 550 (2.6%) → 다른 치수로 유지
     unique = []
     for c in sorted(candidates, key=lambda x: x["confidence"], reverse=True):
         is_dup = False
         for u in unique:
-            if abs(c["num"] - u["num"]) / max(u["num"], 1) < 0.05:  # 5% 이내
+            if abs(c["num"] - u["num"]) / max(u["num"], 1) < 0.02:  # 2% 이내
                 is_dup = True
                 break
         if not is_dup:
@@ -541,20 +541,108 @@ def _classify_by_circle_proximity(
 
     od, id_val, w = None, None, None
 
-    # ── 2단계: 값 크기 기반 분류 (상위 3개 = OD > ID > W) ──
-    if len(unique) >= 3:
-        od = unique[0]       # 가장 큰 값 → OD
-        id_val = unique[1]   # 두 번째 → ID
-        w = unique[2]        # 세 번째 → W
-    elif len(unique) == 2:
-        od = unique[0]
-        ratio = unique[1]["num"] / unique[0]["num"] if unique[0]["num"] > 0 else 0
-        if ratio > 0.5:
-            id_val = unique[1]
-        else:
-            w = unique[1]
-    elif len(unique) == 1:
-        od = unique[0]
+    # ── 2단계: 스케일 일관성 검증 + 값 크기 기반 분류 ──
+    # 원의 픽셀 지름과 치수값의 비율(px/mm)이 일관된 조합을 찾는다.
+    # 예: r_outer=400px → 지름 800px, OD=360mm → scale=2.22
+    #     r_inner=210px → 지름 420px, ID=190mm → scale=2.21 ← 일치!
+    dia_outer_px = 2 * r_outer
+    dia_inner_px = 2 * r_inner
+    has_real_inner = inner is not None
+
+    best_combo = None
+    best_score = -1
+
+    max_val = unique[0]["num"] if unique else 1
+
+    if len(unique) >= 2:
+        # OD 후보: 상위 2개만 허용 (OD는 가장 큰 치수여야 함)
+        od_cutoff = min(2, len(unique))
+        for i, od_c in enumerate(unique[:od_cutoff]):
+            scale_od = dia_outer_px / od_c["num"] if od_c["num"] > 0 else 0
+            for j, id_c in enumerate(unique):
+                if i == j:
+                    continue
+                if id_c["num"] >= od_c["num"]:
+                    continue
+                # ID 최소값 제약: 절대 30mm 이상 + OD의 10% 이상
+                id_min = max(30, od_c["num"] * 0.10)
+                if id_c["num"] < id_min:
+                    logger.info(f"  ID 후보 제외 ({id_c['num']:.0f} < {id_min:.0f}): {id_c['value']}")
+                    continue
+
+                if has_real_inner:
+                    scale_id = dia_inner_px / id_c["num"] if id_c["num"] > 0 else 0
+                else:
+                    expected_inner_px = id_c["num"] * scale_od
+                    inner_ratio = expected_inner_px / dia_outer_px if dia_outer_px > 0 else 0
+                    if 0.3 < inner_ratio < 0.9:
+                        scale_id = scale_od
+                        scale_id *= (1.0 + abs(inner_ratio - 0.6) * 0.1)
+                    else:
+                        scale_id = 0
+
+                if scale_od > 0 and scale_id > 0:
+                    consistency = abs(scale_od - scale_id) / max(scale_od, scale_id)
+                else:
+                    consistency = 1.0
+
+                # W 후보: ID보다 작은 것 중 최대 (OD의 5% 이상만)
+                w_candidates = [
+                    u for k, u in enumerate(unique)
+                    if k != i and k != j and u["num"] < id_c["num"]
+                    and u["num"] >= od_c["num"] * 0.05
+                ]
+                w_candidates.sort(key=lambda x: x["num"], reverse=True)
+                w_c = w_candidates[0] if w_candidates else None
+
+                # 점수: 크기 순위(주) + 스케일 일관성(보조) + 접두사 보너스
+                # 크기 보너스 (주): OD는 가장 큰 치수여야 함 (최대 +1.5)
+                magnitude_score = od_c["num"] / max_val
+                score = magnitude_score * 1.5
+                # 스케일 일관성 (보조): 0~1 범위 (최대 +0.5)
+                score += max(0, 1.0 - consistency * 3) * 0.5
+                # OD > ID > W 순서 보너스
+                if w_c and id_c["num"] > w_c["num"]:
+                    score += 0.2
+                # Ø 접두사 보너스
+                if re.match(r'^[ØøΦ⌀∅]', od_c["value"]):
+                    score += 0.3
+                if re.match(r'^[ØøΦ⌀∅]', id_c["value"]):
+                    score += 0.2
+
+                logger.info(
+                    f"  조합 OD={od_c['value']}({scale_od:.2f}) "
+                    f"ID={id_c['value']}({scale_id:.2f}) "
+                    f"일관성={consistency:.3f} 크기={magnitude_score:.2f} 점수={score:.2f}"
+                )
+
+                if score > best_score:
+                    best_score = score
+                    best_combo = (od_c, id_c, w_c)
+
+    if best_combo and best_score > 0.3:
+        od, id_val, w = best_combo
+        logger.info(
+            f"스케일 검증 선택: OD={od['value']}, ID={id_val['value']}, "
+            f"W={w['value'] if w else 'N/A'} (점수={best_score:.2f})"
+        )
+    else:
+        # 폴백: 스케일 검증 실패 시 기존 크기 순서 방식 (ID/W 최소값 적용)
+        logger.info(f"스케일 검증 실패 (best={best_score:.2f}) → 크기 순서 폴백")
+        valid = [u for u in unique if u["num"] >= 30]  # 30mm 이상만
+        if len(valid) >= 3:
+            od = valid[0]
+            id_val = valid[1]
+            w = valid[2]
+        elif len(valid) == 2:
+            od = valid[0]
+            ratio = valid[1]["num"] / valid[0]["num"] if valid[0]["num"] > 0 else 0
+            if ratio > 0.5:
+                id_val = valid[1]
+            else:
+                w = valid[1]
+        elif len(unique) == 1:
+            od = unique[0]
 
     result = {
         "od": _fmt(od), "id": _fmt(id_val), "w": _fmt(w),
@@ -564,6 +652,9 @@ def _classify_by_circle_proximity(
             "unique": len(unique),
             "total_dims": len(dims),
             "values": [(c["value"], c["num"]) for c in unique],
+            "scale_score": round(best_score, 3),
+            "dia_outer_px": dia_outer_px,
+            "dia_inner_px": dia_inner_px,
         },
     }
     return result

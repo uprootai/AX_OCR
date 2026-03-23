@@ -14,6 +14,7 @@ from schemas.dimension import (
     Dimension, DimensionType, MaterialRole,
     GeometryDebugInfo, CircleInfo, DimLineInfo, RoiInfo, RayCastInfo,
 )
+from services.circle_ransac import detect_circles_ransac, ensemble_circles
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,23 @@ def _detect_circles_for_methods(img_gray: np.ndarray) -> List[Tuple[int, int, in
 
     # 1차: 컨투어 기반
     circles = _contour_circle_detect(img, rw, rh, scale)
-    if circles:
-        return circles
+    if not circles:
+        # 2차: HoughCircles 폴백
+        circles = _hough_circle_detect(img, rw, rh, scale)
 
-    # 2차: HoughCircles 폴백
-    return _hough_circle_detect(img, rw, rh, scale)
+    # 3차: RANSAC 원 피팅 — 부착 부품이 윤곽을 끊는 경우 보강
+    try:
+        ransac_circles = detect_circles_ransac(img)
+        if scale != 1.0 and ransac_circles:
+            ransac_circles = [
+                (int(cx / scale), int(cy / scale), int(r / scale))
+                for cx, cy, r in ransac_circles
+            ]
+        circles = ensemble_circles(circles, ransac_circles)
+    except Exception:
+        logger.debug("RANSAC circle detection failed, using existing results")
+
+    return circles
 
 
 def _contour_circle_detect(

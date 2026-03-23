@@ -855,8 +855,9 @@ def postprocess_dimensions(
             f"({original_count - len(dimensions)}개 제거)"
         )
 
-    # 5.5. 기하학 보강 — 원 검출 + 크롭 OCR 보충 치수 (image_path 있을 때만)
-    if image_path:
+    # 5.5. 기하학 보강 — full_compare의 1.5단계에서 이미 수행하므로 여기서는 제거
+    #      (이전: postprocess마다 PaddleOCR 하드코딩 호출 → 숨겨진 CPU/메모리 폭주 원인)
+    if False:  # noqa: SIM108 — 의도적 비활성화, full_compare 1.5단계로 이관
         try:
             from services.geometry_guided_extractor import (
                 get_geometry_supplementary_dims, filter_ocr_noise,
@@ -866,7 +867,6 @@ def postprocess_dimensions(
             )
             if supp_dims and circle_r:
                 supp_dims = filter_ocr_noise(supp_dims, circle_r)
-                # 보충 치수 병합 (기존에 없는 값만)
                 existing_vals = {d.value.strip() for d in dimensions}
                 added = 0
                 for sd in supp_dims:
@@ -875,7 +875,6 @@ def postprocess_dimensions(
                         dimensions.append(Dimension(**sd))
                         existing_vals.add(sv)
                         added += 1
-                # 전체 노이즈 필터 적용
                 dim_dicts = [d.model_dump() for d in dimensions]
                 dim_dicts = filter_ocr_noise(dim_dicts, circle_r)
                 dimensions = [Dimension(**d) for d in dim_dicts]

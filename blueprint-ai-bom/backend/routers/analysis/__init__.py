@@ -24,6 +24,7 @@ from .batch_router import router as batch_router
 # Lab 실험 라우터
 from .lab import dimension_lab_router
 from .lab import batch_eval_router
+from .lab import geometry_debug_router
 
 # Long-term 기능 라우터 (longterm_router.py에서 분리)
 from .drawing_region_router import router as drawing_region_router
@@ -71,6 +72,7 @@ __all__ = [
     # Lab routers
     'dimension_lab_router',
     'batch_eval_router',
+    'geometry_debug_router',
     # Long-term routers (from longterm_router.py)
     'drawing_region_router',
     'notes_router',

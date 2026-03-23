@@ -306,6 +306,18 @@ export interface SessionEvalRow {
   ranking_od: string | null;
   ranking_id: string | null;
   ranking_w: string | null;
+  endpoint_od: string | null;
+  endpoint_id: string | null;
+  endpoint_w: string | null;
+  symbol_od: string | null;
+  symbol_id: string | null;
+  symbol_w: string | null;
+  raycast_od: string | null;
+  raycast_id: string | null;
+  raycast_w: string | null;
+  ref_od: string | null;
+  ref_id: string | null;
+  ref_w: string | null;
   od: string | null;
   id_val: string | null;
   width: string | null;
@@ -318,7 +330,7 @@ export interface SessionEvalRow {
 
 export interface BatchEvalStatus {
   batch_id: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
+  status: 'pending' | 'running' | 'completed' | 'error' | 'cancelled';
   total: number;
   completed: number;
   failed: number;
@@ -650,6 +662,12 @@ export const analysisApi = {
       `/analysis/dimensions/batch-eval/${batchId}/sessions/${sessionId}/eval`,
       evalData,
     );
+    return data;
+  },
+
+  /** 배치 취소 */
+  cancelBatchEval: async (batchId: string): Promise<{ ok: boolean }> => {
+    const { data } = await api.post(`/analysis/dimensions/batch-eval/${batchId}/cancel`);
     return data;
   },
 

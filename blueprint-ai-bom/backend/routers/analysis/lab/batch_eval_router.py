@@ -47,6 +47,18 @@ class SessionEvalRow(BaseModel):
     ranking_od: Optional[str] = None
     ranking_id: Optional[str] = None
     ranking_w: Optional[str] = None
+    # endpoint_topology (L) 결과
+    endpoint_od: Optional[str] = None
+    endpoint_id: Optional[str] = None
+    endpoint_w: Optional[str] = None
+    # symbol_search (M) 결과
+    symbol_od: Optional[str] = None
+    symbol_id: Optional[str] = None
+    symbol_w: Optional[str] = None
+    # center_raycast (N) 결과
+    raycast_od: Optional[str] = None
+    raycast_id: Optional[str] = None
+    raycast_w: Optional[str] = None
     # 세션명 참조 (S)
     ref_od: Optional[str] = None
     ref_id: Optional[str] = None
@@ -95,6 +107,7 @@ _BATCH_DIR = Path(__file__).resolve().parent.parent.parent.parent / "uploads" / 
 _BATCH_DIR.mkdir(parents=True, exist_ok=True)
 
 _batches: Dict[str, BatchEvalStatus] = {}
+_tasks: Dict[str, asyncio.Task] = {}  # 배치별 asyncio.Task (취소용)
 
 
 def _save_batch(batch: BatchEvalStatus):
@@ -158,6 +171,15 @@ def _pick_best(
     return k_val or h_val or s_val
 
 
+def _extract_role_value(dims, role_val: str) -> Optional[str]:
+    """material_role 기반 최고 신뢰도 값 추출 (L/M/N 방법용)"""
+    matches = [d for d in dims if d.material_role and d.material_role.value == role_val]
+    if not matches:
+        return None
+    best = max(matches, key=lambda d: d.confidence)
+    return best.value
+
+
 # ==================== 배치 실행 로직 ====================
 
 async def _run_batch(batch_id: str):
@@ -168,6 +190,9 @@ async def _run_batch(batch_id: str):
     session_service, dimension_service = _get_services()
 
     for row in batch.rows:
+        # 취소 체크
+        if batch.status == "cancelled":
+            break
         row.status = "running"
         try:
             session = session_service.get_session(row.session_id)
@@ -309,6 +334,59 @@ async def _run_batch(batch_id: str):
             except Exception as e:
                 logger.warning(f"H 방법 실패 ({row.session_id}): {e}")
 
+            # L/M/N 기하학 방법 (graceful skip)
+            try:
+                from schemas.dimension import Dimension as DimSchema
+                from services.geometric_methods import (
+                    endpoint_topology_classify,
+                    symbol_search_classify,
+                    center_raycast_classify,
+                )
+                import cv2
+
+                img_for_geo = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+                img_h, img_w = (img_for_geo.shape[:2]) if img_for_geo is not None else (0, 0)
+
+                dims_lmn = [DimSchema(**d) for d in raw_dims]
+
+                # L. endpoint_topology
+                try:
+                    l_dims, _ = endpoint_topology_classify(dims_lmn, image_path, img_w, img_h)
+                    l_od = _extract_role_value(l_dims, "outer_diameter")
+                    l_id = _extract_role_value(l_dims, "inner_diameter")
+                    l_w = _extract_role_value(l_dims, "length")
+                    row.endpoint_od = _clean(l_od) if l_od else None
+                    row.endpoint_id = _clean(l_id) if l_id else None
+                    row.endpoint_w = _clean(l_w) if l_w else None
+                except Exception as e:
+                    logger.warning(f"L 방법 실패 ({row.session_id}): {e}")
+
+                # M. symbol_search
+                try:
+                    m_dims, _ = symbol_search_classify(dims_lmn)
+                    m_od = _extract_role_value(m_dims, "outer_diameter")
+                    m_id = _extract_role_value(m_dims, "inner_diameter")
+                    m_w = _extract_role_value(m_dims, "length")
+                    row.symbol_od = _clean(m_od) if m_od else None
+                    row.symbol_id = _clean(m_id) if m_id else None
+                    row.symbol_w = _clean(m_w) if m_w else None
+                except Exception as e:
+                    logger.warning(f"M 방법 실패 ({row.session_id}): {e}")
+
+                # N. center_raycast
+                try:
+                    n_dims, _ = center_raycast_classify(dims_lmn, image_path, img_w, img_h)
+                    n_od = _extract_role_value(n_dims, "outer_diameter")
+                    n_id = _extract_role_value(n_dims, "inner_diameter")
+                    n_w = _extract_role_value(n_dims, "length")
+                    row.raycast_od = _clean(n_od) if n_od else None
+                    row.raycast_id = _clean(n_id) if n_id else None
+                    row.raycast_w = _clean(n_w) if n_w else None
+                except Exception as e:
+                    logger.warning(f"N 방법 실패 ({row.session_id}): {e}")
+            except Exception as e:
+                logger.warning(f"L/M/N 초기화 실패 ({row.session_id}): {e}")
+
             # 최종 선택: K → H → S (sanity check 적용)
             row.od = _pick_best(row.geometry_od, row.ranking_od, row.ref_od, ref_od_num)
             row.id_val = _pick_best(row.geometry_id, row.ranking_id, row.ref_id, ref_id_num)
@@ -337,8 +415,16 @@ async def _run_batch(batch_id: str):
         _save_batch(batch)
         await asyncio.sleep(0.1)
 
-    batch.status = "completed"
+    if batch.status == "cancelled":
+        # 남은 row들 cancelled 처리
+        for r in batch.rows:
+            if r.status == "pending":
+                r.status = "error"
+                r.error = "취소됨"
+    else:
+        batch.status = "completed"
     _save_batch(batch)
+    _tasks.pop(batch_id, None)
 
 
 # ==================== 엔드포인트 ====================
@@ -366,11 +452,28 @@ async def start_batch_eval(request: BatchEvalRequest):
     batch = BatchEvalStatus(batch_id=batch_id, total=len(session_ids), rows=rows)
     _batches[batch_id] = batch
 
-    asyncio.create_task(_run_batch(batch_id))
+    task = asyncio.create_task(_run_batch(batch_id))
+    _tasks[batch_id] = task
 
     return BatchEvalStartResponse(
         batch_id=batch_id, total=len(session_ids), session_ids=session_ids,
     )
+
+
+@router.post("/dimensions/batch-eval/{batch_id}/cancel")
+async def cancel_batch_eval(batch_id: str):
+    """배치 취소 — 실행 중인 배치를 중단"""
+    batch = _batches.get(batch_id)
+    if not batch:
+        raise HTTPException(404, "배치를 찾을 수 없습니다")
+    if batch.status not in ("running", "pending"):
+        return {"ok": False, "message": "이미 완료된 배치입니다"}
+    batch.status = "cancelled"
+    task = _tasks.get(batch_id)
+    if task and not task.done():
+        task.cancel()
+    _save_batch(batch)
+    return {"ok": True, "batch_id": batch_id}
 
 
 @router.get("/dimensions/batch-eval/list", response_model=List[BatchListItem])

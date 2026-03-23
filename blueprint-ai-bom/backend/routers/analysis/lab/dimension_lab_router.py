@@ -471,38 +471,48 @@ async def full_compare(request: FullCompareRequest) -> FullCompareResponse:
     gt_id = next((g.value for g in gt_dims if g.role == "id"), None)
     gt_w = next((g.value for g in gt_dims if g.role == "w"), None)
 
-    # 1. 모든 OCR 엔진 병렬 실행
+    # 1. OCR 엔진 순차 실행 (병렬 시 CPU/메모리 폭주 방지)
     engine_times: dict = {}
     engine_raw: dict = {}
 
-    async def run_engine(engine: str):
+    for engine in request.ocr_engines:
         start = time.time()
         try:
-            result = await asyncio.to_thread(
-                dimension_service.extract_dimensions,
-                image_path,
-                request.confidence_threshold,
-                [engine],
+            result = await asyncio.wait_for(
+                asyncio.to_thread(
+                    dimension_service.extract_dimensions,
+                    image_path,
+                    request.confidence_threshold,
+                    [engine],
+                ),
+                timeout=120,  # 엔진별 2분 타임아웃
             )
-            elapsed = round((time.time() - start) * 1000, 1)
-            engine_times[engine] = elapsed
+            el = round((time.time() - start) * 1000, 1)
+            engine_times[engine] = el
             engine_raw[engine] = result.get("dimensions", [])
         except Exception as e:
-            elapsed = round((time.time() - start) * 1000, 1)
-            engine_times[engine] = elapsed
+            el = round((time.time() - start) * 1000, 1)
+            engine_times[engine] = el
             engine_raw[engine] = []
             logger.warning(f"엔진 {engine} 실패: {e}")
 
-    await asyncio.gather(*[run_engine(eng) for eng in request.ocr_engines])
-
     # 1.5. 기하학 보강: 원 검출 + 크롭 OCR로 보충 치수 확보 + 노이즈 필터
+    #      선택된 첫 번째 엔진 사용 (하드코딩 paddleocr 제거)
     from services.geometry_guided_extractor import (
         get_geometry_supplementary_dims, filter_ocr_noise,
     )
-    supp_dims, circle_r = await asyncio.to_thread(
-        get_geometry_supplementary_dims, image_path, "paddleocr",
-        request.confidence_threshold,
-    )
+    _geo_ocr_engine = request.ocr_engines[0] if request.ocr_engines else "edocr2"
+    try:
+        supp_dims, circle_r = await asyncio.wait_for(
+            asyncio.to_thread(
+                get_geometry_supplementary_dims, image_path, _geo_ocr_engine,
+                request.confidence_threshold,
+            ),
+            timeout=120,  # 보강 OCR 2분 타임아웃
+        )
+    except Exception as e:
+        logger.warning(f"기하학 보강 실패 ({_geo_ocr_engine}): {e}")
+        supp_dims, circle_r = [], None
 
     # 보충 치수 먼저 노이즈 필터 적용 → 정제된 결과로 dimension_type 태깅
     if supp_dims and circle_r:
@@ -688,14 +698,18 @@ async def full_compare(request: FullCompareRequest) -> FullCompareResponse:
                 geometry_debug=geo_debug,
             ))
 
-    # K. 기하학 기반
+    # K. 기하학 기반 — 항상 extract_by_geometry 전체 파이프라인 실행
+    #   (ID/W 최소값 제약, 스케일 일관성 검증 등 포함)
     _run_geometry = (not request.methods) or ("geometry_guided" in request.methods)
     if _run_geometry:
         from services.geometry_guided_extractor import extract_by_geometry
         try:
             geo_start = time.time()
-            geo_result = await asyncio.to_thread(
-                extract_by_geometry, image_path, "paddleocr", request.confidence_threshold
+            geo_result = await asyncio.wait_for(
+                asyncio.to_thread(
+                    extract_by_geometry, image_path, _geo_ocr_engine, request.confidence_threshold
+                ),
+                timeout=180,
             )
             geo_time = round((time.time() - geo_start) * 1000, 1)
             engine_times["geometry"] = geo_time
