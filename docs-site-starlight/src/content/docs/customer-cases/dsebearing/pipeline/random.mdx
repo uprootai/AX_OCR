@@ -1,0 +1,223 @@
+---
+title: "TD0062042 — 라벨 없는 케이스"
+description: Ground Truth 없이 기하학 4방법(K/L/M/N)을 적용하여 추출 결과를 비교 분석한다.
+sidebar_position: 4
+tags: [기하학, dimension-lab, TD0062042, GT없음]
+---
+
+> GT 라벨이 없는 도면에 기하학 4방법을 적용하여 각 방법의 추출 결과와 동작 차이를 비교 분석한다.
+
+| 항목 | 값 |
+|------|-----|
+| 도면 번호 | TD0062042 |
+| Ground Truth | 없음 (라벨 미등록) |
+
+### 4방법 결과 요약
+
+| 방법 | OD | ID | W |
+|------|-----|-----|-----|
+| **K** 기하학기반 | 635 | 200 | 57 |
+| **L** 끝점토폴로지 | 200 | `Ø40)`\* | — |
+| **M** 심볼검색 | 200 | `Ø40)`\* | — |
+| **N** 중심레이캐스트 | 200 | `Ø40)`\* | — |
+
+> \* `Ø40)` — OCR 노이즈. 닫는 괄호 `)` 까지 포함된 오인식 값으로, 실제 치수가 아닌 소형 홀 주변의 텍스트가 잘못 파싱된 결과다.
+
+:::caution[4방법 모두 `Ø1036`을 OD로 선택 못함]
+도면에 `Ø1036`이 명확히 표기되어 있으나 어떤 기하학 방법도 이를 OD로 선택하지 못했다.
+T5(TD0062037)와 동일한 패턴 — 원 검출 오류 + 스케일 미스매칭.
+:::
+
+---
+
+## 원본 도면
+
+![TD0062042 원본 도면](/img/dimension-lab/pipeline-random/original.png)
+
+---
+
+## K — 기하학기반
+
+### K Step 1: 원 검출
+
+![K Step 1: 원 검출](/img/dimension-lab/pipeline-random/step1_circles.png)
+
+| 항목 | 값 |
+|------|-----|
+| 외원 반지름 | 543px |
+| 내원 반지름 | 412px |
+| 중심 편차 | 67px (보통) |
+| 총 원 후보 | 9개 |
+
+외원이 베어링 외곽을 대체로 포착하나 완벽하지 않음. 중심 편차 67px — Thrust(39px)보다 크지만 T5(194px)보다는 양호.
+
+### K Step 2: 치수선 검출
+
+![K Step 2: 치수선 검출](/img/dimension-lab/pipeline-random/step2_dimlines.png)
+
+**8개 치수선** 검출. 원 중심 근처 수평/수직 선분 필터링.
+
+### K Step 3: ROI 크롭 + OCR
+
+![K Step 3: ROI + OCR](/img/dimension-lab/pipeline-random/step3_ocr.png)
+
+PaddleOCR이 **12개 텍스트** 검출:
+
+| # | OCR 값 | 비고 |
+|---|--------|------|
+| 1 | `Ø40)` | 소형 홀 + OCR 노이즈 |
+| 4 | **`Ø1036`** | 주요 직경 — Ø 접두사 |
+| 6 | `1068` | 대형 치수 |
+| 8 | `635` | 중형 치수 |
+| 12 | `200` | 중형 치수 |
+
+### K Step 4: OD/ID/W 분류
+
+![K Step 4: 분류](/img/dimension-lab/pipeline-random/step4_classify.png)
+
+| 역할 | K방법 결과 | 근거 |
+|------|-----------|------|
+| **OD** | 635 | 외원 스케일 일관성 |
+| **ID** | 200 | 내원 스케일 매칭 |
+| **W** | 57 | 수직 방향 치수 |
+
+OCR에서 `Ø1036`이 검출되었으나, 외원 반지름(543px)으로 계산한 스케일 기준에서 `635`가 더 일관성 높은 값으로 판단. T5 실패와 동일 패턴.
+
+---
+
+## L — 끝점토폴로지
+
+### L Step 1: 원 검출
+
+![L Step 1: 원 검출](/img/dimension-lab/pipeline-random/L_step1_circles.png)
+
+외원 R=543px, 9개 원 후보. K와 동일한 검출 결과.
+
+### L Step 2: 치수선 끝점 분류
+
+![L Step 2: 끝점 분류](/img/dimension-lab/pipeline-random/L_step2_endpoints.png)
+
+대량의 선분이 검출되었으나 끝점 유형이 대부분 `unknown`(초록).
+
+### L Step 3: 치수-치수선 매칭
+
+![L Step 3: 매칭](/img/dimension-lab/pipeline-random/L_step3_matching.png)
+
+OCR 치수와 근접 치수선 간의 매칭(노란색 연결선).
+
+### L Step 4: OD/ID/W 분류
+
+![L Step 4: 분류](/img/dimension-lab/pipeline-random/L_step4_classify.png)
+
+| 역할 | 추출값 | 근거 |
+|------|--------|------|
+| **OD** | 200 | 크기순 폴백 |
+| **ID** | `Ø40)` | OCR 노이즈 |
+| **W** | — | 미추출 |
+
+끝점 분석에서 `200`을 OD로, `Ø40)`(소형 홀 노이즈)을 ID로 잡음.
+
+---
+
+## M — 심볼검색
+
+### M Step 1: 전체 OCR 결과
+
+![M Step 1: OCR](/img/dimension-lab/pipeline-random/M_step1_ocr.png)
+
+OCR이 검출한 모든 텍스트.
+
+### M Step 2: R/Ø 심볼 검출
+
+![M Step 2: 심볼 검출](/img/dimension-lab/pipeline-random/M_step2_symbols.png)
+
+| 색상 | 기호 | 검출 |
+|------|------|------|
+| 🟣 마젠타 | Ø 직경 | `Ø1036`, `Ø40)` |
+| 🟠 주황색 | R 반지름 | 없음 |
+
+디버그에서는 `Ø1036`을 검출했으나, 실제 API의 M방법에서는 `Ø40)`만 인식.
+
+### M Step 3: OD/ID/W 분류
+
+![M Step 3: 분류](/img/dimension-lab/pipeline-random/M_step3_classify.png)
+
+| 역할 | 추출값 | 근거 |
+|------|--------|------|
+| **OD** | 200 | 비기호 최대 (폴백) |
+| **ID** | `Ø40)` | 소형 홀 Ø |
+| **W** | — | 미추출 |
+
+---
+
+## N — 중심레이캐스트
+
+### N Step 1: 원 검출
+
+![N Step 1: 원 검출](/img/dimension-lab/pipeline-random/N_step1_circles.png)
+
+L과 동일한 원 검출.
+
+### N Step 2: 8방향 레이 발사
+
+![N Step 2: 레이 발사](/img/dimension-lab/pipeline-random/N_step2_rays.png)
+
+원 중심에서 8방향 레이 발사. 파란색 원 = 반지름(R), 녹색 원 = 직경(D) 거리.
+
+### N Step 3: 레이-치수 교차 분석
+
+![N Step 3: 교차 분석](/img/dimension-lab/pipeline-random/N_step3_intersections.png)
+
+레이와 치수 텍스트의 교차 분석. 거리 기반 RADIUS/DIAMETER zone 판별.
+
+### N Step 4: OD/ID/W 분류
+
+![N Step 4: 분류](/img/dimension-lab/pipeline-random/N_step4_classify.png)
+
+| 역할 | 추출값 | 근거 |
+|------|--------|------|
+| **OD** | 200 | 크기순 폴백 |
+| **ID** | `Ø40)` | OCR 노이즈 |
+| **W** | — | 미추출 |
+
+L과 동일 결과. 레이캐스트가 원 중심 기준으로 가장 가까운 값을 선택.
+
+---
+
+## T5와의 비교
+
+이 도면은 T5(TD0062037)와 유사한 구조를 가진다:
+
+| 특성 | TD0062042 (이 도면) | T5 (TD0062037) |
+|------|:---:|:---:|
+| 원형 위치 | 좌측 편향 | 좌측 편향 |
+| 단면도 | 우측 하단 | 우측 하단 |
+| `Ø1036` 존재 | O | O |
+| K방법 OD 결과 | 635 (오류 추정) | 650 (오류) |
+| 원 검출 동심성 | 67px | 194px |
+
+두 도면 모두 원형이 좌측에 편향되어 K방법의 원 검출이 정확하지 않으며,
+`Ø1036`이 스케일 기준에서 탈락하는 동일 패턴을 보인다.
+A방법(Ø기호 검색)이라면 이를 정확히 추출할 수 있었을 것.
+
+---
+
+## 결론 — 4방법 최종 추론 결과
+
+| 방법 | OD | ID | W |
+|------|-----|-----|-----|
+| **K** 기하학기반 | 635 | 200 | 57 |
+| **L** 끝점토폴로지 | 200 | `Ø40)` | — |
+| **M** 심볼검색 | 200 | `Ø40)` | — |
+| **N** 중심레이캐스트 | 200 | `Ø40)` | — |
+
+> GT 미설정으로 정확도 산출 불가. K만 독자적 결과(635/200/57)를 산출했고, L/M/N은 동일한 오류 패턴(200/`Ø40)`/—)을 공유. `Ø40)`는 OCR 노이즈.
+
+---
+
+## 관련 문서
+
+- [기하학 파이프라인 개요](../pipeline/)
+- [Thrust Bearing — 성공 사례](./thrust/)
+- [T5 Bearing — 실패 사례](./t5/)
+- [Bearing Casing — 단품 도면 사례](./casing/)

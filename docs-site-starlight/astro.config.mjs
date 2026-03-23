@@ -6,7 +6,7 @@ import react from '@astrojs/react';
 
 // https://astro.build/config
 export default defineConfig({
-    base: '/docs/',
+    base: '/',
     integrations: [starlight({
         title: 'AX POC Documentation',
         defaultLocale: 'ko',
@@ -98,6 +98,7 @@ export default defineConfig({
                     { label: '피드백 파이프라인', slug: 'quality-assurance/feedback-pipeline' },
                     { label: 'OCR 메트릭', slug: 'quality-assurance/ocr-metrics' },
                     { label: '평가 리포트', slug: 'quality-assurance/evaluation-reports' },
+                    { label: 'Dimension Lab 배치평가', slug: 'quality-assurance/dimension-lab-eval' },
                 ],
             },
             {
@@ -179,6 +180,16 @@ export default defineConfig({
                             { label: '다음 단계 & 미결 사항', slug: 'customer-cases/dsebearing/next-steps' },
                             { label: '2차 미팅 (03-17)', slug: 'customer-cases/dsebearing/2nd-meeting' },
                             { label: '전수 분석 실험', slug: 'customer-cases/dsebearing/batch-test-report' },
+                            {
+                                label: '기하학 파이프라인',
+                                collapsed: true,
+                                items: [
+                                    { label: '개요 (K/L/M/N)', slug: 'customer-cases/dsebearing/pipeline' },
+                                    { label: 'Thrust — 성공', slug: 'customer-cases/dsebearing/pipeline/thrust' },
+                                    { label: 'T5 — 실패', slug: 'customer-cases/dsebearing/pipeline/t5' },
+                                    { label: 'TD0062042 — 랜덤', slug: 'customer-cases/dsebearing/pipeline/random' },
+                                ],
+                            },
                         ],
                     },
                     { label: '파나시아 — MCP Panel', slug: 'customer-cases/panasia' },

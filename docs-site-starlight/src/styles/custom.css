@@ -161,3 +161,69 @@ body.hide-right-sidebar #toggle-right-sidebar {
         display: none;
     }
 }
+
+/* ============================================
+   Lightbox — 이미지 클릭 시 풀스크린 팝업
+   ============================================ */
+
+/* 콘텐츠 영역 이미지에 클릭 커서 */
+.sl-markdown-content img {
+    cursor: zoom-in;
+    transition: opacity 0.15s;
+}
+
+.sl-markdown-content img:hover {
+    opacity: 0.85;
+}
+
+/* 라이트박스 오버레이 */
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(4px);
+    cursor: zoom-out;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    padding: 2rem;
+    isolation: isolate;
+}
+
+.lightbox-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.lightbox-overlay img {
+    max-width: 95vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 0.25rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    cursor: default;
+    background: #fff;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+}
+
+.lightbox-close:hover {
+    opacity: 1;
+}

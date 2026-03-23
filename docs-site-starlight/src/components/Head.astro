@@ -6,3 +6,37 @@ import SidebarToggle from './SidebarToggle.astro';
 
 <Default {...Astro.props}><slot /></Default>
 <SidebarToggle />
+
+<script is:inline>
+document.addEventListener('DOMContentLoaded', () => {
+  // Create lightbox overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox-overlay';
+  overlay.innerHTML = '<button class="lightbox-close" aria-label="닫기">&times;</button><img src="" alt="" />';
+  document.body.appendChild(overlay);
+
+  const lbImg = overlay.querySelector('img');
+  const lbClose = overlay.querySelector('.lightbox-close');
+
+  function closeLightbox() {
+    overlay.classList.remove('active');
+  }
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target !== lbImg) closeLightbox();
+  });
+  lbClose.addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // Attach click handlers to content images
+  document.querySelectorAll('.sl-markdown-content img').forEach((img) => {
+    img.addEventListener('click', () => {
+      lbImg.src = img.src;
+      lbImg.alt = img.alt || '';
+      overlay.classList.add('active');
+    });
+  });
+});
+</script>

@@ -1,0 +1,235 @@
+---
+title: "Bearing Casing — 단품 도면 사례"
+description: Bearing Casing(TD0062019) 단품 도면에 기하학 4방법(K/L/M/N)을 적용하여 OD/ID/W 추출 과정을 단계별로 시각화한다.
+sidebar_position: 5
+tags: [기하학, dimension-lab, bearing-casing, 단품도면]
+---
+
+> Bearing Casing은 ASSY가 아닌 **단품 가공도**로, SECTION·DETAIL·VIEW 등 다수의 상세도가 포함된다. 기존 ASSY 3개 사례와 확연히 다른 레이아웃에서 4개 기하학 방법이 어떻게 동작하는지 비교한다.
+
+| 항목 | 값 |
+|------|-----|
+| 도면 번호 | TD0062019 |
+| 부품명 | BEARING CASING (T1) |
+| Ground Truth | (미설정) |
+
+### 4방법 결과 요약
+
+| 방법 | OD | ID | W |
+|------|-----|-----|-----|
+| **K** 기하학기반 | 550 | 300 | 192 |
+| **L** 끝점토폴로지 | `1608` | `(3)Ø22` | 300 |
+| **M** 심볼검색 | `1608` | `(3)Ø22` | 300 |
+| **N** 중심레이캐스트 | `1608` | 250.01 | `(3)Ø22` |
+
+:::caution[ASSY vs 단품의 차이]
+ASSY 도면은 원형 정면도가 중앙에 크게 배치되어 원 검출이 비교적 안정적이다.
+반면 이 단품 도면은 SECTION B-3/B-4, DETAIL C-4, VIEW E-2 등 **5개 상세도**가 분산되어 있어, 원 검출과 OCR 모두 노이즈가 크다.
+:::
+
+---
+
+## 원본 도면
+
+![Bearing Casing 원본 도면](/img/dimension-lab/pipeline-casing/original.png)
+
+ASSY 도면과 달리 좌측 정면도 + 중앙 단면도(SECTION D-3) + 우측 내부뷰(SECTION B-3) + 상단 상세도(B-4, C-4) + 하단 VIEW E-2로 구성.
+
+---
+
+## K — 기하학기반
+
+### K Step 1: 원 검출
+
+![K Step 1: 원 검출](/img/dimension-lab/pipeline-casing/step1_circles.png)
+
+| 항목 | 값 |
+|------|-----|
+| 외원 반지름 | 992px |
+| 중심 좌표 | (1455, 2545) |
+| 총 원 후보 | 13개 |
+
+정면도의 원형 외곽을 외원(파란색)으로 검출. ASSY 도면과 달리 **내원이 뚜렷하지 않다** — 단품 가공도 특성상 내경 원이 복잡한 형상으로 표현되기 때문.
+
+### K Step 2: 치수선 검출
+
+![K Step 2: 치수선 검출](/img/dimension-lab/pipeline-casing/step2_dimlines.png)
+
+LSD가 **8개 치수선**(초록색) 검출. 단면도(SECTION D-3) 영역의 수직 치수선이 주로 포착됨.
+
+### K Step 3: ROI 크롭 + OCR
+
+![K Step 3: ROI + OCR](/img/dimension-lab/pipeline-casing/step3_ocr.png)
+
+- **Focused ROI** (주황색): 원 주변 집중 영역
+- **Wide ROI** (노란색): 확장 영역 — 상세도(B-3, B-4, C-4)까지 포함
+
+PaddleOCR이 **30개 텍스트** 검출: `550`, `300`, `419`, `281`, `192`, `155`, `104`, `72`, `65`, `60` 등.
+ASSY 대비 검출 수가 2~3배 많다 — 상세도의 가공 치수, 볼트 홀 규격이 대량 혼입.
+
+### K Step 4: OD/ID/W 분류
+
+![K Step 4: 분류](/img/dimension-lab/pipeline-casing/step4_classify.png)
+
+| 역할 | 추출값 | 근거 |
+|------|--------|------|
+| **OD** | 550 | 외원 스케일 매칭 최대 |
+| **ID** | 300 | 크기순 차대 |
+| **W** | 192 | 수직 방향 치수 |
+
+:::tip[K방법의 안정성]
+다수의 상세도가 있음에도 K방법은 원 중심 기준 스케일 매칭으로 `550`을 OD로 정확 선택.
+단면도(SECTION D-3)의 `300`이 ID, `192`가 W로 분류되었다.
+:::
+
+---
+
+## L — 끝점토폴로지
+
+### L Step 1: 원 검출
+
+![L Step 1: 원 검출](/img/dimension-lab/pipeline-casing/L_step1_circles.png)
+
+K와 동일한 원 검출. 13개 원 후보, outer_r=992.
+
+### L Step 2: 치수선 끝점 분류
+
+![L Step 2: 끝점 분류](/img/dimension-lab/pipeline-casing/L_step2_endpoints.png)
+
+| 끝점 유형 | 색상 | 개수 | 의미 |
+|-----------|------|:---:|------|
+| center | 빨간색 | 0 | 원 중심 근처 — 미검출 |
+| circumference | 마젠타 | 179 | 원주 위 |
+| unknown | 초록색 | 2593 | 미분류 |
+
+**2772개 선분** 검출 — ASSY(800~900개) 대비 **3배 이상**. 단품 도면의 복잡한 가공 형상과 다수의 상세도가 대량의 비치수선을 생성.
+circumference 179개가 검출되었으나, center가 0이라 방향성 판단 불가.
+
+### L Step 3: 치수-치수선 매칭
+
+![L Step 3: 매칭](/img/dimension-lab/pipeline-casing/L_step3_matching.png)
+
+11개 치수가 근처 치수선과 매칭(노란색 연결선).
+
+### L Step 4: OD/ID/W 분류
+
+![L Step 4: 분류](/img/dimension-lab/pipeline-casing/L_step4_classify.png)
+
+| 역할 | 추출값 | 근거 |
+|------|--------|------|
+| **OD** | `1608` | circumference 기반 최대 |
+| **ID** | `(3)Ø22` | OCR 노이즈 |
+| **W** | 300 | 크기순 폴백 |
+
+**OD=1608 오류**: 도면 프레임이나 상세도 외곽이 circumference로 잡혀 비정상적으로 큰 값 선택.
+**ID=(3)Ø22 오류**: 볼트 홀 규격 `(3)Ø22`가 직경 기호를 포함하여 ID로 오분류.
+
+---
+
+## M — 심볼검색
+
+### M Step 1: 전체 OCR 결과
+
+![M Step 1: OCR](/img/dimension-lab/pipeline-casing/M_step1_ocr.png)
+
+OCR이 검출한 모든 텍스트를 흰색 bbox로 표시. 23개 텍스트.
+
+### M Step 2: R/Ø 심볼 검출
+
+![M Step 2: 심볼 검출](/img/dimension-lab/pipeline-casing/M_step2_symbols.png)
+
+| 색상 | 기호 | 검출 |
+|------|------|------|
+| 마젠타 | Ø 직경 | 0개 |
+| 주황색 | R 반지름 | 0개 |
+| 흰색 | 없음 | 나머지 |
+
+**심볼 0개**: OCR이 `(3)Ø22`를 검출했으나 Ø 심볼 파싱에 실패. 괄호 `(3)`이 포함된 복합 표기가 원인.
+
+### M Step 3: OD/ID/W 분류
+
+![M Step 3: 분류](/img/dimension-lab/pipeline-casing/M_step3_classify.png)
+
+| 역할 | 추출값 | 근거 |
+|------|--------|------|
+| **OD** | `1608` | 비기호 최대 |
+| **ID** | `(3)Ø22` | OCR 노이즈 |
+| **W** | 300 | 크기순 폴백 |
+
+L과 동일한 결과. 심볼 검출 실패 → 크기순 폴백 → 동일한 오류 패턴.
+
+---
+
+## N — 중심레이캐스트
+
+### N Step 1: 원 검출
+
+![N Step 1: 원 검출](/img/dimension-lab/pipeline-casing/N_step1_circles.png)
+
+중심 (1455, 2545), 외원 R=992. K/L과 동일.
+
+### N Step 2: 8방향 레이 발사
+
+![N Step 2: 레이 발사](/img/dimension-lab/pipeline-casing/N_step2_rays.png)
+
+원 중심에서 0°~315° 8방향 레이 발사. 레이 길이 2976px.
+ASSY 도면과 달리 레이가 **SECTION D-3, SECTION B-3 영역까지 관통** — 상세도의 텍스트와 교차 가능성이 높아짐.
+
+### N Step 3: 레이-치수 교차 분석
+
+![N Step 3: 교차 분석](/img/dimension-lab/pipeline-casing/N_step3_intersections.png)
+
+| 존 | 색상 | 의미 | 검출 |
+|-----|------|------|:---:|
+| RADIUS | 주황 | 0.7~1.3 × R | 0 |
+| DIAMETER | 마젠타 | 1.7~2.3 × R | 5 |
+| outside | 흰색 | 기타 | 6 |
+
+DIAMETER 존에서 **5개** 교차 — ASSY 대비 의미 있는 결과. 하지만 교차된 값이 상세도의 치수일 가능성.
+
+### N Step 4: OD/ID/W 분류
+
+![N Step 4: 분류](/img/dimension-lab/pipeline-casing/N_step4_classify.png)
+
+| 역할 | 추출값 | 근거 |
+|------|--------|------|
+| **OD** | `1608` | DIAMETER 존 최대 |
+| **ID** | 250.01 | DIAMETER 존 내 |
+| **W** | `(3)Ø22` | OCR 노이즈 |
+
+**OD=1608 오류**: K/L/M과 동일한 오류 — 도면 프레임 또는 상세도 치수.
+**W=(3)Ø22 오류**: 볼트 홀 규격이 W로 오분류.
+
+---
+
+## 인사이트
+
+:::note[단품 도면의 도전 과제]
+1. **상세도 노이즈**: SECTION·DETAIL·VIEW가 5개 → OCR 텍스트 3배, 선분 3배 증가
+2. **K방법의 상대적 안정성**: 원 중심 기준 스케일 매칭이 상세도 노이즈에 강건함
+3. **L/M/N의 공통 실패**: 도면 프레임이나 상세도 외곽이 최대값으로 잡혀 `1608` 오분류
+4. **볼트 홀 노이즈**: `(3)Ø22` 같은 복합 표기가 Ø 파싱 실패 → ID/W로 오분류
+5. **ASSY vs 단품**: ASSY는 원형 정면도 중심이라 원 검출 기반 방법이 유효하지만, 단품은 다수의 상세도로 인해 모든 방법에서 추가 필터링이 필요
+:::
+
+---
+
+## 결론 — 4방법 최종 추론 결과
+
+| 방법 | OD | ID | W |
+|------|-----|-----|-----|
+| **K** 기하학기반 | 550 | 300 | 192 |
+| **L** 끝점토폴로지 | `1608` | `(3)Ø22` | 300 |
+| **M** 심볼검색 | `1608` | `(3)Ø22` | 300 |
+| **N** 중심레이캐스트 | `1608` | 250.01 | `(3)Ø22` |
+
+> GT 미설정으로 정확도 산출 불가. K방법만 합리적 결과(550/300/192)를 산출. L/M/N은 도면 프레임값 `1608`과 볼트 홀 노이즈 `(3)Ø22`로 오분류. 단품 도면에서는 K방법의 원 중심 기준 스케일 매칭이 가장 강건하다.
+
+---
+
+## 관련 문서
+
+- [기하학 파이프라인 개요](../pipeline/)
+- [Thrust Bearing — 성공 사례](./thrust/)
+- [T5 Bearing — 실패 사례](./t5/)
+- [TD0062042 — 라벨 없는 케이스](./random/)
