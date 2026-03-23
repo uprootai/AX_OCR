@@ -1,5 +1,6 @@
 import { test, expect, Page, APIRequestContext as _APIRequestContext } from '@playwright/test';
 import * as fs from 'fs';
+import { BOM_API_BASE_URL, BOM_UI_BASE_URL } from './fixtures/runtime';
 
 /**
  * Blueprint AI BOM Comprehensive E2E Tests
@@ -17,8 +18,8 @@ import * as fs from 'fs';
 
 // ==================== CONFIGURATION ====================
 
-const BOM_BASE_URL = 'http://localhost:3000';
-const BOM_API_URL = 'http://localhost:5020';
+const BOM_BASE_URL = BOM_UI_BASE_URL;
+const BOM_API_URL = BOM_API_BASE_URL;
 const SAMPLE_PID_IMAGE = '/home/uproot/ax/poc/apply-company/techloss/test_output/page_1.png';
 
 // Detection hyperparameters

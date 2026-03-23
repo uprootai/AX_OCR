@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUIStore } from './store/uiStore';
 import { useEffect, lazy, Suspense } from 'react';
+import { buildBlueprintBomTargetUrl } from './lib/blueprintBomFrontend';
 
 // Error Boundary
 import ErrorBoundary from './components/ErrorBoundary';
@@ -35,8 +36,7 @@ const ProjectDetail = lazy(() => import('./pages/project/ProjectDetailPage'));
 // BOM 프론트엔드 리다이렉트 (web-ui → blueprint-ai-bom 앱)
 const BOMRedirect = () => {
   useEffect(() => {
-    const bomBaseUrl = window.location.origin.replace(':5173', ':3000');
-    window.location.href = `${bomBaseUrl}${window.location.pathname}${window.location.search}`;
+    window.location.href = buildBlueprintBomTargetUrl(window.location);
   }, []);
   return <PageLoader />;
 };

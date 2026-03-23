@@ -152,7 +152,10 @@ export function BOMWorkflowSection({
   const hasBOM = !!project.bom_source || project.bom_item_count > 0 || project.project_type === 'bom_quotation';
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mb-6">
+    <div
+      data-testid="bom-workflow-section"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mb-6"
+    >
       {!hasBOM ? (
         /* BOM 데이터 없음 — 접힌 상태 */
         <div className="p-4 flex items-center justify-between">
@@ -166,6 +169,7 @@ export function BOMWorkflowSection({
           </div>
           <div className="flex items-center gap-2">
             <input
+              data-testid="bom-upload-input"
               ref={bomFileRef}
               type="file"
               accept=".pdf"
@@ -177,6 +181,7 @@ export function BOMWorkflowSection({
               }}
             />
             <button
+              data-testid="bom-load-sample-button"
               onClick={handleLoadSampleBOM}
               disabled={isLoading}
               className="flex items-center gap-2 px-4 py-2 border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 text-sm rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors disabled:opacity-50"
@@ -189,6 +194,7 @@ export function BOMWorkflowSection({
               샘플 BOM 로드
             </button>
             <button
+              data-testid="bom-upload-button"
               onClick={() => bomFileRef.current?.click()}
               disabled={isLoading}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -230,6 +236,7 @@ export function BOMWorkflowSection({
               <div key={idx} className="flex items-center">
                 <Tooltip content={step.tooltip} position="bottom">
                   <button
+                    data-testid={`bom-workflow-step-${idx}`}
                     onClick={() => {
                       if (idx <= currentStep || (bomData && idx <= 4)) {
                         setCurrentStep(idx);
@@ -302,6 +309,7 @@ export function BOMWorkflowSection({
                 샘플 BOM 로드
               </button>
               <button
+                data-testid="bom-step0-upload-button"
                 onClick={() => bomFileRef.current?.click()}
                 disabled={isLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:opacity-50"

@@ -36,9 +36,14 @@ Blueprint AI BOM 시스템의 전체 기능을 검증하기 위한 포괄적인 
 
 ```yaml
 Frontend:
-  URL: http://localhost:3000
-  Framework: React 18 + TypeScript
+  URL: http://localhost:5174
+  Framework: React 19 + TypeScript
   Test Runner: Playwright
+
+Blueprint AI BOM Frontend:
+  URL: http://localhost:5021/bom
+  Framework: React 19 + TypeScript
+  Runner: web-ui Playwright dual-ui webServer
 
 Backend:
   URL: http://localhost:5020
@@ -67,6 +72,7 @@ e2e/plan/
 ├── 06-integration.md            # 통합 테스트 (30+ 시나리오)
 ├── 07-data-fixtures.md          # 테스트 데이터 픽스처
 └── 08-test-matrix.md            # 테스트 매트릭스 (우선순위, 자동화 상태)
+└── 09-ax-scenario-pack.md       # AX 실제 업무 흐름 기준 시나리오 팩
 ```
 
 ---
@@ -231,20 +237,20 @@ e2e/plan/
 cd /home/uproot/ax/poc
 docker-compose up -d
 
-# 2. Blueprint AI BOM 시작
-cd blueprint-ai-bom
-docker-compose up -d
-
-# 3. 헬스 체크
+# 2. 백엔드 헬스 체크
 curl http://localhost:5020/health
-curl http://localhost:3000
+
+# 3. dual-ui smoke가 자동으로 web-ui(:5174) + BOM frontend(:5021/bom) dev server를 기동
 ```
 
 ### 5.2 테스트 실행
 
 ```bash
-# 전체 테스트
+# dual-ui smoke
 cd web-ui
+npm run test:e2e:dual-ui
+
+# BOM 프론트엔드 시나리오
 npx playwright test e2e/blueprint-ai-bom*.spec.ts
 
 # 특정 카테고리

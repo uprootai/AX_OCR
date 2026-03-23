@@ -14,13 +14,12 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { BOM_UI_BASE_URL } from '../fixtures/runtime';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Blueprint AI BOM 5020 포트는 API 전용 (프론트엔드 없음)
-// 프론트엔드 UI 테스트가 필요한 경우 별도 포트 사용
-const FRONTEND_URL = 'http://localhost:5020';
+const FRONTEND_URL = BOM_UI_BASE_URL;
 const FIXTURES_PATH = path.join(__dirname, '../fixtures/images');
 
 // 이 테스트는 API 전용 서비스에서 스킵됨

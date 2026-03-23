@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import * as fs from 'fs';
+import { BOM_UI_BASE_URL } from './fixtures/runtime';
 
 /**
  * Blueprint AI BOM E2E Tests
@@ -10,10 +11,10 @@ import * as fs from 'fs';
  * - 1-3: Equipment List
  * - 1-4: Deviation List (POR 문서 대기 중)
  *
- * 테스트 URL: http://localhost:5021 (Blueprint AI BOM)
+ * 테스트 URL: BOM_UI_BASE_URL (Blueprint AI BOM)
  */
 
-const BOM_BASE_URL = 'http://localhost:3000';
+const BOM_BASE_URL = BOM_UI_BASE_URL;
 const SAMPLE_PID_IMAGE = '/home/uproot/ax/poc/apply-company/techloss/test_output/page_1.png';
 
 // Helper: Check if Blueprint AI BOM is running

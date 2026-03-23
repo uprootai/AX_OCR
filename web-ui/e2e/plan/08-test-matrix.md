@@ -18,6 +18,10 @@
 
 ## 1. 우선순위별 테스트 분류
 
+> AX E08 기준 보완:
+> 기존 500+ 전수 매트릭스와 별도로 `09-ax-scenario-pack.md`를 AX 핵심 업무 흐름용 실행 팩으로 사용합니다.
+> S04에서는 광범위 분류보다 `dual-ui`, `BOM project`, `workflow`, `dimension`, `overlay` 5그룹을 우선 표면으로 삼습니다.
+
 ### 1.1 P0 (Critical) - 핵심 기능
 
 > **테스트 수**: 80개

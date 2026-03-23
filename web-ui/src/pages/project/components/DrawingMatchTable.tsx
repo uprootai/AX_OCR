@@ -55,7 +55,10 @@ export function DrawingMatchTable({
   const unmatchedCount = result?.unmatched_count ?? 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div
+      data-testid="drawing-match-table"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+    >
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
         <Link2 className="w-5 h-5 text-gray-400 dark:text-gray-500" />
         <h3 className="font-semibold text-gray-900 dark:text-white">도면 매칭</h3>
@@ -65,6 +68,7 @@ export function DrawingMatchTable({
         <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">도면 폴더 경로</label>
         <div className="flex gap-2">
           <input
+            data-testid="drawing-match-folder-input"
             type="text"
             value={folderPath}
             onChange={(e) => setFolderPath(e.target.value)}
@@ -75,6 +79,7 @@ export function DrawingMatchTable({
                      focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500"
           />
           <button
+            data-testid="drawing-match-start-button"
             onClick={handleMatch}
             disabled={isMatching || !folderPath.trim()}
             className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
@@ -97,7 +102,7 @@ export function DrawingMatchTable({
 
       {result && (
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-4 mb-2">
+          <div data-testid="drawing-match-summary" className="flex items-center gap-4 mb-2">
             <span className="text-sm text-gray-700 dark:text-gray-300">
               매칭 결과: <span className="font-bold">{matchedCount}/{totalCount}</span>{' '}
               ({matchPercent}%)
@@ -131,7 +136,11 @@ export function DrawingMatchTable({
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {displayItems.map((item, idx) => (
-              <tr key={item.item_no} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <tr
+                key={item.item_no}
+                data-testid={`drawing-match-row-${item.item_no}`}
+                className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              >
                 <td className="px-4 py-2 text-gray-400 dark:text-gray-500">{idx + 1}</td>
                 <td className="px-4 py-2 font-mono text-gray-900 dark:text-white">
                   {item.drawing_number}
