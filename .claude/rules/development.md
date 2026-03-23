@@ -84,18 +84,53 @@ python scripts/create_api.py my-api --port 5025 --category detection
 
 **상세 가이드**: `.claude/skills/api-creation-guide.md`, `.claude/skills/devops-guide.md`
 
-## Playwright 브라우저 테스트 패턴
+## 브라우저 자동화: Playwright vs Browser Use 역할 분담
+
+두 MCP 서버를 **용도에 따라** 사용한다.
+
+### Playwright MCP — 정확한 조작이 필요할 때
+
+| 용도 | 예시 |
+|------|------|
+| 스크린샷 캡처 | 문서 사이트 페이지 확인 |
+| 셀렉터 기반 조작 | 특정 버튼 클릭, 폼 입력 |
+| 파일 업로드 | hidden input 처리 |
+| HTTP 요청 | `playwright_post`로 API 호출 |
+| E2E 테스트 실행 | `npm run test:e2e` |
 
 ```javascript
-// 1. 브라우저 열기
+// Playwright: 정확한 셀렉터로 빠르게 조작
 playwright_navigate({ url: "http://localhost:5173/blueprintflow/builder" })
-
-// 2. 파일 업로드 (hidden input 처리)
-playwright_evaluate({ script: "document.querySelector('input[type=file]').style.display='block'" })
 playwright_upload_file({ selector: "input[type=file]", filePath: "/path/to/image.png" })
-
-// 3. 스크린샷으로 결과 확인
 playwright_screenshot({ name: "result" })
+```
+
+### Browser Use MCP — AI가 알아서 탐색해야 할 때
+
+| 용도 | 예시 |
+|------|------|
+| 외부 사이트 탐색 | 공급사 카탈로그 가격 조회 |
+| 복잡한 다단계 워크플로 | "도면 업로드 → 분석 → 결과 검증" 전체 흐름 |
+| 적응형 테스트 | UI가 자주 바뀌는 페이지 테스트 |
+| 데이터 수집 | 여러 페이지 탐색하며 정보 추출 |
+| 자연어 기반 검증 | "리더보드에서 1위 방법의 정확도가 80% 이상인지 확인" |
+
+```python
+# Browser Use: 목표만 주면 AI가 알아서 수행
+browser_use_run_task("localhost:5173에서 Dimension Lab 페이지로 이동해서 배치평가 탭의 최신 결과를 확인하고 정확도를 JSON으로 반환해줘")
+```
+
+### 선택 기준
+
+```
+셀렉터를 알고 있는가? → Yes → Playwright
+                      → No → Browser Use
+
+외부 사이트인가? → Yes → Browser Use
+                → No → Playwright (대부분)
+
+결과가 deterministic해야 하는가? → Yes → Playwright
+                                → No → Browser Use OK
 ```
 
 ## GPU 설정

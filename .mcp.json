@@ -45,6 +45,19 @@
         "@taiyokimura/majin-slide-mcp@latest"
       ],
       "env": {}
+    },
+    "browser-use": {
+      "type": "stdio",
+      "command": "/home/uproot/.local/bin/uvx",
+      "args": [
+        "--python", "3.11",
+        "--from", "browser-use[cli]",
+        "browser-use",
+        "--mcp"
+      ],
+      "env": {
+        "BROWSER_USE_HEADLESS": "true"
+      }
     }
   }
 }
