@@ -23,6 +23,12 @@
 | E04 | [AX 테스트 컴플렉스 온보딩](epics/e04-ax-testcomplex/EPIC.md) | 10개 중소기업 | 2025.09~2028.12, 249억 규모, 5 Stories | ⬜ Ready |
 | E08 | [Gstack 운영체계 최대 도입](epics/e08-gstack-max-adoption/EPIC.md) | 내부 | 내부 fork 방식으로 browser QA, commands, hooks, smoke/full rollout 정리 | ✅ Done |
 
+## Active Epics (추가)
+
+| ID | Epic | 고객 | 기간 | Stories | 상태 |
+|----|------|------|------|---------|------|
+| E09 | [OD/ID/W 검출 방법론 다양화](epics/e09-dimension-detection-methods/EPIC.md) | 동서기연 | ~04-15 | 8 | 🔵 Active |
+
 ## 기술 개선 (Epic 미배정)
 
 | 작업 | 메모 |

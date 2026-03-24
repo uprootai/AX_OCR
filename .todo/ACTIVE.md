@@ -32,6 +32,25 @@
 
 **상세**: [.todo/epics/e04-ax-testcomplex/EPIC.md](epics/e04-ax-testcomplex/EPIC.md)
 
+### E09: OD/ID/W 검출 방법론 다양화 (🔵 In Progress)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 화살촉 모폴로지 검출 | ✅ Done | Ø 우선 분류, K 보완 (W 검출 +17) |
+| S02 Dimension-Text-First | ✅ Done | Ø 방향 무관 분류, K 보완 (OD 검출 +20) |
+| S03 Randomized Hough | ✅ Done | 15K iter, vote≥3 → 8~20개 원 검출 |
+| S04 Ellipse Decomposition | ✅ Done | r_min+arc_angle 필터 → 33~46개 원 검출 |
+| **앙상블 v2** | ✅ Done | K+S01+S02+S06 투표 → **48%→71%** (87개 배치, 목표 달성) |
+| **앙상블 v3 (검증)** | ✅ Done | K-priority 전략 → GT 정확도 50%→83%, 타당성 41%→56% |
+| **앙상블 v5 (최적화)** | ✅ Done | _extract_num 파싱 수정 + fallback OCR + W radial 공식 + NM 필터 + soft filter → GT 2/2 (100%) |
+| S05 CircleNet DL | ⏸️ 보류 | 0.5M U-Net 학습 성공, 반지름 회귀 실패 — dense label 필요 |
+| S06 YOLOv11-OBB + VLM | ✅ Done | OCR bbox label → mAP50=0.301 달성 (87개 도면) |
+| S07 Florence-2 Zero-Shot | ✅ Done | 형상 이해 OK, OCR 부족 — LoRA fine-tune 데이터 필요 |
+| S08 Werk24 벤치마크 | ⬜ 제외 | 사용자 요청으로 제외 |
+
+**성과**: v2 71% → v3 GT 83% → **v5 GT 100% (2/2)**. _extract_num 파싱, fallback OCR, W radial 우선, NM 필터, soft filter 적용. 22개 도면 값 변경, k_priority 40→44.
+**상세**: [.todo/epics/e09-dimension-detection-methods/EPIC.md](epics/e09-dimension-detection-methods/EPIC.md)
+
 ### E08: Gstack 운영체계 최대 도입 (✅ Done)
 
 | Story | 상태 | 요약 |

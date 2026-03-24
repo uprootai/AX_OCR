@@ -1,0 +1,232 @@
+---
+title: 코드 수정 상세 (5 Fixes)
+description: v5 앙상블 최적화에 적용된 5개 코드 수정의 원인, 코드, 효과 상세.
+tags: [앙상블, 코드수정, dimension-lab, fallback-ocr]
+sidebar_position: 3
+---
+
+> v3→v5 과정에서 적용한 5개 코드 수정의 원인·해결·효과를 코드 레벨에서 기록한다.
+
+## 분석 환경
+
+Dimension Lab에서 도면을 선택하면, 4개 카테고리(기호, 통계, 파이프라인, 기하학) × 14개 방법으로 분류 알고리즘을 실행한다.
+
+![GT-1 도면 + 분류 방법 패널 (4카테고리 × 14방법)](/img/ensemble/gt1-running.png)
+
+K 방법(기하학 기반)은 원 검출 → proximity 분류 → OD/ID/W 결정의 4단계 파이프라인으로 동작한다.
+
+![K 방법 실행 중 — 기하학 파이프라인 4단계](/img/ensemble/gt1-k-method-result.png)
+
+---
+
+## Fix 1: `_extract_num()` 파싱 강화
+
+### 원인
+
+K 방법이 반환하는 치수 문자열에 공차 표기가 포함되면 `float()` 변환이 실패했다.
+
+| 입력 | 기대 | 기존 결과 |
+|------|------|-----------|
+| `550+2` | 550.0 | `ValueError` |
+| `635+2` | 635.0 | `ValueError` |
+| `Ø838.2.00` | 838.2 | `ValueError` |
+
+이로 인해 **5개 도면**의 타당한 K 결과가 파싱 실패 → `k_priority` 대신 `vote_fallback`으로 강등됐다.
+
+### 수정 (`dimension_ensemble.py`)
+
+```python
+# 수정 전
+def _extract_num(val_str):
+    cleaned = re.sub(r"[ØøΦ⌀∅()R]", "", str(val_str))
+    return float(cleaned)  # ← '550+2'에서 실패
+
+# 수정 후
+def _extract_num(val_str):
+    cleaned = re.sub(r"[ØøΦ⌀∅()R]", "", str(val_str))
+    m = re.search(r"(\d+\.?\d*)", cleaned)  # 첫 숫자만 추출
+    if m:
+        return float(m.group(1))
+    return None
+```
+
+### 효과
+
+- 5개 도면이 `vote_fallback` → `k_priority`로 승격
+- k_priority 비율: 40/87 → 45/87
+
+---
+
+## Fix 2: Fallback OCR (DimensionService)
+
+### 원인
+
+K의 원 검출이 실패하면 내부 `_classify_by_circle_proximity`가 호출되지 않아,
+monkey-patch 훅으로 캡처하는 `dims`가 빈 리스트가 된다.
+S01/S02는 이 `dims`를 입력으로 받으므로, **K 실패 = S01/S02도 무력화**.
+
+87개 중 **31개 도면**이 이 경우에 해당했다.
+
+### 수정 (`dimension_ensemble.py`)
+
+K에서 캡처한 dims가 없으면, `DimensionService`로 독립 OCR을 실행하여 S01/S02에 공급한다.
+
+```python
+if not dims_for_sub:
+    from services.dimension_service import DimensionService
+    svc = DimensionService()
+    fallback_result = svc.extract_dimensions(
+        image_path, ocr_engines=["edocr2"], confidence_threshold=0.3,
+    )
+    for d in fallback_result.get("dimensions", []):
+        val = d.get("value", "")
+        conf = d.get("confidence", 0.5)
+        bbox = d.get("bbox")
+        if not isinstance(bbox, dict):
+            continue
+        dims_for_sub.append({
+            "value": str(val),
+            "confidence": float(conf),
+            "bbox": bbox,
+        })
+```
+
+### 효과
+
+- K 실패 도면에서도 S01/S02가 치수를 받아 분류 시도
+- TD0060707 예시: K=null → fallback OCR 84개 치수 → S01/S02 동작
+
+### 주의사항
+
+`DimensionService.extract_dimensions()`는 `dict`를 반환한다 (`list`가 아님).
+초기 구현에서 `for d in fallback_dims`로 dict를 순회하여 `'str' object has no attribute 'get'` 에러가 발생했다.
+`fallback_result.get("dimensions", [])`로 수정.
+
+---
+
+## Fix 3: W Radial 공식 우선
+
+### 원인
+
+기존 W 선택 로직은 ID/OD 비율로 베어링 유형을 판별했다:
+
+- `ID/OD > 0.75` → 스러스트 → 최대 W 선택
+- `ID/OD ≤ 0.75` → 레이디얼 → `(OD-ID)/2` 공식
+
+TD0062055는 `ID/OD = 440/515 = 0.854`로 스러스트 경로를 타서 W=250(최대값)을 선택.
+하지만 실제 GT는 W=48.
+
+### 문제의 본질
+
+ID/OD 비율만으로는 베어링 유형을 정확히 판별할 수 없다.
+얇은 단면의 레이디얼 베어링(deep groove ball bearing 등)도 높은 ID/OD 비율을 가진다.
+
+### 수정 (`geometry_guided_extractor.py`)
+
+비율 기반 분류 대신, **radial 공식 후보를 먼저 확인**하는 로직으로 변경:
+
+```python
+expected_w = (od_c["num"] - id_c["num"]) / 2.0
+if expected_w > 0:
+    # (OD-ID)/2 ± 50% 이내 후보가 있으면 radial 공식 우선
+    radial_cands = [
+        c for c in w_candidates
+        if abs(c["num"] - expected_w) / expected_w <= 0.5
+    ]
+    if radial_cands:
+        radial_cands.sort(key=lambda x: abs(x["num"] - expected_w))
+        w_candidates = radial_cands
+    else:
+        # 공식 범위 밖 → 스러스트 가능성, 최대값 선택
+        w_candidates.sort(key=lambda x: x["num"], reverse=True)
+```
+
+### 효과
+
+- TD0062055: W=250 → **W=48** (GT 일치)
+- TD0062037: W=200 유지 (변경 없음, `(1036-580)/2=228`, 200은 범위 내)
+
+---
+
+## Fix 4: NM/토크 필터
+
+### 원인
+
+도면에 토크 사양(`342NM`, `378NM`)이 기재되어 있으면, OCR이 이를 치수로 인식한다.
+이 값이 W 후보로 분류되면 잘못된 W가 선택될 수 있다.
+
+### 수정 (`geometry_guided_extractor.py`)
+
+기존 비치수 필터(나사산, 각도) 옆에 토크/힘 단위 필터 추가:
+
+```python
+# 기존 필터
+if re.match(r'^M\d', val_text, re.IGNORECASE):
+    continue
+if re.search(r'°|deg|UNC|UNF|TPI', val_text, re.IGNORECASE):
+    continue
+
+# 추가: 토크/힘 단위
+if re.search(r'NM|N[·.]?m|kgf|kN|lbf', val_text, re.IGNORECASE):
+    continue
+```
+
+### 효과
+
+- `342NM`, `378 N·m`, `15kgf·m`, `25kN` 등이 치수 후보에서 제외
+- W 후보 정확도 향상
+
+---
+
+## Fix 5: Non-bearing Soft Filter
+
+### 원인
+
+87개 도면 중 ~25개는 비베어링 부품(핀, 와셔, 케이싱 등).
+이들에 대해 OD/ID/W를 추출하면 무의미한 값이 나온다.
+
+### 수정 (`dimension_ensemble.py`)
+
+하드 리젝트 대신 **confidence penalty** 방식의 soft filter 도입:
+
+```python
+def _apply_soft_filter(result, drawing_title=""):
+    penalties = []
+    confidence = 1.0
+
+    # BEARING 키워드 없으면 -15%
+    if not any(kw in title_upper for kw in ("BEARING", "BRG", "베어링")):
+        confidence *= 0.85
+        penalties.append("title_missing_bearing")
+
+    # OD 범위 밖 (50~2000mm) -20%
+    if od_num and (od_num < 50 or od_num > 2000):
+        confidence *= 0.80
+        penalties.append("od_out_of_range")
+
+    # OD ≤ ID (물리적 순서 위반) -25%
+    if od_num and id_num and od_num <= id_num:
+        confidence *= 0.75
+        penalties.append("invalid_physical_order")
+```
+
+### 효과
+
+- 결과에 `soft_filter.confidence`와 `applied_penalties` 추가
+- 하위 시스템이 낮은 confidence 결과를 필터링하거나 경고 표시 가능
+- 기존 결과값은 변경하지 않음 (비파괴적)
+
+## 수정 요약
+
+| Fix | 파일 | 원인 | 효과 |
+|-----|------|------|------|
+| 1 | `dimension_ensemble.py` | 공차 문자열 파싱 실패 | +5 k_priority |
+| 2 | `dimension_ensemble.py` | K 실패 시 S01/S02 무력화 | 31개 도면 S01/S02 복구 |
+| 3 | `geometry_guided_extractor.py` | ID/OD 비율 오판별 | TD0062055 W 수정 |
+| 4 | `geometry_guided_extractor.py` | 토크값 치수 오인식 | NM/kgf 노이즈 제거 |
+| 5 | `dimension_ensemble.py` | 비베어링 무의미 결과 | confidence 기반 필터 |
+
+## 관련 문서
+
+- [앙상블 최적화 개요](./)
+- [87도면 배치 비교](./batch-results/)

@@ -190,6 +190,17 @@ export default defineConfig({
                                     { label: 'TD0062042 — 랜덤', slug: 'customer-cases/dsebearing/pipeline/random' },
                                 ],
                             },
+                            {
+                                label: '앙상블 최적화 (v2→v5)',
+                                collapsed: true,
+                                items: [
+                                    { label: '개요', slug: 'customer-cases/dsebearing/ensemble' },
+                                    { label: '투표 실패 분석', slug: 'customer-cases/dsebearing/ensemble/voting-problem' },
+                                    { label: '코드 수정 상세', slug: 'customer-cases/dsebearing/ensemble/code-fixes' },
+                                    { label: '87도면 배치 비교', slug: 'customer-cases/dsebearing/ensemble/batch-results' },
+                                    { label: 'GT 검증 + 한계', slug: 'customer-cases/dsebearing/ensemble/gt-validation' },
+                                ],
+                            },
                         ],
                     },
                     { label: '파나시아 — MCP Panel', slug: 'customer-cases/panasia' },

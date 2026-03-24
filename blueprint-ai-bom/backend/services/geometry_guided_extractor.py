@@ -475,6 +475,9 @@ def _classify_by_circle_proximity(
             continue
         if re.search(r'°|deg|UNC|UNF|TPI', val_text, re.IGNORECASE):
             continue
+        # 토크/힘 단위 (342NM, 15kgf·m, 25kN 등) → 치수 아님
+        if re.search(r'NM|N[·.]?m|kgf|kN|lbf', val_text, re.IGNORECASE):
+            continue
         # 괄호 안의 값은 참조 치수(reference dimension) → 제외
         if val_text.startswith('(') and val_text.endswith(')'):
             logger.info(f"  참조치수 제외: {val_text}")
@@ -493,9 +496,13 @@ def _classify_by_circle_proximity(
         # 스케일 기반 필터: 기계 도면은 축소 스케일이므로
         # 실제 치수(mm)는 원의 픽셀 반지름보다 작은 경우가 대부분
         # 예: r_outer=665px, OD=515mm → 515 < 665*1.2=798
-        max_reasonable = r_outer * 1.2
+        # 단, Ø/R 접두사가 있는 값은 도면에서 명시적 직경/반지름 표기이므로
+        # 스케일 필터를 완화(2.0배)하여 원 검출 오류 시에도 탈락하지 않도록 한다.
+        has_diameter_prefix = bool(re.match(r'^[ØøΦ⌀∅]', val_text))
+        scale_multiplier = 2.0 if has_diameter_prefix else 1.2
+        max_reasonable = r_outer * scale_multiplier
         if num_val > max_reasonable:
-            logger.info(f"  스케일 필터: {val_text}={num_val} > {max_reasonable} 제외")
+            logger.info(f"  스케일 필터: {val_text}={num_val} > {max_reasonable} (x{scale_multiplier}) 제외")
             continue
 
         # R 접두사 → 반지름 → 직경 변환
@@ -586,13 +593,34 @@ def _classify_by_circle_proximity(
                 else:
                     consistency = 1.0
 
-                # W 후보: ID보다 작은 것 중 최대 (OD의 5% 이상만)
+                # W 후보: ID보다 작은 것 (OD의 5% 이상만)
                 w_candidates = [
                     u for k, u in enumerate(unique)
                     if k != i and k != j and u["num"] < id_c["num"]
                     and u["num"] >= od_c["num"] * 0.05
                 ]
-                w_candidates.sort(key=lambda x: x["num"], reverse=True)
+                if w_candidates:
+                    # W 선택: radial 공식 우선, fallback으로 최대값
+                    expected_w = (od_c["num"] - id_c["num"]) / 2.0
+                    if expected_w > 0:
+                        # radial 공식 후보: (OD-ID)/2 ± 50% 이내
+                        radial_cands = [
+                            c for c in w_candidates
+                            if abs(c["num"] - expected_w) / expected_w <= 0.5
+                        ]
+                        if radial_cands:
+                            # 공식에 가장 가까운 후보 사용
+                            radial_cands.sort(
+                                key=lambda x: abs(x["num"] - expected_w)
+                            )
+                            w_candidates = radial_cands
+                        else:
+                            # 공식 범위 밖 → 스러스트 가능성, 최대값
+                            w_candidates.sort(
+                                key=lambda x: x["num"], reverse=True
+                            )
+                    else:
+                        w_candidates.sort(key=lambda x: x["num"], reverse=True)
                 w_c = w_candidates[0] if w_candidates else None
 
                 # 점수: 크기 순위(주) + 스케일 일관성(보조) + 접두사 보너스

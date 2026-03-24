@@ -1,0 +1,77 @@
+---
+title: 앙상블 최적화 개요 (Ensemble v2→v5)
+description: OD/ID/W 앙상블 검출의 v2 투표 기반에서 v5 K-priority 최적화까지의 진화 과정 요약.
+tags: [앙상블, dimension-lab, OD/ID/W, K-priority]
+sidebar_position: 1
+---
+
+> 순수 투표(v2)에서 K-priority + fallback OCR(v5)까지, 앙상블 정확도를 GT 100%로 끌어올린 과정을 정리한다.
+
+## 진화 타임라인
+
+| 날짜 | 버전 | 핵심 변경 | GT 정확도 |
+|------|------|-----------|-----------|
+| 2026-03-23 | **v2** | K+S01+S02+S06 순수 투표 | 3/6 (50%) |
+| 2026-03-24 AM | **v3** | K-priority 전략 도입 | 5/6 (83%) |
+| 2026-03-24 PM | **v5** | 파싱 수정 + fallback OCR + W 공식 + 필터 | **6/6 (100%)** |
+
+## Dimension Lab UI
+
+Dimension Lab은 7개 OCR 엔진 × 14개 분류 방법의 조합을 비교 평가하는 연구 도구다.
+
+![Dimension Lab — 21개 세션, 13개 배치](/img/ensemble/lab-loaded.png)
+
+배치 평가 탭에서 다수 도면을 한 번에 분석하고, 리더보드에서 방법별 정확도를 비교한다.
+
+![배치 평가 탭 — 13개 배치 이력](/img/ensemble/batch-eval-tab.png)
+
+![리더보드 — 알고리즘 순위 (OD 100%, ID/W 50%, 전체 67%)](/img/ensemble/leaderboard-tab.png)
+
+## 핵심 메트릭 비교
+
+| 지표 | v2 | v3 | **v5** |
+|------|----|----|--------|
+| All-3 검출 | 62/87 (71%) | 62/87 (71%) | 62/87 (71%) |
+| k_priority 적용 | — | 40/87 | **44/87** |
+| vote_fallback | 87/87 | 44/87 | **40/87** |
+| 물리적 타당성 (OD>ID>W) | 36/87 (41%) | 49/87 (56%) | — |
+| **ASSY GT 정확도** | **3/6 (50%)** | **5/6 (83%)** | **6/6 (100%)** |
+
+All-3 검출률은 71%로 동일하다. 달라진 것은 **정확도의 질**이다.
+
+:::note[GT 범위]
+GT 정확도는 확보된 **2개 ASSY 도면**(GT-1: TD0062037, GT-2: TD0062055)의 OD/ID/W 3개 값(총 6개 비교점) 기준이다. 전체 87개 도면의 정확도를 대표하지는 않으며, GT 확보 확대가 [향후 과제](./gt-validation/#향후-과제)로 남아있다.
+:::
+
+## 왜 All-3은 동일한가?
+
+All-3은 "OD, ID, W 세 값이 모두 존재하는가"만 측정한다.
+v2에서 이미 62개 도면이 값을 반환했으므로, 정확도 개선은 이 수치에 영향을 주지 않는다.
+
+나머지 25개 도면은 대부분 **비베어링 부품**(핀, 와셔, 케이싱 등)으로 OD/ID/W 개념 자체가 적용되지 않는다.
+
+## v5에서 적용한 수정 (5개)
+
+| # | 수정 | 대상 파일 | 효과 |
+|---|------|-----------|------|
+| 1 | `_extract_num()` 파싱 강화 | `dimension_ensemble.py` | 5개 K→k_priority 승격 |
+| 2 | Fallback OCR | `dimension_ensemble.py` | K 실패 31개 도면에 S01/S02 공급 |
+| 3 | W radial 공식 우선 | `geometry_guided_extractor.py` | TD0062055 W=250→48 수정 |
+| 4 | NM/토크 필터 | `geometry_guided_extractor.py` | 342NM 등 비치수 제외 |
+| 5 | Non-bearing soft filter | `dimension_ensemble.py` | confidence 기반 이상치 표시 |
+
+각 수정의 상세는 [코드 수정 상세](./code-fixes/) 참조.
+
+## 페이지 구성
+
+| 페이지 | 내용 |
+|--------|------|
+| [투표 실패 분석](./voting-problem/) | v2 순수 투표가 왜 K의 정답을 덮어썼는지 |
+| [코드 수정 상세](./code-fixes/) | 5개 수정의 원인·코드·효과 |
+| [87도면 배치 비교](./batch-results/) | v3→v5 도면별 변경 추적 |
+| [GT 검증 + 한계](./gt-validation/) | 2개 GT 상세 분석 + 향후 과제 |
+
+## 관련 문서
+
+- [기하학 파이프라인 개요](../pipeline/)
+- [Dimension Lab 배치평가](/quality-assurance/dimension-lab-eval/)
