@@ -1,6 +1,8 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache bash
+
 WORKDIR /app
 
 # Copy package files

@@ -1,0 +1,13 @@
+{
+  "total": 87,
+  "with_labels": 87,
+  "total_boxes": 1196,
+  "class_counts": {
+    "title_block": 218,
+    "main_view": 169,
+    "section_view": 167,
+    "table": 225,
+    "notes": 67,
+    "circle_feature": 350
+  }
+}

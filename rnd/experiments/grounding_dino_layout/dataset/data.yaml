@@ -1,0 +1,10 @@
+# Engineering Drawing Layout Detection — YOLO Dataset
+# Auto-generated from Grounding DINO pre-labels
+# 87 images, 1196 pre-labels
+
+path: /home/uproot/ax/poc/rnd/experiments/grounding_dino_layout/dataset
+train: images/train
+val: images/train  # 초기 실험: train=val (pre-label이므로)
+
+nc: 6
+names: ['title_block', 'main_view', 'section_view', 'table', 'notes', 'circle_feature']
