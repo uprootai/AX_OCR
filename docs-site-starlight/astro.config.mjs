@@ -204,6 +204,7 @@ export default defineConfig({
                         ],
                     },
                     { label: '파나시아 — MCP Panel', slug: 'customer-cases/panasia' },
+                    { label: 'BMT — 도면 & BOM 검증', slug: 'customer-cases/bmt' },
                 ],
             },
         ],

@@ -1,0 +1,236 @@
+---
+sidebar_position: 3
+title: BMT — 도면 & BOM AI검증
+description: 도면 부품리스트와 ERP BOM 간 불일치를 자동 검출하는 사례
+tags: [고객사례, BMT, 밸브]
+---
+
+import FlowDiagram from '../../../components/diagrams/FlowDiagram';
+import { Aside } from '@astrojs/starlight/components';
+
+> CAD 출력 도면의 부품리스트를 텍스트 추출하고, ERP BOM 엑셀과 자동 비교하여 불일치를 검출하는 사례입니다.
+
+> **고객**: (주)비엠티 (BMT CO., LTD.)
+> **업종**: 산업용 밸브 제조 (Ball Valve, Gas Valve Unit 등)
+> **기간**: 2026-03 ~ (Phase 0 진행중)
+> **도면 유형**: 밸브 조립도 (Inventor), 스키드 GAR, 3D 렌더링
+
+---
+
+## 프로젝트 개요 (Project Overview)
+
+BMT는 설계 도면(VAULT BOM)과 ERP에 등록된 BOM 간 불일치를 사람이 수동으로 검토하고 있습니다.
+AI 검증 솔루션으로 이 과정을 자동화하여 재질 오류, 코드 상이, 수량 불일치를 자동 검출합니다.
+
+<FlowDiagram client:load
+  direction="LR"
+  title="BMT 검증 파이프라인"
+  nodes={[
+    { id: 'pdf', label: '도면 PDF\n(Inventor 출력)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'extract', label: 'pdfplumber\n테이블 추출', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'xlsx', label: 'ERP BOM\n엑셀 파싱', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'diff', label: '자동 비교\n(문자열 매칭)', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'report', label: '불일치 리포트', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'pdf', to: 'extract' },
+    { from: 'xlsx', to: 'diff' },
+    { from: 'extract', to: 'diff' },
+    { from: 'diff', to: 'report' },
+  ]}
+  layers={[['pdf', 'xlsx'], ['extract'], ['diff'], ['report']]}
+/>
+
+---
+
+## 핵심 발견: LLM/YOLO/OCR 불필요 (Key Finding)
+
+BMT 도면은 Autodesk Inventor에서 출력한 **벡터 PDF**입니다.
+텍스트 레이어가 살아있어 `pdfplumber`로 부품리스트 테이블을 100% 추출할 수 있습니다.
+
+| 항목 | 값 |
+|------|---|
+| 도면 형식 | Inventor .idw → PDF (벡터, 텍스트 레이어 존재) |
+| 텍스트 추출 | `pdfplumber` (Python) — 테이블 자동 감지 |
+| 엑셀 파싱 | `zipfile` + `xml.etree` (openpyxl 없이 가능) |
+| 비교 로직 | exact match + prefix match (문자열 연산) |
+| AI 모델 | **사용하지 않음** |
+
+<Aside type="caution" title="전제 조건">
+도면이 항상 CAD 출력 벡터 PDF인 경우에만 해당합니다. 스캔본(이미지 PDF)이 들어오면 OCR이 필요합니다. 고객 확인 대기 중입니다.
+</Aside>
+
+---
+
+## POC 테스트 결과 (POC Test Results)
+
+1번 자료(FB2FB6 개별 밸브)로 전체 파이프라인을 실행했습니다.
+
+### 입력 데이터
+
+| 소스 | 파일 | 추출 방법 | 결과 |
+|------|------|-----------|------|
+| 도면 PDF | FB2FB6-32A-1S-D011-1SDNA-36L-KGS.pdf | `pdfplumber` 테이블 추출 | **27개** 부품 |
+| ERP BOM | FB2FB6__BOM.xlsx | `zipfile` XML 파싱 | **27개** 자품목 (.1 레벨) |
+
+### 비교 결과
+
+| 분류 | 건수 | 설명 |
+|------|------|------|
+| 완전 일치 | **18건** | 품번 + 수량 동일 |
+| 코드 유사 (불일치) | **5건** | 도면 코드 뒤에 재질/업체 접미사 상이 |
+| 도면에만 존재 | **4건** | ERP에서 완전히 다른 코드로 등록 |
+| ERP에만 존재 | **4건** | 도면에서 완전히 다른 코드로 등록 |
+
+### 검출된 불일치 상세
+
+#### 코드 유사 — prefix 매칭으로 자동 검출
+
+| 도면 (VAULT) | ERP BOM | 차이 |
+|-------------|---------|------|
+| STB-M12-50L | STB-M12-50L-**193B8MCL2** | 재질 접미사 |
+| HN-M12-HV | HN-M12-HV-**8M** | 재질 접미사 |
+| NAME-PL-45X35 | NAME-PL-45X35-**KGS** | 업체 접미사 |
+| SM-25.0-69.8-6F-630 | SM-25.0-69.8-6F-630-**KGS** | 업체 접미사 |
+| PS-FB2F26-32A | PS-FB2F26-32A-**LIP** | 사양 접미사 |
+
+#### 완전 불일치 — fuzzy 매칭 추가 필요
+
+| 도면 (VAULT) | ERP BOM | 차이 유형 |
+|-------------|---------|-----------|
+| BS-85-6F-**T1** | BS-85-6F-**T4** | 재질 코드 상이 (T1 vs T4) |
+| OR-82.22-2.62-**V** | OR-82.22-2.62-**E** | 재질 상이 (Viton vs EPDM) |
+| BALL-2,4-**304** | BALL-2,4**M**-304 | 코드 중간 문자 상이 |
+| ANSI B18.2.3.5M-M8x1.25x16 | HB-M8-15L | 완전히 다른 코드 체계 |
+
+<Aside type="tip" title="검증 완료">
+고객이 수동으로 찾은 7건(BOM&파트리스트.xlsx에 기재)을 자동 비교로 전부 검출했습니다.
+</Aside>
+
+---
+
+## 데이터 검증 이슈 (Data Verification Issues)
+
+### SN 시리얼 번호 불일치
+
+<Aside type="caution" title="CRITICAL: 도면 VD 시리얼 불일치">
+도면 PDF의 밸브 상세도(VD, 4-13페이지) DOC 번호가 **SN2693**으로, 나머지 자료(GAR/ITDRA/Part List/BOM) 전체의 **SN2709**와 불일치합니다. SN2709용 VD 도면 재요청 완료.
+</Aside>
+
+| 섹션 | DOC 번호 | 시리얼 | 상태 |
+|------|---------|--------|------|
+| GAR (Page 1-3) | W5XGVU-SN2709-GAR | SN2709 | 정상 |
+| **VD (Page 4-13)** | W5XGVU-**SN2693**-VD | **SN2693** | **불일치** |
+| ITDRA (Page 14-22) | W5XGVU-SN2709-ITDRA | SN2709 | 정상 |
+| Part List | W5XGVU-SN2709-PLRA | SN2709 | 정상 |
+| ERP BOM | W5XHEGVU-SN2709-DNV | SN2709 | 정상 |
+
+### 도면 이미지 검출 한계
+
+- 밸브 도면은 **어셈블리(조립) 상태 단면도** — 개별 부품이 결합되어 보이지 않음
+- 파나시아(P&ID)와 달리 YOLO 기반 심볼 검출 **적용 불가**
+- 도면 이미지가 아닌 **도면 내 테이블(Description 표)** 기준으로 검증
+
+### 3번 그룹 = 2번과 동일 파일
+
+- MD5 해시 검증 완료: PDF/Excel 3쌍 모두 동일
+- 유일한 추가 파일: 3D 렌더링 참조 이미지 1개
+
+---
+
+## 매칭 방식 2가지 (Matching Methods)
+
+### 케이스 1: 개별 밸브 — 직접 비교
+
+도면 PDF 부품리스트와 ERP BOM을 품번으로 직접 대조합니다.
+
+```
+도면 PDF (pdfplumber)     ERP BOM (엑셀)
+┌──────────────────┐     ┌──────────────────┐
+│ 항목 | 품번 | 수량 │     │ 순번 | 자품목 | 수량 │
+│  3   | BL-85| 1   │ ←→ │  3   | BL-85 | 1   │ ✅
+│  4   | BS-T1| 2   │  ✗  │  4   | BS-T4 | 2   │ ⚠️
+└──────────────────┘     └──────────────────┘
+```
+
+### 케이스 2: 스키드(GVU) — 3단계 매칭
+
+도면 TAG → 파트리스트 CODE → ERP BOM 자품목코드 순으로 매칭합니다.
+
+```
+도면 TAG "V01"
+  → 파트리스트 CODE "V01" / Drawing No. "FB2F29-R64A-..."
+    → ERP BOM 자품목 "FB2F29-R64A-..." / 수량 1EA
+```
+
+---
+
+## 자료 구성 (Data Structure)
+
+### 수령 자료
+
+| 그룹 | 파일 | 유형 | 용도 |
+|------|------|------|------|
+| 1 | FB2FB6 도면.pdf (135KB) | 벡터 PDF, 단일 페이지 | 개별 밸브 조립도 |
+| 1 | FB2FB6 BOM.xlsx | 엑셀 | ERP BOM (계층구조) |
+| 1 | FB2FB6 BOM&파트리스트.xlsx | 엑셀 | 수동 비교 결과 (불일치 7건) |
+| 2 | W5XGVU-SN2709-GARRB.pdf (2.7MB) | 벡터 PDF, 22페이지 | 스키드 GAR + 밸브 상세도 |
+| 2 | W5XGVU-SN2709-PLRA.xlsx | 엑셀 (4시트) | 밸브/센서/피팅/기술사양 |
+| 2 | W5XHEGVU-SN2709-DNV.xlsx | 엑셀 | 스키드 ERP BOM (62품목) |
+| 3 | GVU_3D.pdf (362KB) | 3D 렌더링 | TAG 라벨 확인용 |
+
+### 미수령 자료
+
+| 자료 | 상태 |
+|------|------|
+| 구분별 추가 샘플 (피팅&계장밸브, 프로세스밸브) | 대기 |
+| 휴먼 에러 발생 유형 | 대기 |
+
+---
+
+## 기술 스택 (Tech Stack)
+
+| 레이어 | 기술 | 비고 |
+|--------|------|------|
+| PDF 추출 | `pdfplumber` (PyMuPDF 백업) | 벡터 PDF 테이블 파싱 |
+| 엑셀 파싱 | `zipfile` + `xml.etree` | openpyxl 없이 동작 |
+| 비교 엔진 | Python 문자열 매칭 | exact + prefix + fuzzy |
+| 리포트 | 엑셀 또는 JSON | 기존 `quotation_excel_exporter` 재활용 가능 |
+| OCR (fallback) | `eDOCr2` / `PaddleOCR` | 스캔본 도면 대비용 |
+
+---
+
+## 고객 확인 대기 사항 (Pending Questions)
+
+| # | 질문 | 상태 |
+|---|------|------|
+| 1 | 자료 구분 (FB2FB6 = ?, GVU = 스키드?) | ⬜ |
+| 2 | 도면 3가지 유형 모두 검증 대상? + 번호 없는 도면? | ⬜ |
+| 3 | 검증 범위 (파트리스트 수준 vs 하위 부품까지) | ⬜ |
+| 4 | 휴먼 에러 유형 별도 자료 유무 | ⬜ |
+| 5 | 매칭 방식 확인 | ⬜ |
+| 6 | 도면이 항상 CAD 출력 벡터 PDF인지 | ⬜ |
+| 7 | ERP BOM 엑셀 포맷 동일한지 | ⬜ |
+| 6 | SN2709용 VD 밸브 상세도면 재요청 | ✅ 요청 완료 |
+| 7 | BOM에 있고 도면에 없는 정보 리스트 | 🟡 추후 수령 |
+
+---
+
+## 다음 단계 (Next Steps)
+
+| 우선순위 | 내용 |
+|---------|------|
+| 1 | 고객 회신 대기 (구분별 샘플, 검증 범위) |
+| 2 | 스키드(GVU) 22페이지 도면 테이블 추출 테스트 |
+| 3 | fuzzy 매칭 보강 (BS-T1↔T4 등 접미사 변형 검출) |
+| 4 | 비교 리포트 엑셀 포맷 설계 |
+| 5 | SN2709 VD 도면 수령 후 2번 자료(GVU) POC 재검증 |
+| 6 | AI 바우처 사업계획서 개발 방향 작성 (마감: 03-28) |
+
+---
+
+## 관련 문서
+
+- [고객 적용 사례 개요](./) — 전체 고객사 목록
+- [BOM & 견적](/docs/bom-generation) — BOM 생성 엔진
+- [분석 파이프라인](/docs/analysis-pipeline) — VLM → YOLO → OCR 파이프라인

@@ -12,9 +12,9 @@ import { Aside } from '@astrojs/starlight/components';
 
 | 항목 | 값 |
 |------|-----|
-| 적용 고객사 | 2개사 |
-| 도면 유형 | 기계 부품도, P&ID |
-| 핵심 기술 | eDOCr2, YOLO v11, BOM 자동화 |
+| 적용 고객사 | 3개사 |
+| 도면 유형 | 기계 부품도, P&ID, 밸브 조립도 |
+| 핵심 기술 | eDOCr2, YOLO v11, BOM 자동화, 도면-BOM 교차검증 |
 
 ---
 
@@ -57,6 +57,24 @@ YOLO 커스텀 모델로 P&ID 심볼을 자동 검출하고, 독립 실행 Docke
 
 ---
 
+## 사례 3 — [BMT: 도면 & BOM AI검증](./bmt)
+
+> 도면 PDF 부품리스트 자동 추출 → ERP BOM 엑셀 파싱 → 불일치 자동 검출
+
+| 항목 | 값 |
+|------|-----|
+| 고객사 | (주)비엠티 — 산업용 밸브 제조 (Ball Valve, GVU 등) |
+| 도면 유형 | 밸브 조립도 (Inventor), 스키드 GAR, 3D 렌더링 |
+| 검증 방식 | pdfplumber 테이블 추출 + 문자열 매칭 (**AI 모델 불필요**) |
+| POC 결과 | 도면 27부품 vs ERP 27품목 비교 → 고객 수동 발견 **7건 전부 자동 검출** |
+| 상태 | **Phase 0** (자료 분석 완료, 고객 회신 대기) |
+
+<Aside type="tip" title="핵심 가치">
+CAD 출력 벡터 PDF는 텍스트 레이어가 살아있어 LLM/YOLO/OCR 없이 pdfplumber + 문자열 비교만으로 검증이 가능합니다.
+</Aside>
+
+---
+
 ## 도면 유형별 파이프라인
 
 <FlowDiagram client:load
@@ -67,21 +85,27 @@ YOLO 커스텀 모델로 P&ID 심볼을 자동 검출하고, 독립 실행 Docke
     { id: 'vlm', label: 'VLM 분류', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
     { id: 'mech', label: '기계 부품도\n(동서기연)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
     { id: 'pid', label: 'P&ID 도면\n(파나시아)', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'valve', label: '밸브 조립도\n(BMT)', color: '#006064', bg: '#e0f7fa', shape: 'rounded' },
     { id: 'ocr', label: 'eDOCr2\n치수 추출', color: '#1b5e20', bg: '#e8f5e9', shape: 'rounded' },
     { id: 'yolo_pid', label: 'YOLO\nP&ID 27cls', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'pdf_extract', label: 'pdfplumber\n테이블 추출', color: '#006064', bg: '#e0f7fa', shape: 'rounded' },
     { id: 'bom', label: 'BOM + 견적\n₩3.2M (1차)', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
     { id: 'export', label: 'Docker\n납품 패키지', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+    { id: 'diff', label: '도면↔ERP\n불일치 리포트', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
   ]}
   edges={[
     { from: 'drawing', to: 'vlm' },
     { from: 'vlm', to: 'mech' },
     { from: 'vlm', to: 'pid' },
+    { from: 'vlm', to: 'valve' },
     { from: 'mech', to: 'ocr' },
     { from: 'pid', to: 'yolo_pid' },
+    { from: 'valve', to: 'pdf_extract' },
     { from: 'ocr', to: 'bom' },
     { from: 'yolo_pid', to: 'export' },
+    { from: 'pdf_extract', to: 'diff' },
   ]}
-  layers={[['drawing'], ['vlm'], ['mech', 'pid'], ['ocr', 'yolo_pid'], ['bom', 'export']]}
+  layers={[['drawing'], ['vlm'], ['mech', 'pid', 'valve'], ['ocr', 'yolo_pid', 'pdf_extract'], ['bom', 'export', 'diff']]}
 />
 
 ---

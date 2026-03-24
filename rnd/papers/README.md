@@ -16,7 +16,8 @@
 | Vision-Language Models | 10 | Qwen3-VL, InternVL3.5, LLaVA-o1 |
 | Document Layout Analysis | 10 | DocLayout-YOLO, SCAN, SFDLA |
 | GD&T Recognition | 4 | YOLOv8, YOLOv11 기반 |
-| **총계** | **49** | |
+| **Visual Document Retrieval** | **13** | **ColPali, ColQwen, VisRAG, AutoRAG** |
+| **총계** | **62** | |
 
 ---
 
@@ -474,7 +475,39 @@
 
 ---
 
-## 8. 우선순위별 적용 계획 (GPU 제약 반영, 2025-12-31)
+## 8. Visual Document Retrieval & AutoRAG ⭐ NEW
+
+> **상세 문서**: [`visual-document-retrieval/README.md`](./visual-document-retrieval/README.md)
+> **출처**: 테디노트 유튜브 라이브 (2026-03)
+
+### 핵심 모델
+
+| 모델 | 핵심 기여 | 적용 가능성 |
+|------|-----------|------------|
+| **ColPali** | OCR 없이 문서 이미지 직접 임베딩, MaxSim 검색 | 대규모 도면 검색 |
+| **ColQwen** | Qwen 백본, 현재 SOTA | ColPali 상위 호환 |
+| **ColPlo** | 174M 초경량, 패치 절반 | 엣지/저사양 환경 |
+| **VisRAG** | 이미지→VLM 직접 입력, Average Pooling | 도면 Q&A |
+| **VDoc-RAG** | 모달리티 격차 해소 | 텍스트-이미지 혼합 검색 |
+
+### 파이프라인 / 방법론
+
+| 기법 | 핵심 | 적용 가능성 |
+|------|------|------------|
+| **Agentic RAG** | Seeker/Inspector/Answer 3-에이전트, 반복 검증 | BOM 교차검증 자동화 |
+| **Dynamic Top-K (GMM)** | 유사도 분포 기반 동적 K 조절 | 검색 정확도 개선 |
+| **멀티모달 KG + RAG** | 지식그래프 융합, 리콜 98% | 장기 연구 |
+| **AutoRAG Research** | CLI 중심 RAG 평가 플랫폼, PostgreSQL | RAG 파이프라인 벤치마크 |
+
+### 벤치마크
+
+| 벤치마크 | 핵심 |
+|----------|------|
+| **ViDoRe** V1~V3 | VDR 평가 표준, V3는 바운딩 박스 IOU까지 측정 |
+
+---
+
+## 9. 우선순위별 적용 계획 (GPU 제약 반영, 2025-12-31)
 
 ### 완료 ✅
 | 논문 | 적용 대상 | 상태 |
@@ -512,7 +545,7 @@
 
 ---
 
-## 9. 데이터셋 목록
+## 10. 데이터셋 목록
 
 | 데이터셋 | 출처 | 용도 | 크기 |
 |----------|------|------|------|
@@ -524,7 +557,7 @@
 
 ---
 
-## 10. 관련 GitHub 저장소
+## 11. 관련 GitHub 저장소
 
 | 프로젝트 | 링크 | 설명 |
 |----------|------|------|
