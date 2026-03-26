@@ -1,0 +1,67 @@
+---
+title: S05 — CircleNet DL (보류)
+description: U-Net 기반 히트맵으로 원 센터를 예측하는 딥러닝 원 검출. 반지름 회귀 실패로 보류.
+tags: [동서기연, 실험, CircleNet, 딥러닝, 보류]
+sidebar_position: 6
+---
+
+> CenterNet 아이디어를 축소 적용. 센터 히트맵은 학습되었으나 반지름 회귀가 실패하여 보류.
+
+## 핵심 아이디어
+
+기존 원 검출(Contour, Hough, RANSAC)은 에지 기반 → 노이즈에 민감.
+CircleNet은 학습 기반으로 "원처럼 보이는 패턴"을 직접 인식하여 (cx, cy, r)을 예측한다.
+
+원본 CircleNet 논문(arXiv 2110.12093)은 의료 이미지에서 bbox 대비 >10% 성능 향상을 보고.
+
+## 실험 설정
+
+| 항목 | 값 |
+|------|---|
+| 모델 | U-Net (0.5M params, 1.8MB) |
+| 학습 데이터 | 30개 도면 (25 train / 5 val) |
+| 라벨 | HoughCircles 기반 **pseudo-label** |
+| 학습 시간 | **34초** (50 epochs) |
+| VRAM | ~0.1GB |
+| 출력 | 히트맵 (원 센터 확률맵) |
+
+## 결과
+
+| 지표 | 값 | 판정 |
+|------|---|:---:|
+| val loss (focal) | 0.0165 | ✅ 수렴 |
+| 원 센터 검출 | 피크 5~25개 | ✅ GT 근처 |
+| **반지름 회귀** | **0** (전부 0 예측) | ❌ 실패 |
+
+### 왜 반지름이 실패했는가
+
+1. **Sparse label 문제**: HoughCircles pseudo-label은 원 중심에만 점을 찍는다. 반지름 정보가 label에 희소하게 인코딩되어 U-Net이 학습하지 못함.
+2. **데이터 부족**: 30개 도면 × 3~5개 원 = ~100개 라벨. 반지름 회귀에는 턱없이 부족.
+3. **모델 크기**: 0.5M params로는 센터+반지름 동시 학습이 어려움.
+
+### 해결 방안 (미실행)
+
+| 방안 | 난이도 | 기대 효과 |
+|------|:---:|:---:|
+| Full 원 mask label (원 내부 전체를 1로 채움) | 중 | 높음 |
+| 더 큰 모델 (DLA-34 등) + COCO pretrained | 중 | 높음 |
+| 학습 데이터 87개 전체 + augmentation | 낮음 | 중 |
+
+## 판정: ⏸️ 보류
+
+센터 예측은 학습 가능성을 보여줬으나, 실용적 원 검출기로 쓰려면:
+- Dense label (full 원 mask)
+- 더 큰 모델 + 데이터
+- 상당한 추가 투자 필요
+
+현재 K + S01 + S02 앙상블로 71%를 달성하고 있어, DL 원 검출의 우선순위가 낮다.
+
+## 참고 자료
+
+- [CircleNet GitHub (hrlblab)](https://github.com/hrlblab/CircleNet)
+- [Circle Representation for Medical Object Detection (arXiv 2110.12093)](https://arxiv.org/abs/2110.12093)
+
+## 관련 문서
+
+- [검출 방법론 종합](./)
+- [S06 — YOLO-OBB](./s06-yolo/) (DL 성공 사례)

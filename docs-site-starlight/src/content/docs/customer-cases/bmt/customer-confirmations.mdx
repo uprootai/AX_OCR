@@ -1,0 +1,796 @@
+---
+title: 고객 확인 현황
+description: BMT 고객에게 확인받아야 하는 사항과 현재 상태를 정리한 대시보드
+tags: [고객사례, BMT, 확인사항]
+sidebar_position: 6
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+
+> BMT 프로젝트 진행을 위해 고객에게 확인받아야 하는 사항을 심각도별로 정리합니다.
+
+<Aside type="danger" title="⚠️ 2차 통화 (03-25)로 근본적 전환 발생">
+이 페이지의 많은 내용이 **2차 통화 결과로 무효화**되었습니다.
+핵심 변경: VD 테이블 비교 → **GAR 배치도 이미지 TAG 추출 + BOM 누락 확인**으로 전환.
+재질/치수 비교는 불필요, 코드 존재 여부만 확인.
+
+**[→ 2차 통화 분석 (03-25)](./call-20250325) 페이지에서 정오표와 수정된 파이프라인을 확인하세요.**
+</Aside>
+
+**출처 범례**:
+- 📧 = 메일 회신 (박순근 팀장님 → 윤동민 팀장, 2026-03-24)
+- 📞 = 통화 녹취 발췌 (이정우 형님 통화, 2026-03-24 17:03, 41분 48초)
+- 🔍 = 내부 데이터 분석에서 발견 (POC 테스트 과정)
+
+---
+
+## 수령 자료 & 용어 정리
+
+아래 확인 사항을 읽기 전에 필요한 배경 지식입니다.
+
+### 수령 파일 구조
+
+BMT에서 총 3개 그룹, 7개 파일을 수령했습니다.
+
+| 그룹 | 파일 | 설명 |
+|------|------|------|
+| **1번 — 단품 밸브** | `FB2FB6-...-36L-KGS.pdf` (1페이지) | 밸브 1개의 조립도면 + 부품리스트 |
+| | `FB2FB6-...__BOM.xlsx` | ERP에 등록된 이 밸브의 BOM |
+| | `FB2FB6-..._BOM&파트리스트.xlsx` | 고객이 수동으로 불일치 7건 표시한 참고 파일 |
+| **2번 — 스키드(GVU)** | `W5XGVU-SN2709-GARRB.pdf` (22페이지) | 밸브 8개 + 센서 + 배관을 합친 시스템 도면 |
+| | `W5XGVU-SN2709-PLRA.xlsx` (4시트) | 밸브/센서/피팅/기술사양 Part List |
+| | `W5XHEGVU-SN2709-DNV.xlsx` | ERP에 등록된 이 스키드의 BOM |
+| **3번 — 참조** | `GVU_3D.pdf` | 3D 렌더링 (TAG 라벨 확인용, 나머지 파일은 2번과 동일) |
+
+### 파일명 읽는 법
+
+**1번 그룹 — `FB2FB6-32A-1S-D011-1SDNA-36L-KGS`**
+
+| 파일명 요소 | 의미 |
+|------------|------|
+| `FB2FB6` | 제품 모델명 (Ball Valve 시리즈) |
+| `32A` | 밸브 사이즈 (32A = 1¼인치) |
+| `36L` | 밸브 길이 |
+| `KGS` | 한국가스안전공사 인증 |
+
+밸브 1개짜리 도면이므로 **"프로세스밸브 (단품)"** 구분에 해당합니다.
+
+**2번 그룹 — `W5XGVU-SN2709-GARRB`**
+
+| 파일명 요소 | 의미 |
+|------------|------|
+| `W5X` | 프로젝트/선종 코드 |
+| `GVU` | **Gas Valve Unit** — 밸브 여러 개를 프레임에 조립한 시스템 |
+| `SN2709` | **Serial Number 2709** — 선박 1척의 고유 ID (호선번호) |
+| `GARRB` | GAR(General Arrangement, 배치도) + RB(Revision B) |
+
+GVU는 밸브 여러 개(V01~V15)를 포함하는 시스템이므로 **"스키드 (시스템)"** 구분에 해당합니다.
+
+### 22페이지 PDF 내부 구조
+
+2번 그룹의 도면 PDF(22페이지)는 3개 섹션이 합본되어 있습니다.
+
+| 섹션 | 약어 | 정식 명칭 | 페이지 | 내용 |
+|------|------|----------|--------|------|
+| 배치도 | **GAR** | General Arrangement | 1~3 | 스키드 전체 배치, 밸브 위치 표시 |
+| 밸브 상세도 | **VD** | Valve Drawing | 4~13 | 개별 밸브 8개의 단면도 + 부품리스트 |
+| 계장기기도 | **ITDRA** | Instrument/Tubing Drawing | 14~22 | 온도센서, 압력센서 등 계장기기 스펙 |
+
+### SN(호선번호)이란?
+
+**SN = Serial Number = 호선번호**로, 조선소에서 건조하는 선박 1척의 고유 ID입니다.
+
+- `SN2709`와 `SN2693`은 **서로 다른 배**입니다
+- 같은 GVU 모델이라도 호선마다 사양이 다를 수 있습니다
+- 따라서 SN2693 도면의 부품을 SN2709 BOM과 비교하면 "진짜 불일치"와 "호선 차이"를 구분할 수 없습니다
+
+이것이 아래 블로커 1번(VD 도면 SN 불일치)이 치명적인 이유입니다.
+
+---
+
+## 블로커 — 이것 없으면 다음 단계 진행 불가
+
+<Aside type="danger" title="반드시 해결 필요">
+아래 2건이 해결되지 않으면 GVU 스키드 검증과 솔루션 아키텍처 확정이 불가합니다.
+</Aside>
+
+### SN2709용 VD 도면 재전달
+
+| 항목 | 내용 |
+|------|------|
+| 상태 | 🔴 요청 완료, 미수령 |
+| 출처 | 📞 통화 + 🔍 내부 분석 |
+| 요청일 | 2026-03-24 |
+| 영향 | GVU 스키드의 VD↔ERP BOM 비교가 **완전 차단** |
+
+**발견 경위**: POC 테스트 중 PDF 내부 DOC 번호를 `PyMuPDF`로 추출했더니, VD 섹션만 다른 호선 번호가 나왔습니다.
+
+GAR 표지(Page 1)에는 **SN2709**:
+
+![GAR 표지 — SN2709 정상](/images/bmt/gvu-cover-sn2709.png)
+
+VD 표지(Page 4)에는 **SN2693** — 다른 호선:
+
+![VD 표지 — SN2693 불일치](/images/bmt/vd-cover-sn2693.png)
+
+| 섹션 | 페이지 | DOC 번호 내 SN | 상태 |
+|------|--------|---------------|------|
+| GAR | 1~3 | **SN2709** | ✅ 정상 |
+| **VD** | **4~13** | **SN2693** | **❌ 불일치** |
+| ITDRA | 14~22 | **SN2709** | ✅ 정상 |
+| Part List | 엑셀 | **SN2709** | ✅ 정상 |
+| ERP BOM | 엑셀 | **SN2709** | ✅ 정상 |
+
+📞 **통화 확인 내용**: "파일명은 SN2709인데 VD 내부 DOC No.만 SN2693인 것은 잘못 보낸 것으로 추정" — 재전달 요청 완료.
+
+**현재 상태**: VD 테이블 추출(151개 부품)과 Balloon 교차검증은 완료했으나, SN이 다르면 BOM 비교 결과를 신뢰할 수 없어 **파이프라인이 자동 스킵** 중입니다.
+
+**요청 사항**: `W5XGVU-SN2709-VD` 도면을 전달해 주시면 즉시 BOM 비교를 실행할 수 있습니다.
+
+<Aside type="tip" title="실제 영향 범위 — 전체 판단에는 문제 없음">
+스키드(GVU) 검증은 3단계로 나뉘는데, VD 불일치로 막힌 부분은 **2단계뿐**입니다.
+
+| 단계 | 내용 | SN 상태 | 테스트 가능 여부 |
+|------|------|---------|----------------|
+| **1단계** | 도면 TAG(V01) → Part List CODE → ERP BOM 자품목코드 | GAR/Part List/ERP 모두 **SN2709** | ✅ 가능 |
+| **2단계** | 개별 밸브 VD 테이블 ↔ ERP BOM 하위 부품 비교 | VD만 **SN2693** | ❌ 차단 |
+| **3단계** | ITDRA 계장기기 스펙 ↔ Part List 센서 정보 | 둘 다 **SN2709** | ✅ 가능 |
+
+또한 2단계의 비교 로직(도면 부품리스트 ↔ BOM 코드 매칭)은 이미 **1번 자료 FB2FB6에서 검증 완료**된 것과 동일한 방식입니다. 호선만 맞으면 같은 코드가 그대로 동작합니다.
+
+**결론**: VD 재수령은 "파이프라인이 동작하는지 증명"하기 위한 것이 아니라, **SN2709 호선의 실제 불일치를 찾아내는 실전 결과**를 얻기 위해 필요합니다.
+</Aside>
+
+---
+
+### 도면 PDF가 항상 벡터(CAD 출력)인지?
+
+| 항목 | 내용 |
+|------|------|
+| 상태 | 🔴 미확인 |
+| 출처 | 🔍 내부 분석 — 수령 자료가 전부 벡터 PDF여서 의문 제기 |
+| 영향 | **솔루션 아키텍처가 완전히 달라짐** |
+
+**벡터 PDF란**: Inventor 같은 CAD에서 직접 출력한 PDF. 텍스트와 도형이 좌표 데이터로 저장되어 있어 확대해도 선명하고, 글자를 복사/검색할 수 있습니다.
+
+현재 수령한 FB2FB6 도면은 벡터 PDF입니다. 텍스트 값 자체는 `pdfplumber`로 100% 정확하게 추출됩니다 (6개 도면 검증 완료). 단, 병합셀 구조 파싱에는 후처리가 필요합니다:
+
+![FB2FB6 부품리스트 테이블 — pdfplumber 추출 대상](/images/bmt/fb2fb6-parts-table.png)
+
+**이미지(스캔) PDF와의 차이**:
+
+| 도면 형식 | 텍스트 추출 | 정확도 | 필요 기술 | 개발 범위 |
+|-----------|-----------|--------|----------|----------|
+| **벡터 PDF** (CAD 출력) | `pdfplumber` 직접 읽기 | **텍스트 100%** (구조는 후처리 필요) | 문자열 매칭 + 병합셀 split | ✅ 현재 완료 |
+| **이미지 PDF** (스캔본) | OCR 필수 | 85~95% | eDOCr2 + 후처리 | ❌ 추가 개발 필요 |
+
+**요청 사항**: 실무에서 도면을 다룰 때 아래 중 어떤 경우인지 확인 부탁드립니다.
+
+1. **항상 CAD에서 PDF 출력** → 현재 방식으로 충분
+2. **대부분 CAD이지만 가끔 종이 스캔** → OCR fallback 추가 필요
+3. **스캔본이 많음** → OCR 기반으로 재설계 필요
+
+---
+
+## 중요 — 개발 방향에 영향
+
+<Aside type="caution" title="아래 5건은 개발 범위와 파서 설계에 직접 영향을 줍니다">
+답변에 따라 코드 수정이 필요할 수 있습니다.
+</Aside>
+
+### ERP BOM 엑셀 포맷 일관성
+
+| 항목 | 내용 |
+|------|------|
+| 상태 | 🟡 미확인 |
+| 출처 | 🔍 내부 분석 — ERP BOM 파서 구현 중 발견 |
+| 영향 | 다른 제품에서 컬럼 순서가 다르면 파서 수정 필요 |
+
+현재 파서가 읽는 ERP BOM 엑셀 구조:
+
+![ERP BOM 엑셀 구조](/images/bmt/erp-bom-fb2fb6.png)
+
+파서가 의존하는 컬럼: `A=단계`, `C=자품목코드`, `D=자품목명`, `L=수량`
+
+**요청 사항**: 다른 제품의 ERP BOM 엑셀도 같은 포맷인지 확인 부탁드립니다. **다른 제품 1개의 BOM 엑셀 샘플**을 함께 전달해 주시면 검증할 수 있습니다.
+
+---
+
+### 피팅 & 계장밸브 구분 샘플
+
+| 항목 | 내용 |
+|------|------|
+| 상태 | 🟡 미수령 |
+| 출처 | 📧 메일 회신 — "피팅&계장밸브 샘플 미수령" 확인 |
+| 영향 | 이 유형의 도면 구조와 BOM 형태를 모르면 파서 설계 불가 |
+
+📧 **메일 회신 내용**: 자료 구분 확인에서 "피팅&계장밸브 = **Instrumentation 도면**" 구분이 존재함을 확인했으나, 샘플은 아직 전달되지 않았습니다.
+
+현재 수령한 2개 구분:
+
+| 구분 | 해당 자료 | 검증 상태 |
+|------|---------|----------|
+| 프로세스밸브 (단품) | FB2FB6 | ✅ POC 완료 |
+| 스키드 (시스템) | W5XGVU-SN2709 | ⚠️ SN 불일치로 대기 |
+| **피팅&계장밸브** | **미수령** | ❌ 분석 불가 |
+
+**요청 사항**: 피팅&계장밸브 구분의 **도면 PDF 1개 + ERP BOM 엑셀 1개**를 전달해 주시면 분석하겠습니다.
+
+---
+
+### GA/Layout 도면 샘플 (부품번호 없는 유형)
+
+| 항목 | 내용 |
+|------|------|
+| 상태 | 🟡 미수령 |
+| 출처 | 📧 메일 회신 — "부품번호 없는 도면도 있다" 확인 |
+| 영향 | Balloon도 Description 테이블도 없을 수 있어 **현재 파이프라인으로는 처리 불가** |
+
+📧 **메일 회신 원문** (질문 2에 대한 답변): "부품번호가 표기되지 않은 도면 유형도 존재합니다 — GA / Layout 도면"
+
+현재 파이프라인은 아래 두 가지를 기반으로 동작합니다:
+1. Description 테이블 (NO./DESCRIPTION/MATERIAL/Q'TY)
+2. Balloon 번호 (도면 이미지의 말꼬리표 숫자)
+
+GA/Layout 도면에 이 둘이 없으면 별도 접근법이 필요합니다.
+
+<Aside type="note" title="아래 'BOM에 있고 도면에 없는 정보 리스트(Q9)'와의 관계">
+GA/Layout 도면이 실제로 어떤 용도인지는 샘플을 받아봐야 알 수 있습니다.
+
+| 가능성 | 상황 | 우리 대응 |
+|--------|------|----------|
+| 대응 BOM이 있다 | 부품번호 없이 BOM만 존재 → "BOM에 있고 도면에 없는 정보"에 해당 | 별도 비교 로직 필요 |
+| 대응 BOM이 없다 | 도면도 BOM도 없음 → 비교 대상 자체가 아님 | 파이프라인에서 제외 |
+| 참조용 도면이다 | BOM 검증과 무관한 레이아웃 참고용 | 파이프라인에서 제외 |
+
+Q5(도면 샘플)를 수령하면 어떤 경우인지 판단할 수 있고, Q9(엑셀 리스트)를 수령하면 GA/Layout 관련 항목이 포함되어 있는지 교차 확인할 수 있습니다.
+</Aside>
+
+**요청 사항**: GA/Layout 도면 샘플 1개를 전달해 주시면, 이 유형의 구조를 파악하고 대응 방안을 설계하겠습니다.
+
+---
+
+### Part List 존재 형태
+
+| 항목 | 내용 |
+|------|------|
+| 상태 | 🟡 미확인 |
+| 출처 | 📧 메일 회신 — 질문 5에 대한 보정 답변에서 발생 |
+| 영향 | Part List가 별도 엑셀 파일이면 3자 비교 구조가 필요 |
+
+📧 **메일 회신 원문** (질문 5 보정): "도면 Balloon No → **Part List (부품번호)** → ERP BOM 코드" — 중간에 Part List가 별도로 존재한다는 의미.
+
+현재 1번 자료(FB2FB6)에서는 도면 PDF 안의 부품리스트가 곧 Part List였습니다. 하지만 고객 보정에 따르면 별도 Part List가 있을 수 있습니다.
+
+| 구조 | 비교 방식 |
+|------|---------|
+| 도면 PDF 안에 Part List 포함 | 도면 ↔ ERP BOM (2자 비교) |
+| Part List가 별도 엑셀 | 도면 ↔ Part List ↔ ERP BOM (3자 비교) |
+
+**요청 사항**: 프로세스밸브(단품)의 경우에도 별도 Part List 엑셀이 존재하는지 확인 부탁드립니다.
+
+---
+
+### Part List 내 SN2711 참조
+
+| 항목 | 내용 |
+|------|------|
+| 상태 | 🟡 미확인 |
+| 출처 | 🔍 내부 분석 — Part List 엑셀 표제란에서 발견 |
+| 영향 | 비교 대상 호선이 달라질 수 있음 |
+
+Part List 엑셀(`W5XGVU-SN2709-PLRA`) 내부에 `W5XGVU-SN2711-PLRA` 참조가 발견되었습니다.
+
+| 자료 | SN |
+|------|-----|
+| 도면 PDF 파일명 | SN2709 |
+| Part List 파일명 | SN2709 |
+| **Part List 내부 참조** | **SN2711** |
+| ERP BOM | SN2709 |
+
+**요청 사항**: SN2711은 SN2709와 같은 사양(동일 BOM)인지, 아니면 다른 호선(다른 BOM)인지 확인 부탁드립니다. 혹시 SN2709/SN2710이 자매호선이고 SN2711은 다른 프로젝트인지도 확인이 필요합니다.
+
+---
+
+## 추후 수령 예정
+
+### 휴먼 에러 발생 유형 자료
+
+| 항목 | 내용 |
+|------|------|
+| 출처 | 📧 메일 — 질문 4에 대한 답변 "추후 주겠다" |
+| 용도 | 자주 발생하는 에러 패턴을 파악하여 검증 우선순위 설정 |
+
+시스템이 이미 검출하는 불일치 유형(재질 코드 상이, 접미사 차이, 수량 불일치 등)과 고객이 실제로 겪는 에러 유형을 대조하면, **검증 정확도와 우선순위**를 높일 수 있습니다.
+
+### BOM에 있고 도면에 없는 정보 리스트
+
+| 항목 | 내용 |
+|------|------|
+| 출처 | 📞 통화 — "BOM에 있고 도면에 없는 정보를 엑셀로 리스트업 하겠다" |
+| 용도 | 시스템이 자동 검출한 `bom_only` 항목과 대조하여 정확도 검증 |
+
+현재 파이프라인은 이미 `bom_only` (BOM에만 존재) 항목을 자동 검출합니다. 고객이 수동으로 정리한 리스트와 대조하면 **false positive/negative를 측정**할 수 있습니다.
+
+<Aside type="note" title="위 'GA/Layout 도면 샘플(Q5)'과의 관계">
+이 리스트의 항목이 어디서 발생하는지에 따라 대응이 달라집니다.
+- **일반 도면(FB2FB6, VD)에서 빠진 항목** → 단면도에 가려진 부품 등 (현재 `bom_only`로 자동 검출 중)
+- **GA/Layout 도면 관련 항목** → GA/Layout에 대응 BOM이 있는지 자체가 불명확 (Q5 샘플로 확인 필요)
+
+이 리스트와 Q5 샘플을 함께 수령하면 전체 그림을 파악할 수 있습니다.
+</Aside>
+
+---
+
+## 확인 완료 항목
+
+| # | 질문 | 답변 | 출처 | 확인일 |
+|---|------|------|------|--------|
+| 1 | FB2FB6 = 프로세스밸브, GVU = 스키드? | ✅ 맞음 | 📧 메일 | 2026-03-24 |
+| 2 | 도면 유형(단일/다중 페이지) 모두 검증 대상? | ✅ 두 유형 모두 검증 대상 + 부품번호 없는 도면(GA/Layout)도 존재 (3D 렌더링은 미답변) | 📧 메일 | 2026-03-24 |
+| 3 | 검증 범위 | ✅ 파트리스트 수준 + 하위 부품까지 둘 다 (⚠️ 단, 재질 비교는 미구현 — 아래 Q11 참조) | 📧 메일 | 2026-03-24 |
+| 5 | 매칭 방식 | ✅ 예1(스키드) 맞음 / 예2(개별밸브) **보정**: 직접비교 아닌 3단계 (Balloon→Part List→ERP) | 📧 메일 | 2026-03-24 |
+| A | SN2693 VD 불일치 인지 | ✅ 잘못 보낸 것, 재전달 예정 | 📞 통화 | 2026-03-24 |
+| B | 3번 그룹 = 2번과 동일 | ✅ 해시 검증 완료 | 🔍 내부 | 2026-03-24 |
+| E | 검증 기준: 테이블(Description 표) | ✅ 합의 | 📞 통화 | 2026-03-24 |
+
+<Aside type="note" title="경쟁 상황 (통화 발췌)">
+📞 **통화 내용**: "다른 개발업체가 동일 건으로 이미 테스트 완료 및 제안 진행 중"
+📞 **BMT 측 이사 발언**: "OCR로 읽는 거 어렵지 않다" — 다른 업체 테스트 경험 기반 인식
+</Aside>
+
+---
+
+## 일정
+
+| 항목 | 날짜 | 상태 |
+|------|------|------|
+| AI 바우처 사업계획서 마감 | **2026-03-28(월) 15:00** | 🔴 긴급 |
+| 화상회의 (요구사항 최종 파악) | 2026-03-25 | 🔴 예정 |
+| SN2709 VD 도면 수령 | 미정 | 🔴 대기 |
+
+---
+
+## 📞 전화 질문 가이드 — 큰 틀부터
+
+통화 시 아래 순서로 질문하면 핵심을 빠르게 파악할 수 있습니다.
+
+<FlowDiagram client:load
+  direction="TB"
+  title="전화 질문 흐름 — 큰 틀부터 세부로"
+  nodes={[
+    { id: 'q0', label: '① 검증 범위 재확인\n"재질, 규격, 수량 다 검증"\n이라고 하셨는데...', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'gap1', label: '⚠️ FB2FB6 도면 PDF에\nMATERIAL 컬럼이 없음\n(부품번호+수량만 있음)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'gap2', label: '⚠️ GVU ERP BOM에\n하위 부품이 없음\n(.1 밸브 단위만, ..2 없음)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'ask1', label: '② 재질은 어디서 비교?\n도면에 재질이 없는데\n어떻게 검증하시나요?', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'ask2', label: '③ 하위 부품 BOM은?\n밸브 안 부품(Body 등)\nERP BOM이 별도 존재?', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'q3', label: '④ 도면은 항상\n벡터(CAD 출력)?\n스캔본도 있나?', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'q4', label: '⑤ 자료 전달 요청\n• SN2709 VD 도면\n• 피팅&계장밸브 샘플\n• GA/Layout 샘플', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'q0', to: 'gap1' },
+    { from: 'q0', to: 'gap2' },
+    { from: 'gap1', to: 'ask1' },
+    { from: 'gap2', to: 'ask2' },
+    { from: 'ask1', to: 'q3' },
+    { from: 'ask2', to: 'q3' },
+    { from: 'q3', to: 'q4' },
+  ]}
+  layers={[['q0'], ['gap1', 'gap2'], ['ask1', 'ask2'], ['q3'], ['q4']]}
+/>
+
+### ① 검증 범위 — 재질 비교가 현재 불가능한 이유
+
+"재질, 규격, 수량 다 검증"이라고 하셨지만, 현재 데이터 구조상 **재질 직접 비교가 안 됩니다.**
+
+**FB2FB6 (단품 밸브) — PDF에 재질 컬럼이 없음:**
+
+<FlowDiagram client:load
+  direction="LR"
+  title="FB2FB6: PDF vs ERP — 재질 갭"
+  nodes={[
+    { id: 'pdf_h', label: '📄 FB2FB6 도면 PDF\n(pdfplumber 추출)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'pdf_no', label: '#  항목번호\n수량  1\n부품번호  BL-85-6F\n설명  (있음)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'pdf_gap', label: '❌ MATERIAL 컬럼\n없음!', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'erp_h', label: '📊 FB2FB6 ERP BOM\n(엑셀 F열)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'erp_yes', label: 'C  BL-85-6F\nD  BODY / KGS\nE  2 CL150 BW\nF  A182-F316L\nL  수량 1', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'compare', label: '비교 결과:\n부품번호 ✅\n수량 ✅\n재질 ❌ 불가\n규격 ❌ 불가', color: '#c62828', bg: '#ffebee', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'pdf_h', to: 'pdf_no' },
+    { from: 'pdf_no', to: 'pdf_gap' },
+    { from: 'erp_h', to: 'erp_yes' },
+    { from: 'pdf_gap', to: 'compare' },
+    { from: 'erp_yes', to: 'compare' },
+  ]}
+  layers={[['pdf_h', 'erp_h'], ['pdf_no', 'erp_yes'], ['pdf_gap'], ['compare']]}
+/>
+
+**GVU (스키드) — PDF와 ERP의 비교 레벨이 다름:**
+
+<FlowDiagram client:load
+  direction="LR"
+  title="GVU: VD PDF vs ERP BOM — 레벨 불일치"
+  nodes={[
+    { id: 'vd_h', label: '📄 VD 도면 PDF\n(밸브 하위 부품)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'vd_data', label: 'NO  1\nDESC  BODY\nMATERIAL  A182-F316L\nQTY  1\n(+ O-RING, VITON...)', color: '#00695c', bg: '#e0f2f1', shape: 'rounded' },
+    { id: 'erp_h2', label: '📊 GVU ERP BOM\n(.1 레벨만 존재)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'erp_data', label: '.1  FB2F29-R64A...\n재질  A182-F316L\n비고  V01\n수량  1EA\n(밸브 1개 = 1행)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'erp_no2', label: '❌ ..2 레벨 없음!\nBody, O-Ring 등\n하위 부품 BOM 없음', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'mismatch', label: '레벨 불일치:\nPDF = 부품 30개\n(Body, Ball Seat...)\nERP = 밸브 1개\n(V01 전체)', color: '#c62828', bg: '#ffebee', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'vd_h', to: 'vd_data' },
+    { from: 'erp_h2', to: 'erp_data' },
+    { from: 'erp_data', to: 'erp_no2' },
+    { from: 'vd_data', to: 'mismatch' },
+    { from: 'erp_no2', to: 'mismatch' },
+  ]}
+  layers={[['vd_h', 'erp_h2'], ['vd_data', 'erp_data'], ['erp_no2'], ['mismatch']]}
+/>
+
+**질문**: "단품 밸브 도면에는 재질 정보가 없는데, 재질 검증은 어떤 데이터를 기준으로 하시나요?"
+
+### ② 재질은 어디서 비교하나?
+
+현재 확인된 전체 데이터 맵입니다. **노란색 = 비교 가능, 빨간색 = 데이터 없음/불일치.**
+
+| | PDF 도면 | ERP BOM 엑셀 | Part List 엑셀 | 비교 가능? |
+|---|---------|-------------|--------------|----------|
+| **FB2FB6 부품번호** | `BL-85-6F` ✅ | C열 `BL-85-6F` ✅ | (없음) | ✅ **비교 완료** |
+| **FB2FB6 수량** | `1` ✅ | L열 `1` ✅ | (없음) | ✅ **비교 완료** |
+| **FB2FB6 재질** | ❌ **없음** | F열 `A182-F316L` ✅ | (없음) | ❌ PDF에 데이터 없음 |
+| **FB2FB6 규격** | ❌ **없음** | E열 `2 CL150 BW` ✅ | (없음) | ❌ PDF에 데이터 없음 |
+| **GVU 밸브 TAG** | GAR `V01` ✅ | Y열 `V01` ✅ | VALVE LIST `V01` ✅ | ✅ **비교 가능** |
+| **GVU 밸브 코드** | VD Drawing No. ✅ | C열 자품목 ✅ | Drawing No. ✅ | ⚠️ VD가 SN2693 |
+| **GVU 하위 부품 재질** | VD `BODY/A182-F316L` ✅ | ❌ **..2 없음** | (없음) | ❌ ERP에 데이터 없음 |
+| **GVU 하위 부품 수량** | VD `BODY/1` ✅ | ❌ **..2 없음** | (없음) | ❌ ERP에 데이터 없음 |
+
+**질문**: "단품 밸브의 재질은 Part List나 다른 문서에 있나요? 아니면 ERP BOM의 재질(F열)만이 정답인가요?"
+
+### ③ 하위 부품 BOM은 별도 존재하나?
+
+<FlowDiagram client:load
+  direction="TB"
+  title="ERP BOM 계층 구조 비교"
+  nodes={[
+    { id: 'fb2_top', label: 'FB2FB6 ERP BOM\n(단품 밸브)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'fb2_l0', label: '0단계: FB2FB6\n(제품 전체)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'fb2_l1', label: '.1단계: 26건\nBODY, BALL SEAT,\nO-RING, STEM...\nF열 재질 ✅ 있음', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'fb2_l2', label: '..2단계: 3건\nROUND BAR 등 원자재\nF열 재질 ✅ 있음', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'gvu_top', label: 'GVU ERP BOM\n(스키드)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'gvu_l0', label: '0단계: W5XHEGVU\n(GVU 전체)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'gvu_l1', label: '.1단계: 61건\n밸브(V01~V15),\n센서, 피팅, 구조물\nF열 재질 ✅ 있음', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'gvu_l2', label: '..2단계: ❌ 없음!\nBody, Ball Seat 등\n하위 부품 BOM 없음\n→ 별도 BOM 존재?', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'fb2_top', to: 'fb2_l0' },
+    { from: 'fb2_l0', to: 'fb2_l1' },
+    { from: 'fb2_l1', to: 'fb2_l2' },
+    { from: 'gvu_top', to: 'gvu_l0' },
+    { from: 'gvu_l0', to: 'gvu_l1' },
+    { from: 'gvu_l1', to: 'gvu_l2' },
+  ]}
+  layers={[['fb2_top', 'gvu_top'], ['fb2_l0', 'gvu_l0'], ['fb2_l1', 'gvu_l1'], ['fb2_l2', 'gvu_l2']]}
+/>
+
+FB2FB6는 `.1`(부품) + `..2`(원자재)까지 있지만, GVU는 `.1`(밸브 전체)까지만 있습니다.
+
+**질문**: "스키드(GVU) BOM에서 밸브 안의 개별 부품(Body, Ball Seat 등)은 별도 BOM으로 관리하나요? 있다면 그 BOM 엑셀도 전달 가능한가요?"
+
+### ④ 벡터/스캔 여부
+
+<FlowDiagram client:load
+  direction="LR"
+  title="도면 PDF 유형에 따른 프로젝트 범위"
+  nodes={[
+    { id: 'q', label: '도면이 항상\nCAD 출력(벡터)?\n스캔본도 있나?', color: '#1a237e', bg: '#e8eaf6', shape: 'diamond' },
+    { id: 'vec', label: '항상 벡터\n→ pdfplumber\n→ 현재 방식 유지\n→ AI 불필요', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'mix', label: '대부분 벡터\n가끔 스캔\n→ OCR fallback 추가\n→ 개발 2~3주', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'scan', label: '스캔본 많음\n→ OCR 기반 재설계\n→ AI R&D 필요\n→ 프로젝트 범위 변경', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'q', to: 'vec', label: '항상 CAD' },
+    { from: 'q', to: 'mix', label: '가끔 스캔' },
+    { from: 'q', to: 'scan', label: '스캔 많음' },
+  ]}
+  layers={[['q'], ['vec', 'mix', 'scan']]}
+/>
+
+**질문**: "도면 PDF가 항상 Inventor에서 출력한 건가요? 종이를 스캔한 도면도 있나요?"
+
+### ⑤ 자료 전달 요청
+
+| # | 자료 | 왜 필요한가 | 없으면 어떻게 되나 |
+|---|------|-----------|----------------|
+| 1 | **SN2709용 VD 도면 PDF** | 현재 VD가 SN2693(다른 호선) | 밸브 8개 하위 부품 비교 불가 (1단계/3단계는 가능) |
+| 2 | **피팅&계장밸브 도면 + BOM 샘플** | 3가지 구분 중 유일하게 미수령 | 이 유형 파서 설계 불가 |
+| 3 | **GA/Layout 도면 샘플** | 부품번호 없는 도면 | BOM 검증 대상인지 자체를 모름 |
+| 4 | **스키드 하위 부품 BOM** (있다면) | VD PDF 부품(Body 등)과 비교할 ERP 데이터 | GVU 재질/규격 비교 불가 |
+| 5 | **다른 제품 ERP BOM 엑셀 1개** | 포맷(컬럼 순서) 동일한지 검증 | 파서가 다른 제품에서 실패할 수 있음 |
+
+---
+
+## 최종 질문 리스트
+
+아래는 BMT에 확인해야 할 전체 미해결 항목을 **우선순위별**로 정리한 것입니다.
+
+### 🔴 블로커 — 자료 전달 요청
+
+이것 없으면 다음 단계 진행이 불가합니다.
+
+| # | 질문 | 요청 자료 | 왜 필요한가 |
+|---|------|----------|------------|
+| [Q1](#sn2709용-vd-도면-재전달) | SN2709용 VD(밸브 상세도) 도면을 전달해 주실 수 있나요? | `W5XGVU-SN2709-VD` PDF | 현재 VD가 다른 호선(SN2693)이라 밸브 8개의 하위 부품 ↔ ERP BOM 비교 불가. 수령 즉시 자동 비교 실행 가능 |
+| [Q2](#도면-pdf가-항상-벡터cad-출력인지) | 도면 PDF가 항상 CAD 출력(벡터)인가요, 종이 스캔본도 있나요? | 답변만 | 벡터 PDF → 현재 방식으로 충분 / 스캔본 존재 시 → OCR 추가 개발 필요. **솔루션 아키텍처가 완전히 달라짐** |
+
+### 🟡 중요 — 개발 방향에 영향
+
+답변에 따라 파서나 비교 로직을 수정해야 할 수 있습니다.
+
+| # | 질문 | 요청 자료 | 왜 필요한가 |
+|---|------|----------|------------|
+| [Q3](#erp-bom-엑셀-포맷-일관성) | 다른 제품의 ERP BOM 엑셀도 같은 포맷(A=단계, C=자품목코드, D=자품목명, L=수량)인가요? | 다른 제품 BOM 엑셀 1개 | 컬럼 순서가 다르면 파서 수정 필요 |
+| [Q4](#피팅--계장밸브-구분-샘플) | 피팅&계장밸브(Instrumentation 도면) 샘플을 전달해 주실 수 있나요? | 도면 PDF 1개 + ERP BOM 엑셀 1개 | 3가지 구분(프로세스밸브/스키드/피팅&계장밸브) 중 유일하게 미수령. 도면 구조를 모르면 파서 설계 불가 |
+| [Q5](#galayout-도면-샘플-부품번호-없는-유형) | 부품번호 없는 도면(GA/Layout) 샘플을 전달해 주실 수 있나요? 이 도면에 대응되는 BOM이 있나요? | GA 또는 Layout 도면 PDF 1개 | 대응 BOM이 있으면 별도 비교 로직 필요, 없으면(참조용) 파이프라인에서 제외 — 실물을 봐야 판단 가능 |
+| [Q6](#part-list-존재-형태) | 프로세스밸브(단품)의 경우에도 별도 Part List 엑셀이 존재하나요? | 답변만 (있으면 샘플) | Part List가 별도 파일이면 도면 ↔ Part List ↔ ERP BOM 3자 비교 구조로 변경 필요 |
+| [Q7](#part-list-내-sn2711-참조) | Part List 내부의 SN2711 참조 — SN2709와 같은 사양(동일 BOM)인가요, 다른 호선인가요? | 답변만 | 비교 대상 호선이 달라질 수 있음 |
+
+### 🟠 내부 미해결 — 재질 비교 미구현
+
+| # | 질문 (내부 + 고객) | 현재 상태 | 왜 중요한가 |
+|---|-------------------|----------|------------|
+| Q11 | 재질/규격 비교 파서 확장이 필요 | ⚠️ 파서 수정 필요 (고객 질문 아님) | ERP BOM에 **E열(규격), F열(재질)**이 존재하는 것을 확인. 현재 파서가 A/C/D/L만 읽고 E/F를 무시 중. 파서에 E/F열을 추가하면 도면 MATERIAL ↔ ERP 재질 직접 비교 가능 |
+
+<Aside type="caution" title="재질 비교 — ERP에 F열(재질) 존재 확인, 파서 미구현">
+**ERP BOM 엑셀을 다시 확인한 결과, E열(규격)과 F열(재질)이 존재합니다.** 현재 파서가 이 컬럼을 무시하고 있었습니다.
+
+**ERP BOM 엑셀 전체 컬럼 구조 (A~AD, 30개 컬럼):**
+
+| 컬럼 | 헤더 | 예시 값 | 현재 파서 |
+|------|------|---------|----------|
+| A | 단계 | `.1` | ✅ 사용 중 |
+| B | 순번 | `1` | ❌ 무시 |
+| C | 자품목 | `BY-FB2F26-32A-1S-36L-KGS` | ✅ 사용 중 |
+| D | 자품목명 | `BODY / KGS` | ✅ 사용 중 |
+| **E** | **규격** | `2 CL150 BW SCH10S` | **❌ 무시 — 추가 필요** |
+| **F** | **재질** | `A182-F316L` | **❌ 무시 — 추가 필요** |
+| L | 자품목기준수 | `1` | ✅ 사용 중 (수량) |
+| Y | 비고 | `V01` (TAG 참조) | ❌ 무시 — TAG 매핑에 활용 가능 |
+
+**즉, 재질 직접 비교가 가능합니다:**
+
+| 도면 MATERIAL | ERP F열(재질) | 비교 가능? |
+|--------------|-------------|----------|
+| A182-F316L | A182-F316L | ✅ exact match 가능 |
+| VITON | (확인 필요) | 부품코드 접미사 V와 F열 값 교차 확인 |
+| SS316 | (확인 필요) | 부품코드 접미사 8M과 F열 값 교차 확인 |
+
+**필요 조치**: 파서에 E열(규격)과 F열(재질)을 추가하면 도면 MATERIAL ↔ ERP 재질 직접 비교가 가능합니다.
+추가로 Y열(비고)에 TAG 번호(`V01`)가 들어있어 VALVE LIST 매칭에도 활용할 수 있습니다.
+</Aside>
+
+### 🔵 추후 수령 — 이미 합의됨
+
+BMT에서 추후 전달하기로 한 자료입니다.
+
+| # | 자료 | 합의 출처 | 용도 |
+|---|------|----------|------|
+| [Q8](#휴먼-에러-발생-유형-자료) | 휴먼 에러 발생 유형 자료 | 📧 메일 (질문 4 답변: "추후 주겠다") | 자주 발생하는 에러 패턴 파악 → 검증 우선순위 설정 |
+| [Q9](#bom에-있고-도면에-없는-정보-리스트) | BOM에 있고 도면에 없는 정보 엑셀 리스트 | 📞 통화 ("리스트업 하겠다") | 시스템 자동 검출 결과(`bom_only`)와 대조 → 정확도 측정. [Q5](#galayout-도면-샘플-부품번호-없는-유형)와 교차 확인 가능 |
+
+### ⚪ 보조 — 1차 답변에서 누락된 항목
+
+| # | 질문 | 왜 필요한가 |
+|---|------|------------|
+| Q10 | 3D 렌더링 도면(GVU_3D.pdf)도 검증 대상인가요? | 1차 답변에서 "두 유형(단일/다중) 검증 대상"이라 했는데, 3D 렌더링에 대해서는 별도 답변 없음 |
+| [Q11](#-내부-미해결--재질-비교-미구현) | (내부) 파서에 E열(규격), F열(재질) 추가 필요 | ERP BOM에 재질 컬럼(F열)이 존재하는 것을 확인. 파서 수정으로 도면 MATERIAL ↔ ERP 재질 직접 비교 가능. **고객 질문 아닌 내부 작업** |
+
+<Aside type="tip" title="요약: 전달 요청 자료 목록">
+BMT에서 전달해 주셔야 하는 자료를 한눈에 정리합니다.
+
+| # | 자료 | 긴급도 |
+|---|------|--------|
+| 1 | **SN2709용 VD 도면 PDF** | 🔴 블로커 |
+| 2 | **다른 제품 ERP BOM 엑셀 1개** (포맷 검증용) | 🟡 중요 |
+| 3 | **피팅&계장밸브 도면 PDF 1개 + ERP BOM 엑셀 1개** | 🟡 중요 |
+| 4 | **GA/Layout 도면 PDF 1개** (부품번호 없는 유형) | 🟡 중요 |
+| 5 | 휴먼 에러 유형 자료 | 🔵 합의 완료, 대기 |
+| 6 | BOM에 있고 도면에 없는 정보 엑셀 리스트 | 🔵 합의 완료, 대기 |
+
+**내부 작업**: 파서에 E열(규격), F열(재질), Y열(비고/TAG) 추가 → 재질 직접 비교 구현 가능 (고객 자료 불필요)
+</Aside>
+
+---
+
+## 전체 구조 시각화
+
+### 1. 수령 자료 → 파이프라인 → 결과
+
+BMT에서 수령한 자료가 파이프라인을 거쳐 불일치 리포트가 되기까지의 전체 흐름입니다.
+
+<FlowDiagram client:load
+  direction="LR"
+  title="BMT 전체 파이프라인"
+  nodes={[
+    { id: 'fb2', label: '1번 자료\nFB2FB6 도면 PDF\n(단품 밸브 1페이지)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'gvu', label: '2번 자료\nGVU 도면 PDF\n(스키드 22페이지)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'pl', label: 'Part List 엑셀\n(4시트: 밸브/센서\n/피팅/기술사양)', color: '#00695c', bg: '#e0f2f1', shape: 'rounded' },
+    { id: 'erp', label: 'ERP BOM 엑셀\n(공식 부품 목록)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'pdfp', label: 'pdfplumber\n테이블 추출\n(벡터 PDF 100%)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'sn', label: 'SN 자동 검증\n(호선번호 일치 확인)', color: '#6a1b9a', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 'balloon', label: 'Balloon\n교차검증\n(이미지 vs 테이블)', color: '#b71c1c', bg: '#ffebee', shape: 'rounded' },
+    { id: 'match', label: '자동 비교\nexact → prefix\n→ fuzzy → synonym', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'report', label: '불일치 리포트\n(Excel 3시트)', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'fb2', to: 'pdfp' },
+    { from: 'gvu', to: 'pdfp' },
+    { from: 'gvu', to: 'sn' },
+    { from: 'pdfp', to: 'balloon' },
+    { from: 'pdfp', to: 'match' },
+    { from: 'sn', to: 'match' },
+    { from: 'balloon', to: 'match' },
+    { from: 'pl', to: 'match' },
+    { from: 'erp', to: 'match' },
+    { from: 'match', to: 'report' },
+  ]}
+  layers={[['fb2', 'gvu', 'pl', 'erp'], ['pdfp', 'sn', 'balloon'], ['match'], ['report']]}
+/>
+
+### 2. 현재 검증 상태 — 무엇이 되고 무엇이 막혔나
+
+<FlowDiagram client:load
+  direction="TB"
+  title="검증 항목별 현재 상태"
+  nodes={[
+    { id: 'fb2ok', label: '✅ 1번 자료 (FB2FB6)\n단품 밸브 27개 부품\n도면↔ERP 비교 완료', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'fitok', label: '✅ Fitting List\n27개 피팅 부품\nPart List↔ERP 비교 완료', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'gvu1', label: '✅ 스키드 1단계\nTAG → Part List → ERP\n(GAR/PL/ERP 모두 SN2709)', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'gvu2', label: '❌ 스키드 2단계\nVD 하위 부품 ↔ ERP\n(VD가 SN2693 = 다른 호선)', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'gvu3', label: '⚠️ 스키드 3단계\nITDRA ↔ Part List 센서\n(SN2709 정상, 파싱 미완)', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'valve', label: '❌ VALVE LIST ↔ ERP\nTAG→Drawing No. 매핑 필요\n(VD 재수령 후 자동화 가능)', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'sensor', label: '❌ SENSOR LIST ↔ ERP\nITDRA 파싱 완성 필요', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'unknown1', label: '❓ 피팅&계장밸브\n샘플 미수령 (Q4)', color: '#616161', bg: '#f5f5f5', shape: 'rounded' },
+    { id: 'unknown2', label: '❓ GA/Layout 도면\n샘플 미수령 (Q5)', color: '#616161', bg: '#f5f5f5', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'fb2ok', to: 'gvu1', label: '동일 로직' },
+    { from: 'gvu1', to: 'gvu2' },
+    { from: 'gvu1', to: 'gvu3' },
+    { from: 'gvu2', to: 'valve' },
+    { from: 'gvu3', to: 'sensor' },
+  ]}
+  layers={[['fb2ok', 'fitok'], ['gvu1'], ['gvu2', 'gvu3'], ['valve', 'sensor'], ['unknown1', 'unknown2']]}
+/>
+
+### 3. 고객 답변에 따른 R&D 범위 결정 흐름
+
+Q2(벡터/스캔)와 Q5(GA/Layout)의 답변이 프로젝트 성격을 결정합니다.
+
+<FlowDiagram client:load
+  direction="TB"
+  title="R&D 범위 결정 흐름"
+  nodes={[
+    { id: 'q2', label: 'Q2: 도면이 항상\n벡터 PDF인가?', color: '#1a237e', bg: '#e8eaf6', shape: 'diamond' },
+    { id: 'vector', label: '항상 벡터\n(CAD 출력)', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'scan', label: '스캔본도 있음', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'q5', label: 'Q5: GA/Layout에\n대응 BOM이 있나?', color: '#1a237e', bg: '#e8eaf6', shape: 'diamond' },
+    { id: 'nobom', label: 'BOM 없음\n(참조용 도면)', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'hasbom', label: 'BOM 있음\n(부품번호 없이)', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'ocr', label: 'R&D 필요\nOCR + 도면 특화\n후처리 파이프라인', color: '#6a1b9a', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 'imgai', label: 'R&D 필요\n도면 이미지 분석\nAI 모델 투입', color: '#6a1b9a', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 'syseng', label: 'R&D 불필요\n시스템 엔지니어링\n(파싱 + 문자열 비교)', color: '#37474f', bg: '#eceff1', shape: 'stadium' },
+    { id: 'expand', label: '다른 고객 확장 시\n→ 범용화 R&D 필요\n(도면 포맷/코드 체계 다양)', color: '#6a1b9a', bg: '#f3e5f5', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'q2', to: 'vector', label: 'Yes' },
+    { from: 'q2', to: 'scan', label: 'No' },
+    { from: 'scan', to: 'ocr' },
+    { from: 'vector', to: 'q5' },
+    { from: 'q5', to: 'nobom', label: 'BOM 없음' },
+    { from: 'q5', to: 'hasbom', label: 'BOM 있음' },
+    { from: 'nobom', to: 'syseng' },
+    { from: 'hasbom', to: 'imgai' },
+    { from: 'syseng', to: 'expand' },
+  ]}
+  layers={[['q2'], ['vector', 'scan'], ['q5', 'ocr'], ['nobom', 'hasbom'], ['syseng', 'imgai'], ['expand']]}
+/>
+
+### 4. 최종 질문 리스트 — 우선순위 맵
+
+<FlowDiagram client:load
+  direction="LR"
+  title="미해결 질문 우선순위"
+  nodes={[
+    { id: 'blocker', label: '🔴 블로커 (2건)\nQ1: VD 도면 재전달\nQ2: 벡터/스캔 여부', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'important', label: '🟡 중요 (5건)\nQ3: BOM 엑셀 포맷\nQ4: 피팅&계장밸브 샘플\nQ5: GA/Layout 샘플\nQ6: Part List 형태\nQ7: SN2711 확인', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'agreed', label: '🔵 합의 완료 (2건)\nQ8: 휴먼 에러 자료\nQ9: BOM only 리스트', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'minor', label: '⚪ 보조 (1건)\nQ10: 3D 렌더링\n검증 대상 여부', color: '#616161', bg: '#f5f5f5', shape: 'rounded' },
+    { id: 'rd', label: 'R&D 범위 결정\nQ2 + Q5 답변이\n프로젝트 성격을 결정', color: '#6a1b9a', bg: '#f3e5f5', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'blocker', to: 'important' },
+    { from: 'important', to: 'agreed' },
+    { from: 'agreed', to: 'minor' },
+    { from: 'blocker', to: 'rd', label: 'Q2' },
+    { from: 'important', to: 'rd', label: 'Q5' },
+  ]}
+  layers={[['blocker'], ['important'], ['agreed', 'minor'], ['rd']]}
+/>
+
+---
+
+## 기술 현실 분석 — R&D가 필요한가?
+
+### 현재 파이프라인에 사용되는 기술
+
+| 기술 | 사용 여부 | 실제 역할 |
+|------|----------|----------|
+| LLM (GPT, Claude 등) | ❌ 사용 안 함 | - |
+| YOLO (객체검출) | ❌ 사용 안 함 | 밸브 단면도에서 부품 분리 불가 → 통화 합의로 제외 |
+| OCR | ❌ 사용 안 함 | 벡터 PDF라 필요 없음 |
+| pdfplumber | ✅ | PDF 텍스트 레이어에서 테이블 추출 (텍스트 복사 수준) |
+| PyMuPDF | ✅ | SN 추출, Balloon 번호 보조 |
+| 문자열 매칭 | ✅ | exact + prefix + Levenshtein + 동의어 사전 |
+| 정규식 | ✅ | SN 추출, 파일명 파싱 |
+| zipfile + xml | ✅ | 엑셀 파싱 |
+
+<Aside type="caution" title="솔직한 현실">
+현재 BMT 파이프라인은 **시스템 이해 + Python 파싱 + 문자열 비교**입니다.
+AI/ML 모델을 사용하지 않으며, 벡터 PDF + 정형 데이터 구조 덕분에 기존 라이브러리만으로 동작합니다.
+경쟁 업체가 "OCR로 읽는 거 어렵지 않다"고 한 것도 이 맥락에서는 맞는 말입니다 — 벡터 PDF에선 OCR조차 불필요합니다.
+</Aside>
+
+### R&D가 필요한 조건 — 고객 답변에 따라 결정됨
+
+아래 표에서 **Q2(벡터/스캔 여부)**와 **Q5(GA/Layout 샘플)** 답변이 R&D 범위를 결정합니다.
+
+| 고객 답변 시나리오 | R&D 필요 여부 | 근거 |
+|-------------------|-------------|------|
+| Q2 = "항상 CAD 출력" + Q5 = "참조용 도면" | **R&D 불필요** | pdfplumber + 문자열 비교로 전부 해결. 시스템 엔지니어링 프로젝트 |
+| Q2 = "가끔 스캔본 있음" | **OCR R&D 필요** | eDOCr2/PaddleOCR + 후처리 파이프라인 개발 |
+| Q5 = "BOM이 있는 도면인데 부품번호가 없음" | **도면 이미지 분석 R&D 필요** | 비정형 도면에서 정보 추출 → AI 모델 투입 가능성 |
+| 다른 고객 확장 시 | **범용화 R&D 필요** | 고객마다 도면 포맷, 코드 체계, BOM 구조가 다름 |
+
+### BMT 단독으로 볼 때 R&D 가능성이 있는 영역
+
+| 영역 | 현재 상태 | R&D 요소 | 실현 조건 |
+|------|----------|---------|----------|
+| **스캔본 PDF OCR** | 미확인 (Q2 답변 대기) | OCR 엔진 + 도면 특화 후처리 | BMT에서 "스캔본도 있다"고 답변 시 |
+| **ITDRA 구조화 파싱** | 현재 실패 중 | 비정형 테이블 인식 | 템플릿 기반으로 풀릴 수 있어 R&D라 하기 애매 |
+| **동의어 사전 자동 학습** | 수동 1건 (ANSI↔HB) | 매칭 데이터 축적 → 자동 매핑 생성 | 데이터가 수십~수백 건 쌓여야 의미 있음 |
+| **불일치 원인 자동 분류** | 미구현 | "재질 오류" vs "명명 규칙 차이" 자동 판별 | 에러 유형 데이터(Q8) 수령 후 |
+| **GA/Layout 도면 처리** | 미확인 (Q5 샘플 대기) | 부품번호 없는 도면에서 정보 추출 | 도면 이미지 분석이 필요할 경우에만 |
+
+### BMT를 넘어 확장할 때 R&D 가치가 생기는 영역
+
+| 영역 | 설명 | 왜 R&D인가 |
+|------|------|-----------|
+| **다양한 도면 포맷 범용 파서** | 고객마다 CAD 소프트웨어, 출력 설정, 테이블 구조가 다름 | 매번 수동으로 파서를 만들 수 없으므로 자동 테이블 인식이 필요 |
+| **코드 체계 자동 매핑** | 고객마다 사내 부품코드 규칙이 다름 (BMT: FB2FB6, 다른 고객: 완전히 다른 체계) | 동의어 사전을 수동으로 만들 수 없으므로 자동 학습 필요 |
+| **스캔본/손글씨 도면 OCR** | BMT는 벡터지만 다른 고객은 스캔본일 수 있음 | 도면 특화 OCR은 기존 범용 OCR과 다른 전처리/후처리 필요 |
+| **검증 결과 신뢰도 판정** | "이 불일치가 실제 에러인가, 명명 규칙 차이인가" 자동 판별 | 도메인 지식 + 패턴 학습 필요 |
+
+### 결론
+
+<Aside type="danger" title="핵심 판단">
+**BMT 단독 건**은 고객 답변(Q2, Q5)이 "벡터 PDF만 / GA는 참조용"이면 **R&D 요소가 거의 없습니다.**
+시스템 이해도 + Python 파싱 능력이 있으면 구현 가능한 **시스템 엔지니어링 프로젝트**입니다.
+
+**R&D 가치는 다음 두 가지에서 발생합니다:**
+1. **BMT 내부**: Q2="스캔본 있음" 또는 Q5="BOM 있는데 부품번호 없는 도면" → AI/OCR 투입 필요
+2. **BMT 외부**: 다른 고객으로 확장 시 도면 포맷/코드 체계가 다양해져 범용화 R&D 필요
+
+따라서 **AI 바우처 사업계획서**를 작성할 때, BMT 1개 고객만으로는 AI R&D 정당화가 어려울 수 있으며,
+**다양한 고객/도면 포맷에 대응하는 범용 검증 시스템**으로 범위를 잡아야 R&D 명분이 생깁니다.
+</Aside>
+
+---
+
+## 관련 문서
+
+- [프로젝트 개요](./) — BMT 프로젝트 전체 요약
+- [자료 분석](./data-analysis) — 수령 자료 구성
+- [다음 단계](./next-steps) — 로드맵

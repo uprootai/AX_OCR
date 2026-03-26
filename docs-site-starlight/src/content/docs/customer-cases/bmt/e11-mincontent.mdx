@@ -1,0 +1,143 @@
+---
+title: E11 — Min-Content 경계 알고리즘
+description: 인접 VIEW 사이 콘텐츠 최소점으로 경계를 자동 결정하는 최종 뷰 분리 알고리즘
+tags: [고객사례, BMT, 뷰분리, 알고리즘]
+sidebar_position: 16
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+> 인접 VIEW 라벨 사이에서 **콘텐츠가 가장 적은 열/행**을 경계로 사용하여, 도면이 잘리지 않고 다른 뷰 콘텐츠가 혼입되지 않는 뷰 분리 알고리즘입니다.
+
+---
+
+## 알고리즘 핵심
+
+```
+두 인접 VIEW 라벨 사이에서:
+1. 열별 검은 픽셀 수(콘텐츠 양)를 프로파일링
+2. 이동 평균으로 스무싱 (window=20px)
+3. 최소값 지점 = "콘텐츠 골짜기" = 자연스러운 경계
+```
+
+이 방법은 중간점보다 정확합니다:
+- **중간점**: 두 라벨의 정확히 중간 → 도면이 경계를 넘으면 잘림
+- **콘텐츠 최소점**: 실제로 도면이 가장 적은 곳에서 자름 → 양쪽 도면 보존
+
+---
+
+## 최종 결과
+
+![Min-Content 경계 뷰 분리](/images/bmt/e11-mincontent-final.png)
+
+### 8개 영역
+
+| 뷰 | 크기 | TAG |
+|----|------|-----|
+| BOTTOM VIEW (상단) | 421×867 | (치수만) |
+| FRONT VIEW (상단) | 660×867 | V01, V06, FT01, PI02, PT01, PT04 |
+| TOP VIEW (상단) | 603×867 | (치수만) |
+| BOTTOM VIEW (중단) | 417×493 | (BOLT 패턴) |
+| RIGHT VIEW (중단) | 663×493 | V08, B03 |
+| A VIEW (중단) | 604×493 | (치수만) |
+| 3D VIEW (하단) | 1116×1052 | 15개 TAG (B02,V02~V15,PT03,PT05,PT07,TT01) |
+| TABLES (하단 우측) | 568×1052 | (GVU SPEC + EXT PIPE) |
+
+### 크롭별 OCR 결과
+
+| 크롭 | PaddleOCR + Tesseract 앙상블 | TAG 수 |
+|------|---------------------------|--------|
+| FRONT VIEW | V01, V06, FT01, PI02, PT01, PT04 | 6 |
+| RIGHT VIEW | V08, B03 | 2 |
+| 3D VIEW | B02, V02~V15, PT03, PT05, PT07, TT01 | 15 |
+| 3D VIEW RIGHT (보충) | B01 | 1 |
+| **합산** | **24/24** | **100%** |
+
+<Aside type="tip" title="min-content가 핵심이었다">
+이전 시도들(중간점, Voronoi, Watershed, Contour)이 실패한 이유:
+- 중간점: 도면이 경계를 넘어 잘림
+- Voronoi: 거리 기반이라 도면 콘텐츠 무시
+- Watershed: seed 크기에 민감
+- Contour: 빈 공간 없으면 합쳐짐
+
+min-content는 "실제 도면이 가장 적은 곳"에서 자르기 때문에 양쪽 도면이 보존됩니다.
+</Aside>
+
+---
+
+## 전체 파이프라인 (하드코딩 0)
+
+```
+1. PaddleOCR → "VIEW" 텍스트 위치 자동 검출 (6개)
+2. y좌표 → 행 클러스터링 (2행)
+3. x좌표 → 열 정렬 (각 행 3개)
+4. 인접 VIEW 사이 → find_min_content_col (열별 콘텐츠 최소점)
+5. 인접 행 사이 → find_min_content_row (행별 콘텐츠 최소점)
+6. 마지막 행 아래 → 빈 공간 감지 (행 하단 경계)
+7. 하단 → 3D / 테이블 분리 (콘텐츠 최소점)
+8. 3D → 좌/우 보충 크롭 (B01 등 경계 TAG 보완)
+```
+
+---
+
+## 엔진별 OCR 벤치마크 (Min-Content 크롭 기준)
+
+### 7개 엔진 벤치마크
+
+| # | Engine | Recall | 놓침 | 비고 |
+|---|--------|--------|------|------|
+| 1 | **PaddleOCR** 🏆 | **23/24 = 95.8%** | B03 | 단독 최강 |
+| 2 | **Ensemble** (4엔진 투표) | **22/24 = 91.7%** | V07, V11-1 | PaddleOCR 포함 투표 |
+| 3 | Tesseract | 4/24 = 16.7% | 대부분 | B03, V11-2, V14, V15만 |
+| 4 | EasyOCR | 0/24 = 0.0% | 전부 | 한국어 모드 |
+| 5 | eDOCr2 | 0/24 = 0.0% | 전부 | 치수 전문, TAG 부적합 |
+| 6 | DocTR | 0/24 = 0.0% | 전부 | 텍스트 영역 검출 실패 |
+| 7 | TrOCR | 0/24 = 0.0% | 전부 | 단어 단위 입력 전용 |
+| - | **전체 합산** | **24/24 = 100%** | **없음** | PaddleOCR + Tesseract |
+
+### 크롭별 상세 (TAG 있는 크롭만)
+
+| 크롭 | PaddleOCR | Tesseract | Ensemble | 나머지 5개 |
+|------|-----------|-----------|----------|----------|
+| FRONT VIEW | **V01,V06,FT01,PI02,PT01,PT04** (6개) | - | 6개 | - |
+| RIGHT VIEW | V08 | **B03** | - | - |
+| 3D VIEW | **15개** (V02~V15,B02,PT03~07,TT01) | V11-2,V14 | 14개 | - |
+| 3D RIGHT | **15개** (B01 포함) | V11-2,V14,V15 | 14개 | - |
+
+<Aside type="note" title="PaddleOCR이 압도적 1위">
+7개 엔진 중 PaddleOCR만 유의미한 결과(95.8%). Ensemble(91.7%)은 오히려 PaddleOCR 단독보다 낮음 — 투표 과정에서 다수결에 의해 일부 TAG가 탈락된 것.
+
+최적 조합: **PaddleOCR 단독 + Tesseract B03 보완 = 24/24 = 100%**
+</Aside>
+
+---
+
+## 관련 문서
+
+- [S01 — OCR 벤치마크](./s01-ocr-benchmark)
+- [S02 — 뷰별 분리](./s02-view-segmentation)
+- [E11 — 뷰 자동 분리 (이전 버전)](./e11-auto-view)
+
+## 엔진별 OCR 오버레이 비교
+
+### FRONT VIEW (6개 TAG 영역)
+
+| PaddleOCR (6/24) | Tesseract (0) | EasyOCR (0) |
+|:---:|:---:|:---:|
+| ![](/images/bmt/ocr-front_view-paddle.png) | ![](/images/bmt/ocr-front_view-tess.png) | ![](/images/bmt/ocr-front_view-easy.png) |
+
+| eDOCr2 (0) | DocTR (0) | TrOCR (0) | Ensemble (0) |
+|:---:|:---:|:---:|:---:|
+| ![](/images/bmt/ocr-front_view-edocr.png) | ![](/images/bmt/ocr-front_view-doctr.png) | ![](/images/bmt/ocr-front_view-trocr.png) | ![](/images/bmt/ocr-front_view-ens.png) |
+
+### 3D VIEW (15개 TAG 영역)
+
+| PaddleOCR (15/24) | Tesseract (1) | EasyOCR (0) |
+|:---:|:---:|:---:|
+| ![](/images/bmt/ocr-3d_view-paddle.png) | ![](/images/bmt/ocr-3d_view-tess.png) | ![](/images/bmt/ocr-3d_view-easy.png) |
+
+| eDOCr2 (0) | DocTR (0) | TrOCR (0) | Ensemble (0) |
+|:---:|:---:|:---:|:---:|
+| ![](/images/bmt/ocr-3d_view-edocr.png) | ![](/images/bmt/ocr-3d_view-doctr.png) | ![](/images/bmt/ocr-3d_view-trocr.png) | ![](/images/bmt/ocr-3d_view-ens.png) |
+
+녹색 박스 = 검출된 TAG. 상단 바 색: 녹색=5+, 주황=1~4, 빨강=0개.

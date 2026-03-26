@@ -1,0 +1,213 @@
+---
+title: 2차 통화 분석 (03-25)
+description: 2026-03-25 박순근 팀장님 통화 — 검증 방식 근본 전환
+tags: [고객사례, BMT, 통화]
+sidebar_position: 7
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+
+> 2026-03-25 박순근 팀장님 통화(12분 53초) 결과, **검증 방식에 대한 이해가 근본적으로 바뀌었습니다.**
+
+---
+
+## 핵심 결론: 우리가 잘못 이해하고 있었다
+
+<Aside type="danger" title="근본적 전환">
+우리는 **VD 상세도면의 테이블을 추출**해서 ERP BOM과 재질/수량을 비교하는 것이 핵심이라고 판단했습니다.
+
+실제로는 **GAR 배치도(3페이지) 이미지에서 TAG를 추출**하고, Part List를 거쳐 **BOM에 해당 코드가 있는지 누락 여부**를 확인하는 것이 핵심입니다.
+</Aside>
+
+---
+
+## 정오표 — 우리 판단 vs 실제
+
+| 항목 | 우리 판단 (❌) | 실제 (✅) | 통화 근거 |
+|------|-------------|---------|----------|
+| **핵심 입력** | VD 상세도면 (4~13페이지) 테이블 | **GAR 배치도 (3페이지) 이미지** | "3페이지만 보시면 돼요" |
+| **비교 대상** | 개별 부품 (Body, O-Ring 등) | **구성품 TAG 단위** (PT01, V01, FT01) | "여기 PT07 TT01 V15 이런 게 각 부속들이에요" |
+| **비교 항목** | 재질 + 규격 + 수량 | **코드 존재 여부만** | "코드만 일치하는지 여부만 보면 되는 거예요" |
+| **재질 비교** | 필요 (F열 분석까지 진행) | **불필요** | "코드가 그런 걸 다 담고 있거든요" |
+| **치수 비교** | 미확인 | **불필요** | "인치나 이런 게 필요한 게 아니고" |
+| **핵심 기술** | pdfplumber (테이블 추출) | **이미지 OCR/인식** (배치도 TAG 추출) | "이 도면을 보고 찾는 거죠" |
+| **VD 상세도면** | 핵심 비교 대상 | **부차적 참조** | 실제 운영 시 개별 도면으로 올 수 있음 |
+| **1번(FB2FB6)** | GVU 안의 밸브? | **완전 별개 제품** | "1번이랑 전혀 상관 없다" |
+| **R&D 필요** | 벡터 PDF면 불필요 | **오히려 필요!** 배치도 이미지에서 TAG 인식 | 복잡한 엔지니어링 이미지에서 텍스트 추출 |
+| **검증 목적** | 불일치 항목 상세 비교 | **BOM 누락 여부 확인** | "BOM에 등록된 게 누락된 게 있나 없나를 찾는 거죠" |
+
+---
+
+## 실제 검증 파이프라인 (통화 기반)
+
+<FlowDiagram client:load
+  direction="LR"
+  title="실제 BMT 검증 파이프라인 (통화 확인)"
+  nodes={[
+    { id: 'gar', label: '📄 GAR 배치도\n(3페이지 이미지)\nTop/Front/Right View\nTAG 라벨 흩어져 있음', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'ocr', label: '🔍 이미지에서\nTAG 추출\nPT01, V01, FT01\nTT01, B01...', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'pl', label: '📊 Part List 엑셀\nTAG → 품목코드 변환\nPT01 → PT-MBS4201\nV01 → FB2F29-R64A', color: '#00695c', bg: '#e0f2f1', shape: 'rounded' },
+    { id: 'bom', label: '📊 ERP BOM 엑셀\n품목코드 목록\nPT-MBS4201... ✅\nFB2F29-R64A... ✅', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'check', label: '✅/❌ 누락 확인\nBOM에 있나?\n→ 있으면 OK\n→ 없으면 누락!', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'report', label: '📋 누락 리포트\nBOM 미등록 TAG\n목록 출력', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'gar', to: 'ocr' },
+    { from: 'ocr', to: 'check' },
+    { from: 'pl', to: 'check' },
+    { from: 'bom', to: 'check' },
+    { from: 'check', to: 'report' },
+  ]}
+  layers={[['gar', 'pl', 'bom'], ['ocr'], ['check'], ['report']]}
+/>
+
+### 박순근 팀장님 설명 요약
+
+```
+"세 번째 장이 핵심이에요."
+  → GAR 배치도 (Top View, Front View 등)
+
+"여기 PT07, TT01, V15, V04 이런 거 보이세요? 걔네들이 각 부속들이에요."
+  → 이미지에 TAG 라벨이 흩어져 있음
+
+"근데 이것만 보면 이 부속이 뭔지 모르잖아요."
+  → TAG만으로는 품목코드를 모름
+
+"엑셀 파일이 그거의 상세인 거예요."
+  → Part List 엑셀이 TAG → 품목코드 매핑
+
+"BOM에서 맞아 얘가 BOM에 있네. 그럼 얘는 누락되지 않았네."
+  → BOM 존재 여부 확인이 최종 목표
+
+"코드만 일치하는지 여부만 보면 되는 거예요. 인치나 이런 게 필요한 게 아니고"
+  → 재질/치수 비교 불필요, 코드 매칭만
+```
+
+---
+
+## 이전 분석과의 차이
+
+### 이전: VD 테이블 기반 (잘못됨)
+
+<FlowDiagram client:load
+  direction="LR"
+  title="❌ 이전 파이프라인 (잘못됨)"
+  nodes={[
+    { id: 'vd', label: '❌ VD 상세도면\n(4~13페이지)\nDescription 테이블', color: '#616161', bg: '#f5f5f5', shape: 'rounded' },
+    { id: 'extract', label: '❌ pdfplumber\n테이블 추출\nNO/DESC/MATERIAL', color: '#616161', bg: '#f5f5f5', shape: 'rounded' },
+    { id: 'compare', label: '❌ 재질+수량\n상세 비교\nA182-F316L vs ?', color: '#616161', bg: '#f5f5f5', shape: 'rounded' },
+    { id: 'report', label: '❌ 불일치 리포트\n재질 상이, 수량 차이', color: '#616161', bg: '#f5f5f5', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'vd', to: 'extract' },
+    { from: 'extract', to: 'compare' },
+    { from: 'compare', to: 'report' },
+  ]}
+  layers={[['vd'], ['extract'], ['compare'], ['report']]}
+/>
+
+### 현재: GAR 이미지 기반 (올바름)
+
+<FlowDiagram client:load
+  direction="LR"
+  title="✅ 실제 파이프라인 (통화 확인)"
+  nodes={[
+    { id: 'gar2', label: '✅ GAR 배치도\n(3페이지 이미지)\nTAG 라벨 인식', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'ocr2', label: '✅ 이미지 OCR\nTAG 추출\nPT01, V01...', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'pl2', label: '✅ Part List\nTAG→코드 변환', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+    { id: 'check2', label: '✅ BOM 누락 확인\n코드 존재 여부만', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'gar2', to: 'ocr2' },
+    { from: 'ocr2', to: 'pl2' },
+    { from: 'pl2', to: 'check2' },
+  ]}
+  layers={[['gar2'], ['ocr2'], ['pl2'], ['check2']]}
+/>
+
+---
+
+## R&D 판단 전환
+
+<Aside type="tip" title="R&D가 오히려 필요해졌다">
+**이전 판단**: 벡터 PDF → pdfplumber 테이블 추출 → AI 불필요 → 시스템 엔지니어링
+
+**통화 후 판단**: GAR 배치도 = 복잡한 엔지니어링 이미지
+- TAG가 이미지 곳곳에 흩어져 있음 (Top View, Front View, Right View 등)
+- 텍스트가 회전되어 있거나 겹칠 수 있음
+- 단순 테이블 추출이 아닌 **이미지 내 텍스트 인식** 필요
+- pdfplumber로는 안 됨 → **OCR / 이미지 AI 기술 필요**
+- **AI 바우처 R&D 정당화 가능!**
+</Aside>
+
+### 기술 요구사항 변화
+
+| 항목 | 이전 | 통화 후 |
+|------|------|--------|
+| PDF 처리 | pdfplumber (테이블 추출) | **이미지 OCR + 좌표 기반 텍스트 추출** |
+| 비교 로직 | exact + prefix + fuzzy + synonym | **TAG 존재 확인 (단순 매칭)** |
+| AI 모델 | 불필요 | **이미지 내 텍스트 인식 모델 필요** |
+| 난이도 | 문자열 매칭 (쉬움) | **엔지니어링 도면 레이아웃 이해 (어려움)** |
+| R&D 가치 | 낮음 | **높음** — 다양한 도면 레이아웃 대응 필요 |
+
+---
+
+## 추가 확인된 사항
+
+### 1번(FB2FB6)과 2번(GVU)은 완전 별개
+
+| 자료 | 제품 코드 | 사이즈 | 관계 |
+|------|----------|--------|------|
+| 1번 FB2FB6 | FB2F**B6**-32A | 1인치, KGS | 단품 납품용 별도 제품 |
+| 2번 GVU V01 | FB2F**29**-R64A | 4인치, DNV | GVU 스키드 내장 밸브 |
+
+박순근 팀장님: "1번이랑 전혀 상관 없다"
+
+### 실제 운영 시 도면 형태
+
+박순근 팀장님: "실제로는 나중에 이렇게 안 되고 도면 하나만 들어가 있겠죠. 지금 이거는 샘플로 받은 거니까 통째로 준 거고"
+
+→ 운영 환경에서는 GAR 배치도 1장 + Part List 엑셀 + ERP BOM이 입력으로 들어올 것
+
+### 뷰 분리 가능성
+
+박순근 팀장님: "AI 툴이 알아서 프론트 뷰에 있는 거는 이 에리어에 이게 프론트 뷰구나 하고 캐치하면 되는 거 아니에요"
+우리 답변: "레이아웃을 어떻게 잡느냐에 따라 다르다. 실험 과정이 필요하다"
+박순근 팀장님: "역으로 주세요. 이런 형태로 매번 작업을 하고 줘야 되는데 너희들이 줄 수 있느냐"
+
+→ 뷰 분리를 고객이 해줄 수 있는지 / 우리가 자동으로 해야 하는지 추후 협의 필요
+
+---
+
+## 이전 분석 중 여전히 유효한 것
+
+| 항목 | 유효 여부 | 비고 |
+|------|----------|------|
+| SN 자동 검증 (SN2709 vs SN2693) | ⚠️ 부분 유효 | SN 검증 자체는 유용하나, VD 비교가 핵심이 아니므로 우선순위 하락 |
+| Part List 엑셀 파싱 | ✅ 유효 | TAG → 품목코드 변환에 필수 |
+| ERP BOM 엑셀 파싱 | ✅ 유효 | 품목코드 존재 확인에 필수 |
+| Balloon 교차검증 | ⚠️ 부분 유효 | GAR 배치도의 TAG 추출과 연관될 수 있음 |
+| FB2FB6 POC 결과 (27개 매칭) | ❌ 핵심 아님 | 단품 밸브는 별개 제품. 참고 자료로만 유지 |
+| 재질 비교 분석 (F열) | ❌ 불필요 | "코드만 보면 된다" |
+| 동의어 사전 (ANSI↔HB) | ❌ 불필요 | 코드 존재 여부만 확인하므로 |
+
+---
+
+## 다음 단계
+
+| 우선순위 | 내용 | 상태 |
+|---------|------|------|
+| 1 | GAR 배치도 (3페이지) 이미지에서 TAG 추출 실험 | ⬜ 미착수 |
+| 2 | Part List 엑셀 TAG → 품목코드 매핑 검증 | ⬜ 미착수 |
+| 3 | ERP BOM 품목코드 목록 추출 + 누락 확인 로직 | ⬜ 미착수 |
+| 4 | 뷰 분리(Top/Front/Right) 자동화 가능성 실험 | ⬜ 미착수 |
+| 5 | AI 바우처 사업계획서 방향 수정 (이미지 인식 R&D) | 🔴 03-28 마감 |
+
+---
+
+## 관련 문서
+
+- [프로젝트 개요](./) — BMT 프로젝트 전체 요약 (수정 필요)
+- [고객 확인 현황](./customer-confirmations) — 1차 질문/답변 기록 (일부 무효화)
+- [POC 테스트 결과](./poc-results) — FB2FB6 테스트 (별개 제품으로 재분류)

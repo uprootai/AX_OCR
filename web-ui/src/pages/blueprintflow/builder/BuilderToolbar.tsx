@@ -117,14 +117,15 @@ export function BuilderToolbar({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-      <div className="flex items-center gap-4">
+    <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 space-y-2 shrink-0">
+      {/* Row 1: Workflow Name + Image Upload */}
+      <div className="flex items-center gap-3">
         {/* Workflow Name */}
         <input
           type="text"
           value={workflowName}
           onChange={(e) => onSetWorkflowName(e.target.value)}
-          className="px-3 py-2 border rounded-md text-lg font-semibold flex-1 max-w-md text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+          className="px-3 py-2 border rounded-md text-lg font-semibold min-w-[180px] max-w-xs text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
           placeholder={t('blueprintflow.workflowName')}
         />
 
@@ -291,8 +292,10 @@ export function BuilderToolbar({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 ml-auto">
+      </div>
+
+      {/* Row 2: Action Buttons */}
+      <div className="flex items-center gap-2 flex-wrap text-sm">
           {/* Template Buttons */}
           <Button
             onClick={onOpenLoadTemplateModal}
@@ -411,7 +414,6 @@ export function BuilderToolbar({
             <Bug className="w-4 h-4" />
             Debug
           </Button>
-        </div>
       </div>
 
       {/* Execution Status Panel */}

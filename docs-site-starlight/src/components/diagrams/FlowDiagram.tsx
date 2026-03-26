@@ -45,7 +45,7 @@ export default function FlowDiagram({
   nodeWidth = DEF_W, nodeHeight = DEF_H,
 }: Props) {
   const nm = new Map(nodes.map(n => [n.id, n]));
-  const mid = React.useId().replace(/:/g, '');
+  const mid = (title ?? '').replace(/[^a-z0-9]/gi, '').slice(0, 8).toLowerCase() || 'fd';
   const mkr = `fa${mid}`;
   const isLR = direction === 'LR';
 

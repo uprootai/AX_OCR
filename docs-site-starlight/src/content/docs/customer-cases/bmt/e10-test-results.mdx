@@ -1,0 +1,100 @@
+---
+title: E10 — 테스트 결과
+description: BMT GAR TAG 추출 파이프라인 자동화 테스트 20건 전체 통과
+tags: [고객사례, BMT, 테스트]
+sidebar_position: 14
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+> E10 전체 파이프라인(S01~S06)을 검증하는 자동화 테스트 20건이 **전부 통과**한 결과입니다.
+
+---
+
+## 실행 결과
+
+```
+pytest tests/test_bmt_pipeline.py -v
+======================== 20 passed in 1.77s ========================
+```
+
+| 테스트 그룹 | 건수 | 상태 |
+|------------|------|------|
+| TestS01GarImage | 3건 | ✅ 전체 통과 |
+| TestS03TagFilter | 3건 | ✅ 전체 통과 |
+| TestS04BomMatching | 8건 | ✅ 전체 통과 |
+| TestS06BlueprintFlowTemplate | 5건 | ✅ 전체 통과 |
+| **합계** | **20건** | **1.77초** |
+
+---
+
+## Test 1: GAR 이미지 검증 (S01)
+
+| 테스트 | 검증 내용 |
+|--------|---------|
+| `test_pdf_exists` | GAR PDF 파일 존재 확인 |
+| `test_page3_is_raster` | 3페이지 텍스트 레이어 없음 (래스터 이미지) 확인 — pdfplumber 불가 근거 |
+| `test_page3_extractable_as_image` | 이미지 추출 가능 (1000px 이상) 확인 |
+
+---
+
+## Test 2: TAG 필터링 규칙 (S03)
+
+| 테스트 | 검증 내용 |
+|--------|---------|
+| `test_gt_tags_pass_filter` | GT 24개 TAG 전부 필터 통과 (Recall 100%) |
+| `test_noise_rejected` | 노이즈 20개 전부 필터에서 제거 (치수, GVU 라벨, 재질코드 등) |
+| `test_filter_precision` | S02 raw 39개 → TAG 24개 + 노이즈 15개 정확 분리 |
+
+---
+
+## Test 3: BOM 매칭 (S04)
+
+| 테스트 | 검증 내용 |
+|--------|---------|
+| `test_part_list_files_exist` | Part List / ERP BOM 엑셀 존재 |
+| `test_valve_list_has_tags` | VALVE LIST에 12개+ TAG 매핑 |
+| `test_sensor_list_has_tags` | SENSOR LIST에 10개+ TAG 매핑 |
+| `test_erp_bom_has_items` | ERP BOM에 50개+ .1 레벨 항목 |
+| `test_v01_exact_match` | V01 → `FB2F29-R64A-A111-36L-EXT-GVU-DNV` exact match |
+| `test_v06_mismatch_detected` | V06 불일치 검출 (Part List에 `-DNV` 누락) |
+| `test_pi02_mismatch_detected` | PI02 불일치 검출 (MAX331 vs MAX311 오타) |
+| `test_matching_count` | 전체 매칭 19건+ 확인 |
+| `test_total_mismatches` | V06, PI02 불일치 자동 검출 확인 |
+
+<Aside type="tip" title="불일치 검출 테스트">
+`test_v06_mismatch_detected`와 `test_pi02_mismatch_detected`는 **의도적으로 매칭 실패를 검증**합니다.
+Part List 코드가 ERP BOM에서 exact match로 찾아지면 오히려 테스트 실패 — 불일치가 정확히 검출되는지 확인합니다.
+</Aside>
+
+---
+
+## Test 4: BlueprintFlow 템플릿 (S06)
+
+| 테스트 | 검증 내용 |
+|--------|---------|
+| `test_template_file_exists` | `templates.bmt.ts` 파일 존재 |
+| `test_template_has_correct_nodes` | 7개+ 노드, 핵심 타입(imageinput, paddleocr, custom_script) 포함 |
+| `test_template_registered_in_definitions` | `templateDefinitions.ts`에 import + spread |
+| `test_i18n_keys_exist` | ko.json에 `bmtGarTagExtraction`, `bmtTemplates` 키 |
+| `test_typescript_compiles` | `npx tsc --noEmit` 에러 0 |
+
+---
+
+## 테스트 파일
+
+```
+apply-company/BMT/tests/
+├── conftest.py              # 경로 설정
+└── test_bmt_pipeline.py     # 20개 테스트 (4개 클래스)
+```
+
+---
+
+## 관련 문서
+
+- [S01 — OCR 벤치마크](./s01-ocr-benchmark)
+- [S02 — 뷰별 분리](./s02-view-segmentation)
+- [S03+S04 — BOM 매칭](./s03-s04-bom-matching)
+- [S05 — Claude Vision GT](./s05-vlm-gt)
+- [S06 — BlueprintFlow 템플릿](./s06-blueprintflow)

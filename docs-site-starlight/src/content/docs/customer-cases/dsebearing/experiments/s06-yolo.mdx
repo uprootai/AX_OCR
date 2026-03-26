@@ -1,0 +1,88 @@
+---
+title: S06 — YOLO-OBB 치수 검출
+description: PaddleOCR bbox를 pseudo-label로 YOLOv11n을 학습하여 치수 영역을 검출하는 실험.
+tags: [동서기연, 실험, YOLO, 딥러닝, 치수검출]
+sidebar_position: 7
+---
+
+> 수동 라벨링 없이 OCR bbox를 pseudo-label로 사용. mAP50=0.301 달성, 앙상블에 기여.
+
+## 핵심 아이디어
+
+도면의 치수 텍스트 영역을 YOLO로 검출하면:
+1. 치수가 **어디에 있는지** 위치를 파악
+2. 위치 + OCR 값으로 OD/ID/W 분류에 추가 근거 제공
+3. **수동 라벨링 없이** PaddleOCR의 bbox를 pseudo-label로 활용
+
+## 두 번의 실험
+
+### v1 — Contour pseudo-label (실패)
+
+| 항목 | 값 |
+|------|---|
+| 라벨 방법 | 컨투어 기반 자동 라벨 |
+| 결과 | mAP50 = **0.002** |
+| 원인 | 노이즈 라벨 — 컨투어가 치수 영역이 아닌 도면 전체를 잡음 |
+
+### v2 — PaddleOCR bbox pseudo-label (성공)
+
+| 항목 | 값 |
+|------|---|
+| 라벨 방법 | PaddleOCR bbox → YOLO 포맷 변환 |
+| 모델 | YOLOv11n (nano) |
+| 학습 데이터 | 87개 도면 (70 train / 17 val) |
+| 학습 시간 | **593초** (50 epochs) |
+| VRAM (peak) | ~4GB |
+
+#### 성능
+
+| 지표 | 값 |
+|------|---|
+| **mAP50** | **0.301** |
+| mAP50-95 | 0.160 |
+| Precision | 0.403 |
+| Recall | 0.282 |
+
+#### T5 도면 검출
+
+9개 검출: dim 클래스 1개 + annot 클래스 8개. 치수 텍스트 위치를 대략적으로 파악.
+
+## 87개 배치 기여
+
+앙상블 v2에서 S06은 **27/87 도면**에서 투표에 참여했다.
+
+| 지표 | v1 (K+S01+S02) | **v2 (+S06)** | S06 기여 |
+|------|:-------------:|:------------:|:--------:|
+| OD 검출 | 73/87 | **80/87** | +7 |
+| W 검출 | 59/87 | **69/87** | +10 |
+| **All-3** | **52/87 (60%)** | **62/87 (71%)** | **+10** |
+
+v1→v2의 11% 개선 중 상당 부분이 S06 기여.
+
+## 왜 mAP50=0.301인데 앙상블에 기여하는가
+
+mAP50은 "모든 치수를 정확히 검출했는가"의 절대 지표다. 0.301은 낮아 보이지만:
+
+1. **pseudo-label 자체가 불완전** — PaddleOCR이 놓친 텍스트는 label에도 없음
+2. 앙상블에서는 **YOLO가 검출한 것 중 하나라도 맞으면** 투표에 기여
+3. K와 S01/S02가 실패한 도면에서 YOLO가 추가 후보를 제공하는 것이 핵심
+
+## 개선 방향
+
+| 방향 | 기대 효과 | 난이도 |
+|------|---------|:---:|
+| 학습 데이터 확대 (87 → 수백) | mAP 0.5+ | 낮음 (도면 확보 시) |
+| 클래스 세분화 (Ø / R / 일반) | OD/ID 직접 분류 | 중 |
+| OBB (회전 bbox) 적용 | 기울어진 치수 정확도 개선 | 중 |
+| VLM 후속 분류 | 검출 영역의 의미 해석 | 높음 |
+
+## 참고 자료
+
+- [From drawings to decisions: hybrid VLM framework (ScienceDirect 2025)](https://www.sciencedirect.com/science/article/abs/pii/S0736584525002406)
+- [Intelligent GD&T symbol detection: YOLOv11 (Springer 2025)](https://link.springer.com/article/10.1007/s10845-025-02669-3)
+
+## 관련 문서
+
+- [검출 방법론 종합](./)
+- [S05 — CircleNet](./s05-circlenet/) (DL 보류 사례)
+- [앙상블 최적화](../ensemble/)

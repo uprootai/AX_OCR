@@ -1,0 +1,153 @@
+---
+title: S03+S04 — TAG 필터링 + BOM 매칭
+description: OCR TAG 필터링 규칙과 Part List/ERP BOM 자동 매칭 — 불일치 3건 검출
+tags: [고객사례, BMT, TAG, BOM매칭]
+sidebar_position: 11
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+
+> OCR에서 추출된 39개 텍스트를 24개 TAG로 필터링하고, Part List/ERP BOM과 자동 매칭하여 **3건의 실제 불일치를 검출**한 결과입니다.
+
+---
+
+## S03: TAG 필터링
+
+### 파이프라인 위치
+
+<FlowDiagram client:load
+  direction="LR"
+  title="S03 위치: OCR 출력 → TAG 필터링"
+  nodes={[
+    { id: 'ocr', label: 'S02 OCR 출력\n39개 텍스트\n(TAG + 치수 + 노이즈)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'filter', label: 'S03 TAG 필터\n알파벳 규칙 적용\n→ 24개 TAG', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'match', label: 'S04 BOM 매칭\n→ 19건 성공\n→ 3건 불일치', color: '#2e7d32', bg: '#e8f5e9', shape: 'rounded' },
+  ]}
+  edges={[
+    { from: 'ocr', to: 'filter' },
+    { from: 'filter', to: 'match' },
+  ]}
+  layers={[['ocr'], ['filter'], ['match']]}
+/>
+
+### 필터링 규칙 (통화 확인)
+
+박순근 팀장님: "V나 P나 T나 F나 이렇게 시작하는 거는 약어인 거예요"
+
+| 패턴 | 분류 | 예시 | 정규식 |
+|------|------|------|--------|
+| `V + 숫자` | TAG (밸브) | V01, V11-1 | `^V\d+(-\d+)?$` |
+| `PT + 숫자` | TAG (압력센서) | PT07 | `^PT\d+$` |
+| `TT + 숫자` | TAG (온도센서) | TT01 | `^TT\d+$` |
+| `FT + 숫자` | TAG (유량계) | FT01 | `^FT\d+$` |
+| `PI + 숫자` | TAG (압력지시계) | PI02 | `^PI\d+$` |
+| `B + 숫자` | TAG (필터) | B01 | `^B\d+$` |
+| 숫자로 시작 | **치수 (제거)** | 2170, 1450 | `^\d` |
+| GVU/WORKSPACE 등 | **노이즈 (제거)** | GVUIN110... | 15개 패턴 |
+
+### 필터링 결과
+
+| 항목 | 건수 |
+|------|------|
+| OCR raw (S02 5개 뷰 합산) | 39개 |
+| **필터 후 TAG** | **24개** |
+| 제거된 노이즈 | 15개 |
+
+**제거된 노이즈 15개**:
+
+`A1,B1` `A1,B1,D1,B2,D2` `D1` `D2` `DN1OOGASVALV` `ENCLOSUREDES1GNPRESSURE1MI` `GVUIN110OPENPOSITION` `GVUIN90OPENPOSITION` `GVUSPEC1F1CA` `M8` `MED1AFORENGINE` `MED1AFORPURGE` `NORKSPACE1300X3` `R614` `WORKSPACE800X460`
+
+<Aside type="note" title="Precision 100%">
+필터링 후 24개 TAG 전부가 실제 TAG (false positive 0). 노이즈가 완전히 제거되었습니다.
+</Aside>
+
+---
+
+## S04: Part List → ERP BOM 자동 매칭
+
+### Part List 엑셀 매핑 구조
+
+Part List 엑셀(`W5XGVU-SN2709-PLRA`)에서 TAG → 품목코드 매핑:
+
+| 시트 | TAG 컬럼 | 코드 컬럼 | 매핑 수 | 예시 |
+|------|---------|----------|---------|------|
+| **VALVE LIST** | B열 (CODE) | Y열 (ERP CODE) | 16개 | V01 → `FB2F29-R64A-A111-36L-EXT-GVU-DNV` |
+| **SENSOR LIST** | B열 (Instrument Code) | M열 (품목코드) | 22개 | PT01 → `PT-MBS4201-4308G-DANFOSS` |
+
+### 매칭 결과 시각화
+
+![S04 TAG→Part List→ERP BOM 매칭 결과](/images/bmt/s04-matching-result.png)
+
+녹색 = 매칭 성공, 빨간색 = 불일치/미등록, 회색 = Part List 참조행(코드 없음)
+
+### 전체 추적 결과
+
+| TAG | Part List 품목코드 | ERP BOM | 결과 |
+|-----|-------------------|---------|------|
+| V01 | `FB2F29-R64A-A111-36L-EXT-GVU-DNV` | ✅ 있음 | 매칭 |
+| V02 | `FB2F23-R16A-P010-36L-DNV` | ✅ 있음 | 매칭 |
+| V03 | `DB219-R64A-P111-36L-GVU-DNV` | ✅ 있음 | 매칭 |
+| V04 | `SWB3202-S12M-P1-HKC-DNV` | ✅ 있음 | 매칭 |
+| **V05** | *(빈 행 — V03과 동일 사양)* | **❓** | 참조행 |
+| **V06** | `GPCV-RDN50PN16-VARIBELL` | **❌ 없음** | **불일치 #1** |
+| **V07** | *(빈 행 — V14와 동일 사양)* | **❓** | 참조행 |
+| V08 | `SBV220-S12-CE-DNV` | ✅ 있음 | 매칭 |
+| V09 | `SBV210-S12M-BH` | ✅ 있음 | 매칭 |
+| V11-1 | `FPCAWRF-12-36L-SKID-DNV` | ✅ 있음 | 매칭 |
+| V11-2 | `FB2F22-R12A-A101-36L-DNV` | ✅ 있음 | 매칭 |
+| V14 | `DB212-R12A-P111-36L-GVU-DNV` | ✅ 있음 | 매칭 |
+| V15 | `SWB3202-S12M-P1-HKC-DNV` | ✅ 있음 | 매칭 |
+| B01 | `FT-GVU-64-DNV-TY` | ✅ 있음 | 매칭 |
+| **B02** | *"Structure 견적에 포함"* | **❌ 없음** | **불일치 #3** |
+| B03 | `FT-PARKER-P33-F12G` | ✅ 있음 | 매칭 |
+| FT01 | `FM-GVU-HANHWA` | ✅ 있음 | 매칭 |
+| TT01 | `TT-MBT5252-9110-DANFOSS` | ✅ 있음 | 매칭 |
+| PT01 | `PT-MBS4201-4308G-DANFOSS` | ✅ 있음 | 매칭 |
+| PT03 | `PT-MBS4201-4308G-DANFOSS` | ✅ 있음 | 매칭 |
+| PT04 | `PT-MBS4201-4308G-DANFOSS` | ✅ 있음 | 매칭 |
+| PT05 | `PT-MBS3300-1472G-DANFOSS` | ✅ 있음 | 매칭 |
+| PT07 | `PT-PTEX1-ANALYSIS` | ✅ 있음 | 매칭 |
+| **PI02** | `PI-DH-MAX331` | **❌ 없음** | **불일치 #2** |
+
+### 요약
+
+| 결과 | 건수 |
+|------|------|
+| ✅ 매칭 성공 | **19건** |
+| ❓ Part List 참조행 (코드 없음) | 2건 (V05=V03, V07=V14) |
+| ❌ **BOM 불일치** | **3건** |
+
+---
+
+## 발견된 실제 불일치 3건
+
+<Aside type="danger" title="고객이 찾고 싶어하는 BOM 누락/불일치">
+
+| # | TAG | Part List 코드 | ERP BOM | 불일치 유형 |
+|---|-----|---------------|---------|-----------|
+| 1 | **V06** | `GPCV-RDN50PN16-VARIBELL` | `GPCV-RDN50PN16-**DNV**-VARIBELL` | 선급코드 `-DNV` 누락 |
+| 2 | **PI02** | `PI-DH-MAX**331**` | `PI-DH-MAX**311**` | 모델번호 오타 (331↔311) |
+| 3 | **B02** | "Structure 견적에 포함" | 별도 항목 없음 | BOM 미등록 (구조물 일괄 포함) |
+
+**V06**과 **PI02**는 실제 데이터 에러일 가능성이 높습니다. B02는 구조물 일괄 포함으로 정상일 수 있습니다.
+</Aside>
+
+---
+
+## 전체 파이프라인 성과 (S01~S04)
+
+| 단계 | 입력 | 출력 | 성공률 |
+|------|------|------|--------|
+| S01 OCR (전체) | GAR 이미지 1장 | TAG 후보 | 41.7% |
+| S02 OCR (뷰별) | 5개 크롭 | TAG 후보 | **95.8%** |
+| S03 TAG 필터링 | 39개 raw | 24개 TAG | 100% (노이즈 0) |
+| S04 BOM 매칭 | 24개 TAG | 19건 + 3건 불일치 | **79.2%** |
+
+---
+
+## 관련 문서
+
+- [S01 — OCR 벤치마크](./s01-ocr-benchmark) — 7개 엔진 비교
+- [S02 — 뷰별 분리](./s02-view-segmentation) — 41.7%→95.8% 개선 과정
+- [실데이터 대조 분석](./call-analysis-detail) — 통화 내용 + 데이터 교차검증

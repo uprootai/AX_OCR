@@ -1,0 +1,124 @@
+---
+title: S02 — 뷰별 분리 OCR 실험
+description: GAR 배치도를 5개 뷰로 크롭하여 PaddleOCR TAG 검출률 41.7%→95.8% 개선
+tags: [고객사례, BMT, OCR, 뷰분리]
+sidebar_position: 10
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+> GAR 배치도를 5개 뷰 영역으로 크롭한 후 PaddleOCR을 각각 실행하여 TAG 검출률을 **41.7% → 95.8%**로 개선한 결과입니다.
+
+---
+
+## 실험 배경
+
+S01에서 PaddleOCR이 전체 이미지(1684×2382px)를 한 번에 처리할 때 **41.7% (10/24)**에 그쳤습니다.
+놓친 14개 TAG 대부분이 **Front View 하단 밀집 영역**에 있었고, 도면 선과 겹치거나 90도 회전된 텍스트였습니다.
+
+**가설**: 해당 영역만 크롭하면 검출률이 올라갈 것
+
+---
+
+## 5개 뷰 크롭 영역
+
+원본 이미지(4x 해상도, 3368×4764px)에서 수동으로 5개 영역을 지정했습니다.
+
+### Bottom View (좌상단)
+
+![Bottom View 크롭](/images/bmt/gar-s02-bottom_view.png)
+
+GT TAG: V01, V06, PT01, PT04, PI02 (5개)
+
+### Front View 상단 (우상단)
+
+![Front View 상단](/images/bmt/gar-s02-front_view_upper.png)
+
+GT TAG: V06, FT01 (2개)
+
+### Front View 하단 (핵심 밀집 영역)
+
+![Front View 하단](/images/bmt/gar-s02-front_view_lower.png)
+
+GT TAG: V09, V11-1, V11-2, V15, V04, B02, PT05, V07, V14 (9개)
+
+<Aside type="tip" title="S01에서 가장 많이 놓친 영역">
+이 영역에서 S01은 9개 중 2개만 검출했지만(V09, V11-1), 크롭 후 **9/9 = 100%** 검출에 성공했습니다.
+</Aside>
+
+### Bottom 중앙 (하단)
+
+![Bottom 중앙](/images/bmt/gar-s02-bottom_center.png)
+
+GT TAG: V02, V03, V05, B01, PT03 (5개)
+
+### Right View + A View (중앙 우측)
+
+![Right/A View](/images/bmt/gar-s02-right_a_view.png)
+
+GT TAG: V08, B03 (2개)
+
+---
+
+## 뷰별 PaddleOCR 결과
+
+| 뷰 | GT | 검출 | **Recall** | 놓침 | 처리 시간 |
+|----|-----|------|-----------|------|----------|
+| Bottom View | 5개 | 3개 | 60% | PI02, V06 | 4.0s |
+| Front View 상단 | 2개 | 2개 | **100%** | - | 2.4s |
+| **Front View 하단** | **9개** | **9개** | **100%** | - | 1.5s |
+| Bottom 중앙 | 5개 | 5개 | **100%** | - | 0.8s |
+| Right/A View | 2개 | 2개 | **100%** | - | 3.0s |
+
+---
+
+## S01 vs S02 비교
+
+| 방식 | 검출 | Recall | 개선 |
+|------|------|--------|------|
+| S01 전체 이미지 | 10/24 | 41.7% | 기준 |
+| **S02 뷰별 분리** | **21/24** | **87.5%** | **+45.8%p** |
+| S02 뷰 합산 (중복 제거) | **23/24** | **95.8%** | **+54.1%p** |
+
+<Aside type="tip" title="핵심: 뷰 분리만으로 +54%p 개선">
+Front View 하단(S01에서 14개를 놓쳤던 밀집 영역)을 크롭하자 **9/9 = 100%** 검출 성공.
+유일한 미검출인 PI02도 Front View 상단에서는 검출되어, 뷰 합산 시 **95.8%**.
+</Aside>
+
+---
+
+## 뷰별 TAG 검출 상세
+
+| TAG | S01 전체 | S02 뷰별 | 검출된 뷰 |
+|-----|---------|---------|----------|
+| V01 | ✅ | ✅ | Bottom View |
+| V02 | ❌ | ✅ | Bottom 중앙 |
+| V03 | ❌ | ✅ | Bottom 중앙 |
+| V04 | ❌ | ✅ | Front View 하단 |
+| V05 | ❌ | ✅ | Bottom 중앙 |
+| V06 | ❌ | ✅ | Front View 상단 |
+| V07 | ❌ | ✅ | Front View 하단 |
+| V08 | ❌ | ✅ | Right/A View |
+| V09 | ✅ | ✅ | Front View 하단 |
+| V11-1 | ✅ | ✅ | Front View 하단 |
+| V11-2 | ❌ | ✅ | Front View 하단 |
+| V14 | ❌ | ✅ | Front View 하단 |
+| V15 | ❌ | ✅ | Front View 하단 |
+| B01 | ❌ | ✅ | Bottom 중앙 |
+| B02 | ✅ | ✅ | Front View 하단 |
+| B03 | ❌ | ✅ | Right/A View |
+| FT01 | ✅ | ✅ | Front View 상단 |
+| TT01 | ✅ | ✅ | Front View 하단 인접 |
+| PT01 | ❌ | ✅ | Bottom View |
+| PT03 | ✅ | ✅ | Bottom 중앙 |
+| PT04 | ❌ | ✅ | Bottom View |
+| PT05 | ✅ | ✅ | Front View 하단 |
+| PT07 | ✅ | ✅ | Front View 하단 인접 |
+| PI02 | ✅ | ⚠️ | Bottom View에서 놓침, Front View 상단에서 검출 |
+
+---
+
+## 관련 문서
+
+- [S01 — OCR 벤치마크](./s01-ocr-benchmark) — 7개 엔진 비교
+- [S03+S04 — BOM 매칭](./s03-s04-bom-matching) — TAG→Part List→ERP 전체 파이프라인

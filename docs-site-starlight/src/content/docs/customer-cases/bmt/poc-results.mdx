@@ -1,0 +1,450 @@
+---
+title: POC 테스트 결과
+description: FB2FB6 개별 밸브 자동 비교 테스트 결과 및 매칭 방식
+tags: [고객사례, BMT, POC]
+sidebar_position: 3
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+> 1번 자료(FB2FB6 개별 밸브)로 전체 파이프라인을 실행한 결과입니다.
+
+<Aside type="note" title="이 페이지에서 사용하는 용어">
+- **FB2FB6** = BMT의 Ball Valve 제품 모델명. 밸브 1개의 조립도면(단품)
+- **pdfplumber** = 벡터 PDF에서 텍스트와 테이블을 추출하는 Python 라이브러리
+- **ERP BOM** = ERP 시스템에 등록된 공식 부품 목록 (자재 발주 기준)
+- **병합셀** = PDF 테이블에서 여러 행이 하나로 합쳐진 것. `split('\n')` 후처리로 분리
+- **exact / prefix / fuzzy / synonym** = 부품번호 매칭 방식 (완전일치 → 앞부분일치 → 유사도비교 → 동의어사전)
+- **Balloon** = 도면 이미지에 원형 말꼬리표로 표시된 부품 번호
+
+상세한 파일 구조와 용어 설명은 [고객 확인 현황 → 수령 자료 & 용어 정리](./customer-confirmations#수령-자료--용어-정리)를 참고하세요.
+</Aside>
+
+---
+
+## 1번 자료: 도면 원본
+
+도면 PDF(벡터, Inventor 출력)의 전체 모습입니다. 좌측에 조립 단면도, 우측에 부품리스트 테이블이 있습니다.
+
+![FB2FB6 도면 전체](/images/bmt/fb2fb6-full.png)
+
+### 부품리스트 테이블 (우측 확대)
+
+`pdfplumber`로 추출하는 대상 영역입니다. 항목번호, 부품번호, 수량, 설명이 표 형태로 존재합니다.
+
+![FB2FB6 부품리스트 테이블](/images/bmt/fb2fb6-parts-table.png)
+
+<Aside type="note" title="pdfplumber 추출 이슈">
+항목 24~28이 **셀 병합(merged cells)**으로 한 셀에 줄바꿈(`\n`)으로 합쳐져 있습니다.
+기본 파싱으로는 22/27개만 추출되며, `split('\n')` 후처리로 27개 전부 추출 가능합니다.
+</Aside>
+
+### pdfplumber 추출 결과 (27개 전부 성공)
+
+병합셀 후처리(`split('\n')`) 적용 후 추출된 최종 결과입니다.
+
+| # | 수량 | 부품번호 | 설명 |
+|---|------|---------|------|
+| 3 | 1 | BL-85-6F | |
+| 4 | 2 | BS-85-6F-T1 | |
+| 5 | 1 | GR-99.4-91.1-2.7T | |
+| 6 | 1 | OR-82.22-2.62-V | |
+| 7 | 1 | TW-32.8-25.4-1.5T-PE | |
+| 9 | 1 | ATST-SG-304 | |
+| 10 | 1 | BALL-2,4-304 | |
+| 14 | 4 | STB-M12-50L | STUD BOLT - 미터 |
+| 15 | 4 | HN-M12-HV | HEX HEAVY NUT - 미터 |
+| 16 | 4 | WRB-M6-12L | Hex Socket Wrench Bolt - 미터 |
+| 17 | 1 | SB-28.0-25.1-10T-PE | |
+| 18 | 1 | LP-60-20-27-1T | |
+| 19 | 1 | LD-60-23.8-17-3T | |
+| 20 | 1 | BVD3705-LEV | |
+| 21 | 1 | BVD3705-SW | |
+| 22 | 1 | PW-28-9-2.5T | |
+| 23 | 1 | ANSI B18.2.3.5M - M8 x 1.25 x 16 | 6각 볼트 |
+| 24 | 1 | WRB-M4-5L | Hex Socket Wrench Bolt - 미터 |
+| 25 | 1 | NAME-PL-45X35 | |
+| 26 | 1 | BY-FB2F26-32A-1S-36L-KGS | |
+| 27 | 1 | BC-FB2F26-32A-1S-36L-KGS | |
+| 28 | 1 | SM-25.0-69.8-6F-630 | |
+| 29 | 1 | GR-33.9-25.1-3.0T | |
+| 30 | 1 | BT-DB216-32A-36L-KGS | |
+| 31 | 1 | OR-20.29-2.62-E | |
+| 32 | 1 | PS-FB2F26-32A | |
+| 33 | 1 | LIP-25.0-31.2-4.8-ELG | |
+
+<Aside type="tip" title="항목번호 1,2,8,11-13은?">
+도면의 한글 부품리스트에 원래 없는 번호입니다 (번호가 3부터 시작, 중간 건너뜀).
+ERP BOM도 동일하게 27개이므로, 도면과 ERP의 부품 수가 일치합니다.
+</Aside>
+
+---
+
+## 입력 데이터
+
+| 소스 | 파일 | 추출 방법 | 결과 |
+|------|------|-----------|------|
+| 도면 PDF | FB2FB6-32A-1S-D011-1SDNA-36L-KGS.pdf (135KB) | `pdfplumber` 테이블 추출 + 병합셀 후처리 | **27개** 부품 |
+| ERP BOM | `1_FB2FB6-32A-1S-D011-1SDNA-36L-KGS__BOM.xlsx` (12KB) | `zipfile` + `xml.etree` 파싱 | **27개** 자품목 (`.1` 레벨) |
+
+- 시트명: `FB2FB6-32A-1S-D011-1SDNA-36L-KG`
+- 필터: 단계 `.1` (1단계 자품목만)
+- 컬럼: `A=단계`, `C=자품목코드`, `D=자품목명`, `L=수량`
+- 대상 수: `.1` 레벨 자품목 총 27개
+
+### ERP BOM 엑셀 원본
+
+`zipfile` + `xml.etree`로 파싱한 ERP BOM 엑셀의 전체 구조입니다. 단계 `.1` 행(흰색 배경)이 비교 대상입니다.
+
+![ERP BOM FB2FB6 엑셀](/images/bmt/erp-bom-fb2fb6.png)
+
+---
+
+## 도면 vs ERP BOM — 1:1 대조 결과
+
+도면 PDF의 부품번호(`pdfplumber` 추출)와 ERP BOM 엑셀(`1_FB2FB6-32A-1S-D011-1SDNA-36L-KGS__BOM.xlsx`, 단계 `.1`)의 자품목코드를 다단계 매칭(exact → prefix → fuzzy → synonym)으로 자동 대조한 결과입니다.
+
+| # | 도면 부품번호 (pdfplumber) | 수량 | ERP BOM 자품목 | 수량 | 판정 |
+|---|--------------------------|------|---------------|------|------|
+| 3 | BL-85-6F | 1 | BL-85-6F | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 4 | BS-85-6F-**T1** | 2 | BS-85-6F-**T4** | 2 | <abbr title="문자열 유사도(Levenshtein) 91% — 끝 글자만 다름 (T1↔T4)">🟡 fuzzy 91%</abbr> |
+| 5 | GR-99.4-91.1-2.7T | 1 | GR-99.4-91.1-2.7T | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 6 | OR-82.22-2.62-**V** | 1 | OR-82.22-2.62-**E** | 1 | <abbr title="문자열 유사도(Levenshtein) 93% — 재질 코드만 다름 (V=Viton, E=EPDM)">🟡 fuzzy 93%</abbr> |
+| 7 | TW-32.8-25.4-1.5T-PE | 1 | TW-32.8-25.4-1.5T-PE | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 9 | ATST-SG-304 | 1 | ATST-SG-304 | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 10 | BALL-2,4-**304** | 1 | BALL-2,4**M**-304 | 1 | <abbr title="문자열 유사도(Levenshtein) 96% — 중간에 M 삽입됨">🟡 fuzzy 96%</abbr> |
+| 14 | STB-M12-50L | 4 | STB-M12-50L-**193B8MCL2** | 4 | <abbr title="앞부분(prefix)은 동일하지만 ERP 코드 뒤에 재질 접미사(-193B8MCL2)가 추가됨">⚠️ 접미사 상이</abbr> |
+| 15 | HN-M12-HV | 4 | HN-M12-HV-**8M** | 4 | <abbr title="앞부분(prefix)은 동일하지만 ERP 코드 뒤에 재질 접미사(-8M)가 추가됨">⚠️ 접미사 상이</abbr> |
+| 16 | WRB-M6-12L | 4 | WRB-M6-12L | 4 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 17 | SB-28.0-25.1-10T-PE | 1 | SB-28.0-25.1-10T-PE | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 18 | LP-60-20-27-1T | 1 | LP-60-20-27-1T | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 19 | LD-60-23.8-17-3T | 1 | LD-60-23.8-17-3T | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 20 | BVD3705-LEV | 1 | BVD3705-LEV | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 21 | BVD3705-SW | 1 | BVD3705-SW | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 22 | PW-28-9-2.5T | 1 | PW-28-9-2.5T | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 23 | ANSI B18.2.3.5M-M8x1.25x16 | 1 | HB-M8-15L | 1 | <abbr title="코드 체계가 완전히 다르지만(ANSI 규격명 vs 사내 코드), 동의어 사전 매핑으로 자동 연결됨">🟣 동의어 사전</abbr> |
+| 24 | WRB-M4-5L | 1 | WRB-M4-5L | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 25 | NAME-PL-45X35 | 1 | NAME-PL-45X35-**KGS** | 1 | <abbr title="앞부분(prefix)은 동일하지만 ERP 코드 뒤에 업체 접미사(-KGS)가 추가됨">⚠️ 접미사 상이</abbr> |
+| 26 | BY-FB2F26-32A-1S-36L-KGS | 1 | BY-FB2F26-32A-1S-36L-KGS | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 27 | BC-FB2F26-32A-1S-36L-KGS | 1 | BC-FB2F26-32A-1S-36L-KGS | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 28 | SM-25.0-69.8-6F-630 | 1 | SM-25.0-69.8-6F-630-**KGS** | 1 | <abbr title="앞부분(prefix)은 동일하지만 ERP 코드 뒤에 업체 접미사(-KGS)가 추가됨">⚠️ 접미사 상이</abbr> |
+| 29 | GR-33.9-25.1-3.0T | 1 | GR-33.9-25.1-3.0T | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 30 | BT-DB216-32A-36L-KGS | 1 | BT-DB216-32A-36L-KGS | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 31 | OR-20.29-2.62-E | 1 | OR-20.29-2.62-E | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+| 32 | PS-FB2F26-32A | 1 | PS-FB2F26-32A-**LIP** | 1 | <abbr title="앞부분(prefix)은 동일하지만 ERP 코드 뒤에 재질 접미사(-LIP)가 추가됨">⚠️ 접미사 상이</abbr> |
+| 33 | LIP-25.0-31.2-4.8-ELG | 1 | LIP-25.0-31.2-4.8-ELG | 1 | <abbr title="품번과 수량이 완전히 동일">✅ 일치</abbr> |
+
+### 판정 요약
+
+| 분류 | 건수 | 설명 |
+|------|------|------|
+| <abbr title="도면 품번과 ERP 자품목코드가 문자열 완전 일치">✅ 완전 일치</abbr> | **18건** | 품번 + 수량 동일 |
+| <abbr title="코드 앞부분(prefix)은 같지만 ERP 측에 재질/업체 접미사가 추가됨 (예: -KGS, -8M)">⚠️ 접미사 상이</abbr> | **5건** | prefix는 동일, 뒤에 재질/업체 접미사 차이 |
+| <abbr title="Levenshtein 문자열 유사도 75% 이상으로 자동 검출 — 글자 1~2개 차이">🟡 fuzzy 매칭</abbr> | **3건** | Levenshtein 유사도 91~96%로 자동 검출 |
+| <abbr title="코드 체계가 완전히 달라 문자열 비교로는 불가하지만, 사전 등록된 매핑(ANSI→HB)으로 자동 연결">🟣 동의어 사전</abbr> | **1건** | ANSI 규격명과 ERP 사내 코드를 자동 연결 |
+| 🔴 매칭 불가 | **0건** | 미매칭 항목 없음 |
+| 🔴 ERP에만 존재 | **0건** | 단독 잔여 ERP 항목 없음 |
+
+<Aside type="tip" title="고객 수동 검출 7건 100% 자동 검출">
+고객이 수동으로 찾은 7건(BOM&파트리스트.xlsx에 기재)을 자동 비교로 **전부 검출**했습니다.
+⚠️ prefix 4건 + 🟡 fuzzy 2건(T1↔T4, V↔E) + 🟣 동의어 사전 1건(ANSI↔HB) = 7건 모두 포착했습니다.
+추가 검출은 prefix 1건(PS-LIP)과 fuzzy 1건(BALL↔BALL-M)입니다.
+</Aside>
+
+### 고객 수동 비교 원본 (BOM&파트리스트.xlsx)
+
+고객이 직접 작성한 VAULT BOM vs ERP BOM 차이점 파일의 원본 내용입니다.
+
+| VAULT BOM (도면) | ERP BOM | 고객 설명 |
+|-----------------|---------|---------|
+| BS-85-6F-T1 | BS-85-6F-T4 | T1 > T4 (재질 상이) |
+| OR-82.22-2.62-V | OR-82.22-2.62-E | V > E (재질 상이) |
+| SM-25.0-69.8-6F-630 | SM-25.0-69.8-6F-630-KGS | KGS (CODE 상이) |
+| HN-M12-HV | HN-M12-HV-8M | 8M (재질 상이) |
+| STB-M12-50L | STB-M12-50L-193B8MCL2 | 193B8MCL2 (재질 상이) |
+| ANSI B18.2.3.5M - M8 x 1.25 x 16 | HB-M8-15L | (CODE 상이) |
+| NAME-PL-45X35 | NAME-PL-45X35-KGS | KGS (CODE 상이) |
+
+우리 파이프라인 자동 검출 결과와 대조:
+- ⚠️ prefix 매칭 4건: SM-KGS, HN-8M, STB-193B8MCL2, NAME-KGS
+- 🟡 fuzzy 매칭 2건: BS-T1↔T4 (91%), OR-V↔E (93%)
+- 🟣 동의어 사전 1건: ANSI↔HB (코드 체계는 다르지만 자동 연결됨)
+- 추가 검출 2건: prefix 1건(PS-LIP), fuzzy 1건(BALL↔BALL-M)
+
+**결론: 고객 7건 전부 자동 검출되며, ANSI↔HB도 동의어 사전으로 자동 연결됩니다.**
+
+### 🟣 동의어 사전 매칭 1건
+
+| 도면 (VAULT) | ERP BOM | 사유 |
+|-------------|---------|------|
+| ANSI B18.2.3.5M-M8x1.25x16 | HB-M8-15L | 동의어 사전으로 자동 연결 (ANSI 규격명 ↔ ERP 사내 코드) |
+
+<Aside type="note" title="현재 동의어 사전으로 해결됨">
+이 케이스는 fuzzy만으로는 어렵습니다. 현재는 **동의어 사전**(ANSI→HB 매핑)으로 자동 연결되며,
+Description 기반 매칭은 보조 신호로 유지합니다.
+</Aside>
+
+---
+
+## pdfplumber 추출 한계: 병합셀 문제
+
+### 1번 자료 병합셀
+
+도면 부품리스트에서 항목 24~28이 하나의 셀에 합쳐져 있습니다:
+
+```
+원본 (pdfplumber raw):
+  row[21] = [None, '24\n25\n26', None, '1\n1\n1', 'WRB-M4-5L\nNAME-PL-45X35\nBY-FB2F26-32A-1S-36L-KGS', ...]
+  row[22] = [None, '27\n28',     None, '1\n1',     'BC-FB2F26-32A-1S-36L-KGS\nSM-25.0-69.8-6F-630', ...]
+
+후처리 (split + zip):
+  #24  수량:1  WRB-M4-5L                ← 복원됨
+  #25  수량:1  NAME-PL-45X35            ← 복원됨
+  #26  수량:1  BY-FB2F26-32A-1S-36L-KGS ← 복원됨
+  #27  수량:1  BC-FB2F26-32A-1S-36L-KGS ← 복원됨
+  #28  수량:1  SM-25.0-69.8-6F-630      ← 복원됨
+```
+
+기본 파싱: 22/27 (81%) → 후처리 적용: **27/27 (100%)**
+
+### 2번 자료 VD 5개 케이스 추출 테스트
+
+VD 8페이지 중 5개를 골라 `pdfplumber` 추출 품질을 검증했습니다.
+
+#### VD-02 (Page 7, TAG: V03/V05) — Double Block & Bleed Valve
+
+| NO | DESCRIPTION | MATERIAL | Q'TY | 비고 |
+|----|-------------|----------|------|------|
+| 1 | BODY | A182-F316L | 1 | |
+| 2 | BODY CAP | A182-F316L | 2 | |
+| 3 | THRUST WASHER | PEEK | 2 | |
+| 4 | STEM | A276-316 | 2 | |
+| 5 | BONNET | A182-F316L | 2 | |
+| 6 | BRACKET | A240-316 | 2 | |
+| 7 | ADAPTOR | A276-316 | 2 | |
+| 8 | BALL | SS316 | 2 | |
+| 9 | BALL SEAT | R.PTFE | 4 | |
+| 10 | O-RING | VITON | 2 | |
+| 11 | O-RING | VITON | 2 | |
+| 12 | GRAPHITE PACKING | GRAPHITE | 2 | |
+| 13 | NAME PLATE | SS316 | 1 | |
+| 14 | PNEUMATIC ACTUATOR | - | 2 | |
+| 15 | GRAPHITE PACKING | GRAPHITE | 2 | |
+| 16 | WRENCH BOLT | SS316 | 8 | |
+| 17 | WRENCH BOLT | SS316 | 8 | |
+| 18 | HEX BOLT | SS316 | 8 | ⚠️ 병합셀 |
+| 19 | HEX NUT | SS316 | 12 | ⚠️ 병합셀 |
+| 20 | STUD BOLT | A193-B8M | 12 | |
+| 21 | ANTISTATIC SPRING | SS304 | 4 | |
+| 22 | ANTISTATIC BALL | SS304 | 4 | |
+
+**22개 부품, 병합셀 1곳** — `split('\n')` 후처리로 복원 가능
+
+#### VD-03 (Page 8, TAG: V04/V15) — 12mm Tube Compression Ball Valve
+
+| NO | DESCRIPTION | MATERIAL | Q'TY | 비고 |
+|----|-------------|----------|------|------|
+| 1 | BODY | A351-CF3M | 1 | |
+| 2 | BALL | SS316 | 1 | |
+| 3 | BALL SEAT | PTFE | 2 | |
+| 4 | DISC SPRING | SS304 | 2 | |
+| 5 | FLANGE SEAL | PTFE | 2 | |
+| 6 | FLANGE | A351-CF3M | 2 | |
+| 7 | SUPPORT RING | SS316 | 2 | |
+| 8 | STEM | SS316 | 1 | |
+| 9 | NUT | A276-316/316L | 2 | |
+| 10 | FRONT FERRULE | A193-B8M CL2 | 2 | ⚠️ 병합셀 |
+| 11 | BACK FERRULE | A479-316/316L | 2 | ⚠️ 병합셀 |
+| 12 | FLANGE BOLT | SS316L | 4 | |
+| 13 | HEX NUT | SS316(A4-70) | 4 | |
+| 14 | PNEUMATIC ACTUATOR | - | 1 | |
+
+**14개 부품, 병합셀 1곳**
+
+#### VD-05 (Page 10, TAG: V07/V14) — 3/4" Ball Valve
+
+| NO | DESCRIPTION | MATERIAL | Q'TY | 비고 |
+|----|-------------|----------|------|------|
+| 1 | BODY | A182-F316L | 1 | |
+| 2 | BODY CAP | A182-F316L | 2 | |
+| 3 | STEM | A276-316 | 2 | |
+| 4 | THRUST WASHER | PEEK | 2 | |
+| 5 | GRAPHITE PACKING | GRAPHITE | 2 | |
+| 6 | GRAPHITE PACKING | GRAPHITE | 2 | |
+| 7 | O-RING | VITON | 2 | |
+| 8 | O-RING | VITON | 2 | |
+| 9 | TEFLON SEAL | PTFE | 2 | |
+| 10 | BALL SEAT CAPSULE | A276-316 | 2 | |
+| 11 | BALL SEAT | R.PTFE | 4 | |
+| 12 | BALL | A182 F316 | 2 | ⚠️ 병합셀 |
+| 13 | PACKING GLAND | A276-316 | 2 | ⚠️ 병합셀 |
+| 14 | BRACKET | A240-316 | 2 | ⚠️ 병합셀 |
+| 15 | PNEUMATIC ACTUATOR | - | 2 | ⚠️ 병합셀 |
+| 16 | ADAPTOR | A276-316 | 2 | |
+| 17 | HEX BOLT | SS316 | 8 | |
+| 18 | WRENCH BOLT | SS316 | 8 | |
+| 19 | HEX NUT | SS316 | 8 | |
+| 20 | STUD BOLT | A193-B8M | 8 | |
+| 21 | BONNET | SS316 | 2 | |
+
+**21개 부품, 병합셀 2곳** — 2개 원본 행을 split해 12~15번 4개 항목을 복원합니다. 이 페이지가 가장 병합셀이 많습니다.
+
+#### VD-07 (Page 12, TAG: V11-1) — Check Valve (Cartridge)
+
+| DESCRIPTION | MATERIAL | Q'TY | 비고 |
+|-------------|----------|------|------|
+| CARTRIDGE | A276-316L | 1 | |
+| POPPET | A276-316 | 1 | |
+| CARTRIDGE POPPET GUIDE | SS316 | 1 | |
+| SEAL | VITON | 1 | |
+| SUPPORT RING | SS316 | 1 | |
+| SPRING 0.2bar | SS304 | 1 | |
+| POPPET GUIDE STOPPER | SS316 | 1 | |
+| SNAP RING | Stainless Steel | 1 | |
+
+**8개 부품, 병합셀 없음** — NO. 컬럼이 원래 없는 도면 (체크밸브 구조)
+
+#### VD-08 (Page 13, TAG: V02) — 1" Ball Valve
+
+| NO | DESCRIPTION | MATERIAL | Q'TY | 비고 |
+|----|-------------|----------|------|------|
+| 1 | BODY | A182-F316L | 1 | |
+| 2 | BODY CAP | A182-F316L | 1 | |
+| 3 | BONNET | A182-F316L | 1 | |
+| 4 | BRACKET | SS316 | 1 | |
+| 5 | BALL | A182-F316 | 1 | |
+| 6 | BALL SEAT | R.PTFE | 2 | |
+| 7 | THRUST WASHER | PEEK | 1 | |
+| 8 | STEM | SS316 | 1 | |
+| 9 | O-RING | NBR | 1 | |
+| 10 | O-RING | NBR | 1 | |
+| 11 | GRAPHITE PACKING | GRAPHITE | 1 | |
+| 12 | GRAPHITE PACKING | GRAPHITE | 2 | |
+| 13 | STUD BOLT | SS316 | 4 | |
+| 14 | HEX NUT | SS316 | 4 | ⚠️ 병합셀 |
+| 15 | ADAPTOR | A276-F316 | 1 | ⚠️ 병합셀 |
+| 16 | ANTI STATIC SPRING | - | 1 | |
+| 17 | ANTI STATIC BALL | - | 1 | |
+| 18 | WRENCH BOLT | SS316 | 4 | |
+| 19 | ACTUATOR | - | 1 | |
+
+**19개 부품, 병합셀 1곳**
+
+### 5개 케이스 종합 판정
+
+| 케이스 | 페이지 | TAG | 밸브 유형 | 부품 수 | 병합셀 | 판정 |
+|--------|--------|-----|----------|---------|--------|------|
+| VD-02 | 7 | V03/V05 | Double Block & Bleed | 22개 | 1곳 | ⚠️ 후처리 필요 |
+| VD-03 | 8 | V04/V15 | 12mm Tube Compression | 14개 | 1곳 | ⚠️ 후처리 필요 |
+| VD-05 | 10 | V07/V14 | 3/4" Ball Valve | 21개 | 2곳 | ⚠️ 후처리 필요 |
+| VD-07 | 12 | V11-1 | Check Valve (Cartridge) | 8개 | 0곳 | ✅ 완벽 |
+| VD-08 | 13 | V02 | 1" Ball Valve | 19개 | 1곳 | ⚠️ 후처리 필요 |
+
+<Aside type="caution" title="병합셀은 구조적 문제">
+5개 중 4개에서 병합셀이 발생합니다. BMT 도면의 Inventor 출력 특성상 인접 행이 합쳐지는 패턴이 반복됩니다.
+**`split('\n')` 후처리는 필수**이며, 모든 VD 페이지에 공통 적용해야 합니다.
+DESCRIPTION/MATERIAL/Q'TY 값 자체는 전부 정확하게 추출됩니다.
+</Aside>
+
+### ITDRA (계장기기도) — pdfplumber 추출 성공
+
+ITDRA 페이지(16~22)는 `pdfplumber`로 테이블 추출에 성공했습니다.
+7페이지 전부에서 `Subject/Description` 사양 테이블과 `POS/DESCRIPTION` 부품 테이블을 확인했습니다.
+`Maker`, `Model` 같은 헤더 필드도 함께 추출됩니다.
+
+| 범위 | 페이지 | 추출 항목 | 결과 |
+|------|--------|-----------|------|
+| ITDRA-01~07 | 16~22 | `Subject/Description`, `Maker`, `Model`, `POS/DESCRIPTION` | ✅ 7/7 페이지 성공 |
+
+<Aside type="note" title="PyMuPDF 사용 위치">
+`PyMuPDF`는 `Doc No.`와 SN 확인, Balloon 번호 보조 추출, 텍스트 레이어 점검에 사용합니다.
+테이블 기준 추출은 `pdfplumber`가 담당합니다.
+</Aside>
+
+---
+
+## 매칭 방식
+
+### 케이스 1: 개별 밸브 — 직접 비교
+
+도면 PDF 부품리스트와 ERP BOM을 품번으로 직접 대조합니다.
+
+```
+도면 PDF (pdfplumber)     ERP BOM (엑셀)
+┌──────────────────┐     ┌──────────────────┐
+│ 항목 | 품번 | 수량 │     │ 순번 | 자품목 | 수량 │
+│  3   | BL-85| 1   │ ←→ │  3   | BL-85 | 1   │ ✅
+│  4   | BS-T1| 2   │  ✗  │  4   | BS-T4 | 2   │ ⚠️
+└──────────────────┘     └──────────────────┘
+```
+
+### 케이스 2: 스키드(GVU) — 3단계 매칭
+
+도면 TAG → 파트리스트 CODE → ERP BOM 자품목코드 순으로 매칭합니다.
+
+```
+도면 TAG "V01"
+  → 파트리스트 CODE "V01" / Drawing No. "FB2F29-R64A-..."
+    → ERP BOM 자품목 "FB2F29-R64A-..." / 수량 1EA
+```
+
+---
+
+## 도면 이미지 Balloon 교차검증
+
+벡터 PDF의 텍스트 레이어에서 좌표 기준으로 테이블 영역과 도면 이미지 영역을 분리합니다.
+테이블 영역 밖 숫자를 Balloon 번호로 보고, Description 테이블의 항목번호와 교차 대조합니다.
+
+### FB2FB6 (Page 1)
+
+- Balloon (이미지 영역): `[4, 7, 9, 10, 17, 18, 19, 20, 21, 24, 25, 28, 29, 30, 31, 32, 33]` — 17개
+- 테이블 항목번호: `[3, 4, 5, 6, 7, 9, 10, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]` — 27개
+- 일치: 17개
+- Image Only: 0개
+- Table Only: `[3, 5, 6, 14, 15, 16, 22, 23, 26, 27]` — 10개
+
+`Table Only` 10개는 조립 단면도에서 가려지거나 단면 바깥에 있는 부품입니다.
+어셈블리 단면도 특성상 정상 패턴입니다.
+
+### GVU 페이지별 결과
+
+| Page | Balloon | Table | Match | Image Only | Table Only | Status |
+|------|---------|-------|-------|------------|------------|--------|
+| 6 (V01) | 16개 | 29개 | 16 | 0 | 13 | REVIEW |
+| 7 (V03/V05) | 6개 | 22개 | 6 | 0 | 16 | REVIEW |
+| 8 (V04/V15) | 3개 | 14개 | 3 | 0 | 11 | REVIEW |
+| 9 (V08) | 1개 | 17개 | 1 | 0 | 16 | REVIEW |
+| 10 (V07/V14) | 10개 | 21개 | 10 | 0 | 11 | REVIEW |
+| 11 (V11-2) | 1개 | 20개 | 1 | 0 | 19 | REVIEW |
+| 12 (V11-1) | 6개 | 0개 | 0 | 6 | 0 | WARN |
+| 13 (V02) | 13개 | 19개 | 13 | 0 | 6 | REVIEW |
+
+`Table Only`가 많은 이유는 어셈블리 단면도 특성상 내부 부품이 시각적으로 가려지기 때문입니다.
+Page 12 (V11-1 체크밸브)는 `NO.` 컬럼이 없는 도면이라 `Table=0`, `Image Only=6`, 상태는 `WARN`입니다.
+`Image Only > 0`이면 도면에는 표기했지만 부품리스트에 누락된 항목일 수 있어 확인이 필요합니다.
+
+<Aside type="note" title="해석 가이드">
+- `Image Only > 0`: 도면에 Balloon이 있지만 Description 테이블에 해당 항목번호가 없습니다. 부품리스트 누락 가능성이 있습니다.
+- `Table Only > 0`: 테이블에 항목이 있지만 도면에 Balloon이 보이지 않습니다. 단면도 가림으로 정상일 수 있습니다.
+</Aside>
+
+---
+
+## POC 테스트 범위 & 현재 상태
+
+| 항목 | 상태 | 상세 |
+|------|------|------|
+| 1번 자료 (단품 밸브 FB2FB6) | ✅ 검증 완료 | 27개 부품 추출, 고객 7건 전부 검출 |
+| 2번 자료 (스키드 GVU) — VD 테이블 추출 | ✅ 추출 가능 확인 | 8페이지 151개 부품 (raw 143행 + 병합셀 split 8개) pdfplumber 추출 성공 |
+| 2번 자료 (스키드 GVU) — Balloon 교차검증 | ✅ 분석 결과 확보 | 8페이지 페이지별 Image/Table 비교 완료, Page 12는 `WARN` |
+| 2번 자료 — VD↔ERP 매칭 | 🔴 SN 불일치로 불가 | VD=SN2693, ERP=SN2709 (다른 호선) |
+| 2번 자료 — ITDRA 테이블 추출 | ✅ 추출 가능 확인 | 7페이지 전부 `Subject/Description`, `POS/DESCRIPTION` 추출 성공 |
+| 2번 자료 텍스트 레이어 | ✅ 확인됨 | `PyMuPDF`로 전 22페이지 텍스트 추출, SN/Balloon 보조 처리 가능 |
+
+---
+
+## 관련 문서
+
+- [프로젝트 개요](./) — BMT 프로젝트 전체 요약
+- [자료 분석](./data-analysis) — 수령 자료 구성
+- [데이터 검증 이슈](./verification-issues) — SN 불일치 상세

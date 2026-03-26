@@ -1,0 +1,6 @@
+path: /home/uproot/ax/poc/apply-company/BMT/yolo_drawing_block
+train: images/train
+val: images/val
+
+names:
+  0: drawing_block

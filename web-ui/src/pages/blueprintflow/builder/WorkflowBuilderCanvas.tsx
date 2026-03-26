@@ -233,7 +233,7 @@ export function WorkflowBuilderCanvas() {
       />
 
       {/* Main Canvas */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <BuilderToolbar
           workflowName={workflowName}
           nodes={nodes}

@@ -1,0 +1,148 @@
+---
+title: S06 — BlueprintFlow 템플릿
+description: BMT TAG 추출 파이프라인을 BlueprintFlow 빌더에 템플릿으로 등록
+tags: [고객사례, BMT, BlueprintFlow, 템플릿]
+sidebar_position: 13
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+
+> S01~S04에서 검증된 파이프라인을 BlueprintFlow 빌더에 **"BMT GVU: GAR 배치도 TAG 추출"** 템플릿으로 등록한 결과입니다.
+
+---
+
+## BlueprintFlow 템플릿 UI
+
+### 템플릿 카드 (BMT 탭)
+
+![BMT 템플릿 카드](/images/bmt/s06-bmt-template-card.png)
+
+`:5173/blueprintflow/templates` → 🔧 BMT 탭에서 "BMT GVU: GAR 배치도 TAG 추출" 템플릿이 표시됩니다.
+
+### 빌더 캔버스 (노드 배치)
+
+![BMT 파이프라인 빌더](/images/bmt/s06-bmt-builder-canvas.png)
+
+"Use Template" 클릭 시 7개 노드가 캔버스에 자동 배치됩니다. 좌측에서 우측으로 데이터가 흐릅니다.
+
+---
+
+## 템플릿 개요
+
+| 항목 | 값 |
+|------|---|
+| 이름 | BMT GVU: GAR 배치도 TAG 추출 + BOM 누락 확인 |
+| 카테고리 | 🔧 BMT |
+| 정확도 | 95.8% (S02 뷰별 분리 기준) |
+| 처리 시간 | 10~20초 (추정) |
+| 노드 수 | 7개 |
+| 접근 | `:5173/blueprintflow/builder` → BMT 탭 |
+
+---
+
+## 파이프라인 구조
+
+<FlowDiagram client:load
+  direction="LR"
+  title="BMT TAG 추출 파이프라인 (7노드)"
+  nodes={[
+    { id: 'input', label: '① ImageInput\nGAR 배치도\n(래스터 이미지)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'split', label: '② View Splitter\n5개 뷰로 분리\nBottom/Front/Right/A', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'ocr', label: '③ PaddleOCR\n뷰별 OCR 실행\n(batch mode)', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'filter', label: '④ TAG Filter\n알파벳 규칙\n39개→24개', color: '#6a1b9a', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 'lookup', label: '⑤ Excel Lookup\nPart List 조회\nTAG→품목코드', color: '#00695c', bg: '#e0f2f1', shape: 'rounded' },
+    { id: 'check', label: '⑥ BOM Check\nERP BOM 존재확인\n누락 검출', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'report', label: '⑦ Report\n누락 리포트\n(XLSX 출력)', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'input', to: 'split' },
+    { from: 'split', to: 'ocr' },
+    { from: 'ocr', to: 'filter' },
+    { from: 'filter', to: 'check' },
+    { from: 'lookup', to: 'check' },
+    { from: 'check', to: 'report' },
+  ]}
+  layers={[['input'], ['split'], ['ocr'], ['filter', 'lookup'], ['check'], ['report']]}
+/>
+
+---
+
+## 노드 상세
+
+### ① ImageInput — GAR 배치도 입력
+
+입력: GAR 배치도 이미지 (래스터 PNG/JPG)
+
+### ② View Splitter — 5개 뷰 영역 분리
+
+S02에서 검증된 크롭 좌표 사용:
+
+| 뷰 | 좌표 (비율) | 검출 TAG 수 |
+|----|-----------|------------|
+| Bottom View | `[0, 0, 0.50, 0.45]` | 5개 |
+| Front View 상단 | `[0.40, 0, 1.0, 0.40]` | 2개 |
+| Front View 하단 | `[0.10, 0.62, 0.65, 0.88]` | 9개 |
+| Bottom 중앙 | `[0.30, 0.75, 0.75, 0.98]` | 5개 |
+| Right/A View | `[0.30, 0.30, 1.0, 0.70]` | 2개 |
+
+### ③ PaddleOCR — 뷰별 OCR
+
+각 크롭에 PaddleOCR(영어 모드) 실행. S01에서 7개 엔진 중 1위.
+
+### ④ TAG Filter — 알파벳 규칙
+
+S03에서 검증된 필터링 규칙 적용. 39개 raw → 24개 TAG.
+
+### ⑤ Excel Lookup — Part List 조회
+
+Part List 엑셀에서 TAG → 품목코드 변환:
+- VALVE LIST: B열(TAG) → Y열(ERP CODE)
+- SENSOR LIST: B열(Instrument Code) → M열(품목코드)
+
+### ⑥ BOM Check — ERP BOM 누락 확인
+
+ERP BOM 엑셀의 C열(자품목)에 해당 코드가 존재하는지 검색.
+
+### ⑦ Report — 누락 리포트
+
+3개 시트 XLSX 출력: Summary / TAG Details / Mismatches
+
+---
+
+## 구현 파일
+
+| 파일 | 역할 |
+|------|------|
+| `templates.bmt.ts` | 템플릿 정의 (노드/엣지/파라미터) |
+| `templateDefinitions.ts` | barrel import에 bmtTemplates 추가 |
+| `types.ts` | `'bmt'` 카테고리 추가 |
+| `BlueprintFlowTemplates.tsx` | BMT 탭 (🔧) 추가 |
+| `ko.json` / `en.json` | i18n 키 추가 |
+
+TypeScript 빌드 에러: **0건**
+
+---
+
+## 현재 한계 및 후속 작업
+
+<Aside type="caution" title="executor 미구현">
+현재 템플릿은 노드 배치와 파라미터만 정의되어 있습니다.
+실제 실행하려면 gateway-api에 다음 executor가 필요합니다:
+
+- `view_splitter_executor` — 이미지를 5개 뷰로 크롭
+- `tag_filter_executor` — OCR 결과에서 TAG만 필터링
+- `excel_lookup_executor` — Part List 엑셀 조회
+- `bom_check_executor` — ERP BOM 존재 확인
+
+이것은 후속 Epic(E11)에서 구현할 예정입니다.
+</Aside>
+
+---
+
+## 관련 문서
+
+- [S01 — OCR 벤치마크](./s01-ocr-benchmark) — 7개 엔진 비교
+- [S02 — 뷰별 분리](./s02-view-segmentation) — 41.7%→95.8% 개선
+- [S03+S04 — BOM 매칭](./s03-s04-bom-matching) — 불일치 3건 검출
+- [S05 — Claude Vision GT](./s05-vlm-gt) — 24개 TAG Ground Truth

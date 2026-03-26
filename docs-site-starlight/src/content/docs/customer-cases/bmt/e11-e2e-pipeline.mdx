@@ -1,0 +1,161 @@
+---
+title: E11 — End-to-End 파이프라인
+description: 이미지 1장 → TAG 추출 → BOM 누락 확인 → Excel 리포트 자동 생성
+tags: [고객사례, BMT, E2E, 파이프라인]
+sidebar_position: 17
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+
+> 이미지 1장을 입력하면 BOM 누락 리포트(Excel)가 자동 생성되는 End-to-End 파이프라인입니다.
+
+---
+
+## 실행 방법
+
+```bash
+python3 samples/bmt_e2e_pipeline.py
+```
+
+입력 3개:
+- GAR 배치도 이미지 (PNG)
+- Part List 엑셀 (`W5XGVU-SN2709-PLRA_Part List.xlsx`)
+- ERP BOM 엑셀 (`W5XHEGVU-SN2709-DNV.xlsx`)
+
+출력 1개:
+- BOM 누락 리포트 (`bmt_report.xlsx`)
+
+---
+
+## 6단계 파이프라인
+
+<FlowDiagram client:load
+  direction="TB"
+  title="E2E Pipeline: 이미지 → 리포트"
+  nodes={[
+    { id: 's1', label: '1. 뷰 라벨 검출\nPaddleOCR → VIEW 텍스트\n6개 자동 검출', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 's2', label: '2. Min-Content 크롭\n인접 VIEW 사이\n콘텐츠 최소점 = 경계\n→ 9개 크롭', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 's3', label: '3. OCR + TAG 추출\nPaddleOCR + Tesseract\n+ fuzzy 교정(Z→7)\n→ 25개 TAG', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 's4', label: '4. Part List 매핑\nTAG → 품목코드\nVALVE LIST + SENSOR LIST\n→ 38개 매핑', color: '#00695c', bg: '#e0f2f1', shape: 'rounded' },
+    { id: 's5', label: '5. ERP BOM 확인\n품목코드 존재 여부\n.1 레벨 62개 대조', color: '#6a1b9a', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 's6', label: '6. 리포트 생성\nExcel (Summary + Details)\n✅ 19 매칭 / ❌ 3 불일치', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 's1', to: 's2' },
+    { from: 's2', to: 's3' },
+    { from: 's3', to: 's4' },
+    { from: 's4', to: 's5' },
+    { from: 's5', to: 's6' },
+  ]}
+  layers={[['s1'], ['s2'], ['s3'], ['s4'], ['s5'], ['s6']]}
+/>
+
+---
+
+## 실행 결과
+
+```
+1/6 뷰 라벨 검출...
+2/6 Min-Content 크롭... 9개 크롭
+3/6 OCR + TAG 추출...   25개 TAG
+4/6 Part List 매핑...   38개 매핑
+5/6 ERP BOM 확인...     62개 품목
+6/6 리포트 생성...      bmt_report.xlsx
+
+=== 결과 ===
+TAG 검출: 25개
+BOM 매칭: 19건 ✅
+BOM 불일치: 3건 ❌ → B02, PI02, V06
+Part List 미매핑: 3건 ❓ → V05, V07, V14-1
+```
+
+### 불일치 3건 상세
+
+| TAG | Part List 코드 | ERP BOM | 불일치 유형 |
+|-----|---------------|---------|-----------|
+| **V06** | `GPCV-RDN50PN16-VARIBELL` | `GPCV-RDN50PN16-**DNV**-VARIBELL` | 선급코드 `-DNV` 누락 |
+| **PI02** | `PI-DH-MAX**331**` | `PI-DH-MAX**311**` | 모델번호 오타 (331↔311) |
+| **B02** | "Structure 견적에 포함" | 별도 항목 없음 | BOM 미등록 |
+
+### 미매핑 3건
+
+| TAG | 이유 |
+|-----|------|
+| V05 | VALVE LIST에서 V03 참조행 (동일 사양) |
+| V07 | VALVE LIST에서 V14 참조행 (동일 사양) |
+| V14-1 | OCR false positive (V14 + -1 합쳐 읽음) |
+
+---
+
+## 리포트 Excel 구조
+
+### Summary 시트
+
+| 항목 | 값 |
+|------|---|
+| TAG 검출 | 25개 |
+| BOM 매칭 성공 | 19건 |
+| BOM 불일치/누락 | 6건 |
+
+### Details 시트
+
+| TAG | Part List 코드 | ERP BOM | 결과 |
+|-----|---------------|---------|------|
+| B01 | FT-GVU-64-DNV-TY | 있음 | ✅ 매칭 |
+| B02 | Structure 견적에 포함 | 없음 | ❌ 불일치 |
+| ... | ... | ... | ... |
+| V15 | SWB3202-S12M-P1-HKC-DNV | 있음 | ✅ 매칭 |
+
+색상: 녹색 = 매칭, 빨강 = 불일치, 노랑 = 미매핑
+
+---
+
+## 코드
+
+`apply-company/BMT/samples/bmt_e2e_pipeline.py` — 150줄
+
+주요 함수:
+- `detect_view_labels()` — PaddleOCR VIEW 텍스트 검출
+- `min_content_split()` — Min-Content 경계 크롭
+- `extract_tags_from_crops()` — OCR + TAG 필터 + fuzzy 교정
+- `read_part_list()` — Part List 엑셀 TAG→코드 매핑
+- `read_erp_bom()` — ERP BOM .1 레벨 코드 목록
+- `generate_report()` — Excel 리포트 생성
+- `run_pipeline()` — 6단계 통합 실행
+
+---
+
+## BlueprintFlow Executor 구현 (S05 완료)
+
+gateway-api에 BMT 전용 executor 4개가 구현되었습니다.
+
+| Executor | 파일 | 역할 |
+|----------|------|------|
+| `view_splitter` | `view_splitter_executor.py` | PaddleOCR VIEW 라벨 → Min-Content 경계 → 9개 크롭 |
+| `tag_filter` | `tag_filter_executor.py` | PaddleOCR+Tesseract → TAG 패턴 필터 + fuzzy 교정(Z→7) |
+| `excel_lookup` | `excel_lookup_executor.py` | Part List 엑셀 TAG→품목코드 매핑 |
+| `bom_check` | `bom_check_executor.py` | ERP BOM .1레벨 대조 → 매칭/불일치/미매핑 |
+
+위치: `gateway-api/blueprintflow/executors/`
+
+빌더에서 BMT 템플릿 로드 → 실행 시 이 executor가 호출됩니다.
+
+---
+
+## 5173 프로젝트
+
+| 항목 | 값 |
+|------|---|
+| 프로젝트 | BMT — 도면 & BOM AI검증 (c01db741) |
+| 세션 | GAR 배치도 (SN2709) + BMT 워크플로우 템플릿 |
+| 이미지 | GAR 3페이지 (1684x2382px) |
+| 접근 | `:5173/project` → BMT 프로젝트 |
+
+---
+
+## 관련 문서
+
+- [E11 — Min-Content 경계](./e11-mincontent) — 크롭 알고리즘 상세
+- [S03+S04 — BOM 매칭](./s03-s04-bom-matching) — TAG→Part List→ERP 추적 상세
+- [실데이터 대조 분석](./call-analysis-detail) — 통화 내용 + 데이터 교차검증

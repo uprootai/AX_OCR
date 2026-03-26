@@ -1,0 +1,317 @@
+---
+title: 2차 통화 — 실데이터 대조 분석
+description: 통화 내용을 실제 파일과 하나하나 대조한 상세 분석
+tags: [고객사례, BMT, 통화, 데이터분석]
+sidebar_position: 8
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+
+> 2026-03-25 통화 내용을 실제 파일(PDF, 엑셀)과 직접 대조하여 검증한 결과입니다.
+
+---
+
+## 결정적 발견: Page 3은 순수 이미지
+
+<Aside type="danger" title="pdfplumber 사용 불가 — OCR/비전 AI 필수">
+GAR 배치도 3페이지를 `PyMuPDF`로 분석한 결과, **텍스트 레이어가 없는 순수 래스터 이미지**입니다.
+pdfplumber로는 아무것도 추출할 수 없습니다. TAG 추출에 **OCR 또는 비전 AI가 반드시 필요**합니다.
+
+이전 분석에서 "벡터 PDF라서 pdfplumber로 100% 추출"이라고 했지만, 그건 VD 상세도면(4~13페이지) 이야기였습니다.
+고객이 핵심이라고 말한 3페이지는 **이미지**입니다.
+</Aside>
+
+| 페이지 | 형태 | 텍스트 레이어 | pdfplumber | 비고 |
+|--------|------|-------------|-----------|------|
+| 1~2 | 벡터 | ✅ 있음 | ✅ 가능 | GAR 표지/범례 |
+| **3 (핵심)** | **래스터 이미지** | **❌ 없음** | **❌ 불가** | **GAR 배치도 — 고객이 "이거만 보면 된다"** |
+| 4~13 | 벡터 | ✅ 있음 | ✅ 가능 | VD 상세도면 (이전 분석 대상, 핵심 아님) |
+| 14~22 | 벡터 | ✅ 있음 | ✅ 가능 | ITDRA 계장기기도 |
+
+---
+
+## 통화 내용 — 실제 데이터와 1:1 대조
+
+### 📞 "세 번째 장인가 보면 조명 같은 거 있잖아요. 얘가 핵심이거든요"
+
+**실제 확인**: 2번 PDF (`W5XGVU-SN2709-GARRB.pdf`) 3페이지
+
+![GAR 배치도](/images/bmt/gar-layout.png)
+
+이 이미지에 TAG 라벨(PT07, TT01, V15, V04, FT01 등)이 여러 뷰(Top View, Front View, Right View)에 흩어져 있습니다.
+텍스트 레이어가 없으므로 **이미지 인식으로만 추출 가능**합니다.
+
+---
+
+### 📞 "여기 PT07 TT01 V15 V04 이런 게 각 부속들이에요"
+
+**실제 확인**: VD/ITDRA 페이지에서 추출한 TAG 목록 (3페이지 이미지에서는 추출 불가이므로 다른 페이지에서 확인)
+
+| 분류 | TAG | 출처 페이지 |
+|------|-----|-----------|
+| 밸브 | V01, V02, V03, V04, V05, V06, V07, V08, V09, V11-1, V11-2, V14, V15 | VD (6~13) |
+| 압력센서 | PT01, PT03, PT04, PT05, PT06, PT07 | ITDRA (16~22) |
+| 온도센서 | TT01 | ITDRA (16) |
+| 유량계 | FT01 | ITDRA (22) |
+| 리미트스위치 | GSO/GSC-V02~V15 | ITDRA (20~21) |
+| 필터 | B01, B02, B03 | VD/Part List |
+| 오리피스 | ORI | Part List |
+| 압력지시계 | PI02 | Part List |
+
+---
+
+### 📞 "엑셀 파일이 그거의 상세인 거예요... 파트리스트 SN2709-PLRA"
+
+**실제 확인**: `W5XGVU-SN2709-PLRA_Part List.xlsx` — 6개 시트
+
+| 시트 | 행 수 | 역할 |
+|------|------|------|
+| **VALVE LIST** | 75행 | 밸브 TAG → Drawing No. → BMT 품목코드 |
+| **SENSOR LIST** | 74행 | 센서/액추에이터 TAG → Maker/Model → BMT 품목코드 |
+| **Fitting List** | 30행 | 피팅 코드 → 수량 |
+| Sheet1 | 0행 | 빈 시트 |
+| 표제란 | 9행 | SN2711 참조 (다른 호선 템플릿 잔존) |
+| Technical sheet | 132행 | 설계 사양 (압력, 온도 등) |
+
+---
+
+### 📞 "여기 잘 찾아보시면 인스트루먼트 코드에 PT01 FT03 이렇게 돼 있잖아요... 얘가 실제 파트넘버가 뭐다"
+
+**실제 확인 — SENSOR LIST 시트에서 TAG → 품목코드 매핑:**
+
+| 행 | TAG (Instrument Code) | Maker | Model | BMT 품목코드 (노란색) |
+|----|----------------------|-------|-------|---------------------|
+| 32 | PT01 | Danfoss | MBS 4201 | `PT-MBS4201-4308G-DANFOSS` |
+| 33 | PT03 | Danfoss | MBS 4201 | `PT-MBS4201-4308G-DANFOSS` |
+| 34 | PT04 | Danfoss | MBS 4201 | `PT-MBS4201-4308G-DANFOSS` |
+| 35 | PT05 | Danfoss | MBS 3300 | `PT-MBS3300-1472G-DANFOSS` |
+| 36 | PT06 | Danfoss | MBS 3300 | `PT-MBS3300-1470G-DANFOSS` |
+| 37 | PT07 | ANALYSIS Ltd | - | `PT-PTEX1-ANALYSIS` |
+| 38 | PI02 | DAEHAN | MAX331 | `PI-DH-MAX331` |
+| 39 | TT01 | Danfoss | MBT 5252 | `TT-MBT5252-9110-DANFOSS` |
+
+---
+
+### 📞 "실제 우리 쪽의 품목코드는 오른쪽에 노란색으로 칠해진 게 있잖아요"
+
+**실제 확인**: 엑셀 M열에 **노란색 배경(#FFFFFF00)**으로 칠해진 셀이 BMT의 ERP 품목코드입니다.
+
+**VALVE LIST에서도 동일 구조** — Y열에 노란색으로 ERP 품목코드:
+
+| TAG | Type | BMT 품목코드 (노란색) |
+|-----|------|---------------------|
+| V01 | Ball Valve | `FB2F29-R64A-A111-36L-EXT-GVU-DNV` |
+| B01 | Filter | `FT-GVU-64-DNV-TY` |
+| V03/V05 | DBB Valve | `DB219-R64A-P111-36L-GVU-DNV` |
+| V04/V15 | Ball Valve | `SWB3202-S12M-P1-HKC-DNV` |
+| FT01 | Flow Meter | `FM-GVU-HANHWA` |
+| V06 | Gas Control Valve | `GPCV-RDN50PN16-VARIBELL` |
+| V08 | Ball Valve | `SBV220-S12-CE-DNV` |
+| V14/V07 | DBB Valve | `DB212-R12A-P111-36L-GVU-DNV` |
+| V11-2 | Ball Valve | `FB2F22-R12A-A101-36L-DNV` |
+| V11-1 | Pan Check Valve | `FPCAWRF-12-36L-SKID-DNV` |
+| V02 | Ball Valve | `FB2F23-R16A-P010-36L-DNV` |
+| B03 | Filter | `FT-GVU-12-DNV-TY` |
+| V09 | Ball Valve | `SBV210-S12M-BH` |
+
+---
+
+### 📞 "그럼 BOM에서 맞아 얘가 BOM에 있네. 그럼 얘는 누락되지 않았네"
+
+**실제 확인 — ERP BOM (`W5XHEGVU-SN2709-DNV.xlsx`)과 대조:**
+
+전체 TAG → Part List → ERP BOM 추적 결과:
+
+| TAG | Part List 품목코드 | ERP BOM 자품목(C열) | 일치? | 비고 |
+|-----|-------------------|-------------------|------|------|
+| V01 | `FB2F29-R64A-A111-36L-EXT-GVU-DNV` | `FB2F29-R64A-A111-36L-EXT-GVU-DNV` | ✅ exact | |
+| V02 | `FB2F23-R16A-P010-36L-DNV` | `FB2F23-R16A-P010-36L-DNV` | ✅ exact | |
+| V03/V05 | `DB219-R64A-P111-36L-GVU-DNV` | `DB219-R64A-P111-36L-GVU-DNV` | ✅ exact | |
+| V04/V15 | `SWB3202-S12M-P1-HKC-DNV` | `SWB3202-S12M-P1-HKC-DNV` | ✅ exact | |
+| **V06** | `GPCV-RDN50PN16-VARIBELL` | `GPCV-RDN50PN16-DNV-VARIBELL` | **⚠️ 불일치** | Part List에 `-DNV` 누락 |
+| V07/V14 | `DB212-R12A-P111-36L-GVU-DNV` | `DB212-R12A-P111-36L-GVU-DNV` | ✅ exact | |
+| V08 | `SBV220-S12-CE-DNV` | `SBV220-S12-CE-DNV` | ✅ exact | |
+| V09 | `SBV210-S12M-BH` | `SBV210-S12M-BH` | ✅ exact | |
+| V11-1 | `FPCAWRF-12-36L-SKID-DNV` | `FPCAWRF-12-36L-SKID-DNV` | ✅ exact | |
+| V11-2 | `FB2F22-R12A-A101-36L-DNV` | `FB2F22-R12A-A101-36L-DNV` | ✅ exact | |
+| B01 | `FT-GVU-64-DNV-TY` | `FT-GVU-64-DNV-TY` | ✅ exact | |
+| B03 | `FT-GVU-12-DNV-TY` | `FT-GVU-12-DNV-TY` | ✅ exact | |
+| FT01 | `FM-GVU-HANHWA` | `FM-GVU-HANHWA` | ✅ exact | |
+| PT01 | `PT-MBS4201-4308G-DANFOSS` | `PT-MBS4201-4308G-DANFOSS` | ✅ exact | |
+| PT05 | `PT-MBS3300-1472G-DANFOSS` | `PT-MBS3300-1472G-DANFOSS` | ✅ exact | |
+| PT06 | `PT-MBS3300-1470G-DANFOSS` | `PT-MBS3300-1470G-DANFOSS` | ✅ exact | |
+| **PI02** | `PI-DH-MAX331` | `PI-DH-MAX311` | **⚠️ 불일치** | 331 vs 311 (오타 추정) |
+| TT01 | `TT-MBT5252-9110-DANFOSS` | `TT-MBT5252-9110-DANFOSS` | ✅ exact | |
+| **ORI** | Part List에 있음 | ERP에 별도 항목 없음 | **❓ 확인 필요** | Structure에 포함? |
+| **B02** | Part List에 있음 | ERP에 별도 항목 없음 | **❓ 확인 필요** | Structure에 포함? |
+
+**종합: 20개 TAG 중 17개 exact match, 2개 불일치, 2개 미확인**
+
+---
+
+### 📞 "코드만 일치하는지 여부만 보면 되는 거예요. 인치나 이런 게 필요한 게 아니고"
+
+**실제 확인**: 이것이 의미하는 바:
+
+| 비교 방식 | 필요? | 근거 |
+|----------|------|------|
+| TAG → 품목코드 → BOM 존재 여부 | ✅ **핵심** | "구성품들이 제대로 BOM에 들어갔냐 안 들어갔냐" |
+| 재질 비교 (A182-F316L 등) | ❌ 불필요 | "코드가 그런 걸 다 담고 있거든요" |
+| 치수 비교 (2170mm 등) | ❌ 불필요 | "몸통에서의 인치는 전혀 필요가 없고" |
+| 개별 부품 비교 (Body, O-Ring) | ❌ 불필요 | 배치도 TAG 단위가 핵심 |
+
+<Aside type="note" title="치수에 대한 뉘앙스">
+박순근 팀장님: "원래는 치수도 보면 좋아요. 8인치 쓸 거를 6인치라고 넣을 수도 있고. 그런데 그것까지 될지는 의문이긴 해요."
+
+→ 치수 검증은 **nice-to-have**이지 필수가 아닙니다. 1차 과제 범위에서는 제외하되, 향후 확장 가능성은 열어둡니다.
+</Aside>
+
+---
+
+### 📞 "1번이랑 전혀 상관 없다... PDF 3번만 보시면 돼요"
+
+**실제 확인**:
+
+| 자료 | 제품 코드 | 사이즈 | 용도 | 관계 |
+|------|----------|--------|------|------|
+| 1번 FB2FB6 | FB2F**B6**-32A | 1인치 | 단품 납품용 (KGS) | **별개 제품** |
+| 2번 GVU V01 | FB2F**29**-R64A | 4인치 | GVU 스키드 내장 (DNV) | **별개 제품** |
+
+1번 PDF의 부품(BL-85-6F 등)은 2번 GVU 어디에도 없습니다. 별도 샘플일 뿐입니다.
+
+---
+
+### 📞 "실제로는 나중에 이렇게 안 되고 도면 하나만 들어가 있겠죠"
+
+**의미**: 현재 22페이지 합본 PDF는 샘플용이고, 실제 운영 시에는:
+- GAR 배치도 1장 (또는 관련 도면만)
+- Part List 엑셀
+- ERP BOM 엑셀
+
+이 3개가 입력으로 들어올 것입니다.
+
+---
+
+### 📞 "AI 툴이 알아서 프론트 뷰에 있는 거는 이 에리어에 이게 프론트 뷰구나 하고 캐치하면 되는 거 아니에요"
+
+**실제 확인**: GAR 배치도에는 여러 뷰가 있습니다:
+- Top View (위에서 본 모습)
+- Front View (앞에서 본 모습)
+- A View / Right View / Bottom View
+
+각 뷰에 TAG가 흩어져 있고, **뷰 레이아웃이 매번 고정되지 않습니다** (팀장님: "맵으로 잡으면 안 돼요. 매번 딱 저기 탑뷰가 있는 게 아니라").
+
+이것이 **AI R&D가 필요한 핵심 이유**입니다:
+1. 이미지에서 TAG 텍스트 인식 (OCR)
+2. 뷰 영역 자동 분류 (레이아웃 분석)
+3. TAG와 치수 구분 (알파벳 시작 = TAG, 숫자만 = 치수)
+
+---
+
+## 실제 파이프라인 (데이터 검증 완료)
+
+<FlowDiagram client:load
+  direction="TB"
+  title="데이터 검증 완료된 실제 파이프라인"
+  nodes={[
+    { id: 'input', label: '입력 3개\n① GAR 배치도 (이미지)\n② Part List 엑셀 (6시트)\n③ ERP BOM 엑셀', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'step1', label: '1단계: TAG 추출\nGAR 이미지에서\nV01, PT01, FT01 등\n→ OCR/비전 AI 필수\n(텍스트 레이어 없음!)', color: '#c62828', bg: '#ffebee', shape: 'rounded' },
+    { id: 'step2', label: '2단계: TAG → 품목코드\nPart List 엑셀 참조\nV01 → FB2F29-R64A...\nPT01 → PT-MBS4201...\n(노란색 셀 = BMT 코드)', color: '#00695c', bg: '#e0f2f1', shape: 'rounded' },
+    { id: 'step3', label: '3단계: BOM 누락 확인\nERP BOM에 해당 코드\n존재하는지 검색\n→ 있으면 OK\n→ 없으면 누락 리포트', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'result', label: '검증 결과 (실데이터)\n✅ 17개 exact match\n⚠️ 2개 불일치\n  V06: -DNV 누락\n  PI02: 331↔311\n❓ 2개 미확인\n  ORI, B02', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'input', to: 'step1' },
+    { from: 'step1', to: 'step2' },
+    { from: 'step2', to: 'step3' },
+    { from: 'step3', to: 'result' },
+  ]}
+  layers={[['input'], ['step1'], ['step2'], ['step3'], ['result']]}
+/>
+
+---
+
+## 발견된 실제 불일치 (자동 검출 가능)
+
+Part List ↔ ERP BOM 간 실제 불일치가 **이미 존재**합니다. 이것이 고객이 찾고 싶어하는 것입니다.
+
+| # | TAG | Part List 코드 | ERP BOM 코드 | 불일치 유형 |
+|---|-----|---------------|-------------|-----------|
+| 1 | **V06** | `GPCV-RDN50PN16-VARIBELL` | `GPCV-RDN50PN16-**DNV**-VARIBELL` | 선급코드(`-DNV`) 누락 |
+| 2 | **PI02** | `PI-DH-MAX**331**` | `PI-DH-MAX**311**` | 모델번호 오타 (331↔311) |
+| 3 | **Double Wall Flange** | `*-**34L**-DNV` | `*-**36L**-DNV` | 길이 코드 불일치 (34L↔36L) |
+| 4 | **Limit Switch** | VAA-L-* (조달코드) | LS-F25-* (Maker 코드) | 코드 체계 완전 상이 |
+
+<Aside type="tip" title="이것이 고객이 실제로 찾고 싶은 것">
+위 4건 같은 **코드 불일치**가 바로 "BOM에 등록된 게 누락된 게 있나 없나를 찾는" 과정에서 발견되는 것입니다.
+V06의 `-DNV` 누락이나 PI02의 331↔311 같은 건 **실제 에러일 가능성**이 높습니다.
+</Aside>
+
+---
+
+## TAG 구분법 — 통화에서 확인
+
+박순근 팀장님: "V나 P나 T나 F나 이렇게 시작하는 거는 약어인 거예요"
+
+| 접두사 | 의미 | 예시 |
+|--------|------|------|
+| **V** | Valve | V01, V02, V03... |
+| **PT** | Pressure Transmitter | PT01, PT03... |
+| **TT** | Temperature Transmitter | TT01 |
+| **FT** | Flow Transmitter | FT01 |
+| **PI** | Pressure Indicator | PI02 |
+| **B** | Filter/Breather | B01, B02, B03 |
+| **GSO/GSC** | Limit Switch (Open/Close) | GSO-V02, GSC-V03 |
+| **CV** | Solenoid Valve | CV-V02, CV-V03 |
+| **ORI** | Orifice | ORI |
+| (숫자만) | 치수 — **무시** | 2170, 1450 등 |
+
+---
+
+## 기술 요구사항 정리
+
+| 단계 | 기술 | 난이도 | R&D 여부 |
+|------|------|--------|---------|
+| TAG 추출 (GAR 이미지) | OCR + 좌표 기반 텍스트 인식 | **높음** — 래스터 이미지, 다중 뷰, 회전 텍스트 | ✅ **R&D 필요** |
+| TAG vs 치수 구분 | 규칙 기반 (알파벳 시작 = TAG) | 낮음 | ❌ |
+| Part List 파싱 | zipfile + xml (기존 파서) | 낮음 | ❌ |
+| 코드 매칭 | exact match + fuzzy | 낮음 | ❌ |
+| 뷰 영역 자동 분류 | 이미지 레이아웃 분석 | **높음** — 매번 레이아웃 다름 | ✅ **R&D 필요** |
+| 누락 리포트 생성 | openpyxl (기존 리포터) | 낮음 | ❌ |
+
+---
+
+## 이전 분석 중 재활용 가능한 것
+
+| 이전 작업 | 재활용? | 이유 |
+|----------|---------|------|
+| Part List 엑셀 파서 | ✅ **그대로 사용** | TAG → 품목코드 변환에 필수 |
+| ERP BOM 엑셀 파서 | ✅ **그대로 사용** | 품목코드 존재 확인에 필수 |
+| SN 자동 검증 | ⚠️ 축소 | VD 비교가 핵심이 아니므로 우선순위 하락, 하지만 데이터 정합성 체크로 유용 |
+| 코드 매칭 로직 (exact/prefix/fuzzy) | ✅ **그대로 사용** | Part List ↔ ERP BOM 비교에 사용 |
+| Balloon 교차검증 | ❌ 불필요 | 배치도 TAG가 핵심 |
+| VD 테이블 추출 (pdfplumber) | ❌ 핵심 아님 | 참조용으로만 유지 |
+| 재질 비교 분석 | ❌ 불필요 | "코드만 보면 된다" |
+| 동의어 사전 (ANSI↔HB) | ❌ 불필요 | FB2FB6 전용, GVU와 무관 |
+| Excel 리포트 생성 | ✅ **그대로 사용** | 누락 리포트 출력 |
+
+---
+
+## 다음 단계
+
+| 우선순위 | 내용 | 상태 |
+|---------|------|------|
+| 1 | **GAR 3페이지 이미지에서 TAG 추출 실험** (OCR/비전 AI) | ⬜ 미착수 |
+| 2 | Part List ↔ ERP BOM 코드 매칭 자동화 (이미 데이터 확보) | ⬜ 미착수 |
+| 3 | 불일치 4건 (V06, PI02, DWF, LS) 리포트 자동 생성 | ⬜ 미착수 |
+| 4 | 뷰 영역 자동 분류 가능성 실험 | ⬜ 미착수 |
+| 5 | AI 바우처 사업계획서 — "이미지 기반 TAG 인식" R&D로 방향 전환 | 🔴 03-28 마감 |
+
+---
+
+## 관련 문서
+
+- [2차 통화 분석 (03-25)](./call-20250325) — 정오표, R&D 판단 전환
+- [고객 확인 현황](./customer-confirmations) — 1차 질문/답변 (일부 무효화)
+- [프로젝트 개요](./) — 수정 필요

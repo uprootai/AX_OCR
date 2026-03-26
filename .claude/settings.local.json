@@ -1,5 +1,19 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read(//home/uproot/.claude/**)",
+      "Bash(bun --version)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "repomix",
+    "sequential-thinking",
+    "context7",
+    "playwright",
+    "majin-slide"
+  ],
   "hooks": {
     "SessionStart": [
       {
@@ -88,13 +102,5 @@
         ]
       }
     ]
-  },
-  "enabledMcpjsonServers": [
-    "repomix",
-    "sequential-thinking",
-    "context7",
-    "playwright",
-    "majin-slide"
-  ],
-  "enableAllProjectMcpServers": true
+  }
 }

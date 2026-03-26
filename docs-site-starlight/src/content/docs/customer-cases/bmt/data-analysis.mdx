@@ -1,0 +1,256 @@
+---
+title: 자료 분석
+description: BMT 수령 자료 구성, SN 불일치, 파일 해시 검증
+tags: [고객사례, BMT, 자료분석]
+sidebar_position: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+> BMT에서 수령한 도면/BOM 자료의 구성과 데이터 검증 결과를 정리합니다.
+
+---
+
+## 용어 안내
+
+| 용어 | 의미 |
+|------|------|
+| **SN (Serial Number)** | 호선번호 — 조선소에서 건조하는 선박 1척의 고유 ID. SN2709와 SN2693은 서로 다른 배 |
+| **GVU (Gas Valve Unit)** | 밸브 여러 개 + 센서 + 배관을 하나의 프레임에 조립한 시스템 (= 스키드) |
+| **GAR (General Arrangement)** | 스키드 전체 배치도. 밸브 위치(V01~V15)를 보여줌 |
+| **VD (Valve Drawing)** | 개별 밸브의 단면도 + 부품리스트(Description 테이블) |
+| **ITDRA (Instrument/Tubing Drawing)** | 계장기기(온도센서, 압력센서 등) 스펙 도면 |
+| **ERP BOM** | ERP 시스템에 등록된 공식 부품 목록 (자재 발주 기준) |
+| **Part List** | 설계 부서에서 관리하는 부품 목록 (도면 PDF 안에 포함되거나 별도 엑셀) |
+| **TAG** | 스키드 내 장비 위치 식별자 (예: V01 = 1번 밸브, PT01 = 1번 압력센서) |
+| **Balloon 번호** | 도면 이미지에 원형 말꼬리표로 표시된 부품 번호 |
+
+---
+
+## 수령 자료
+
+| 그룹 | 파일 | 유형 | 용도 |
+|------|------|------|------|
+| 1 | FB2FB6 도면.pdf (135KB) | 벡터 PDF, 단일 페이지 | 개별 밸브 조립도 |
+| 1 | FB2FB6 BOM.xlsx | 엑셀 | ERP BOM (계층구조 0/.1/..2) |
+| 1 | FB2FB6 BOM&파트리스트.xlsx | 엑셀 | 수동 비교 결과 (불일치 7건) |
+| 2 | W5XGVU-SN2709-GARRB.pdf (2.7MB) | 벡터 PDF, 22페이지 | 스키드 GAR + 밸브 상세도 + 계장기기도 |
+| 2 | W5XGVU-SN2709-PLRA.xlsx (4시트) | 엑셀 | 밸브/센서/피팅/기술사양 파트리스트 |
+| 2 | W5XHEGVU-SN2709-DNV.xlsx | 엑셀 | 스키드 ERP BOM (62품목) |
+| 3 | GVU_3D.pdf (362KB) | 3D 렌더링 | TAG 라벨 확인용 (참조) |
+
+---
+
+## 1번 자료: 개별 밸브 도면
+
+단품 밸브 FB2FB6의 조립도면입니다. 좌측에 기계 단면도, 우측에 부품리스트 테이블이 있습니다.
+
+![FB2FB6 도면 전체](/images/bmt/fb2fb6-full.png)
+
+- **형식**: Autodesk Inventor .idw → PDF 출력 (벡터, 텍스트 레이어 존재)
+- **부품**: 33개 항목번호 (실제 고유 부품 27개)
+- **추출 방법**: `pdfplumber` 테이블 자동 감지
+- **특이사항**: 항목 24~28이 셀 병합으로 묶여 있어 후처리 필요
+
+---
+
+## 2번 자료: 스키드(GVU) 도면 내부 구조
+
+22페이지 PDF에 3개 섹션이 합본되어 있습니다.
+
+### GAR 표지 (Page 1) — SN2709
+
+![GAR 표지 - SN2709](/images/bmt/gvu-cover-sn2709.png)
+
+**Doc No.: W5XGVU-SN2709-GAR** — 정상 시리얼 번호
+
+### GAR 배치도 (Page 3)
+
+스키드 전체 배치도로, 밸브 TAG 번호(V01~V15)와 계장기기가 표시됩니다.
+
+![GAR 배치도](/images/bmt/gar-layout.png)
+
+### VD 표지 (Page 4) — SN2693 (불일치!)
+
+![VD 표지 - SN2693](/images/bmt/vd-cover-sn2693.png)
+
+<Aside type="danger" title="CRITICAL: VD 도면 시리얼 불일치">
+밸브 상세도(VD) 표지의 DOC 번호가 **W5XGVU-SN2693-VD**입니다.
+나머지 전체 자료(GAR, ITDRA, Part List, ERP BOM)는 모두 **SN2709**입니다.
+다른 호선의 도면이 잘못 포함된 것으로 확인. SN2709용 VD 도면 재요청 완료 (2026-03-24).
+
+**단, 이 불일치로 막힌 것은 "스키드 내 개별 밸브 하위 부품 비교" 1가지뿐**입니다.
+스키드 1단계(TAG→Part List→ERP)와 ITDRA 비교는 모두 SN2709로 정상 테스트 가능하며,
+하위 부품 비교 로직 자체는 1번 자료(FB2FB6)에서 이미 검증 완료되었습니다.
+VD 재수령은 파이프라인 증명이 아니라 **SN2709의 실제 불일치 검출 결과**를 얻기 위해 필요합니다.
+</Aside>
+
+### VD-01 밸브 상세도 (Page 6) — Description 테이블
+
+![VD-01 전체](/images/bmt/vd01-full.png)
+
+도면 우측에 **Description 테이블**(NO./DESCRIPTION/MATERIAL/Q'TY)이 있습니다.
+이 테이블이 검증 기준(정답)입니다.
+
+![VD-01 Description 테이블 확대](/images/bmt/vd01-description-table.png)
+
+- 우측 하단 **DRAWING NO.**: `W5XGVU-SN2693-VD-01` (SN2693 확인)
+- **TAG NO.**: V01
+- **부품 수**: 30개 (raw 27행 + 병합셀 3행 split)
+- `pdfplumber`로 **100% 추출 성공** (5열: NO/DESCRIPTION/MATERIAL/Q'TY/REMARK)
+
+### VD-02 밸브 상세도 (Page 7)
+
+![VD-02 전체](/images/bmt/vd02-full.png)
+
+- TAG: V03/V05 (DOUBLE BLOCK & BLEED VALVE)
+- 부품 수: 22개
+- **DRAWING NO.**: `W5XGVU-SN2693-VD-02`
+
+### ITDRA 표지 (Page 14) — SN2709
+
+![ITDRA 표지 - SN2709](/images/bmt/itdra-cover-sn2709.png)
+
+계장기기 도면은 **SN2709**로 정상입니다.
+
+### ITDRA-01 계장기기도 (Page 16) — 온도센서 스펙
+
+![ITDRA-01 스펙 테이블](/images/bmt/itdra01-spec.png)
+
+- Tag: TT01 (온도 트랜스미터)
+- Maker: Danfoss
+- 부품 테이블(POS/DESCRIPTION) + 사양 테이블(Subject/Description) 존재
+- **DRAWING NO.**: `W5XGVU-SN2709-ITDRA-01`
+- `pdfplumber`로 Page 16~22 7페이지 전부 `Subject/Description`, `Maker`, `Model`, `POS/DESCRIPTION` 추출 성공
+
+<Aside type="tip" title="ITDRA 테이블 추출 결과">
+ITDRA 7페이지는 `pdfplumber`로 모두 추출됩니다.
+`Subject/Description` 사양 테이블과 `POS/DESCRIPTION` 부품 테이블을 함께 확보했습니다.
+`PyMuPDF`는 `Doc No.` 확인과 Balloon/SN 보조 추출에 사용합니다.
+</Aside>
+
+---
+
+## SN 시리얼 번호 불일치
+
+| 자료 | DOC 번호 | 시리얼 | 상태 |
+|------|---------|--------|------|
+| 도면 PDF 파일명 | W5XGVU-**SN2709**-GARRB | SN2709 | 정상 |
+| GAR (Page 1-3) | W5XGVU-**SN2709**-GAR | SN2709 | 정상 |
+| **VD (Page 4-13)** | W5XGVU-**SN2693**-VD | **SN2693** | **불일치** |
+| ITDRA (Page 14-22) | W5XGVU-**SN2709**-ITDRA | SN2709 | 정상 |
+| Part List 엑셀 | W5XGVU-**SN2709**-PLRA | SN2709 | 정상 |
+| Part List 내부 참조 | W5XGVU-**SN2711**-PLRA | SN2711 | 확인 필요 |
+| ERP BOM 엑셀 | W5XHEGVU-**SN2709**-DNV | SN2709 | 정상 |
+
+VD 페이지별 DOC 번호 (PyMuPDF 텍스트 추출로 확인):
+
+| 페이지 | DOC 번호 | TAG |
+|--------|---------|-----|
+| 6 | W5XGVU-SN2693-VD-01 | V01 |
+| 7 | W5XGVU-SN2693-VD-02 | V03/V05 |
+| 8 | W5XGVU-SN2693-VD-03 | V04/V15 |
+| 9 | W5XGVU-SN2693-VD-04 | V08 |
+| 10 | W5XGVU-SN2693-VD-05 | V07/V14 |
+| 11 | W5XGVU-SN2693-VD-06 | V11-2 |
+| 12 | W5XGVU-SN2693-VD-07 | V11-1 |
+| 13 | W5XGVU-SN2693-VD-08 | V02 |
+
+---
+
+## 3번 그룹 = 2번과 동일 파일
+
+MD5 해시 검증으로 3번 그룹 파일이 2번과 완전 동일함을 확인했습니다.
+
+```
+MD5 해시 비교:
+2_W5XGVU-SN2709-GARRB.pdf       == 3_3D도면예_1)...GARRB.pdf       ✅ 동일
+2_W5XGVU-SN2709-PLRA_Part List  == 3_3D도면예_2)...Part List.xlsx  ✅ 동일
+2_W5XHEGVU-SN2709-DNV.xlsx      == 3_3D도면예_3)...DNV.xlsx        ✅ 동일
+```
+
+3번 그룹에서 유일하게 다른 파일은 `GVU_3D.pdf` (3D 렌더링 참조 이미지) 1개뿐입니다.
+
+---
+
+## VD 테이블 추출 테스트 결과
+
+SN이 불일치하지만, **테이블 추출 자체는 가능**한지 사전 검증했습니다.
+
+| VD | 페이지 | 부품 수 | pdfplumber 추출 | 상태 |
+|----|--------|---------|----------------|------|
+| VD-01 | 6 | 30개 (raw 27행) | ✅ 27행 (헤더 제외) | 추출 성공 |
+| VD-02 | 7 | 22개 (raw 21행) | ✅ 21행 | 추출 성공 |
+| VD-03 | 8 | 14개 (raw 13행) | ✅ 13행 | 추출 성공 |
+| VD-04 | 9 | 17개 (raw 17행) | ✅ 17행 | 추출 성공 |
+| VD-05 | 10 | 21개 (raw 19행) | ✅ 19행 | 추출 성공 |
+| VD-06 | 11 | 20개 (raw 20행) | ✅ 20행 | 추출 성공 |
+| VD-07 | 12 | 8개 (raw 8행) | ✅ 8행 | 추출 성공 (NO. 컬럼 누락) |
+| VD-08 | 13 | 19개 (raw 18행) | ✅ 18행 | 추출 성공 |
+| **합계** | | **151개** (raw 143행) | **8/8 페이지** | **100% 성공** |
+
+### VD-01 추출 결과 샘플 (Page 6, TAG: V01)
+
+`pdfplumber`로 실제 추출한 VD-01의 Description 테이블입니다. 30개 부품 (병합셀 split 후)의 NO./DESCRIPTION/MATERIAL/Q'TY가 정확히 추출됩니다.
+
+| NO. | DESCRIPTION | MATERIAL | Q'TY | REMARK |
+|-----|-------------|----------|------|--------|
+| 1 | BODY | A182-F316L | 1 | |
+| 2 | BODY CAP | A182-F316L | 1 | |
+| 3 | BONNET | A182-F316L | 1 | |
+| 4 | STEM | A276-316 | 1 | |
+| 5 | BALL | SS316 | 1 | |
+| 6 | BALL SEAT | R.PTFE | 2 | GLASS 15% |
+| 7 | O-RING | VITON | 1 | |
+| 8 | GRAPHITE PACKING | Graphite | 1 | |
+| 9 | STEM BEARING | TFM1600 | 1 | |
+| 10 | THRUST WASHER | PEEK | 1 | |
+| 11 | SPIRAL WOUND GASKET | SS316+GRAPHITE | 1 | |
+| 12 | GRAPHITE PACKING | GRAPHITE | 1SET | |
+| 13 | PACKING SEAT | SS316 | 1 | |
+| 14 | O-RING | MS-NBR | 1 | |
+| 15 | O-RING | MS-NBR | 1 | 병합셀 |
+| 16 | PACKING GLAND | SS316 | 1 | 병합셀 |
+| 17 | TOP FLANGE | A182-F316 | 1 | |
+| 18 | BAR HANDLE | SS316 | 1 | |
+| 19 | LOCKING PLATE | A240-316 | 1 | |
+| 20 | PLAIN WASHER | SS316 | 1 | |
+| 21 | ADAPTOR | A276-316 | 1 | 병합셀 |
+| 22 | HEX BOLT | SS316 | 1 | 병합셀 |
+| 23 | WRENCH BOLT | SS316 | 2 | 병합셀 |
+| 24 | WRENCH BOLT | SS316 | 7 | |
+| 25 | WRENCH BOLT | SS316 | 10 | |
+| 26 | HEX BOLT | SS316 | 6 | |
+| 27 | THRUST WASHER | PTFE | 1 | |
+| 28 | WRENCH BOLT | SS316 | 4 | |
+| 29 | UPPER STEM BEARING(D-BUSH) | SS316+R.PTFE | 1 | |
+
+<Aside type="caution" title="VD 테이블도 병합셀 존재">
+15/16, 21/22/23 행이 병합되어 추출됩니다. 1번 자료와 동일하게 `split('\n')` 후처리가 필요합니다.
+핵심 데이터(DESCRIPTION, MATERIAL, Q'TY)는 전부 정확하게 추출됩니다.
+</Aside>
+
+<Aside type="tip" title="핵심 발견">
+VD 도면의 Description 테이블은 벡터 PDF이므로 `pdfplumber`로 완벽하게 추출됩니다.
+SN2709용 올바른 VD 도면을 수령하면 즉시 ERP BOM과 자동 비교가 가능합니다.
+</Aside>
+
+---
+
+## 미수령 자료
+
+| 자료 | 상태 |
+|------|------|
+| 피팅&계장밸브 구분 샘플 | 미수령 |
+| 휴먼 에러 발생 유형 자료 | 추후 수령 예정 |
+| SN2709용 VD 밸브 상세도면 | 요청 완료 (SN2693 잘못 수령) |
+| BOM에 있고 도면에 없는 정보 리스트 | 추후 수령 예정 |
+| GA/Layout 도면 샘플 (부품번호 없는 유형) | 미수령 |
+
+---
+
+## 관련 문서
+
+- [프로젝트 개요](./) — BMT 프로젝트 전체 요약
+- [POC 테스트 결과](./poc-results) — 1번 자료 검증 결과
+- [데이터 검증 이슈](./verification-issues) — 통화 기반 발견사항

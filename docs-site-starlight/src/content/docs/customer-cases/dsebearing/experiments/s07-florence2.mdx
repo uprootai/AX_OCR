@@ -1,0 +1,89 @@
+---
+title: S07 — Florence-2 Zero-Shot (보류)
+description: Florence-2 VLM의 zero-shot 도면 이해 능력 평가. 형상 이해 OK, OCR 부족으로 보류.
+tags: [동서기연, 실험, Florence-2, VLM, 보류]
+sidebar_position: 8
+---
+
+> VLM이 도면을 end-to-end로 이해할 수 있는지 평가. 형상 개념은 이해하지만 치수 OCR이 부족.
+
+## 핵심 아이디어
+
+현재 파이프라인: 원 검출 → OCR → 후처리 → 분류 (4단계, 각 단계에서 오류 가능)
+
+Florence-2는 이를 **단일 모델**로 통합할 수 있다:
+```
+프롬프트: "이 베어링 도면에서 OD, ID, W 치수를 찾아라"
+출력: {"od": "Ø1036", "id": "580", "w": "200"}
+```
+
+2024 arXiv 논문(2411.03707)에서 Florence-2를 GD&T 추출에 fine-tune하여 유망한 결과를 보고.
+
+## 실험 설정
+
+| 항목 | 값 |
+|------|---|
+| 모델 | Florence-2-base (0.23B, 0.9GB VRAM) |
+| 방식 | **Zero-shot** (fine-tune 없이 바로 평가) |
+| 도면 | TD0062037 (T5 Thrust Bearing) |
+
+## Zero-Shot 결과
+
+| 태스크 | 결과 | 판정 |
+|--------|------|:---:|
+| **OCR** | 3개 텍스트 검출 (노이즈) | ❌ |
+| **Caption** | "circular object with a hole" | ✅ 형상 이해 |
+| **Object Detection** | wheel×2, vehicle×1 | △ 대략적 |
+| **Phrase Grounding** ("outer diameter") | 베어링 단면 bbox 2개 | ✅ 개념 이해 |
+| **Open Vocab** ("circle") | 내원 영역 1개 | △ 부분 검출 |
+| **OCR with Region** | 3개만 검출 | ❌ |
+
+### 분석
+
+**형상 이해는 한다:**
+- "circular object with a hole" — 베어링 형상을 정확히 묘사
+- "outer diameter" 프롬프트에 단면 영역을 bbox로 잡음
+- 도메인 지식 없이도 원형 구조를 인식
+
+**치수 OCR은 안 된다:**
+- 도면의 작은 치수 텍스트(Ø1036, 580 등)를 인식하지 못함
+- 영어 텍스트 3개만 검출, 한글/숫자 대부분 누락
+- 해상도와 도면 폰트가 학습 분포와 다름
+
+## Fine-tune 시 필요한 것
+
+| 필요 | 상세 |
+|------|------|
+| LoRA 데이터셋 | (image, prompt, response) 쌍 100~200개 |
+| 커스텀 태스크 | `<OD_ID_W>` → 구조화된 치수 출력 |
+| `<OCR_WITH_REGION>` 강화 | 도면 폰트 + 치수 포맷 학습 |
+| GPU | base(0.23B) LoRA는 RTX 3080에서 가능 |
+
+## S06과의 비교
+
+| 항목 | S06 (YOLO) | S07 (Florence-2) |
+|------|-----------|------------------|
+| 검출 | YOLO 별도 | Florence-2 내장 |
+| OCR | PaddleOCR 별도 | Florence-2 내장 (부족) |
+| 분류 | 투표 앙상블 | VLM 내장 (미검증) |
+| 모델 수 | 3개 | **1개** |
+| 현재 성능 | mAP50=0.301 (**동작)** | Zero-shot OCR 실패 **(미동작)** |
+| fine-tune 후 기대 | — | **높음** (단일 모델 통합) |
+
+## 판정: ⏸️ 보류 — fine-tune 데이터 필요
+
+Zero-shot으로는 치수 추출에 사용할 수 없다.
+하지만 형상 이해 능력이 확인되었으므로, **LoRA fine-tune + GD&T 커스텀 태스크 학습** 시 단일 모델로 OCR+분류를 통합할 가능성이 있다.
+
+현재는 GT 데이터가 2개뿐이라 fine-tune 데이터셋 구축이 병목.
+
+## 참고 자료
+
+- [Fine-Tuning VLM for Drawing Extraction (arXiv 2411.03707)](https://arxiv.org/abs/2411.03707)
+- [Florence-2 (arXiv 2311.06242)](https://arxiv.org/abs/2311.06242)
+- [microsoft/Florence-2-large (HuggingFace)](https://huggingface.co/microsoft/Florence-2-large)
+
+## 관련 문서
+
+- [검출 방법론 종합](./)
+- [S06 — YOLO-OBB](./s06-yolo/)

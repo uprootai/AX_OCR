@@ -61,6 +61,7 @@ export default function BlueprintFlowTemplates() {
     panasia: { icon: Factory, color: 'from-emerald-500 to-green-600', label: t('blueprintflow.panasiaTemplates'), shortLabel: '🏭 PANASIA' },
     techcross: { icon: Ship, color: 'from-sky-500 to-blue-600', label: t('blueprintflow.techcrossTemplates'), shortLabel: '🚢 TECHCROSS' },
     dsebearing: { icon: Cog, color: 'from-amber-500 to-orange-600', label: t('blueprintflow.dsebearingTemplates'), shortLabel: '⚙️ DSE Bearing' },
+    bmt: { icon: Cog, color: 'from-red-500 to-rose-600', label: t('blueprintflow.bmtTemplates'), shortLabel: '🔧 BMT' },
     basic: { icon: Zap, color: 'from-green-500 to-emerald-500', label: t('blueprintflow.basicTemplates'), shortLabel: '⚡ Basic' },
     advanced: { icon: Layers, color: 'from-blue-500 to-indigo-500', label: t('blueprintflow.advancedTemplates'), shortLabel: '🔧 Advanced' },
     pid: { icon: GitBranch, color: 'from-purple-500 to-pink-500', label: t('blueprintflow.pidTemplates'), shortLabel: '🔀 P&ID' },
@@ -86,7 +87,7 @@ export default function BlueprintFlowTemplates() {
     return visibleTemplates.filter(t => t.category === category).length;
   };
 
-  const tabCategories: TemplateCategory[] = ['all', 'featured', 'panasia', 'techcross', 'dsebearing', 'basic', 'advanced', 'pid', 'ai', 'benchmark'];
+  const tabCategories: TemplateCategory[] = ['all', 'featured', 'panasia', 'techcross', 'dsebearing', 'bmt', 'basic', 'advanced', 'pid', 'ai', 'benchmark'];
 
 
   return (

@@ -1,0 +1,146 @@
+---
+title: BMT — 도면 & BOM AI검증
+description: 도면 부품리스트와 ERP BOM 간 불일치를 자동 검출하는 사례
+tags: [고객사례, BMT, 밸브]
+sidebar_position: 1
+---
+
+import FlowDiagram from '../../../../components/diagrams/FlowDiagram';
+import { Aside } from '@astrojs/starlight/components';
+
+> CAD 출력 도면의 부품리스트를 추출하고, 호선 시리얼 번호(SN) 일관성을 먼저 확인한 뒤 ERP BOM과 자동 비교하는 사례입니다.
+
+| 항목 | 값 |
+|------|---|
+| 고객 | (주)비엠티 (BMT CO., LTD.) |
+| 업종 | 산업용 밸브 제조 (Ball Valve, Gas Valve Unit 등) |
+| 기간 | 2026-03 ~ (Phase 0 진행중) |
+| 도면 유형 | 밸브 조립도 (Inventor), 스키드 GAR, 3D 렌더링 |
+| 담당자 | 박순근 팀장님 (BMT) |
+
+---
+
+## 솔루션 목표
+
+BMT는 설계 도면(VAULT BOM)과 ERP에 등록된 BOM 간 불일치를 사람이 수동으로 검토하고 있습니다.
+AI 검증 솔루션으로 이 과정을 자동화하여 재질 오류, 코드 상이, 수량 불일치를 자동 검출합니다.
+
+<FlowDiagram client:load
+  direction="LR"
+  title="BMT 검증 파이프라인"
+  nodes={[
+    { id: 'pdf', label: '도면 PDF\n(Inventor 출력)', color: '#37474f', bg: '#eceff1', shape: 'rounded' },
+    { id: 'sn', label: 'SN(호선번호)\n자동 검증', color: '#6a1b9a', bg: '#f3e5f5', shape: 'rounded' },
+    { id: 'extract', label: 'pdfplumber\n테이블 추출', color: '#e65100', bg: '#fff3e0', shape: 'rounded' },
+    { id: 'imgcheck', label: '도면 이미지\nBalloon 교차검증', color: '#b71c1c', bg: '#ffebee', shape: 'rounded' },
+    { id: 'partlist', label: 'Part List\nXML 파싱', color: '#00695c', bg: '#e0f2f1', shape: 'rounded' },
+    { id: 'xlsx', label: 'ERP BOM\n엑셀 파싱', color: '#1a237e', bg: '#e8eaf6', shape: 'rounded' },
+    { id: 'diff', label: '자동 비교\n(TAG → Part List → ERP)', color: '#311b92', bg: '#ede7f6', shape: 'rounded' },
+    { id: 'reportxlsx', label: 'Excel 리포트\n(Mismatches / Details / SN)', color: '#1565c0', bg: '#e3f2fd', shape: 'rounded' },
+    { id: 'report', label: '불일치 리포트', color: '#2e7d32', bg: '#e8f5e9', shape: 'stadium' },
+  ]}
+  edges={[
+    { from: 'pdf', to: 'sn' },
+    { from: 'pdf', to: 'extract' },
+    { from: 'pdf', to: 'imgcheck' },
+    { from: 'imgcheck', to: 'diff' },
+    { from: 'partlist', to: 'diff' },
+    { from: 'xlsx', to: 'diff' },
+    { from: 'extract', to: 'diff' },
+    { from: 'sn', to: 'diff' },
+    { from: 'diff', to: 'reportxlsx' },
+    { from: 'reportxlsx', to: 'report' },
+  ]}
+  layers={[['pdf', 'partlist', 'xlsx'], ['sn', 'extract', 'imgcheck'], ['diff'], ['reportxlsx'], ['report']]}
+/>
+
+---
+
+## 핵심 발견: LLM/YOLO/OCR 불필요 (단, 후처리 필수)
+
+BMT 도면은 Autodesk Inventor에서 출력한 **벡터 PDF**입니다.
+텍스트 레이어가 살아있어 `pdfplumber`로 부품리스트 테이블을 추출할 수 있습니다.
+
+| 항목 | 값 |
+|------|---|
+| 도면 형식 | Inventor .idw → PDF (벡터, 텍스트 레이어 존재) |
+| 텍스트 추출 | `pdfplumber` (Python) — 테이블 자동 감지 |
+| 엑셀 파싱 | `zipfile` + `xml.etree` (openpyxl 없이 가능) |
+| SN(호선번호) 검증 | `PyMuPDF` + 정규식 — GAR/VD/ITDRA 섹션별 점검 |
+| 비교 로직 | exact + prefix + **fuzzy** + synonym |
+| 리포트 | `openpyxl` — Summary / Details / SN Validation |
+| AI 모델 | **사용하지 않음** |
+
+### POC 테스트 결과 요약 (7개 케이스)
+
+| 대상 | 테스트 | 결과 | 비고 |
+|------|--------|------|------|
+| 1번 자료 (FB2FB6 단품 밸브) | 27개 부품 추출 + ERP 비교 | ✅ 18 exact + 5 prefix + **3 fuzzy** + 1 synonym | 병합셀 후처리 필수 |
+| 2번 자료 VD-01 (V01) | 30개 부품 추출 (raw 27행 + 병합셀 split 3행) | ⚠️ 병합셀 split 3행 | SN 불일치로 ERP 비교 불가 |
+| 2번 자료 VD-02 (V03/V05) | 22개 부품 추출 | ⚠️ 병합셀 1곳 | |
+| 2번 자료 VD-03 (V04/V15) | 14개 부품 추출 | ⚠️ 병합셀 1곳 | |
+| 2번 자료 VD-05 (V07/V14) | 21개 부품 추출 | ⚠️ 병합셀 2곳 | 가장 병합셀 많음 |
+| 2번 자료 VD-07 (V11-1) | 8개 부품 추출 | ✅ 완벽 | Check Valve (NO. 컬럼 없음) |
+| 2번 자료 ITDRA-01~07 | 7페이지 스펙/부품 테이블 추출 | ✅ 7/7 페이지 성공 | Subject/Description, POS/DESCRIPTION |
+
+<Aside type="caution" title="pdfplumber 한계">
+**병합셀이 6개 케이스 중 5개에서 발생합니다.** `split('\n')` 후처리를 반드시 적용해야 합니다.
+ITDRA(계장기기도) 7페이지도 `pdfplumber`로 테이블 추출에 성공했습니다.
+`PyMuPDF`는 SN 점검과 Balloon 번호 보조 추출에 사용합니다.
+[상세 테스트 결과](./poc-results)에서 전체 추출 데이터를 확인할 수 있습니다.
+</Aside>
+
+<Aside type="note" title="호선 시리얼 번호(SN) 불일치 자동 처리">
+**SN(Serial Number) = 호선번호**로, 조선소에서 건조하는 선박 1척의 고유 ID입니다.
+파이프라인은 PDF 각 페이지의 `Doc No.`에서 SN을 추출합니다.
+GVU 샘플에서는 GAR/ITDRA는 `SN2709`, VD(밸브 상세도)만 `SN2693`(다른 호선)으로 확인됩니다.
+SN이 다르면 "진짜 불일치"와 "호선 차이"를 구분할 수 없으므로 VD↔ERP 비교를 자동으로 건너뛰고 `SN Validation` 시트에 기록합니다.
+단, VD 비교 로직은 이미 1번 자료(FB2FB6)에서 검증 완료된 것과 동일한 방식이므로, **파이프라인 동작 증명에는 영향 없습니다.**
+</Aside>
+
+<Aside type="caution" title="전제 조건">
+도면이 항상 CAD 출력 벡터 PDF인 경우에만 해당합니다. 스캔본(이미지 PDF)이 들어오면 OCR이 필요합니다.
+</Aside>
+
+<Aside type="tip" title="도면 이미지 vs 테이블 Balloon 교차검증 (구현 완료)">
+도면 내 **테이블(Description 표)**뿐 아니라, **조립 단면도 이미지**에 표기된 Balloon 번호도 추출합니다.
+벡터 PDF의 텍스트 레이어에서 좌표 기반으로 Balloon 영역과 테이블 영역을 분리하여 교차 대조합니다.
+
+**검출 항목**:
+- **Image Only** — Balloon에 있지만 테이블에 없는 번호 (도면에 표기했으나 부품리스트 누락)
+- **Table Only** — 테이블에 있지만 Balloon에 없는 번호 (부품리스트에 등록했으나 도면 미표기 또는 단면도에서 가려짐)
+- **일치** — 양쪽 모두 존재
+
+리포트의 `Image Cross-Check` 시트에서 페이지별 결과를 확인할 수 있습니다.
+</Aside>
+
+---
+
+## 기술 스택
+
+| 레이어 | 기술 | 비고 |
+|--------|------|------|
+| PDF 추출 | `pdfplumber` + `PyMuPDF` | 테이블은 `pdfplumber`, SN/Balloon 보조는 `PyMuPDF` |
+| 엑셀 파싱 | `zipfile` + `xml.etree` | openpyxl 없이 동작 |
+| 비교 엔진 | Python 문자열 매칭 | exact + prefix + fuzzy + synonym |
+| 리포트 | 엑셀 또는 JSON | 기존 `quotation_excel_exporter` 재활용 가능 |
+| OCR (fallback) | `eDOCr2` / `PaddleOCR` | 스캔본 도면 대비용 |
+
+---
+
+## 하위 페이지
+
+- [자료 분석](./data-analysis) — 수령 자료 구성, SN 불일치, 파일 검증
+- [POC 테스트 결과](./poc-results) — 1번 자료 검증 결과, 매칭 방식
+- [전체 자료 비교 결과](./full-comparison) — 수령 자료 전체 비교 범위와 한계
+- [데이터 검증 이슈](./verification-issues) — 통화 기반 발견사항, YOLO 한계
+- [다음 단계](./next-steps) — 고객 대기 사항, 로드맵
+- [고객 확인 현황](./customer-confirmations) — 블로커, 미확인 사항, 확인 완료 항목 대시보드
+
+---
+
+## 관련 문서
+
+- [고객 적용 사례 개요](../) — 전체 고객사 목록
+- [BOM & 견적](/docs/bom-generation) — BOM 생성 엔진
+- [분석 파이프라인](/docs/analysis-pipeline) — VLM → YOLO → OCR 파이프라인

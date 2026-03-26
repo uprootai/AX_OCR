@@ -1,0 +1,135 @@
+---
+title: S05 — Claude Vision GT 확립
+description: Claude Vision으로 GAR 배치도를 직접 분석하여 24개 TAG Ground Truth 확립
+tags: [고객사례, BMT, VLM, GT]
+sidebar_position: 12
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+> GAR 배치도를 6개 영역으로 크롭하여 Claude Vision(멀티모달)으로 직접 TAG를 확인, **24개 TAG Ground Truth**를 확립한 결과입니다.
+
+---
+
+## 왜 필요한가
+
+S01 벤치마크에서 사용한 GT(정답)는 Part List 엑셀에서 추출한 28개 TAG였습니다.
+하지만 **실제 이미지에 표기된 TAG**와 엑셀 목록이 다를 수 있어, 직접 이미지를 보고 확인이 필요했습니다.
+
+---
+
+## 분석 방법
+
+1. GAR 3페이지를 4x 해상도(3368×4764px)로 추출
+2. 6개 영역으로 크롭
+3. 각 크롭 이미지를 Claude Vision으로 직접 분석
+4. TAG와 치수를 구분하여 기록
+
+---
+
+## 영역별 분석 결과
+
+### Bottom View (좌상단)
+
+![Bottom View 상세](/images/bmt/gar-s02-bottom_view.png)
+
+**확인된 TAG**: V01, V06, PT01, PT04, PI02
+
+V01과 PT01/PT04는 하단에, V06은 우측 끝에, PI02는 우하단에 위치합니다.
+
+### Front View (우상단)
+
+![Front View 상단](/images/bmt/gar-s02-front_view_upper.png)
+
+**확인된 TAG**: V06, FT01
+
+V06과 FT01이 좌측에 함께 위치. PI02도 좌하단에 부분적으로 보입니다.
+
+### Front View 하단 — TAG 밀집 영역
+
+![Front View 하단 상세](/images/bmt/gar-crop-frontview-detail.png)
+
+**확인된 TAG**: V09, V11-1, V11-2, V15, V04, B02, PT05, V07, V14
+
+<Aside type="tip" title="핵심 영역">
+이 영역에 TAG 9개가 밀집되어 있습니다. S01에서 PaddleOCR이 14개를 놓친 원인이 여기 있었습니다.
+텍스트가 90도 회전되어 있고 도면 선과 겹쳐 있지만, 크롭 후에는 모두 식별 가능합니다.
+</Aside>
+
+### Bottom 중앙 (하단)
+
+![Bottom 중앙 상세](/images/bmt/gar-crop-bottomcenter-detail.png)
+
+**확인된 TAG**: V02, V03, V05, B01, PT03
+
+V07/V14는 좌상단에서 다시 보이고, B01-V02-V03-V05-PT03가 세로로 나란히 있습니다.
+
+### Right/A View (중앙 우측)
+
+![Right/A View](/images/bmt/gar-s02-right_a_view.png)
+
+**확인된 TAG**: V08, B03
+
+V08과 B03이 좌하단에 위치합니다. "GVU Solenoid Valve Cabinet" 등 설비 라벨도 보입니다.
+
+---
+
+## 최종 GT: 24개 TAG
+
+| # | TAG | 영역 |
+|---|-----|------|
+| 1 | V01 | Bottom View |
+| 2 | V02 | Bottom 중앙 |
+| 3 | V03 | Bottom 중앙 |
+| 4 | V04 | Front View 하단 |
+| 5 | V05 | Bottom 중앙 |
+| 6 | V06 | Bottom View / Front View 상단 |
+| 7 | V07 | Front View 하단 |
+| 8 | V08 | Right/A View |
+| 9 | V09 | Front View 하단 |
+| 10 | V11-1 | Front View 하단 |
+| 11 | V11-2 | Front View 하단 |
+| 12 | V14 | Front View 하단 |
+| 13 | V15 | Front View 하단 |
+| 14 | B01 | Bottom 중앙 |
+| 15 | B02 | Front View 하단 |
+| 16 | B03 | Right/A View |
+| 17 | FT01 | Front View 상단 |
+| 18 | TT01 | Front View 하단 인접 |
+| 19 | PT01 | Bottom View |
+| 20 | PT03 | Bottom 중앙 |
+| 21 | PT04 | Bottom View |
+| 22 | PT05 | Front View 하단 |
+| 23 | PT07 | Front View 하단 인접 |
+| 24 | PI02 | Bottom View |
+
+### 이미지에 없는 TAG (Part List에만 존재)
+
+| TAG | 이유 |
+|-----|------|
+| PT06 | GAR 3페이지에 미표기 |
+| PI01 | GAR 3페이지에 미표기 |
+| ORI | GAR 3페이지에 미표기 (또는 매우 작음) |
+
+---
+
+## OCR vs Claude Vision 비교
+
+| 방식 | Recall | Precision | 비용 | 속도 |
+|------|--------|-----------|------|------|
+| PaddleOCR 전체 (S01) | 41.7% | - | 무료 | 5.4s |
+| PaddleOCR 뷰별 (S02) | 95.8% | 100% | 무료 | 11.7s (합계) |
+| **Claude Vision (크롭)** | **100%** | **100%** | API 비용 | ~30s |
+
+<Aside type="note" title="실용적 결론">
+Claude Vision은 GT 확립(정답 만들기)에 유용하지만, 실서비스에서는 비용/속도 면에서 PaddleOCR + 뷰 분리(95.8%)가 현실적입니다.
+하이브리드: PaddleOCR 1차 → 신뢰도 낮은 결과만 Claude Vision으로 2차 검증하는 방식도 가능합니다.
+</Aside>
+
+---
+
+## 관련 문서
+
+- [S01 — OCR 벤치마크](./s01-ocr-benchmark) — 7개 엔진 비교
+- [S02 — 뷰별 분리](./s02-view-segmentation) — 41.7%→95.8% 개선
+- [S03+S04 — BOM 매칭](./s03-s04-bom-matching) — 불일치 3건 검출
