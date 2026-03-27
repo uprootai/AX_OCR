@@ -28,6 +28,8 @@
 | ID | Epic | 고객 | 기간 | Stories | 상태 |
 |----|------|------|------|---------|------|
 | E09 | [OD/ID/W 검출 방법론 다양화](epics/e09-dimension-detection-methods/EPIC.md) | 동서기연 | ~04-15 | 8 | 🔵 Active |
+| E10 | [BMT GAR 배치도 TAG 추출 OCR 실험](epics/e10-bmt-gar-ocr/EPIC.md) | BMT | 03-25 | 6 | ✅ Done |
+| E11 | [BMT 뷰 자동 분리 + executor 구현](epics/e11-bmt-auto-view/EPIC.md) | BMT | 03-26~ | 6 | 🔵 Active |
 
 ## 기술 개선 (Epic 미배정)
 

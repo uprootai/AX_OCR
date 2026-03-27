@@ -1,7 +1,55 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-03-23
-> **기준 커밋**: E07 Operational Excellence
+> **마지막 업데이트**: 2026-03-25
+> **기준 커밋**: E07 Operational Excellence + E10 BMT GAR OCR
+
+---
+
+## 🔴 현재 진행 중
+
+### E10: BMT GAR 배치도 TAG 추출 OCR 실험 (✅ Done — S01~S06 전체 완료)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 OCR 엔진별 벤치마크 | ✅ Done | PaddleOCR 41.7% 1위, 7개 엔진 비교 |
+| S02 뷰별 레이아웃 분리 | ✅ Done | 5개 뷰 크롭 → **41.7%→95.8%** (+54%p) |
+| S03 TAG vs 치수 필터링 | ✅ Done | 39개→24개 TAG, 노이즈 15개 제거 |
+| S04 Part List/BOM 자동 매칭 | ✅ Done | 19건 매칭 + **3건 불일치 자동 검출** |
+| S05 멀티모달 VLM 실험 | ✅ Done | Claude Vision GT 24개 TAG 확립 |
+| S06 BlueprintFlow 템플릿 | ✅ Done | BMT 카테고리 + 7노드 파이프라인 등록 |
+
+**성과**: GAR 이미지→OCR(95.8%)→필터(100%)→BOM 매칭 → 불일치 3건 자동 검출 + BlueprintFlow 템플릿 등록
+**상세**: [.todo/epics/e10-bmt-gar-ocr/EPIC.md](epics/e10-bmt-gar-ocr/EPIC.md)
+
+### E12: BMT 세션 UI — Human-in-the-Loop 도면 검증 (✅ Done — S01~S07 전체 완료)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 크롭 이미지 API | ✅ Done | 백엔드: bmt_router.py 9개 엔드포인트 + Docker 배포 |
+| S02 크롭 뷰어 | ✅ Done | 프론트: 9개 크롭 카드 + TAG 배지 + 클릭 이동 |
+| S03 TAG 확인/수정 | ✅ Done | 프론트: 크롭 OCR 이미지 + TAG 승인/삭제 HITL |
+| S04 BOM 매칭 판정 | ✅ Done | 프론트: 불일치 판정 (실제 오류/정상 차이) + 필터 테이블 |
+| S05 파이프라인 실행 | ✅ Done | 백엔드: 비동기 실행 + 폴링 / 프론트: 6단계 진행 바 |
+| S06 리포트 | ✅ Done | 백엔드: FileResponse Excel 다운로드 / 프론트: 다운로드 버튼 |
+| S07 통합 | ✅ Done | 4단계 탭 UI + S05/S06 연동 완료 |
+
+**전체 완료** | 접근: `:3000/bom/workflow?session=2e6bae64`
+**상세**: [.todo/epics/e12-bmt-session-ui/EPIC.md](epics/e12-bmt-session-ui/EPIC.md)
+
+### E11: BMT 뷰 자동 분리 + executor 구현 (✅ Done — S01~S06 전체 완료)
+
+| Story | 상태 | 요약 |
+|-------|------|------|
+| S01 뷰 라벨 OCR 검출 | ✅ Done | 6개 뷰 라벨 자동 검출 (BOTTOM/FRONT/TOP/RIGHT/A VIEW) |
+| S02 경계선 섹션 범위 | ✅ Done | 라벨 중심점 → 2행3열 그리드 경계 자동 계산 |
+| S03 자동 분리 (하드코딩 0) | ✅ Done | **Min-Content 경계**: 인접 VIEW 사이 콘텐츠 최소점 = 경계 |
+| S04 OCR 앙상블 | ✅ Done | PaddleOCR 23/24 + Tesseract B03 보완 = **24/24 = 100%** |
+| S05 executor 4개 구현 | ✅ Done | view_splitter + tag_filter + excel_lookup + bom_check |
+| S06 End-to-End 파이프라인 | ✅ Done | `bmt_e2e_pipeline.py` 150줄, 1줄 실행 → Excel 리포트 |
+
+**E2E 결과**: 이미지1장 → 25 TAG → 19 매칭 + **3건 불일치 자동 검출** (V06/PI02/B02)
+**최종 알고리즘**: VIEW 라벨 OCR → Min-Content 경계 → PaddleOCR+Tesseract → Part List → ERP BOM → Excel 리포트
+**상세**: [.todo/epics/e11-bmt-auto-view/EPIC.md](epics/e11-bmt-auto-view/EPIC.md)
 
 ---
 

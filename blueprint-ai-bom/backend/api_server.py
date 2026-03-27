@@ -71,6 +71,7 @@ from routers.reference_router import router as reference_router_api
 # 신규 라우터: GT, Config & System
 from routers.gt_router import router as gt_router_api
 from routers.config_router import router as config_router_api, set_config_services
+from routers.bmt_router import router as bmt_router_api
 from services.session_service import SessionService
 from services.detection_service import DetectionService
 from services.bom_service import BOMService
@@ -224,6 +225,7 @@ app.include_router(reference_router_api, tags=["Reference Sets"])  # 커스텀 �
 # 신규 라우터: GT, Config & System
 app.include_router(gt_router_api, tags=["Ground Truth"])
 app.include_router(config_router_api, tags=["Config & System"])
+app.include_router(bmt_router_api, tags=["BMT"])  # BMT 도면-BOM 교차검증
 
 
 @app.get("/")
