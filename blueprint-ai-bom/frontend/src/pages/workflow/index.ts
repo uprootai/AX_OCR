@@ -71,3 +71,5 @@ export { PIDFeaturesSection, BWMSSection } from './sections/PIDFeaturesSection';
 export { GTComparisonSection } from './sections/GTComparisonSection';
 export { ImageReviewSection } from './sections/ImageReviewSection';
 export { TableExtractionSection } from './sections/TableExtractionSection';
+export { BmtResultsSection } from './sections/BmtResultsSection';
+export { BmtWorkflowSection } from './sections/BmtWorkflowSection';

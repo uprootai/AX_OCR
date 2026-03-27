@@ -9,6 +9,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ZoomableContainer } from '../../components/ZoomableContainer';
 import { sessionApi } from '../../lib/api';
 import type { FullCompareResponse, ClassifiedDim } from '../../lib/api';
 import {
@@ -253,7 +254,8 @@ export function MethodDetailPanel({ methodId, result, engines, groundTruth, onCl
               </label>
             )}
           </div>
-          <div ref={containerRef} className="relative w-full overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+          <ZoomableContainer initialZoom={100} minZoom={25} maxZoom={300} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div ref={containerRef} className="relative w-full">
             {imageUrl ? (
               <div className="relative" style={{ width: '100%', height: scaledHeight }}>
                 <img src={imageUrl} alt="Drawing" className="w-full h-auto" style={{ display: 'block', pointerEvents: 'none' }} />
@@ -342,6 +344,7 @@ export function MethodDetailPanel({ methodId, result, engines, groundTruth, onCl
               <div className="flex items-center justify-center h-48 text-gray-400 text-sm">이미지 로딩...</div>
             )}
           </div>
+          </ZoomableContainer>
         </div>
 
         {/* 범례 */}

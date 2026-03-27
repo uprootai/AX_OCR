@@ -18,6 +18,7 @@ import logger from '../lib/logger';
 import { API_BASE_URL } from '../lib/constants';
 import type { VerificationStatus } from '../types';
 import { ReferencePanel } from '../components/ReferencePanel';
+import { ZoomableImage } from '../components/ZoomableImage';
 import { InfoTooltip } from '../components/Tooltip';
 import { FEATURE_TOOLTIPS } from '../components/tooltipContent';
 
@@ -60,6 +61,7 @@ import {
   VLMClassificationSection,
   PIDFeaturesSection,
   TableExtractionSection,
+  BmtWorkflowSection,
   // GTComparisonSection - GT 관리 기능이 DetectionResultsSection에 통합됨
 } from './workflow';
 
@@ -98,6 +100,7 @@ export function WorkflowPage() {
 
   // 참조 도면 유형 (사용자 오버라이드)
   const [userDrawingType, setUserDrawingType] = useState<string | null>(null);
+  // drawingZoom은 ZoomableImage 컴포넌트 내부에서 관리
 
   // BOM ↔ 도면 하이라이트 연동 (P2-2)
   const [bomHighlightClass, setBomHighlightClass] = useState<string | null>(null);
@@ -493,6 +496,14 @@ export function WorkflowPage() {
             )}
           </div>
 
+          {/* BMT 도면-BOM 교차검증 — Human-in-the-Loop 워크플로우 */}
+          {currentSession && (
+            <BmtWorkflowSection
+              sessionId={currentSession.session_id}
+              apiBaseUrl={API_BASE_URL}
+            />
+          )}
+
           {/* 원본 도면 */}
           {imageData && imageSize && (
             <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -500,16 +511,14 @@ export function WorkflowPage() {
                 📐 원본 도면
                 <InfoTooltip content={FEATURE_TOOLTIPS.referenceDrawing.description} position="right" />
               </h2>
-              <div className="flex justify-center">
-                <img
-                  src={imageData}
-                  alt="원본 도면"
-                  style={{ maxWidth: '75%', height: 'auto', cursor: 'zoom-in' }}
-                  draggable={false}
-                  onClick={() => openImagePopup(imageData, '원본 도면')}
-                  title="클릭하여 새 창에서 확대"
-                />
-              </div>
+              <ZoomableImage
+                src={imageData}
+                alt="원본 도면"
+                initialZoom={50}
+                minZoom={10}
+                maxZoom={200}
+                onFullscreen={() => openImagePopup(imageData, '원본 도면')}
+              />
             </section>
           )}
 

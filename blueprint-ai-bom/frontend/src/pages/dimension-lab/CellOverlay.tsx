@@ -8,6 +8,7 @@ import type { CellResult, FullCompareResponse } from '../../lib/api';
 import { ENGINE_LABELS, METHOD_LABELS, ROLE_COLORS, GEOMETRY_METHODS } from './types';
 import type { GtAnnotation, GeometryDebugInfo } from './types';
 import { GeometryDebugOverlay } from './GeometryDebugOverlay';
+import { ZoomableContainer } from '../../components/ZoomableContainer';
 
 const ROLE_COLOR_MAP: Record<string, string> = {
   outer_diameter: ROLE_COLORS.od,
@@ -94,7 +95,8 @@ export function CellOverlay({ cell, result, groundTruth, onClose }: Props) {
       </div>
 
       {/* 이미지 + 오버레이 */}
-      <div ref={containerRef} className="relative w-full overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+      <ZoomableContainer initialZoom={100} minZoom={25} maxZoom={300} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+      <div ref={containerRef} className="relative w-full">
         {imageUrl ? (
           <div className="relative" style={{ width: '100%', height: scaledHeight }}>
             <img src={imageUrl} alt="Drawing" className="w-full h-auto" style={{ display: 'block', pointerEvents: 'none' }} />
@@ -161,6 +163,7 @@ export function CellOverlay({ cell, result, groundTruth, onClose }: Props) {
           <div className="flex items-center justify-center h-64 text-gray-400">이미지 로딩...</div>
         )}
       </div>
+      </ZoomableContainer>
 
       {/* 범례 */}
       <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">

@@ -11,6 +11,7 @@ import { Ruler, Loader2, AlertCircle, Play, ArrowLeft, CircleDot, Circle, MoveHo
 import { sessionApi, analysisApi } from '../lib/api';
 import type { MethodCompareResponse } from '../lib/api';
 import type { Session } from '../types';
+import { ZoomableContainer } from '../components/ZoomableContainer';
 
 // 방법별 색상 (10개)
 const METHOD_COLORS: Record<string, string> = {
@@ -192,7 +193,8 @@ function MethodImageOverlay({
       </div>
 
       {/* 이미지 + 오버레이 */}
-      <div ref={containerRef} className="relative w-full overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+      <ZoomableContainer initialZoom={100} minZoom={25} maxZoom={300} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+      <div ref={containerRef} className="relative w-full">
         {imageUrl ? (
           <div className="relative" style={{ width: '100%', height: scaledHeight }}>
             <img src={imageUrl} alt="Drawing" className="w-full h-auto" style={{ display: 'block' }} />
@@ -257,6 +259,7 @@ function MethodImageOverlay({
           <div className="flex items-center justify-center h-64 text-gray-400">이미지 로딩...</div>
         )}
       </div>
+      </ZoomableContainer>
 
       {/* 범례 */}
       {!selectedMethod && (
