@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
 
-const DOCS_SITE_URL = '/docs/';
+const DOCS_SITE_URL = 'http://localhost:3001/';
 
 export default function Docs() {
   useEffect(() => {

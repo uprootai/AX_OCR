@@ -26,6 +26,9 @@ const BlueprintFlowTemplates = lazy(() => import('./pages/blueprintflow/Blueprin
 // PID Overlay Page (lazy)
 const PIDOverlayPage = lazy(() => import('./pages/pid-overlay/PIDOverlayPage'));
 
+// BMT HITL Verification Page (lazy)
+const BMTHitlVerification = lazy(() => import('./pages/bmt-verification/BMTHitlVerification'));
+
 // Lab Pages (lazy)
 const LabHub = lazy(() => import('./pages/lab/LabHubPage'));
 
@@ -102,6 +105,9 @@ function App() {
 
                 {/* P&ID 오버레이 페이지 */}
                 <Route path="/pid-overlay" element={<PIDOverlayPage />} />
+
+                {/* BMT HITL 교차검증 페이지 */}
+                <Route path="/bmt-verification" element={<BMTHitlVerification />} />
 
                 {/* 프로젝트 관리 페이지 */}
                 <Route path="/projects" element={<ProjectList />} />
