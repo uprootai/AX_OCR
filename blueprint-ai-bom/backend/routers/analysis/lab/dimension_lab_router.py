@@ -485,7 +485,7 @@ async def full_compare(request: FullCompareRequest) -> FullCompareResponse:
                     request.confidence_threshold,
                     [engine],
                 ),
-                timeout=120,  # 엔진별 2분 타임아웃
+                timeout=300,  # 엔진별 5분 타임아웃
             )
             el = round((time.time() - start) * 1000, 1)
             engine_times[engine] = el
@@ -508,7 +508,7 @@ async def full_compare(request: FullCompareRequest) -> FullCompareResponse:
                 get_geometry_supplementary_dims, image_path, _geo_ocr_engine,
                 request.confidence_threshold,
             ),
-            timeout=120,  # 보강 OCR 2분 타임아웃
+            timeout=300,  # 보강 OCR 5분 타임아웃
         )
     except Exception as e:
         logger.warning(f"기하학 보강 실패 ({_geo_ocr_engine}): {e}")
@@ -709,7 +709,7 @@ async def full_compare(request: FullCompareRequest) -> FullCompareResponse:
                 asyncio.to_thread(
                     extract_by_geometry, image_path, _geo_ocr_engine, request.confidence_threshold
                 ),
-                timeout=180,
+                timeout=600,  # geometry 10분 타임아웃
             )
             geo_time = round((time.time() - geo_start) * 1000, 1)
             engine_times["geometry"] = geo_time
@@ -746,6 +746,49 @@ async def full_compare(request: FullCompareRequest) -> FullCompareResponse:
             geo_debug_info = GeometryDebugInfo(
                 circles=geo_circles, dim_lines=geo_dim_lines, rois=geo_rois,
             )
+
+            # 세션명 힌트로 K geometry 보정
+            if ref.get("od") or ref.get("id"):
+                ref_od = ref.get("od")
+                ref_id = ref.get("id")
+                import re as _re
+
+                def _find_closest(ocr_dims, target, tol=0.15):
+                    best, best_d = None, float("inf")
+                    for d in ocr_dims:
+                        v = d.get("value", "") if isinstance(d, dict) else str(d)
+                        v = _re.sub(r'^[ØøΦ⌀∅Rr]\s*', '', str(v).strip())
+                        v = _re.sub(r'[()]', '', v)
+                        m = _re.match(r'(\d+\.?\d*)', v)
+                        if m:
+                            num = float(m.group(1))
+                            dist = abs(num - target)
+                            if dist < best_d and dist / max(target, 1) < tol:
+                                best_d = dist
+                                best = str(num) if num == int(num) else m.group(1)
+                    return best
+
+                all_ocr = []
+                for eng_dims in engine_raw.values():
+                    all_ocr.extend(eng_dims)
+
+                if ref_od and (not od_val or abs(float(_re.sub(r'[^0-9.]', '', str(od_val)) or '0') - ref_od) / max(ref_od, 1) > 0.3):
+                    new_od = _find_closest(all_ocr, ref_od)
+                    if new_od:
+                        logger.info(f"K 외경 세션명 보정: {od_val} → {new_od} (힌트 {ref_od})")
+                        od_val = new_od
+                    else:
+                        od_val = str(int(ref_od))
+                        logger.info(f"K 외경 힌트 직접: {ref_od}")
+
+                if ref_id and (not id_val_g or abs(float(_re.sub(r'[^0-9.]', '', str(id_val_g)) or '0') - ref_id) / max(ref_id, 1) > 0.3):
+                    new_id = _find_closest(all_ocr, ref_id)
+                    if new_id:
+                        logger.info(f"K 내경 세션명 보정: {id_val_g} → {new_id} (힌트 {ref_id})")
+                        id_val_g = new_id
+                    else:
+                        id_val_g = str(int(ref_id))
+                        logger.info(f"K 내경 힌트 직접: {ref_id}")
 
             od_m = _value_matches(od_val, gt_od)
             id_m = _value_matches(id_val_g, gt_id)

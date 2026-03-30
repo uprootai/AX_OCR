@@ -318,19 +318,19 @@ class DimensionService:
 
     _GENERIC_ENGINE_CONFIGS = {
         "easyocr": {
-            "url_attr": "easyocr_url", "endpoint": "/api/v1/ocr", "timeout": 120.0,
+            "url_attr": "easyocr_url", "endpoint": "/api/v1/ocr", "timeout": 300.0,
             "form_data": {"languages": "en", "detail": "true"},
         },
         "trocr": {
-            "url_attr": "trocr_url", "endpoint": "/api/v1/ocr", "timeout": 120.0,
+            "url_attr": "trocr_url", "endpoint": "/api/v1/ocr", "timeout": 300.0,
             "form_data": {"model_type": "printed", "max_length": "64", "num_beams": "4"},
         },
         "suryaocr": {
-            "url_attr": "suryaocr_url", "endpoint": "/api/v1/ocr", "timeout": 120.0,
+            "url_attr": "suryaocr_url", "endpoint": "/api/v1/ocr", "timeout": 300.0,
             "form_data": {"languages": "en", "detect_layout": "false"},
         },
         "doctr": {
-            "url_attr": "doctr_url", "endpoint": "/api/v1/ocr", "timeout": 60.0,
+            "url_attr": "doctr_url", "endpoint": "/api/v1/ocr", "timeout": 300.0,
             "form_data": {"det_arch": "db_resnet50", "reco_arch": "crnn_vgg16_bn", "straighten_pages": "false"},
         },
     }

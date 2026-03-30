@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "description": "동서기연 베어링 ASSY 도면 OD/ID/W Ground Truth",
+  "created": "2026-03-30",
+  "method": "도면 직접 읽기 (멀티모달 LLM)",
+  "ground_truth": [
+    {
+      "id": "GT-1",
+      "drawing_no": "TD0062037",
+      "title": "T5 BEARING ASSY (460x260)",
+      "type": "JOURNAL",
+      "OD": 1036,
+      "OD_note": "Ø1036 (도면 내 Ø 표기)",
+      "ID": 580,
+      "W": 200,
+      "source": "기존 GT (ensemble/gt-validation)"
+    },
+    {
+      "id": "GT-2",
+      "drawing_no": "TD0062055",
+      "title": "THRUST BEARING ASSY (OD670XID440)",
+      "type": "THRUST",
+      "OD": 515,
+      "OD_note": "Ø515",
+      "ID": 440,
+      "W": 48,
+      "source": "기존 GT (ensemble/gt-validation)"
+    },
+    {
+      "id": "GT-3",
+      "drawing_no": "TD0062015",
+      "title": "T1 BEARING ASSY (360X190)",
+      "type": "JOURNAL",
+      "OD": 360,
+      "OD_note": "Ø360 +0.6/+0.8 (SECTION E-3 우측)",
+      "ID": 190,
+      "W": 200,
+      "W_note": "SECTION E-3 상단 (200)",
+      "source": "도면 직접 읽기 2026-03-30"
+    },
+    {
+      "id": "GT-4",
+      "drawing_no": "TD0062021",
+      "title": "T2 BEARING ASSY (380X190)",
+      "type": "JOURNAL",
+      "OD": 380,
+      "OD_note": "Ø380 +0.6/+0.8 (SECTION E-3 우측)",
+      "ID": 190,
+      "W": 200,
+      "W_note": "SECTION E-3 상단 (200)",
+      "source": "도면 직접 읽기 2026-03-30"
+    },
+    {
+      "id": "GT-5",
+      "drawing_no": "TD0062026",
+      "title": "T3 BEARING ASSY (380X260)",
+      "type": "JOURNAL",
+      "OD": 380,
+      "OD_note": "Ø380 +0.8/+1.0 (SECTION E-3 우측)",
+      "ID": 260,
+      "W": 260,
+      "W_note": "SECTION E-3 상단 (260)",
+      "source": "도면 직접 읽기 2026-03-30"
+    },
+    {
+      "id": "GT-6",
+      "drawing_no": "TD0062031",
+      "title": "T4 BEARING ASSY (420x260)",
+      "type": "JOURNAL",
+      "OD": 420,
+      "OD_note": "Ø420 +0.6 (SECTION E-3 우측)",
+      "ID": 260,
+      "W": 260,
+      "W_note": "T3과 동일 구조, 파일명 420x260",
+      "source": "도면 직접 읽기 2026-03-30"
+    },
+    {
+      "id": "GT-7",
+      "drawing_no": "TD0062050",
+      "title": "T8 BEARING ASSY (500x260)",
+      "type": "JOURNAL",
+      "OD": 500,
+      "OD_note": "Ø500.5 +0.03/0 (SECTION 우측)",
+      "ID": 260,
+      "W": 200,
+      "W_note": "SECTION 상단 (200)",
+      "source": "도면 직접 읽기 2026-03-30"
+    }
+  ]
+}

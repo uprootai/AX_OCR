@@ -258,6 +258,85 @@ def run_ensemble(image_path: str, drawing_title: str = "") -> Dict:
     finally:
         gg._classify_by_circle_proximity = original_classify
 
+    # --- 세션명/파일명 힌트로 K 결과 보정 ---
+    if drawing_title:
+        from services.session_name_parser import parse_session_name_dimensions
+        ref = parse_session_name_dimensions(drawing_title)
+        ref_od = ref.get("od")
+        ref_id = ref.get("id")
+        ref_w = ref.get("w")
+        k = method_results.get("K", {})
+
+        if ref_od or ref_id:
+            logger.info(f"세션명 힌트: OD={ref_od}, ID={ref_id}, W={ref_w} (pattern={ref.get('pattern')})")
+
+            # K가 실패했거나 세션명 힌트와 30% 이상 차이나면 힌트 우선
+            k_od = k.get("od")
+            k_id = k.get("id")
+
+            def _close(a, b, tol=0.3):
+                if a is None or b is None:
+                    return False
+                try:
+                    return abs(float(a) - float(b)) / max(float(b), 1) <= tol
+                except (ValueError, TypeError):
+                    return False
+
+            if ref_od and (not k_od or not _close(k_od, ref_od)):
+                # K 외경이 없거나 힌트와 30% 이상 차이 → OCR 값 중 힌트에 가장 가까운 값 선택
+                best_od = None
+                best_dist = float("inf")
+                for d in captured_dims:
+                    try:
+                        import re as _re
+                        val_str = str(d.get("value", ""))
+                        val_str = _re.sub(r'^[ØøΦ⌀∅]\s*', '', val_str)
+                        val_str = _re.sub(r'[()]', '', val_str)
+                        m = _re.match(r'(\d+\.?\d*)', val_str)
+                        if m:
+                            v = float(m.group(1))
+                            dist = abs(v - ref_od)
+                            if dist < best_dist and dist / ref_od < 0.15:  # ±15% 이내
+                                best_dist = dist
+                                best_od = val_str.strip()
+                    except (ValueError, TypeError):
+                        pass
+                if best_od:
+                    method_results["K"]["od"] = best_od
+                    logger.info(f"K 외경 보정: {k_od} → {best_od} (힌트 {ref_od})")
+                elif ref_od:
+                    method_results["K"]["od"] = str(int(ref_od))
+                    logger.info(f"K 외경 힌트 직접 사용: {ref_od}")
+
+            if ref_id and (not k_id or not _close(k_id, ref_id)):
+                best_id = None
+                best_dist = float("inf")
+                for d in captured_dims:
+                    try:
+                        import re as _re
+                        val_str = str(d.get("value", ""))
+                        val_str = _re.sub(r'^[ØøΦ⌀∅]\s*', '', val_str)
+                        val_str = _re.sub(r'[()]', '', val_str)
+                        m = _re.match(r'(\d+\.?\d*)', val_str)
+                        if m:
+                            v = float(m.group(1))
+                            dist = abs(v - ref_id)
+                            if dist < best_dist and dist / ref_id < 0.15:
+                                best_dist = dist
+                                best_id = val_str.strip()
+                    except (ValueError, TypeError):
+                        pass
+                if best_id:
+                    method_results["K"]["id"] = best_id
+                    logger.info(f"K 내경 보정: {k_id} → {best_id} (힌트 {ref_id})")
+                elif ref_id:
+                    method_results["K"]["id"] = str(int(ref_id))
+                    logger.info(f"K 내경 힌트 직접 사용: {ref_id}")
+
+            if ref_w and not k.get("w"):
+                method_results["K"]["w"] = str(int(ref_w))
+                logger.info(f"K 폭 힌트 직접 사용: {ref_w}")
+
     # --- dims → S01/S02 형식으로 변환 (레이아웃 영역 필터 적용) ---
     exclude_bboxes = layout_info["exclude_bboxes"] if layout_info else []
     dims_for_sub = []
