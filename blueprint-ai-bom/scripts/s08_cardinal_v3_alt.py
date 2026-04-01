@@ -138,15 +138,18 @@ def detect_arrowheads_morphology(gray, min_area=30, max_area=800):
 
 # ── 3. Cardinal Projection ──
 
-def cardinal_projection(circles, arrows, gray, scan_length=200, tolerance=15):
-    """각 원의 N/S/E/W 끝점에서 접선 방향 스캔 → 화살촉 매칭
+def cardinal_projection(circles, arrows, gray, tolerance=15):
+    """각 원의 N/S/E/W 끝점에서 십자(+) 직선 → 화살촉 매칭
 
-    핵심: 끝점에서 바깥이 아니라 **접선 방향**으로 직선을 긋는다.
-      N/S 끝점 → 가로(수평) 접선을 양쪽으로 scan_length만큼 스캔
-      E/W 끝점 → 세로(수직) 접선을 양쪽으로 scan_length만큼 스캔
+    핵심: 각 끝점에서 **수평선 + 수직선 둘 다** 이미지 끝까지 그어서
+    그 직선 위의 화살촉을 찾는다.
 
-    scan_length: 접선 방향으로 양쪽 스캔 거리 (px)
-    tolerance: 접선과 화살촉 사이 수직 거리 최대값 (px)
+      N끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
+      S끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
+      E끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
+      W끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
+
+    tolerance: 직선과 화살촉 사이 수직 거리 최대값 (px)
     """
     h, w = gray.shape
     if not arrows:
@@ -154,19 +157,17 @@ def cardinal_projection(circles, arrows, gray, scan_length=200, tolerance=15):
 
     results = []
 
-    # N/S = 수평 접선, E/W = 수직 접선
-    # (방향명, 끝점 dx, 끝점 dy, 접선축='h'수평/'v'수직)
     directions = [
-        ("N", 0, -1, "h"),  # 북쪽 끝점 → 가로 접선
-        ("S", 0,  1, "h"),  # 남쪽 끝점 → 가로 접선
-        ("E", 1,  0, "v"),  # 동쪽 끝점 → 세로 접선
-        ("W", -1, 0, "v"),  # 서쪽 끝점 → 세로 접선
+        ("N", 0, -1),
+        ("S", 0,  1),
+        ("E", 1,  0),
+        ("W", -1, 0),
     ]
 
     for ci, (cx, cy, r) in enumerate(circles):
         circle_hits = []
 
-        for dir_name, dx, dy, tangent_axis in directions:
+        for dir_name, dx, dy in directions:
             # 끝점
             px = cx + r * dx
             py = cy + r * dy
@@ -174,42 +175,47 @@ def cardinal_projection(circles, arrows, gray, scan_length=200, tolerance=15):
             if px < 0 or py < 0 or px >= w or py >= h:
                 continue
 
-            # 접선 위의 화살촉 검색
-            matches = []
+            # 수평선 + 수직선 둘 다에서 화살촉 검색
+            h_matches = []  # 수평선 위 화살촉
+            v_matches = []  # 수직선 위 화살촉
+
             for ai, arrow in enumerate(arrows):
                 ax, ay = arrow["x"], arrow["y"]
 
-                if tangent_axis == "h":
-                    # 수평 접선: y좌표가 끝점과 비슷, x는 양쪽 scan_length 이내
-                    if abs(ay - py) > tolerance:
-                        continue
-                    if not (px - scan_length <= ax <= px + scan_length):
-                        continue
-                    dist_from_line = abs(ay - py)
-                else:
-                    # 수직 접선: x좌표가 끝점과 비슷, y는 양쪽 scan_length 이내
-                    if abs(ax - px) > tolerance:
-                        continue
-                    if not (py - scan_length <= ay <= py + scan_length):
-                        continue
-                    dist_from_line = abs(ax - px)
+                # 수평선: y좌표가 끝점과 비슷 (이미지 전체 폭)
+                if abs(ay - py) <= tolerance:
+                    dist = np.sqrt((ax - px) ** 2 + (ay - py) ** 2)
+                    h_matches.append({
+                        "arrow_idx": ai, "arrow": arrow,
+                        "line": "h", "dist": dist,
+                        "dist_from_line": abs(ay - py),
+                    })
 
-                dist_from_endpoint = np.sqrt((ax - px) ** 2 + (ay - py) ** 2)
-                matches.append({
-                    "arrow_idx": ai,
-                    "arrow": arrow,
-                    "dist_from_line": dist_from_line,
-                    "dist_from_endpoint": dist_from_endpoint,
-                })
+                # 수직선: x좌표가 끝점과 비슷 (이미지 전체 높이)
+                if abs(ax - px) <= tolerance:
+                    dist = np.sqrt((ax - px) ** 2 + (ay - py) ** 2)
+                    v_matches.append({
+                        "arrow_idx": ai, "arrow": arrow,
+                        "line": "v", "dist": dist,
+                        "dist_from_line": abs(ax - px),
+                    })
 
-            if matches:
-                # 가장 가까운 화살촉
-                best = min(matches, key=lambda m: m["dist_from_endpoint"])
+            # 각 직선에서 가장 가까운 화살촉
+            all_best = []
+            if h_matches:
+                best_h = min(h_matches, key=lambda m: m["dist"])
+                all_best.append(best_h)
+            if v_matches:
+                best_v = min(v_matches, key=lambda m: m["dist"])
+                all_best.append(best_v)
+
+            for best in all_best:
                 circle_hits.append({
                     "direction": dir_name,
+                    "line": best["line"],
                     "endpoint": (px, py),
                     "arrow": best["arrow"],
-                    "dist": best["dist_from_endpoint"],
+                    "dist": best["dist"],
                 })
 
         results.append({
@@ -247,66 +253,35 @@ def visualize_cardinal(img, circles, arrows, projections, name, gt):
         "W": (0, 200, 255),
     }
 
-    hit_count = 0
-    scan_vis = 200
-    tangent_map = {"N": "h", "S": "h", "E": "v", "W": "v"}
-
+    # 먼저 모든 끝점의 십자 직선을 그림 (얇은 선)
+    drawn_endpoints = set()
     for proj in projections:
         cx, cy, r = proj["cx"], proj["cy"], proj["r"]
+        for dir_name, ddx, ddy in [("N", 0, -1), ("S", 0, 1),
+                                    ("E", 1, 0), ("W", -1, 0)]:
+            px = int(cx + r * ddx)
+            py = int(cy + r * ddy)
+            key = (px, py)
+            if key in drawn_endpoints:
+                continue
+            drawn_endpoints.add(key)
+            color = dir_colors.get(dir_name, (200, 200, 200))
+            # 수평선 (이미지 전체 폭)
+            cv2.line(canvas, (0, py), (w, py), color, 1)
+            # 수직선 (이미지 전체 높이)
+            cv2.line(canvas, (px, 0), (px, h), color, 1)
+            # 끝점 마커
+            cv2.circle(canvas, (px, py), 5, color, 2)
 
+    # 히트 표시
+    hit_count = 0
+    for proj in projections:
         for hit in proj["hits"]:
-            d = hit["direction"]
-            ep = hit["endpoint"]
             ap = hit["arrow"]
-            color = dir_colors.get(d, (200, 200, 200))
-            tangent = tangent_map[d]
-
-            # 접선 (수평 또는 수직)
-            epx, epy = int(ep[0]), int(ep[1])
-            if tangent == "h":
-                cv2.line(canvas, (epx - scan_vis, epy),
-                         (epx + scan_vis, epy), color, 1)
-            else:
-                cv2.line(canvas, (epx, epy - scan_vis),
-                         (epx, epy + scan_vis), color, 1)
-
-            # 끝점 → 화살촉 연결선 (굵게)
-            cv2.line(canvas, (epx, epy),
-                     (int(ap["x"]), int(ap["y"])), color, 2)
-
-            # 끝점 마커 (큰 원)
-            cv2.circle(canvas, (epx, epy), 6, color, 2)
-
             # 화살촉 히트 (빨간 X)
             cv2.drawMarker(canvas, (int(ap["x"]), int(ap["y"])),
-                           (0, 0, 255), cv2.MARKER_TILTED_CROSS, 10, 2)
-
-            # 방향 라벨
-            cv2.putText(canvas, f"{d} d={hit['dist']:.0f}",
-                        (epx + 8, epy - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, color, 1)
-
+                           (0, 0, 255), cv2.MARKER_TILTED_CROSS, 12, 2)
             hit_count += 1
-
-    # 히트 없는 방향도 접선 표시 (회색)
-    scan_len = 200
-    for proj in projections:
-        cx, cy, r = proj["cx"], proj["cy"], proj["r"]
-        hit_dirs = {h["direction"] for h in proj["hits"]}
-
-        for dir_name, dx, dy, tangent in [("N", 0, -1, "h"), ("S", 0, 1, "h"),
-                                           ("E", 1, 0, "v"), ("W", -1, 0, "v")]:
-            if dir_name in hit_dirs:
-                continue
-            px = cx + r * dx
-            py = cy + r * dy
-            if tangent == "h":  # 수평 접선
-                cv2.line(canvas, (int(px - scan_len), int(py)),
-                         (int(px + scan_len), int(py)), (150, 150, 150), 1)
-            else:  # 수직 접선
-                cv2.line(canvas, (int(px), int(py - scan_len)),
-                         (int(px), int(py + scan_len)), (150, 150, 150), 1)
-            cv2.circle(canvas, (int(px), int(py)), 4, (150, 150, 150), 1)
 
     # 반지름 라벨
     for cx, cy, r in circles:
@@ -359,12 +334,14 @@ def run():
         # 3. Cardinal Projection
         projections = cardinal_projection(circles, arrows, gray)
         total_hits = sum(len(p["hits"]) for p in projections)
-        print(f"  Cardinal 히트: {total_hits}/{len(circles) * 4}")
+        # 끝점 4개 × 직선 2개(수평+수직) = 8개 직선/원, × 원 수
+        total_lines = len(circles) * 4 * 2
+        print(f"  Cardinal 히트: {total_hits} (끝점 {len(circles)*4}개 × 직선2 = {total_lines}개 직선)")
 
         for proj in projections:
             if proj["hits"]:
                 hits_str = ", ".join(
-                    f"{h['direction']}({h['dist']:.0f}px)"
+                    f"{h['direction']}-{h['line']}({h['dist']:.0f}px)"
                     for h in proj["hits"]
                 )
                 print(f"    r={proj['r']:.0f}: {hits_str}")
