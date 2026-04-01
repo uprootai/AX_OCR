@@ -268,16 +268,15 @@ def visualize_cardinal(img, circles, arrows, projections, name, gt):
             color = dir_colors.get(dir_name, (200, 200, 200))
             la = line_map[dir_name]
 
-            # 원 바깥쪽 직선만 (원에 안 닿게)
-            if la == "h":  # N/S → 수평선 좌우
-                cv2.line(canvas, (0, py), (int(cx - r), py), color, 1)
-                cv2.line(canvas, (int(cx + r), py), (w, py), color, 1)
-            else:  # E/W → 수직선 상하
-                cv2.line(canvas, (px, 0), (px, int(cy - r)), color, 1)
-                cv2.line(canvas, (px, int(cy + r)), (px, h), color, 1)
+            # N/S 수평선, E/W 수직선 — 접선이므로 전체 길이
+            if la == "h":
+                cv2.line(canvas, (0, py), (w, py), color, 2)
+            else:
+                cv2.line(canvas, (px, 0), (px, h), color, 2)
 
-            # 끝점 마커
-            cv2.circle(canvas, (px, py), 5, color, 2)
+            # 끝점 마커 (크게)
+            cv2.circle(canvas, (px, py), 7, (255, 255, 255), 2)
+            cv2.circle(canvas, (px, py), 7, color, 1)
 
         # 히트 표시
         for hit in proj["hits"]:
