@@ -139,15 +139,15 @@ def detect_arrowheads_morphology(gray, min_area=30, max_area=800):
 # ── 3. Cardinal Projection ──
 
 def cardinal_projection(circles, arrows, gray, tolerance=15):
-    """각 원의 N/S/E/W 끝점에서 십자(+) 직선 → 화살촉 매칭
+    """각 원의 N/S/E/W 끝점에서 원 바깥쪽 수평선 → 화살촉 매칭
 
-    핵심: 각 끝점에서 **수평선 + 수직선 둘 다** 이미지 끝까지 그어서
-    그 직선 위의 화살촉을 찾는다.
+    핵심: 각 끝점에서 원에 안 닿는 방향으로만 수평선을 긋는다.
+      N끝점 → 수평선 좌(←)로 + 수평선 우(→)로 (원 위쪽이므로 원에 안 닿음)
+      S끝점 → 수평선 좌(←)로 + 수평선 우(→)로 (원 아래쪽이므로 원에 안 닿음)
+      E끝점 → 수직선 위(↑)로 + 수직선 아래(↓)로 (원 오른쪽이므로 원에 안 닿음)
+      W끝점 → 수직선 위(↑)로 + 수직선 아래(↓)로 (원 왼쪽이므로 원에 안 닿음)
 
-      N끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
-      S끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
-      E끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
-      W끝점 → 수평선(좌→우 끝) + 수직선(상→하 끝)
+    즉 N/S → 수평선, E/W → 수직선. 원 바깥쪽 양방향.
 
     tolerance: 직선과 화살촉 사이 수직 거리 최대값 (px)
     """
@@ -157,17 +157,20 @@ def cardinal_projection(circles, arrows, gray, tolerance=15):
 
     results = []
 
+    # (방향, dx, dy, 직선축)
+    # N/S 끝점은 원의 위/아래 → 수평선(좌우)
+    # E/W 끝점은 원의 좌/우 → 수직선(상하)
     directions = [
-        ("N", 0, -1),
-        ("S", 0,  1),
-        ("E", 1,  0),
-        ("W", -1, 0),
+        ("N", 0, -1, "h"),
+        ("S", 0,  1, "h"),
+        ("E", 1,  0, "v"),
+        ("W", -1, 0, "v"),
     ]
 
     for ci, (cx, cy, r) in enumerate(circles):
         circle_hits = []
 
-        for dir_name, dx, dy in directions:
+        for dir_name, dx, dy, line_axis in directions:
             # 끝점
             px = cx + r * dx
             py = cy + r * dy
@@ -175,44 +178,41 @@ def cardinal_projection(circles, arrows, gray, tolerance=15):
             if px < 0 or py < 0 or px >= w or py >= h:
                 continue
 
-            # 수평선 + 수직선 둘 다에서 화살촉 검색
-            h_matches = []  # 수평선 위 화살촉
-            v_matches = []  # 수직선 위 화살촉
-
+            matches = []
             for ai, arrow in enumerate(arrows):
                 ax, ay = arrow["x"], arrow["y"]
 
-                # 수평선: y좌표가 끝점과 비슷 (이미지 전체 폭)
-                if abs(ay - py) <= tolerance:
+                if line_axis == "h":
+                    # 수평선: y좌표가 끝점과 비슷, 원 바깥(좌우 모두)
+                    if abs(ay - py) > tolerance:
+                        continue
+                    # 원 바깥인지 체크: 화살촉이 원 내부가 아닌지
+                    dist_to_center = np.sqrt((ax - cx) ** 2 + (ay - cy) ** 2)
+                    if dist_to_center < r * 0.9:
+                        continue  # 원 내부 화살촉 제외
                     dist = np.sqrt((ax - px) ** 2 + (ay - py) ** 2)
-                    h_matches.append({
+                    matches.append({
                         "arrow_idx": ai, "arrow": arrow,
-                        "line": "h", "dist": dist,
-                        "dist_from_line": abs(ay - py),
+                        "dist": dist,
+                    })
+                else:
+                    # 수직선: x좌표가 끝점과 비슷, 원 바깥(상하 모두)
+                    if abs(ax - px) > tolerance:
+                        continue
+                    dist_to_center = np.sqrt((ax - cx) ** 2 + (ay - cy) ** 2)
+                    if dist_to_center < r * 0.9:
+                        continue
+                    dist = np.sqrt((ax - px) ** 2 + (ay - py) ** 2)
+                    matches.append({
+                        "arrow_idx": ai, "arrow": arrow,
+                        "dist": dist,
                     })
 
-                # 수직선: x좌표가 끝점과 비슷 (이미지 전체 높이)
-                if abs(ax - px) <= tolerance:
-                    dist = np.sqrt((ax - px) ** 2 + (ay - py) ** 2)
-                    v_matches.append({
-                        "arrow_idx": ai, "arrow": arrow,
-                        "line": "v", "dist": dist,
-                        "dist_from_line": abs(ax - px),
-                    })
-
-            # 각 직선에서 가장 가까운 화살촉
-            all_best = []
-            if h_matches:
-                best_h = min(h_matches, key=lambda m: m["dist"])
-                all_best.append(best_h)
-            if v_matches:
-                best_v = min(v_matches, key=lambda m: m["dist"])
-                all_best.append(best_v)
-
-            for best in all_best:
+            if matches:
+                best = min(matches, key=lambda m: m["dist"])
                 circle_hits.append({
                     "direction": dir_name,
-                    "line": best["line"],
+                    "line": line_axis,
                     "endpoint": (px, py),
                     "arrow": best["arrow"],
                     "dist": best["dist"],
@@ -253,31 +253,42 @@ def visualize_cardinal(img, circles, arrows, projections, name, gt):
         "W": (0, 200, 255),
     }
 
-    # 먼저 모든 끝점의 십자 직선을 그림 (얇은 선)
-    drawn_endpoints = set()
+    # 각 끝점에서 원 바깥쪽 직선 + 히트 표시
+    line_map = {"N": "h", "S": "h", "E": "v", "W": "v"}
+    hit_count = 0
+
     for proj in projections:
         cx, cy, r = proj["cx"], proj["cy"], proj["r"]
+        hit_dirs = {h["direction"] for h in proj["hits"]}
+
         for dir_name, ddx, ddy in [("N", 0, -1), ("S", 0, 1),
                                     ("E", 1, 0), ("W", -1, 0)]:
             px = int(cx + r * ddx)
             py = int(cy + r * ddy)
-            key = (px, py)
-            if key in drawn_endpoints:
-                continue
-            drawn_endpoints.add(key)
             color = dir_colors.get(dir_name, (200, 200, 200))
-            # 수평선 (이미지 전체 폭)
-            cv2.line(canvas, (0, py), (w, py), color, 1)
-            # 수직선 (이미지 전체 높이)
-            cv2.line(canvas, (px, 0), (px, h), color, 1)
+            la = line_map[dir_name]
+
+            # 원 바깥쪽 직선만 (원에 안 닿게)
+            if la == "h":  # N/S → 수평선 좌우
+                cv2.line(canvas, (0, py), (int(cx - r), py), color, 1)
+                cv2.line(canvas, (int(cx + r), py), (w, py), color, 1)
+            else:  # E/W → 수직선 상하
+                cv2.line(canvas, (px, 0), (px, int(cy - r)), color, 1)
+                cv2.line(canvas, (px, int(cy + r)), (px, h), color, 1)
+
             # 끝점 마커
             cv2.circle(canvas, (px, py), 5, color, 2)
 
-    # 히트 표시
-    hit_count = 0
-    for proj in projections:
+        # 히트 표시
         for hit in proj["hits"]:
             ap = hit["arrow"]
+            ep = hit["endpoint"]
+            color = dir_colors.get(hit["direction"], (200, 200, 200))
+
+            # 끝점 → 화살촉 연결선
+            cv2.line(canvas, (int(ep[0]), int(ep[1])),
+                     (int(ap["x"]), int(ap["y"])), color, 2)
+
             # 화살촉 히트 (빨간 X)
             cv2.drawMarker(canvas, (int(ap["x"]), int(ap["y"])),
                            (0, 0, 255), cv2.MARKER_TILTED_CROSS, 12, 2)
