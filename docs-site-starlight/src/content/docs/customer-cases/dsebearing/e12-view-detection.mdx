@@ -1,0 +1,157 @@
+---
+sidebar_position: 22
+title: E12 — 멀티뷰 감지
+description: ASSY 도면의 E-3 절단선 + OCR 앵커로 4개 뷰(측면/정면/SECTION/ISO)를 자동 분할하는 방법.
+tags: [dimension-lab, 뷰감지, E12, ASSY, 앵커]
+---
+
+> OCR 앵커 텍스트(E-3, SECTION, GEN SIDE, TBN SIDE, ISO VIEW)로 ASSY 도면을 4개 뷰로 자동 분할한다.
+
+---
+
+## 배경
+
+ASSY 도면은 하나의 이미지 안에 여러 뷰(투영도)를 포함한다. 기존 SEC 방법은 SECTION E-3만 크롭해서 OD/ID/W를 추출했으나, 측면도에도 폭(W) 치수가 존재할 수 있다.
+
+**문제**: 어떤 뷰가 어디에 있는지 모르면 각 뷰의 역할에 맞는 스캔 전략을 적용할 수 없다.
+
+---
+
+## ASSY 도면 표준 레이아웃
+
+GT 7건 전수 조사 결과, 동서기연 ASSY 도면은 아래 레이아웃을 따른다:
+
+```
+     "E-3" 절단선 라벨
+┌──────────────────────────────────────────┐
+│  [SIDE VIEW]                  [표제란]    │  y: 0~0.30
+│  측면도 (축방향)                           │
+│  W(폭) 치수, 직경 참조치수                  │
+├──────────────┬───────────┬───────────────┤
+│              │           │               │
+│  [FRONT VIEW]│ [SECTION  │  [ISO VIEW]   │  y: 0.30~0.85
+│  정면도       │  E-3]     │  3D 등각      │
+│  (원형 단면)  │ 상세 단면  │               │
+│  K 원검출     │ SEC OCR   │               │
+│              │ GEN/TBN   │               │
+├──────────────┴───────────┴───────────────┤
+│  "SECTION E-3" 라벨         [NOTES]       │  y: 0.85~1.0
+└──────────────────────────────────────────┘
+```
+
+---
+
+## OCR 앵커 텍스트
+
+PaddleOCR로 전체 도면을 스캔하면 아래 앵커 텍스트가 검출된다:
+
+| 앵커 | 위치 (정규화) | 역할 |
+|------|:---:|------|
+| "E-3" (절단선) | (0.31, 0.33) | side_view / front_view 수평 분할선 |
+| "SECTION E-3" | (0.60, 0.86) | section_view 하단 경계 |
+| "GEN SIDE" | (0.50, 0.83) | section_view 좌측 경계 |
+| "TBN SIDE" | (0.70, 0.83) | section_view 우측 경계 |
+| "ISO VIEW" | (0.83, 0.41) | iso_view 좌측 경계 |
+
+좌표는 7건 평균. 도면마다 약간 다르지만 OCR이 실제 위치를 감지하므로 하드코딩이 아닌 **동적 감지**.
+
+---
+
+## 감지 알고리즘
+
+```python
+def _detect_drawing_views(ocr_dets, img_w, img_h) -> Dict:
+    # 1. OCR 결과에서 앵커 텍스트 위치 추출
+    # 2. E-3 절단선 y → side_view / front_view 수평 분할
+    # 3. GEN/TBN SIDE x → section_view 좌우 경계
+    # 4. ISO VIEW x → 우측 경계
+    # 5. 각 뷰 영역 반환 (정규화 좌표 0~1)
+```
+
+`_auto_detect_section()`이 이미 수행한 전체 이미지 OCR 결과를 재사용. 추가 OCR 호출 없음.
+
+---
+
+## GT 7건 뷰 분할 결과
+
+### T1 (360/190/200) — 4 views
+
+![T1 뷰 분할](/images/gt-validation/t1_v7_views.jpg)
+
+4개 뷰 모두 정확히 분할. SECTION(녹색)에서 ID=190, W=200 검출. OD=360은 세로 스캔으로 검출.
+
+### T2 (380/190/200) — 4 views
+
+![T2 뷰 분할](/images/gt-validation/t2_v7_views.jpg)
+
+### T3 (380/260/260) — W 미표기 케이스
+
+![T3 뷰 분할](/images/gt-validation/t3_v7_views.jpg)
+
+SIDE VIEW(빨간)에 565/550/495(직경 참조치수)만 존재. W=260 미표기. SECTION 중앙에 ID=260이 있지만 W zone에는 없음. **도면에 W가 독립 치수로 표기되지 않은 특이 케이스 (ID=W=260)**.
+
+### T4 (420/260/260) — 동일 패턴
+
+![T4 뷰 분할](/images/gt-validation/t4_v7_views.jpg)
+
+T3과 동일. W=260 미표기.
+
+### T5 (1036/580/200) — 4 views
+
+![T5 뷰 분할](/images/gt-validation/t5_v7_views.jpg)
+
+SECTION에 OD=1036과 ID=580 미표기. W=200만 하단에 존재. OD/ID는 S01/S02 vote + K.ID 비율보정으로 보완.
+
+### T8 (500/260/200) — 4 views
+
+![T8 뷰 분할](/images/gt-validation/t8_v7_views.jpg)
+
+### Thrust (515/440/48) — 2 views
+
+![Thrust 뷰 분할](/images/gt-validation/thrust_v7_views.jpg)
+
+저널 베어링과 다른 레이아웃. E-3 절단선이 중간 높이에 있어 side/front 미분할. SECTION + ISO VIEW만 감지.
+
+---
+
+## 각 뷰의 역할과 스캔 전략
+
+| 뷰 | 치수 기대 | 현재 스캔 | 결과 |
+|---|---|---|---|
+| **SECTION E-3** | OD(세로), ID(중앙), W(상/하단) | SEC 메서드 (기본 크롭 + 세로 슬라이딩) | OD 5/7, ID 7/7, W 5/7 |
+| **SIDE VIEW** | W(세로 치수), 직경 참조(가로) | SIDE 스캔 (2x 확대 PaddleOCR) | W 보완 시도 (T3/T4 미표기) |
+| **FRONT VIEW** | OD/ID 원형 윤곽 | K 원검출 (Contour + HoughCircles) | ASSY에서 케이싱 잡는 한계 |
+| **ISO VIEW** | 없음 (3D 참고용) | 미스캔 | - |
+
+---
+
+## 구현 위치
+
+`dimension_ensemble.py` 내 3개 함수:
+
+| 함수 | 줄 | 역할 |
+|------|:---:|------|
+| `_detect_drawing_views()` | ~60줄 | OCR 앵커로 4개 뷰 영역 감지 |
+| `_scan_side_view()` | ~60줄 | 측면도 W 스캔 |
+| `_auto_detect_section()` | 기존 | SECTION 감지 (ocr_dets 반환 추가) |
+
+---
+
+## 한계와 다음 단계
+
+### 현재 한계
+- T3/T4: 도면에 W가 독립 치수로 미표기 (ID=W=260 특이 케이스)
+- Thrust: 레이아웃이 달라 side/front 미분할
+- SIDE VIEW에서 W가 아닌 볼트 간격 등을 잡을 수 있음 (조건부 override로 방어)
+
+### 다음 단계
+1. **각 뷰에서 도면(geometry)만 분리**: 치수선/텍스트를 제거하고 베어링 형상만 추출
+2. **정면도 원 검출 개선**: FRONT VIEW 크롭에서 K 원검출 실행 (전체 도면 대비 노이즈 감소)
+3. **도메인 규칙**: 세션명 `(380X260)`에서 W=260 추론 (ID=W 패턴)
+
+## 관련 문서
+
+- [SECTION 단면도 감지](./e12-section-detection)
+- [세션명 힌트 보정](./e12-session-hint)
+- [앙상블 최적화 개요](../ensemble/)
+- [GT 검증 (7건)](../ensemble/gt-validation/)

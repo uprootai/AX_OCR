@@ -9,7 +9,9 @@ import SidebarToggle from './SidebarToggle.astro';
 
 <script is:inline>
 document.addEventListener('DOMContentLoaded', () => {
-  // Create lightbox overlay
+  // ============================================================
+  // Lightbox (클릭 → 전체화면)
+  // ============================================================
   const overlay = document.createElement('div');
   overlay.className = 'lightbox-overlay';
   overlay.innerHTML = '<button class="lightbox-close" aria-label="닫기">&times;</button><img src="" alt="" />';
@@ -18,25 +20,91 @@ document.addEventListener('DOMContentLoaded', () => {
   const lbImg = overlay.querySelector('img');
   const lbClose = overlay.querySelector('.lightbox-close');
 
-  function closeLightbox() {
-    overlay.classList.remove('active');
+  function closeLightbox() { overlay.classList.remove('active'); }
+  overlay.addEventListener('click', (e) => { if (e.target !== lbImg) closeLightbox(); });
+  lbClose.addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
+  // ============================================================
+  // Magnifier (돋보기 렌즈 — 이미지별 ON/OFF 토글)
+  // ============================================================
+  const lens = document.createElement('div');
+  lens.className = 'magnifier-lens';
+  document.body.appendChild(lens);
+
+  const ZOOM = 3;
+  const LENS_SIZE = 200;
+  const enabledSet = new Set(); // 돋보기 활성화된 이미지 Set
+
+  function showMagnifier(e, img) {
+    if (!enabledSet.has(img)) { lens.style.display = 'none'; return; }
+
+    const rect = img.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+      lens.style.display = 'none';
+      return;
+    }
+
+    const scaleX = img.naturalWidth / rect.width;
+    const scaleY = img.naturalHeight / rect.height;
+    const lensX = e.pageX + 20;
+    const lensY = e.pageY - LENS_SIZE - 10;
+    const bgX = x * scaleX * ZOOM - LENS_SIZE / 2;
+    const bgY = y * scaleY * ZOOM - LENS_SIZE / 2;
+
+    lens.style.display = 'block';
+    lens.style.left = lensX + 'px';
+    lens.style.top = Math.max(10, lensY) + 'px';
+    lens.style.width = LENS_SIZE + 'px';
+    lens.style.height = LENS_SIZE + 'px';
+    lens.style.backgroundImage = 'url(' + img.src + ')';
+    lens.style.backgroundSize = (img.naturalWidth * ZOOM) + 'px ' + (img.naturalHeight * ZOOM) + 'px';
+    lens.style.backgroundPosition = '-' + bgX + 'px -' + bgY + 'px';
   }
 
-  overlay.addEventListener('click', (e) => {
-    if (e.target !== lbImg) closeLightbox();
-  });
-  lbClose.addEventListener('click', closeLightbox);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeLightbox();
-  });
-
-  // Attach click handlers to content images
+  // 각 콘텐츠 이미지에 토글 버튼 + 이벤트 연결
   document.querySelectorAll('.sl-markdown-content img').forEach((img) => {
+    // 이미지를 감싸는 wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'img-magnifier-wrapper';
+    img.parentNode.insertBefore(wrapper, img);
+    wrapper.appendChild(img);
+
+    // 토글 버튼
+    const btn = document.createElement('button');
+    btn.className = 'magnifier-toggle';
+    btn.innerHTML = '&#128269;'; // 🔍
+    btn.title = '돋보기 ON/OFF';
+    wrapper.appendChild(btn);
+
+    // 토글 클릭
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (enabledSet.has(img)) {
+        enabledSet.delete(img);
+        btn.classList.remove('active');
+        lens.style.display = 'none';
+      } else {
+        enabledSet.add(img);
+        btn.classList.add('active');
+      }
+    });
+
+    // 이미지 클릭 → lightbox (돋보기 OFF일 때만)
     img.addEventListener('click', () => {
+      if (enabledSet.has(img)) return; // 돋보기 ON이면 클릭 무시
+      lens.style.display = 'none';
       lbImg.src = img.src;
       lbImg.alt = img.alt || '';
       overlay.classList.add('active');
     });
+
+    // 마우스 이동 → 돋보기
+    img.addEventListener('mousemove', (e) => { showMagnifier(e, img); });
+    img.addEventListener('mouseleave', () => { lens.style.display = 'none'; });
   });
 });
 </script>

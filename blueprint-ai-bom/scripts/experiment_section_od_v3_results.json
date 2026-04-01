@@ -1,0 +1,142 @@
+[
+  {
+    "drawing_no": "TD0062015",
+    "name": "T1",
+    "gt": {
+      "od": 360,
+      "id": 190,
+      "w": 200
+    },
+    "result": {
+      "od": 360.48,
+      "id": 190.0,
+      "w": 200.0
+    },
+    "od_source": "scan+hint",
+    "match": {
+      "od": true,
+      "id": true,
+      "w": true
+    }
+  },
+  {
+    "drawing_no": "TD0062021",
+    "name": "T2",
+    "gt": {
+      "od": 380,
+      "id": 190,
+      "w": 200
+    },
+    "result": {
+      "od": 380.58,
+      "id": 190.0,
+      "w": 200.0
+    },
+    "od_source": "scan+hint",
+    "match": {
+      "od": true,
+      "id": true,
+      "w": true
+    }
+  },
+  {
+    "drawing_no": "TD0062026",
+    "name": "T3",
+    "gt": {
+      "od": 380,
+      "id": 260,
+      "w": 260
+    },
+    "result": {
+      "od": 380.0,
+      "id": 260.0,
+      "w": 200.0
+    },
+    "od_source": "scan+hint",
+    "match": {
+      "od": true,
+      "id": true,
+      "w": false
+    }
+  },
+  {
+    "drawing_no": "TD0062031",
+    "name": "T4",
+    "gt": {
+      "od": 420,
+      "id": 260,
+      "w": 260
+    },
+    "result": {
+      "od": 420.64,
+      "id": 260.0,
+      "w": 200.0
+    },
+    "od_source": "scan+hint",
+    "match": {
+      "od": true,
+      "id": true,
+      "w": false
+    }
+  },
+  {
+    "drawing_no": "TD0062037",
+    "name": "T5",
+    "gt": {
+      "od": 1036,
+      "id": 580,
+      "w": 200
+    },
+    "result": {
+      "od": 297.5,
+      "id": 10.0,
+      "w": 200.0
+    },
+    "od_source": "scan(no_hint_match)",
+    "match": {
+      "od": false,
+      "id": false,
+      "w": true
+    }
+  },
+  {
+    "drawing_no": "TD0062050",
+    "name": "T8",
+    "gt": {
+      "od": 500,
+      "id": 260,
+      "w": 200
+    },
+    "result": {
+      "od": 500.5,
+      "id": 260.0,
+      "w": 200.0
+    },
+    "od_source": "scan+hint",
+    "match": {
+      "od": true,
+      "id": true,
+      "w": true
+    }
+  },
+  {
+    "drawing_no": "TD0062055",
+    "name": "Thrust",
+    "gt": {
+      "od": 515,
+      "id": 440,
+      "w": 48
+    },
+    "result": {
+      "od": 920.0,
+      "id": 440.0,
+      "w": 48.0
+    },
+    "od_source": "scan(no_hint_match)",
+    "match": {
+      "od": false,
+      "id": true,
+      "w": true
+    }
+  }
+]

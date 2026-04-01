@@ -7,6 +7,18 @@ sidebar_position: 1
 
 > 7가지 방법론의 실험 결과를 비교하고, 앙상블에 어떻게 기여했는지 정리한다.
 
+### End-to-End 파이프라인
+
+![E2E 파이프라인](/images/experiments/e2e_pipeline.jpg)
+
+PDF 업로드 → 7개 OCR 엔진 → 원 검출(K+RHT+Ellipse) → 분류(투표/SEC) → OD/ID/W → 견적. ASSY 도면은 SEC-priority(v6), 단품은 K-priority(v5).
+
+### 왜 K만으로는 부족한가
+
+![동기 체인 — K 한계가 만든 실험들](/images/experiments/motivation_chain.jpg)
+
+K의 4가지 한계가 각각 S01~S04와 SEC를 만들었다. 최종 결과: K 단독 0/7(ASSY) → **앙상블 v7 19/21(90%)**.
+
 ## 배경
 
 기존 K방법(기하학 기반)은 원 검출 → 스케일 추정 → 크기순 분류로 OD/ID/W를 추론한다.
@@ -43,18 +55,22 @@ sidebar_position: 1
 
 ### 앙상블 진화
 
-| 버전 | 구성 | All-3 | GT 정확도 |
+| 버전 | 구성 | GT 기준 | GT 정확도 |
 |------|------|:-----:|:---------:|
-| K 단독 | K만 | 48% | — |
-| v1 | K + S01 + S02 | 60% | — |
-| **v2** | K + S01 + S02 + S06 | **71%** | 3/6 (50%) |
-| **v5** | v2 + K-priority + fallback OCR + 필터 | **71%** | **6/6 (100%)** |
+| K 단독 | K만 | 2건 | — |
+| v2 | K + S01 + S02 + S06 투표 | 2건 | 3/6 (50%) |
+| v5 | v2 + K-priority + fallback OCR + 필터 | 2건 | 6/6 (100%) |
+| v6 | v5 + SEC-priority (SECTION 세로스캔) | 7건 | 15/21 (71%) |
+| **v7** | v6 + 볼트필터 + 적응형이진화 + plausibility | **7건** | **19/21 (90%)** |
 
-All-3 검출률은 v2 이후 71%로 동일하다. v3→v5의 개선은 **값의 정확도** (GT 50%→100%).
+v5까지는 GT 2건(6개 비교점)으로 100%였으나, GT를 7건(21개 비교점)으로 확대하자 실제 정확도가 드러났다. v7에서 SEC 노이즈 필터 + OD 교차검증 + ID 적응형 재시도를 적용하여 **90%**를 달성했다.
 
-:::note[GT 한계]
-GT는 2개 ASSY 도면(6개 비교점)에 한정된다. 전체 87개의 정확도를 대표하지 않는다. → [GT 검증 + 한계](../ensemble/gt-validation/)
-:::
+| 항목 | v6 (GT 7건) | **v7 (GT 7건)** |
+|------|:-----------:|:---------------:|
+| OD | 5/7 | **7/7** |
+| ID | 0/7 | **7/7** |
+| W | 5/7 | 5/7 |
+| 합계 | 10/21 (48%) | **19/21 (90%)** |
 
 ### 단일 도면 비교 — T5 (TD0062037)
 
@@ -100,6 +116,28 @@ RHT가 가장 정제됨 (8~20개), Decomp 중간 (33~46), RANSAC 과다 (478~241
 | [S06 — YOLO-OBB](./s06-yolo/) | OCR pseudo-label → mAP50=0.301 |
 | [S07 — Florence-2](./s07-florence2/) | VLM zero-shot 평가 (보류) |
 | [Codex 교차검증](./codex-validation/) | GPT-5.4 독립 리뷰 결과 |
+
+### T1 도면 — 전체 기법 통합 오버레이
+
+![T1 SECTION 전체 기법 통합](/images/experiments/combined_section_t1.jpg)
+
+하나의 SECTION 위에 K(파란 원) + S01(빨간 화살촉) + S02(녹색 Ø텍스트) + SEC(주황 스캔) 전부 표시. K는 케이싱(565)을 잡아 실패하지만, S01/S02/SEC가 각각 W=200, OD=360, ID=190을 찾아 v6에서 3/3 달성.
+
+![T1 전체 도면 통합](/images/experiments/combined_all_methods_t1.jpg)
+
+전체 도면 스케일. 좌측 정면도에서 K가 케이싱 원을 잡고, 우측 SECTION에서 S01~SEC가 실제 베어링 치수를 추출.
+
+### T1 앙상블 투표 과정
+
+![T1 투표 과정 — v5 vs v6](/images/experiments/ensemble_voting_t1.jpg)
+
+6개 방법의 OD/ID/W 투표 과정. v5는 K의 잘못된 OD=565가 K-priority로 선택되어 0/3. v6는 ASSY 도면에서 SEC 결과를 직접 사용하여 3/3.
+
+### T1 전체 비교
+
+![T1 전체 방법 비교](/images/experiments/all_methods_t1.jpg)
+
+T1 기준 6개 방법 비교. SEC(v6)가 3/3으로 유일한 완벽 정답. K는 케이싱(565)을 잡아 OD 실패. S01/S02는 Ø 텍스트로 OD를 찾지만 ID 분류가 다름.
 
 ## 관련 문서
 

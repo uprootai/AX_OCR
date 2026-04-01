@@ -22,7 +22,13 @@ import { Aside } from '@astrojs/starlight/components';
 
 > *"제가 견적을 내는 방법은 1차적으로 큰 소재 사이즈를 확인해서 소재 비용을 먼저 빼내고…"*
 
-이에 따라 시스템이 11종 단품 도면에서 **548개 치수**를 자동 추출했습니다. TD0062017 BEARING RING 도면을 예로 보여드리겠습니다:
+이에 따라 시스템이 11종 단품 도면에서 **548개 치수**를 자동 추출했습니다.
+
+![K Method — 원 검출 + OD/ID/W 분류](/images/experiments/k_step4.jpg)
+
+K geometry Step 4: 원 검출 기반 OD/ID/W 분류 결과. 파란 원 = 검출된 원, 노란 영역 = OCR 크롭 범위.
+
+TD0062017 BEARING RING 도면을 예로 보여드리겠습니다:
 
 ### 원본 도면과 OCR 오버레이
 

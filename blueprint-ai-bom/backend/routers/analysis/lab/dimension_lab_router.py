@@ -809,10 +809,37 @@ async def full_compare(request: FullCompareRequest) -> FullCompareResponse:
             for engine in request.ocr_engines:
                 matrix.append(CellResult(engine=engine, method_id="geometry_guided", score=0.0))
 
+    # --- SEC: SECTION 세로스캔 (ASSY 도면 전용) ---
+    session_name = request.session_id  # 세션명에서 ASSY 판별
+    if "ASSY" in session_name.upper() and image_path:
+        try:
+            from services.dimension_ensemble import _run_section_scan
+            sec = _run_section_scan(str(image_path), session_name)
+            sec_od = sec.get("od")
+            sec_id = sec.get("id")
+            sec_w = sec.get("w")
+
+            sec_od_m = _value_matches(sec_od, gt_od)
+            sec_id_m = _value_matches(sec_id, gt_id)
+            sec_w_m = _value_matches(sec_w, gt_w)
+            checks_s = [m for m in [sec_od_m, sec_id_m, sec_w_m] if m is not None]
+            score_s = sum(1 for c in checks_s if c) / len(checks_s) if checks_s else 0.0
+
+            for engine in request.ocr_engines:
+                matrix.append(CellResult(
+                    engine=engine, method_id="section_scan",
+                    od=sec_od, id_val=sec_id, width=sec_w,
+                    od_match=sec_od_m, id_match=sec_id_m, w_match=sec_w_m,
+                    score=score_s,
+                ))
+            logger.info(f"SEC: OD={sec_od} ID={sec_id} W={sec_w} score={score_s:.2f}")
+        except Exception as e:
+            logger.warning(f"SEC 실패: {e}")
+
     return FullCompareResponse(
         session_id=request.session_id,
         image_width=image_width, image_height=image_height,
         ground_truth=gt_dims, engine_times=engine_times,
         matrix=matrix, total_engines=len(request.ocr_engines),
-        total_methods=len(active_methods) + (1 if _run_geometry else 0),
+        total_methods=len(active_methods) + (1 if _run_geometry else 0) + 1,
     )

@@ -7,6 +7,14 @@ sidebar_position: 3
 
 > 원 검출 실패의 근본 원인을 제거한다. OCR에서 Ø를 먼저 찾고, 치수선 방향으로 OD/ID/W를 분류.
 
+![S02 전체 도면 — K원 vs Text-First 타겟](/images/experiments/s02_full.jpg)
+
+전체 도면에서 K가 잡은 케이싱 원(파란)과 S02가 찾는 Ø360 텍스트(녹색 박스). 돋보기로 SECTION 내부를 확대하면 Ø360 텍스트 위치를 확인할 수 있다.
+
+![S02 K vs Text-First 비교](/images/experiments/s02_comparison.jpg)
+
+K method와 S02의 접근법 비교. S02는 원 검출 실패에 면역이고, Ø1036 같은 큰 값도 직접 찾는다.
+
 ## 핵심 아이디어
 
 K방법의 약점: **원 검출이 실패하면 전체가 무너진다.**
@@ -62,6 +70,12 @@ Text-First는 순서를 뒤집는다:
 | W | 200 | ✅ |
 
 S01과 동일한 ID 오류. 원 proximity 없이 580 vs 650 구분이 안 된다.
+
+### T1 결과 오버레이
+
+![S02 T1 결과](/images/experiments/s02_result.jpg)
+
+Ø360 텍스트를 직접 발견(녹색 박스). OD=360 ✓, ID=200 ✗, W=190 ✗. 원 검출 없이 OD를 찾았지만 ID/W 분류는 개선 필요.
 
 ## 한계
 

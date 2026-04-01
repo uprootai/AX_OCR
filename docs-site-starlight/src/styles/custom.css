@@ -173,7 +173,65 @@ body.hide-right-sidebar #toggle-right-sidebar {
 }
 
 .sl-markdown-content img:hover {
-    opacity: 0.85;
+    opacity: 0.92;
+}
+
+/* ============================================
+   Magnifier — 이미지 호버 시 돋보기 렌즈
+   ============================================ */
+/* 이미지 래퍼 (돋보기 버튼 포함) */
+.img-magnifier-wrapper {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+/* 돋보기 토글 버튼 */
+.magnifier-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    width: 36px;
+    height: 36px;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: all 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+
+.magnifier-toggle:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.magnifier-toggle.active {
+    opacity: 1;
+    background: #1976D2;
+    border-color: #fff;
+    box-shadow: 0 0 8px rgba(25, 118, 210, 0.6);
+}
+
+/* 돋보기 렌즈 */
+.magnifier-lens {
+    display: none;
+    position: absolute;
+    z-index: 9999;
+    border: 3px solid #1976D2;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-color: #fff;
 }
 
 /* 라이트박스 오버레이 */

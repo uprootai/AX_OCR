@@ -1,0 +1,47 @@
+[
+  {
+    "name": "T1",
+    "drawing_no": "TD0062015",
+    "circles": 3,
+    "arrowheads": 250,
+    "pairs": 124,
+    "matched_circles": 0,
+    "total_matches": 0,
+    "od": null,
+    "id": null,
+    "gt_od": 360,
+    "gt_id": 190,
+    "od_ok": false,
+    "id_ok": false,
+    "all_diameters": []
+  },
+  {
+    "name": "T5",
+    "drawing_no": "TD0062037",
+    "circles": 3,
+    "arrowheads": 260,
+    "pairs": 129,
+    "matched_circles": 1,
+    "total_matches": 2,
+    "od": 61.0,
+    "id": 30.5,
+    "gt_od": 1036,
+    "gt_id": 580,
+    "od_ok": false,
+    "id_ok": false,
+    "all_diameters": [
+      {
+        "value": 61.0,
+        "type": "R\u00d72",
+        "circle_r": 1012.0,
+        "text": "30.5"
+      },
+      {
+        "value": 30.5,
+        "type": "\u00d8",
+        "circle_r": 1012.0,
+        "text": "30.5"
+      }
+    ]
+  }
+]

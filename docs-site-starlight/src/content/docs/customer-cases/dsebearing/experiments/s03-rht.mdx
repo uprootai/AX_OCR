@@ -7,6 +7,14 @@ sidebar_position: 4
 
 > HoughCircles의 파라미터 민감성과 부분 호 한계를 극복하는 투표 기반 원 검출.
 
+![S03 전체 도면 — RHT 원 검출](/images/experiments/s03_full.jpg)
+
+RHT로 검출된 원(녹색). 돋보기로 확대하면 각 원의 반지름과 중심점을 확인할 수 있다.
+
+![S03 K(HoughCircles) vs RHT 비교](/images/experiments/s03_comparison.jpg)
+
+위: K method의 HoughCircles 결과. 아래: RHT 결과. RHT는 파라미터에 덜 민감하고 부분 호에서도 원을 잡는다.
+
 ## 핵심 아이디어
 
 기존 원 검출(Contour, HoughCircles, RANSAC)은 에지 기반이라 노이즈에 민감하다.
@@ -58,6 +66,18 @@ RHT 단독으로는 OD/ID/W를 분류하지 않는다. 원 검출 결과를 K방
 | gradient 노이즈 | 스캔 품질이 낮으면 Sobel gradient가 부정확 |
 | bin size 튜닝 | 어큐뮬레이터 해상도에 따라 결과 변동 |
 | 직접 분류 안 됨 | 원만 검출, OD/ID/W 분류는 별도 필요 |
+
+### T1 SECTION 결과
+
+![S03 T1 결과](/images/experiments/s03_result.jpg)
+
+RHT 원(녹색) + 반지름 라벨. S03은 직접 OD/ID/W를 분류하지 않고 앙상블 투표에 원 후보를 제공한다.
+
+### 왜 더 많은 원이 필요한가
+
+![S03 원 검출 수 vs 정확도 영향](/images/experiments/s03_impact.jpg)
+
+K(2~8개) → RHT(15~20개) → Ellipse(33~46개). 원이 많을수록 앙상블 투표 후보가 늘어 OD/ID 정확도가 올라간다. K 단독 48% → 전체 앙상블 71%.
 
 ## 관련 문서
 

@@ -34,6 +34,9 @@ Dimension Lab은 **4개 카테고리 × 14개 방법**으로 OD/ID/W를 추출·
 | 3 | ROI 크롭 + OCR | Focused(1.8×r) + Wide(3.0×r) 이중 크롭 |
 | 4 | 분류 | 스케일 일관성 + 크기 순위 + 원 근접도 |
 
+![K Method Step 1 — 원 검출](/images/experiments/k_step1.jpg)
+![K Method Step 4 — OD/ID/W 분류](/images/experiments/k_step4.jpg)
+
 - **강점**: 원형이 도면 중앙에 크고 동심 구조일 때 높은 정확도
 - **약점**: 원 검출 실패 시 전 단계로 오류 전파
 
@@ -47,6 +50,9 @@ Dimension Lab은 **4개 카테고리 × 14개 방법**으로 OD/ID/W를 추출·
 | 2 | LSD로 치수선 검출 → 각 끝점의 위치 분석 |
 | 3 | 끝점이 원 중심 근처 → R(반지름), 원주 위 → Ø(직경) |
 | 4 | R 값은 ×2로 직경 변환 → OD/ID 크기순 배정 |
+
+![L Method — 끝점 분류 (Thrust)](/img/dimension-lab/pipeline-thrust/L_step2_endpoints.png)
+![L Method — 최종 분류 (Thrust)](/img/dimension-lab/pipeline-thrust/L_step4_classify.png)
 
 - **강점**: 치수선 끝점의 기하학적 의미를 직접 해석
 - **약점**: 끝점 판정이 원 검출 정확도에 의존. 복잡한 도면에서는 대부분 `unknown` 판정
@@ -62,6 +68,9 @@ OCR 텍스트에서 R/Ø 기호를 정규식으로 검색한다.
 | 3 | `R{숫자}` → 반지름 → ×2로 직경 변환 |
 | 4 | 직경 값 중 최대=OD, 차대=ID |
 
+![M Method — 심볼 검출 (Thrust)](/img/dimension-lab/pipeline-thrust/M_step2_symbols.png)
+![M Method — 최종 분류 (Thrust)](/img/dimension-lab/pipeline-thrust/M_step3_classify.png)
+
 - **강점**: 원 검출과 독립적 — Ø 기호가 명확하면 바로 OD 식별
 - **약점**: Ø 접두사 없는 치수(예: `515`)는 탐지 불가
 
@@ -75,6 +84,9 @@ OCR 텍스트에서 R/Ø 기호를 정규식으로 검색한다.
 | 2 | 원 중심에서 0°~315° 8방향 레이 발사 |
 | 3 | 각 레이의 도면 경계 교차 거리 측정 |
 | 4 | 거리 ≈ 반지름 → R(×2 변환), 거리 ≈ 직경 → Ø |
+
+![N Method — 레이 발사 (Thrust)](/img/dimension-lab/pipeline-thrust/N_step2_rays.png)
+![N Method — 최종 분류 (Thrust)](/img/dimension-lab/pipeline-thrust/N_step4_classify.png)
 
 - **강점**: 원 검출과 부분적으로 독립 — 내원 감지에 유리
 - **약점**: 도면 내 다른 형상이 레이를 차단하면 오판

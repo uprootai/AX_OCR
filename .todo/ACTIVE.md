@@ -1,11 +1,29 @@
 # 진행 중인 작업
 
-> **마지막 업데이트**: 2026-03-25
-> **기준 커밋**: E07 Operational Excellence + E10 BMT GAR OCR
+> **마지막 업데이트**: 2026-03-30
+> **기준 커밋**: E12 Dimension Lab 고도화
 
 ---
 
 ## 🔴 현재 진행 중
+
+### E12: Dimension Lab — OD/ID/W 고도화 (🔵 In Progress — Phase 2)
+
+| Phase | 상태 | 요약 |
+|-------|------|------|
+| Phase 1: GT 확보 + Baseline | ✅ Done | GT 7건 확보, K geometry 0/7 → 세션힌트 1/7 |
+| Phase 2: SECTION 감지 | 🔵 In Progress | **세로스캔+위치+힌트 = OD 5/7, ID 6/7** |
+| Phase 3: DL 모델 | ⬜ Todo | CircleNet / Florence-2 LoRA |
+| Phase 4: 앙상블 v7 | ⬜ Todo | 전략 통합 + 견적 자동화 |
+| Phase 5: 고객 납품 | ⬜ Todo | BMT 프로젝트 연계 |
+
+**앙상블 v6 결과**: OD 5/7(71%), ID 5/7(71%), W 5/7(71%) — 전체 15/21(71%)
+**v5 대비**: OD +3, ID +2, W +3 개선
+**핵심 기법**: SEC-priority 전략 (ASSY→SEC 우선, Part→K 우선) + 세로 텍스트 슬라이딩 스캔
+**상세**: `.todo/epics/E12_DIMENSION_LAB_ADVANCEMENT/EPIC.md`
+**실험 문서**: docs-site `customer-cases/dsebearing/e12-section-detection`
+
+---
 
 ### E10: BMT GAR 배치도 TAG 추출 OCR 실험 (✅ Done — S01~S06 전체 완료)
 
