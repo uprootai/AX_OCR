@@ -215,8 +215,7 @@ def collect_projection_data(gray):
     }
 
 
-def build_circle_lines(circles_full, arrows=None, hit_tolerance=15):
-    arrows = arrows or []
+def build_circle_lines(circles_full):
     dir_colors = {
         "N": (255, 100, 100),
         "S": (255, 100, 100),
@@ -233,32 +232,44 @@ def build_circle_lines(circles_full, arrows=None, hit_tolerance=15):
         ]:
             px = int(round(cx + r * ddx))
             py = int(round(cy + r * ddy))
-            hits = []
-            for arrow in arrows:
-                ax, ay = arrow["x"], arrow["y"]
-                if axis == "h" and abs(ay - py) <= hit_tolerance:
-                    if np.sqrt((ax - cx) ** 2 + (ay - cy) ** 2) < r * 0.9:
-                        continue
-                    hits.append((int(ax), int(ay)))
-                elif axis == "v" and abs(ax - px) <= hit_tolerance:
-                    if np.sqrt((ax - cx) ** 2 + (ay - cy) ** 2) < r * 0.9:
-                        continue
-                    hits.append((int(ax), int(ay)))
             lines.append(
                 {
                     "px": px,
                     "py": py,
                     "axis": axis,
                     "color": dir_colors[dir_name],
-                    "hits": hits,
                     "dir_name": dir_name,
+                    "cx": float(cx),
+                    "cy": float(cy),
+                    "r": float(r),
                 }
             )
     return lines
 
 
-def build_protrusion_lines(peaks_full, center_full, outer_r, arrows=None, hit_tolerance=15):
+def attach_circle_hits(circle_lines, arrows=None, hit_tolerance=15):
     arrows = arrows or []
+    annotated = []
+    for line in circle_lines:
+        hits = []
+        cx = line["cx"]
+        cy = line["cy"]
+        r = line["r"]
+        for arrow in arrows:
+            ax, ay = arrow["x"], arrow["y"]
+            if line["axis"] == "h" and abs(ay - line["py"]) <= hit_tolerance:
+                if np.sqrt((ax - cx) ** 2 + (ay - cy) ** 2) < r * 0.9:
+                    continue
+                hits.append((int(ax), int(ay)))
+            elif line["axis"] == "v" and abs(ax - line["px"]) <= hit_tolerance:
+                if np.sqrt((ax - cx) ** 2 + (ay - cy) ** 2) < r * 0.9:
+                    continue
+                hits.append((int(ax), int(ay)))
+        annotated.append({**line, "hits": hits})
+    return annotated
+
+
+def build_protrusion_lines(peaks_full, center_full, outer_r):
     lines = []
     if not peaks_full or center_full is None or outer_r is None:
         return lines
@@ -266,26 +277,46 @@ def build_protrusion_lines(peaks_full, center_full, outer_r, arrows=None, hit_to
     ccx, ccy = center_full
     for angle, _, ppx, ppy in peaks_full:
         for axis in ["h", "v"]:
-            hits = []
-            for arrow in arrows:
-                ax, ay = arrow["x"], arrow["y"]
-                if axis == "h" and abs(ay - ppy) <= hit_tolerance:
-                    if np.sqrt((ax - ccx) ** 2 + (ay - ccy) ** 2) > outer_r * 0.9:
-                        hits.append((int(ax), int(ay)))
-                elif axis == "v" and abs(ax - ppx) <= hit_tolerance:
-                    if np.sqrt((ax - ccx) ** 2 + (ay - ccy) ** 2) > outer_r * 0.9:
-                        hits.append((int(ax), int(ay)))
             lines.append(
                 {
                     "px": int(ppx),
                     "py": int(ppy),
                     "axis": axis,
                     "color": (255, 0, 200),
-                    "hits": hits,
                     "angle": angle,
+                    "ccx": float(ccx),
+                    "ccy": float(ccy),
+                    "outer_r": float(outer_r),
                 }
             )
     return lines
+
+
+def attach_protrusion_hits(protrusion_lines, arrows=None, hit_tolerance=15):
+    arrows = arrows or []
+    annotated = []
+    for line in protrusion_lines:
+        hits = []
+        ccx = line["ccx"]
+        ccy = line["ccy"]
+        outer_r = line["outer_r"]
+        for arrow in arrows:
+            ax, ay = arrow["x"], arrow["y"]
+            if line["axis"] == "h" and abs(ay - line["py"]) <= hit_tolerance:
+                if np.sqrt((ax - ccx) ** 2 + (ay - ccy) ** 2) > outer_r * 0.9:
+                    hits.append((int(ax), int(ay)))
+            elif line["axis"] == "v" and abs(ax - line["px"]) <= hit_tolerance:
+                if np.sqrt((ax - ccx) ** 2 + (ay - ccy) ** 2) > outer_r * 0.9:
+                    hits.append((int(ax), int(ay)))
+        annotated.append({**line, "hits": hits})
+    return annotated
+
+
+def draw_projection_axis(canvas, line, full_w, full_h, thickness):
+    if line["axis"] == "h":
+        cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), line["color"], thickness)
+    else:
+        cv2.line(canvas, (line["px"], 0), (line["px"], full_h), line["color"], thickness)
 
 
 def draw_fullpage_projection(img, circles_full, circle_lines, protrusion_lines, gt, name):
@@ -296,16 +327,19 @@ def draw_fullpage_projection(img, circles_full, circle_lines, protrusion_lines, 
         cv2.circle(canvas, (int(cx), int(cy)), int(r), (67, 160, 71), 3)
 
     circle_hit = 0
-    circle_lines_drawn = 0
+    circle_hit_lines = 0
     for line in circle_lines:
+        draw_projection_axis(canvas, line, full_w, full_h, 2 if line["hits"] else 1)
+        cv2.circle(
+            canvas,
+            (line["px"], line["py"]),
+            8,
+            (255, 255, 255),
+            2 if line["hits"] else 1,
+        )
         if not line["hits"]:
             continue
-        circle_lines_drawn += 1
-        if line["axis"] == "h":
-            cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), line["color"], 2)
-        else:
-            cv2.line(canvas, (line["px"], 0), (line["px"], full_h), line["color"], 2)
-        cv2.circle(canvas, (line["px"], line["py"]), 8, (255, 255, 255), 2)
+        circle_hit_lines += 1
         for hx, hy in line["hits"]:
             cv2.drawMarker(
                 canvas,
@@ -318,23 +352,20 @@ def draw_fullpage_projection(img, circles_full, circle_lines, protrusion_lines, 
             circle_hit += 1
 
     protrusion_hit = 0
-    protrusion_lines_drawn = 0
+    protrusion_hit_lines = 0
     for line in protrusion_lines:
-        if not line["hits"]:
-            continue
-        protrusion_lines_drawn += 1
-        if line["axis"] == "h":
-            cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), line["color"], 2)
-        else:
-            cv2.line(canvas, (line["px"], 0), (line["px"], full_h), line["color"], 2)
+        draw_projection_axis(canvas, line, full_w, full_h, 2 if line["hits"] else 1)
         cv2.drawMarker(
             canvas,
             (line["px"], line["py"]),
             (0, 0, 255),
             cv2.MARKER_DIAMOND,
             12,
-            3,
+            3 if line["hits"] else 1,
         )
+        if not line["hits"]:
+            continue
+        protrusion_hit_lines += 1
         for hx, hy in line["hits"]:
             cv2.drawMarker(
                 canvas,
@@ -347,10 +378,10 @@ def draw_fullpage_projection(img, circles_full, circle_lines, protrusion_lines, 
             protrusion_hit += 1
 
     total_lines = len(circle_lines) + len(protrusion_lines)
-    active_lines = circle_lines_drawn + protrusion_lines_drawn
+    active_lines = circle_hit_lines + protrusion_hit_lines
     print(f"  전체 직선: {total_lines}개 → 히트 있는 직선: {active_lines}개")
-    print(f"  동심원 히트: {circle_hit}개 ({circle_lines_drawn}개 직선)")
-    print(f"  돌출부 히트: {protrusion_hit}개 ({protrusion_lines_drawn}개 직선)")
+    print(f"  동심원 히트: {circle_hit}개 ({circle_hit_lines}개 직선)")
+    print(f"  돌출부 히트: {protrusion_hit}개 ({protrusion_hit_lines}개 직선)")
 
     for cx, cy, r in circles_full:
         cv2.putText(
@@ -469,30 +500,30 @@ def run():
         if not circles_full:
             continue
 
+        # Shared geometry: lines-only/fullpage 모두 동일한 끝점 집합을 사용한다.
+        base_circle_lines = build_circle_lines(circles_full)
+        base_protrusion_lines = build_protrusion_lines(peaks_full, center_full, outer_r)
+
         if args.lines_only:
-            circle_lines = build_circle_lines(circles_full)
-            protrusion_lines = build_protrusion_lines(peaks_full, center_full, outer_r)
             print(
-                f"  lines-only 산출물: 동심원 직선 {len(circle_lines)}개 + "
-                f"돌출 직선 {len(protrusion_lines)}개"
+                f"  lines-only 산출물: 동심원 직선 {len(base_circle_lines)}개 + "
+                f"돌출 직선 {len(base_protrusion_lines)}개"
             )
             pil = draw_projection_lines_only(
                 img,
                 circles_full,
-                circle_lines,
+                base_circle_lines,
                 peaks_full,
-                protrusion_lines,
+                base_protrusion_lines,
             )
             save_pil(pil, f"{name}_projection_lines_only.jpg", max_w=1600)
             continue
 
         arrows = detect_arrowheads(gray)
         print(f"  화살촉 후보: {len(arrows)}개")
-        circle_lines = build_circle_lines(circles_full, arrows)
-        protrusion_lines = build_protrusion_lines(
-            peaks_full,
-            center_full,
-            outer_r,
+        circle_lines = attach_circle_hits(base_circle_lines, arrows)
+        protrusion_lines = attach_protrusion_hits(
+            base_protrusion_lines,
             arrows,
         )
 
@@ -504,7 +535,7 @@ def run():
             gt,
             name,
         )
-        save_pil(pil, f"{name}_cardinal_v3_full.jpg")
+        save_pil(pil, f"{name}_cardinal_v3_full.jpg", max_w=1600)
 
     print(f"\n완료: {OUT_DIR}")
 
