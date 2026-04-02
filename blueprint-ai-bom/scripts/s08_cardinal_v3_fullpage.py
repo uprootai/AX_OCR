@@ -204,26 +204,13 @@ def run():
         arrows = detect_arrowheads(gray)
         print(f"  화살촉 후보: {len(arrows)}개")
 
-        # 5. 시각화
-        canvas = img.copy()
+        # 5. 히트 판정 먼저, 시각화는 히트 있는 직선만
         ccx, ccy = circles_full[0][0], circles_full[0][1]
 
-        # 동심원 (초록)
-        for cx, cy, r in circles_full:
-            cv2.circle(canvas, (int(cx), int(cy)), int(r), (67, 160, 71), 3)
-
-        # 메인 뷰 박스
-        cv2.rectangle(canvas, (rx1, ry1), (rx2, ry2), (100, 100, 100), 2)
-
-        # 화살촉 (노란 점)
-        for arrow in arrows:
-            cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 4,
-                       (0, 200, 255), -1)
-
-        # ── 동심원 끝점 직선 (시안/노랑) ──
+        # ── 동심원 끝점: 히트 판정 ──
         dir_colors = {"N": (255, 100, 100), "S": (255, 100, 100),
                       "E": (0, 200, 255), "W": (0, 200, 255)}
-        circle_hit = 0
+        circle_lines = []  # (px, py, axis, color, hits[])
         for cx, cy, r in circles_full:
             for dir_name, ddx, ddy, axis in [
                 ("N", 0, -1, "h"), ("S", 0, 1, "h"),
@@ -231,56 +218,82 @@ def run():
             ]:
                 px, py = int(cx + r * ddx), int(cy + r * ddy)
                 color = dir_colors[dir_name]
-                if axis == "h":
-                    cv2.line(canvas, (0, py), (full_w, py), color, 2)
-                else:
-                    cv2.line(canvas, (px, 0), (px, full_h), color, 2)
-                cv2.circle(canvas, (px, py), 8, (255, 255, 255), 2)
-
+                line_hits = []
                 for arrow in arrows:
                     ax, ay = arrow["x"], arrow["y"]
                     if axis == "h" and abs(ay - py) <= 15:
                         if np.sqrt((ax - cx)**2 + (ay - cy)**2) < r * 0.9:
                             continue
-                        cv2.drawMarker(canvas, (int(ax), int(ay)),
-                                       (0, 0, 255), cv2.MARKER_TILTED_CROSS, 15, 2)
-                        circle_hit += 1
+                        line_hits.append((int(ax), int(ay)))
                     elif axis == "v" and abs(ax - px) <= 15:
                         if np.sqrt((ax - cx)**2 + (ay - cy)**2) < r * 0.9:
                             continue
-                        cv2.drawMarker(canvas, (int(ax), int(ay)),
-                                       (0, 0, 255), cv2.MARKER_TILTED_CROSS, 15, 2)
-                        circle_hit += 1
+                        line_hits.append((int(ax), int(ay)))
+                circle_lines.append((px, py, axis, color, line_hits))
 
-        # ── 돌출 끝점 직선 (보라) ──
+        # ── 돌출 끝점: 히트 판정 ──
+        pcolor = (255, 0, 200)
+        protrusion_lines = []  # (px, py, axis, hits[])
+        for angle, r_val, ppx, ppy in peaks_full:
+            for axis in ["h", "v"]:
+                line_hits = []
+                for arrow in arrows:
+                    ax, ay = arrow["x"], arrow["y"]
+                    if axis == "h" and abs(ay - ppy) <= 15:
+                        if np.sqrt((ax - ccx)**2 + (ay - ccy)**2) > outer_r * 0.9:
+                            line_hits.append((int(ax), int(ay)))
+                    elif axis == "v" and abs(ax - ppx) <= 15:
+                        if np.sqrt((ax - ccx)**2 + (ay - ccy)**2) > outer_r * 0.9:
+                            line_hits.append((int(ax), int(ay)))
+                protrusion_lines.append((ppx, ppy, axis, line_hits))
+
+        # ── 시각화: 히트 있는 직선만 ──
+        canvas = img.copy()
+
+        # 동심원 (초록)
+        for cx, cy, r in circles_full:
+            cv2.circle(canvas, (int(cx), int(cy)), int(r), (67, 160, 71), 3)
+
+        # 동심원 직선 — 히트 있는 것만
+        circle_hit = 0
+        circle_lines_drawn = 0
+        for px, py, axis, color, hits in circle_lines:
+            if not hits:
+                continue
+            circle_lines_drawn += 1
+            if axis == "h":
+                cv2.line(canvas, (0, py), (full_w, py), color, 2)
+            else:
+                cv2.line(canvas, (px, 0), (px, full_h), color, 2)
+            cv2.circle(canvas, (px, py), 8, (255, 255, 255), 2)
+            for hx, hy in hits:
+                cv2.drawMarker(canvas, (hx, hy),
+                               (0, 0, 255), cv2.MARKER_TILTED_CROSS, 15, 2)
+                circle_hit += 1
+
+        # 돌출부 직선 — 히트 있는 것만
         protrusion_hit = 0
-        for angle, r_val, px, py in peaks_full:
-            # 돌출 끝점 마커 (빨간 다이아몬드)
-            cv2.drawMarker(canvas, (px, py),
-                           (0, 0, 255), cv2.MARKER_DIAMOND, 15, 3)
+        protrusion_lines_drawn = 0
+        for ppx, ppy, axis, hits in protrusion_lines:
+            if not hits:
+                continue
+            protrusion_lines_drawn += 1
+            if axis == "h":
+                cv2.line(canvas, (0, ppy), (full_w, ppy), pcolor, 2)
+            else:
+                cv2.line(canvas, (ppx, 0), (ppx, full_h), pcolor, 2)
+            cv2.drawMarker(canvas, (ppx, ppy),
+                           (0, 0, 255), cv2.MARKER_DIAMOND, 12, 3)
+            for hx, hy in hits:
+                cv2.drawMarker(canvas, (hx, hy),
+                               (255, 0, 200), cv2.MARKER_TILTED_CROSS, 12, 2)
+                protrusion_hit += 1
 
-            # 수평선 + 수직선 (보라)
-            pcolor = (255, 0, 200)
-            cv2.line(canvas, (0, py), (full_w, py), pcolor, 2)
-            cv2.line(canvas, (px, 0), (px, full_h), pcolor, 2)
-
-            # 직선 위 화살촉 히트
-            for arrow in arrows:
-                ax, ay = arrow["x"], arrow["y"]
-                hit = False
-                if abs(ay - py) <= 15:
-                    if np.sqrt((ax - ccx)**2 + (ay - ccy)**2) > outer_r * 0.9:
-                        hit = True
-                if abs(ax - px) <= 15:
-                    if np.sqrt((ax - ccx)**2 + (ay - ccy)**2) > outer_r * 0.9:
-                        hit = True
-                if hit:
-                    cv2.drawMarker(canvas, (int(ax), int(ay)),
-                                   (255, 0, 200), cv2.MARKER_TILTED_CROSS, 12, 2)
-                    protrusion_hit += 1
-
-        print(f"  동심원 직선 히트: {circle_hit}개")
-        print(f"  돌출부 직선 히트: {protrusion_hit}개")
+        total_lines = len(circle_lines) + len(protrusion_lines)
+        active_lines = circle_lines_drawn + protrusion_lines_drawn
+        print(f"  전체 직선: {total_lines}개 → 히트 있는 직선: {active_lines}개")
+        print(f"  동심원 히트: {circle_hit}개 ({circle_lines_drawn}개 직선)")
+        print(f"  돌출부 히트: {protrusion_hit}개 ({protrusion_lines_drawn}개 직선)")
 
         # 반지름 라벨
         for cx, cy, r in circles_full:
