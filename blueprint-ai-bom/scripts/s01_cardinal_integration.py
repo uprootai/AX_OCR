@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -27,6 +28,7 @@ from s08_cardinal_v3_fullpage import (
     build_circle_lines,
     build_protrusion_lines,
     collect_projection_data,
+    draw_projection_lines_only,
 )
 
 SRC_DIR = Path("/home/uproot/ax/poc/blueprint-ai-bom/data/dse_batch_test/converted_pngs")
@@ -38,6 +40,8 @@ OCR_API = "http://localhost:5006/api/v1/ocr"
 GT: Dict[str, Dict[str, Any]] = {
     "TD0062015": {"name": "t1", "od": 360, "id": 190, "w": 200},
     "TD0062021": {"name": "t2", "od": 380, "id": 190, "w": 200},
+    "TD0062031": {"name": "t4", "od": 420, "id": 260, "w": 260},
+    "TD0062050": {"name": "t8", "od": 500, "id": 260, "w": 200},
 }
 
 
@@ -259,6 +263,52 @@ def classify_gt_label(value: float, gt: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--doc",
+        choices=[str(gt["name"]) for gt in GT.values()],
+        help="특정 도면만 처리",
+    )
+    parser.add_argument(
+        "--projection-arrows-only",
+        action="store_true",
+        help="2-2 직선 투사 이미지 위에 S01 화살촉 점만 추가한 산출물 생성",
+    )
+    return parser.parse_args()
+
+
+def resolve_targets(doc_name: Optional[str]) -> List[Tuple[str, Dict[str, Any]]]:
+    return [
+        (doc_id, gt)
+        for doc_id, gt in GT.items()
+        if doc_name is None or gt["name"] == doc_name
+    ]
+
+
+def visualize_projection_arrowheads_only(
+    img: np.ndarray,
+    circles_full: List[Tuple[float, float, float]],
+    circle_lines: List[Dict[str, Any]],
+    peaks_full: List[Tuple[float, float, float, float]],
+    protrusion_lines: List[Dict[str, Any]],
+    arrowheads: List[Dict[str, Any]],
+) -> Image.Image:
+    base = draw_projection_lines_only(
+        img,
+        circles_full,
+        circle_lines,
+        peaks_full,
+        protrusion_lines,
+    )
+    canvas = cv2.cvtColor(np.array(base), cv2.COLOR_RGB2BGR)
+
+    for arrow in arrowheads:
+        cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 4, (0, 0, 255), -1)
+
+    return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
+
+
 def format_ocr_label(ocr: Dict[str, Any], gt: Dict[str, Any]) -> str:
     label = classify_gt_label(float(ocr["value"]), gt)
     if label:
@@ -353,10 +403,11 @@ def visualize(
 
 
 def run() -> None:
+    args = parse_args()
     print("S01 + Cardinal 통합 시각화")
     print("=" * 60)
 
-    for doc_id, gt in GT.items():
+    for doc_id, gt in resolve_targets(args.doc):
         name = str(gt["name"])
         img_path = SRC_DIR / f"{doc_id}.png"
         if not img_path.exists():
@@ -370,13 +421,51 @@ def run() -> None:
             print(f"  ⚠ 이미지 로드 실패: {img_path}")
             continue
 
-        circles_full, projection_lines = collect_projection_lines(gray)
+        data = collect_projection_data(gray)
+        circles_full = data["circles_full"]
+        peaks_full = data["peaks_full"]
+        outer_r = data["outer_r"]
+        center_full = data["center_full"]
+        projection_lines = []
+        circle_lines = build_circle_lines(circles_full)
+        protrusion_lines = build_protrusion_lines(peaks_full, center_full, outer_r)
+        for line in circle_lines:
+            projection_lines.append(
+                {
+                    "px": int(line["px"]),
+                    "py": int(line["py"]),
+                    "axis": str(line["axis"]),
+                    "source": "circle",
+                }
+            )
+        for line in protrusion_lines:
+            projection_lines.append(
+                {
+                    "px": int(line["px"]),
+                    "py": int(line["py"]),
+                    "axis": str(line["axis"]),
+                    "source": "protrusion",
+                }
+            )
         print(f"  [1] ALT 동심원: {len(circles_full)}개")
         print(f"  [2] 투사선: {len(projection_lines)}개")
 
         arrowheads = detect_arrowheads(gray)
-        all_pairs = match_arrowhead_pairs(arrowheads)
         print(f"  [3] S01 화살촉: {len(arrowheads)}개")
+
+        if args.projection_arrows_only:
+            pil = visualize_projection_arrowheads_only(
+                img,
+                circles_full,
+                circle_lines,
+                peaks_full,
+                protrusion_lines,
+                arrowheads,
+            )
+            save_pil(pil, f"{name}_s01_arrows.jpg")
+            continue
+
+        all_pairs = match_arrowhead_pairs(arrowheads)
         print(f"  [4] 치수선 쌍: {len(all_pairs)}개")
 
         filtered_pairs = filter_pairs_on_projections(all_pairs, projection_lines)
