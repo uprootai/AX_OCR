@@ -304,7 +304,7 @@ def visualize_projection_arrowheads_only(
     canvas = cv2.cvtColor(np.array(base), cv2.COLOR_RGB2BGR)
 
     for arrow in arrowheads:
-        cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 4, (0, 0, 255), -1)
+        cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 6, (0, 0, 255), -1)
 
     return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
 
@@ -354,9 +354,6 @@ def visualize(
             3,
         )
 
-    for arrow in arrowheads:
-        cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 4, (0, 0, 255), -1)
-
     for match in ocr_matched:
         ocr = match["ocr"]
         if ocr is None:
@@ -384,6 +381,9 @@ def visualize(
             2,
             cv2.LINE_AA,
         )
+
+    for arrow in arrowheads:
+        cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 6, (0, 0, 255), -1)
 
     detected_labels = [
         format_ocr_label(match["ocr"], gt)
