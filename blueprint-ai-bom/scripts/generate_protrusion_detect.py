@@ -74,20 +74,30 @@ def detect_concentric_alt(gray, min_r, max_r):
     return circles
 
 
-def radial_edge_scan(gray, cx, cy, outer_r, n_angles=360, max_scan_r=None):
-    """중심에서 방사 방향으로 엣지 스캔
+def radial_solid_scan(gray, cx, cy, outer_r, n_angles=360, max_scan_r=None):
+    """중심에서 방사 방향으로 채워진 영역(solid) 스캔
+
+    Canny 엣지 대신 이진화 → 채워진 픽셀만 스캔.
+    치수 텍스트/선은 얇아서 연속 solid가 아니므로 자연 필터됨.
+
+    핵심: 외원 바깥에서 연속 solid 구간의 끝 = 돌출부 끝점.
+    치수선/텍스트는 solid 폭이 좁아(1~3px) min_thickness 필터로 제거.
 
     Returns:
-        radial_profile: [(angle_deg, max_edge_r, edge_x, edge_y), ...]
+        radial_profile: [(angle_deg, max_solid_r, x, y), ...]
         protrusions: radial_profile 중 outer_r보다 먼 것들
     """
     h, w = gray.shape
     if max_scan_r is None:
         max_scan_r = int(outer_r * 1.5)
 
-    # 엣지 맵
-    blurred = cv2.GaussianBlur(gray, (5, 5), 1.5)
-    edges = cv2.Canny(blurred, 50, 150)
+    # 이진화 (검은 부분 = 도면 형상)
+    _, binary = cv2.threshold(gray, 0, 255,
+                              cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # 모폴로지 열기 — 얇은 선(치수선/텍스트) 제거, 두꺼운 형상만 유지
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    solid = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
 
     radial_profile = []
 
@@ -97,22 +107,31 @@ def radial_edge_scan(gray, cx, cy, outer_r, n_angles=360, max_scan_r=None):
         dx = np.cos(angle_rad)
         dy = np.sin(angle_rad)
 
-        # 외원 반지름 ~ max_scan_r 범위에서 엣지 스캔
-        max_edge_r = 0
-        max_edge_x, max_edge_y = cx, cy
+        # 외원 근처부터 바깥으로 스캔
+        # 연속 solid 구간의 마지막 위치 = 형상 끝
+        max_solid_r = 0
+        max_x, max_y = int(cx), int(cy)
+        consecutive_empty = 0
 
         for r_px in range(int(outer_r * 0.8), max_scan_r):
             px = int(cx + r_px * dx)
             py = int(cy + r_px * dy)
             if 0 <= px < w and 0 <= py < h:
-                if edges[py, px] > 0:
-                    max_edge_r = r_px
-                    max_edge_x = px
-                    max_edge_y = py
+                if solid[py, px] > 0:
+                    max_solid_r = r_px
+                    max_x, max_y = px, py
+                    consecutive_empty = 0
+                else:
+                    consecutive_empty += 1
+                    # 연속 빈 공간 30px 이상이면 형상 끝
+                    if consecutive_empty > 30 and max_solid_r > outer_r:
+                        break
+            else:
+                break
 
-        radial_profile.append((angle_deg, max_edge_r, max_edge_x, max_edge_y))
+        radial_profile.append((angle_deg, max_solid_r, max_x, max_y))
 
-    # 돌출부 = outer_r보다 10% 이상 먼 엣지
+    # 돌출부 = outer_r보다 5% 이상 먼 solid
     threshold = outer_r * 1.05
     protrusions = [p for p in radial_profile if p[1] > threshold]
 
@@ -232,8 +251,8 @@ def run():
         print(f"  동심원: {len(circles)}개, 외원 r={outer_r:.0f}")
         print(f"  중심: ({cx:.0f}, {cy:.0f})")
 
-        # 방사 스캔
-        profile, protrusions = radial_edge_scan(gray, cx, cy, outer_r)
+        # 방사 스캔 (solid 기반)
+        profile, protrusions = radial_solid_scan(gray, cx, cy, outer_r)
         print(f"  방사 스캔: {len(profile)}방향, 돌출 {len(protrusions)}개")
 
         # 돌출부 클러스터링 → 끝점
