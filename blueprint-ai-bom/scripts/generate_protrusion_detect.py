@@ -74,11 +74,16 @@ def detect_concentric_alt(gray, min_r, max_r):
     return circles
 
 
-def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None):
+def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None, sweep_px=30):
     """동서남북 4방향 최대 solid 범위 스캔
 
     원 중심에서 N/S/E/W 각 방향으로 이진화 solid를 스캔하여
     가장 먼 solid 픽셀 = 해당 방향의 형상 최대치.
+
+    개선:
+    - E/W: 수평선 ±sweep_px 범위에서 최대치 탐색 (플랜지 누락 방지)
+    - N/S: 수직선 ±sweep_px 범위에서 최대치 탐색
+    - max_scan_r: 외원 × 1.3으로 제한 (보조도 진입 방지)
 
     Returns:
         radial_profile: [(angle_deg, max_r, x, y), ...] (4개)
@@ -86,46 +91,67 @@ def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None):
     """
     h, w = gray.shape
     if max_scan_r is None:
-        max_scan_r = int(outer_r * 2.0)
+        max_scan_r = int(outer_r * 1.3)
 
     _, binary = cv2.threshold(gray, 0, 255,
                               cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    # 작은 커널(3x3)로 미세 노이즈만 제거, 플랜지 구조는 유지
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     solid = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
 
+    # (방향, 주축dx, 주축dy)
     directions = [
-        ("N", 0, -1),   # 위
-        ("S", 0, 1),    # 아래
-        ("E", 1, 0),    # 오른쪽
-        ("W", -1, 0),   # 왼쪽
+        ("N", 0, -1),
+        ("S", 0, 1),
+        ("E", 1, 0),
+        ("W", -1, 0),
     ]
     angle_map = {"E": 0, "S": 90, "W": 180, "N": 270}
 
     radial_profile = []
 
     for dir_name, dx, dy in directions:
-        max_r = 0
-        max_x, max_y = int(cx), int(cy)
-        consecutive_empty = 0
+        best_r = 0
+        best_x, best_y = int(cx), int(cy)
 
-        for r_px in range(1, max_scan_r):
-            px = int(cx + r_px * dx)
-            py = int(cy + r_px * dy)
-            if 0 <= px < w and 0 <= py < h:
-                if solid[py, px] > 0:
-                    max_r = r_px
-                    max_x, max_y = px, py
-                    consecutive_empty = 0
+        # 수직 방향(N/S) → 수평 sweep, 수평 방향(E/W) → 수직 sweep
+        for offset in range(-sweep_px, sweep_px + 1):
+            scan_r = 0
+            scan_x, scan_y = int(cx), int(cy)
+            consecutive_empty = 0
+
+            for r_px in range(1, max_scan_r):
+                if dx == 0:
+                    # N/S: 주축=수직, sweep=수평 오프셋
+                    px = int(cx + offset)
+                    py = int(cy + r_px * dy)
                 else:
-                    consecutive_empty += 1
-                    if consecutive_empty > 30 and max_r > outer_r:
-                        break
-            else:
-                break
+                    # E/W: 주축=수평, sweep=수직 오프셋
+                    px = int(cx + r_px * dx)
+                    py = int(cy + offset)
 
-        radial_profile.append((angle_map[dir_name], max_r, max_x, max_y))
-        print(f"    {dir_name}: max_r={max_r} ({max_x},{max_y})"
-              f"{' ← 돌출' if max_r > outer_r * 1.05 else ''}")
+                if 0 <= px < w and 0 <= py < h:
+                    if solid[py, px] > 0:
+                        actual_r = int(np.sqrt(
+                            (px - cx) ** 2 + (py - cy) ** 2))
+                        if actual_r > scan_r:
+                            scan_r = actual_r
+                            scan_x, scan_y = px, py
+                        consecutive_empty = 0
+                    else:
+                        consecutive_empty += 1
+                        if consecutive_empty > 30 and scan_r > outer_r:
+                            break
+                else:
+                    break
+
+            if scan_r > best_r:
+                best_r = scan_r
+                best_x, best_y = scan_x, scan_y
+
+        radial_profile.append((angle_map[dir_name], best_r, best_x, best_y))
+        print(f"    {dir_name}: max_r={best_r} ({best_x},{best_y})"
+              f"{' ← 돌출' if best_r > outer_r * 1.05 else ''}")
 
     threshold = outer_r * 1.05
     protrusions = [p for p in radial_profile if p[1] > threshold]
