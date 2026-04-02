@@ -94,6 +94,48 @@ def detect_concentric_alt(gray_roi, min_r, max_r):
     return circles
 
 
+def select_primary_concentric_circles(circles, center_tol=12, radius_tol=8, max_count=3):
+    """같은 중심의 주 동심원 클러스터만 남긴다."""
+    if not circles:
+        return []
+
+    groups = []
+    for cx, cy, r in circles:
+        matched_group = None
+        for group in groups:
+            gcx, gcy = group["center"]
+            if np.hypot(cx - gcx, cy - gcy) <= center_tol:
+                matched_group = group
+                break
+        if matched_group is None:
+            groups.append({"center": (cx, cy), "circles": [(cx, cy, r)]})
+            continue
+        matched_group["circles"].append((cx, cy, r))
+        xs = [item[0] for item in matched_group["circles"]]
+        ys = [item[1] for item in matched_group["circles"]]
+        matched_group["center"] = (float(np.mean(xs)), float(np.mean(ys)))
+
+    groups.sort(
+        key=lambda group: (
+            len(group["circles"]),
+            max(circle[2] for circle in group["circles"]),
+        ),
+        reverse=True,
+    )
+
+    deduped = []
+    for circle in sorted(groups[0]["circles"], key=lambda item: item[2]):
+        if deduped and abs(circle[2] - deduped[-1][2]) < radius_tol:
+            continue
+        deduped.append(circle)
+
+    if len(deduped) <= max_count:
+        return deduped
+
+    pick_idx = np.linspace(0, len(deduped) - 1, max_count).round().astype(int)
+    return [deduped[idx] for idx in pick_idx]
+
+
 def detect_arrowheads(gray):
     """S01 방식 — Black Hat 모폴로지로 실선 삼각형 화살촉만 검출
 
@@ -164,9 +206,10 @@ def run():
         max_r = int(min(roi_h, roi_w) * MAX_R_RATIO)
 
         # 2. 동심원 검출
-        circles_roi = detect_concentric_alt(roi_gray, min_r, max_r)
+        raw_circles_roi = detect_concentric_alt(roi_gray, min_r, max_r)
+        circles_roi = select_primary_concentric_circles(raw_circles_roi)
         circles_full = [(cx + rx1, cy + ry1, r) for cx, cy, r in circles_roi]
-        print(f"  동심원: {len(circles_full)}개")
+        print(f"  ALT 후보: {len(raw_circles_roi)}개 → 주 동심원: {len(circles_full)}개")
 
         if not circles_full:
             continue
