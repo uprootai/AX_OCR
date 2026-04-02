@@ -83,6 +83,8 @@ def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None, sweep_px=30):
     개선:
     - E/W: 수평선 ±sweep_px 범위에서 최대치 탐색 (플랜지 누락 방지)
     - N/S: 수직선 ±sweep_px 범위에서 최대치 탐색
+    - 최대치 비교는 방향 축 거리만 사용
+      (N/S=|py-cy|, E/W=|px-cx|) → 대각선 오프셋 편향 제거
     - max_scan_r: 외원 × 1.3으로 제한 (보조도 진입 방지)
 
     Returns:
@@ -132,8 +134,11 @@ def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None, sweep_px=30):
 
                 if 0 <= px < w and 0 <= py < h:
                     if solid[py, px] > 0:
-                        actual_r = int(np.sqrt(
-                            (px - cx) ** 2 + (py - cy) ** 2))
+                        actual_r = (
+                            int(round(abs(py - cy)))
+                            if dx == 0
+                            else int(round(abs(px - cx)))
+                        )
                         if actual_r > scan_r:
                             scan_r = actual_r
                             scan_x, scan_y = px, py
