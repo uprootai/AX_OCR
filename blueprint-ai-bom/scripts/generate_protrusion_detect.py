@@ -85,6 +85,8 @@ def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None, sweep_px=30):
     - N/S: 수직선 ±sweep_px 범위에서 최대치 탐색
     - 최대치 비교는 방향 축 거리만 사용
       (N/S=|py-cy|, E/W=|px-cx|) → 대각선 오프셋 편향 제거
+    - N/S는 sweep으로 최대 y만 찾고, 반환 좌표의 x는 항상 중심 cx로 고정
+      → 끝점 연결선이 반드시 수직이 되도록 보정
     - max_scan_r: 외원 × 1.3으로 제한 (보조도 진입 방지)
 
     Returns:
@@ -152,7 +154,12 @@ def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None, sweep_px=30):
 
             if scan_r > best_r:
                 best_r = scan_r
-                best_x, best_y = scan_x, scan_y
+                if dx == 0:
+                    # Sweep은 최대 높이 추정용으로만 사용하고,
+                    # 보고 좌표는 중심 x축에 고정해 N/S 선분을 수직으로 유지한다.
+                    best_x, best_y = int(round(cx)), scan_y
+                else:
+                    best_x, best_y = scan_x, scan_y
 
         radial_profile.append((angle_map[dir_name], best_r, best_x, best_y))
         print(f"    {dir_name}: max_r={best_r} ({best_x},{best_y})"
