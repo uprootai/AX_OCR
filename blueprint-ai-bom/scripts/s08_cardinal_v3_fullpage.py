@@ -19,6 +19,8 @@ OUT_DIR.mkdir(exist_ok=True)
 GT = {
     "TD0062015": {"name": "t1", "od": 360, "id": 190},
     "TD0062021": {"name": "t2", "od": 380, "id": 190},
+    "TD0062031": {"name": "t4", "od": 420, "id": 260},
+    "TD0062050": {"name": "t8", "od": 500, "id": 260},
 }
 
 MIN_R_RATIO = 0.08

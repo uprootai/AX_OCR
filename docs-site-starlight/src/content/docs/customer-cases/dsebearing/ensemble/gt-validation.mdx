@@ -228,23 +228,26 @@ S08 실험에서 Cardinal Projection은 **원 검출 부정확**으로 실패했
 | 원 정확도 | 케이싱 잡음 | 케이싱 잡음 | **베어링 동심원** |
 | 매칭 | 774개 (과다) | 0개 (과소) | **42/48 (88%)** |
 
-#### 전체 도면 결과
+#### 전체 도면 직선 투사 결과
 
-| 도면 | 동심원 | 화살촉 후보 | 끝점 | 히트 |
-|------|:---:|:---:|:---:|:---:|
-| T1 | 3개 | 139개 | 12 | **10/12** (83%) |
-| T2 | 3개 | 106개 | 12 | **11/12** (92%) |
-| T4 | 3개 | 93개 | 12 | **11/12** (92%) |
-| T8 | 3개 | 86개 | 12 | **10/12** (83%) |
-| **합계** | | | 48 | **42/48** (88%) |
+메인 뷰 크롭이 아닌 **전체 도면**에서 동심원 끝점 직선을 그어 SECTION 영역까지 투사한 결과.
 
-| T1 | T2 |
+| 도면 | 해상도 | 동심원 | 화살촉 후보 |
+|------|:---:|:---:|:---:|
+| T1 | 3306×2339 | 3개 | 1296개 |
+| T2 | 3306×2339 | 3개 | 1287개 |
+| T4 | 6623×4678 | 8개 (고해상도 과다) | 2300개 |
+| T8 | 6623×4678 | 10개 (고해상도 과다) | 1978개 |
+
+| T1 전체 도면 | T2 전체 도면 |
 |---|---|
-| ![T1 Cardinal v3](/images/gt-validation/steps/t1_cardinal_v3.jpg) | ![T2 Cardinal v3](/images/gt-validation/steps/t2_cardinal_v3.jpg) |
+| ![T1 Full](/images/gt-validation/steps/t1_cardinal_v3_full.jpg) | ![T2 Full](/images/gt-validation/steps/t2_cardinal_v3_full.jpg) |
 
-| T4 | T8 |
+| T4 전체 도면 | T8 전체 도면 |
 |---|---|
-| ![T4 Cardinal v3](/images/gt-validation/steps/t4_cardinal_v3.jpg) | ![T8 Cardinal v3](/images/gt-validation/steps/t8_cardinal_v3.jpg) |
+| ![T4 Full](/images/gt-validation/steps/t4_cardinal_v3_full.jpg) | ![T8 Full](/images/gt-validation/steps/t8_cardinal_v3_full.jpg) |
+
+메인 뷰(좌측)의 동심원 끝점에서 출발한 수평/수직 직선이 우측 SECTION 단면도까지 뻗어나간다. T1/T2(3306px)는 동심원 3개로 깔끔하지만, T4/T8(6623px)은 고해상도로 인해 동심원이 과다 검출되어 향후 필터링이 필요하다.
 
 #### 시각화 범례
 
@@ -270,16 +273,6 @@ v3에서 히트율 88%를 달성한 핵심 요인:
 - N 방향 외원(r=245): 상단 보조도 영역에 화살촉 부재
 - 일부 히트(d>80px)는 노이즈 가능성 — 향후 거리 기반 필터링 필요
 - **치수선 추적 → OCR 매칭** 단계 추가 시 실제 치수값 추출 가능
-
-#### 전체 도면 투사 — SECTION 영역까지 직선 확장
-
-메인 뷰 크롭이 아닌 **전체 도면(3306×2339)**에서 직선을 그으면 SECTION 단면도 영역의 화살촉과 만나는지 확인할 수 있다.
-
-| T1 전체 도면 | T2 전체 도면 |
-|---|---|
-| ![T1 Full](/images/gt-validation/steps/t1_cardinal_v3_full.jpg) | ![T2 Full](/images/gt-validation/steps/t2_cardinal_v3_full.jpg) |
-
-메인 뷰(좌측)의 동심원 끝점에서 출발한 수평/수직 직선이 우측 SECTION 단면도까지 뻗어나간다. SECTION 영역에서 빨간 X(화살촉 히트)가 직선 위에 있으면, 해당 화살촉이 가리키는 치수선 → OCR 값이 OD/ID/W 후보가 된다.
 
 :::tip[S08 → v3 전환의 의미]
 S08의 "원이 틀리면 전체가 틀린다"는 근본 한계가 `HOUGH_GRADIENT_ALT`로 해결됐다. 동심원 검출 → Cardinal 투사 → 화살촉 매칭 → OCR 치수 추출 파이프라인이 현실적으로 가능해졌다.
