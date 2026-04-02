@@ -74,64 +74,59 @@ def detect_concentric_alt(gray, min_r, max_r):
     return circles
 
 
-def radial_solid_scan(gray, cx, cy, outer_r, n_angles=360, max_scan_r=None):
-    """중심에서 방사 방향으로 채워진 영역(solid) 스캔
+def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None):
+    """동서남북 4방향 최대 solid 범위 스캔
 
-    Canny 엣지 대신 이진화 → 채워진 픽셀만 스캔.
-    치수 텍스트/선은 얇아서 연속 solid가 아니므로 자연 필터됨.
-
-    핵심: 외원 바깥에서 연속 solid 구간의 끝 = 돌출부 끝점.
-    치수선/텍스트는 solid 폭이 좁아(1~3px) min_thickness 필터로 제거.
+    원 중심에서 N/S/E/W 각 방향으로 이진화 solid를 스캔하여
+    가장 먼 solid 픽셀 = 해당 방향의 형상 최대치.
 
     Returns:
-        radial_profile: [(angle_deg, max_solid_r, x, y), ...]
-        protrusions: radial_profile 중 outer_r보다 먼 것들
+        radial_profile: [(angle_deg, max_r, x, y), ...] (4개)
+        protrusions: outer_r보다 먼 것들
     """
     h, w = gray.shape
     if max_scan_r is None:
-        max_scan_r = int(outer_r * 1.5)
+        max_scan_r = int(outer_r * 2.0)
 
-    # 이진화 (검은 부분 = 도면 형상)
     _, binary = cv2.threshold(gray, 0, 255,
                               cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # 모폴로지 열기 — 얇은 선(치수선/텍스트) 제거, 두꺼운 형상만 유지
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     solid = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
 
+    directions = [
+        ("N", 0, -1),   # 위
+        ("S", 0, 1),    # 아래
+        ("E", 1, 0),    # 오른쪽
+        ("W", -1, 0),   # 왼쪽
+    ]
+    angle_map = {"E": 0, "S": 90, "W": 180, "N": 270}
+
     radial_profile = []
 
-    for i in range(n_angles):
-        angle_deg = i * 360.0 / n_angles
-        angle_rad = np.radians(angle_deg)
-        dx = np.cos(angle_rad)
-        dy = np.sin(angle_rad)
-
-        # 외원 근처부터 바깥으로 스캔
-        # 연속 solid 구간의 마지막 위치 = 형상 끝
-        max_solid_r = 0
+    for dir_name, dx, dy in directions:
+        max_r = 0
         max_x, max_y = int(cx), int(cy)
         consecutive_empty = 0
 
-        for r_px in range(int(outer_r * 0.8), max_scan_r):
+        for r_px in range(1, max_scan_r):
             px = int(cx + r_px * dx)
             py = int(cy + r_px * dy)
             if 0 <= px < w and 0 <= py < h:
                 if solid[py, px] > 0:
-                    max_solid_r = r_px
+                    max_r = r_px
                     max_x, max_y = px, py
                     consecutive_empty = 0
                 else:
                     consecutive_empty += 1
-                    # 연속 빈 공간 30px 이상이면 형상 끝
-                    if consecutive_empty > 30 and max_solid_r > outer_r:
+                    if consecutive_empty > 30 and max_r > outer_r:
                         break
             else:
                 break
 
-        radial_profile.append((angle_deg, max_solid_r, max_x, max_y))
+        radial_profile.append((angle_map[dir_name], max_r, max_x, max_y))
+        print(f"    {dir_name}: max_r={max_r} ({max_x},{max_y})"
+              f"{' ← 돌출' if max_r > outer_r * 1.05 else ''}")
 
-    # 돌출부 = outer_r보다 5% 이상 먼 solid
     threshold = outer_r * 1.05
     protrusions = [p for p in radial_profile if p[1] > threshold]
 
@@ -185,15 +180,15 @@ def visualize(img, circles, radial_profile, protrusion_peaks, outer_r, name, gt)
     for ccx, ccy, r in circles:
         cv2.circle(canvas, (int(ccx), int(ccy)), int(r), (67, 160, 71), 2)
 
-    # 방사 프로파일 (연한 시안 — 외원 이내)
-    for angle_deg, edge_r, ex, ey in radial_profile:
-        if edge_r > 0 and edge_r <= outer_r * 1.05:
-            cv2.circle(canvas, (ex, ey), 1, (200, 200, 100), -1)
-
-    # 돌출부 영역 (주황)
-    for angle_deg, edge_r, ex, ey in radial_profile:
-        if edge_r > outer_r * 1.05:
-            cv2.circle(canvas, (ex, ey), 2, (0, 140, 255), -1)
+    # 4방향 최대치 마커 (파란 점)
+    dir_labels = {270: "N", 90: "S", 0: "E", 180: "W"}
+    for angle_deg, max_r, mx, my in radial_profile:
+        d = dir_labels.get(int(angle_deg), "?")
+        color_pt = (255, 200, 0) if max_r <= outer_r * 1.05 else (0, 140, 255)
+        cv2.circle(canvas, (mx, my), 6, color_pt, -1)
+        cv2.putText(canvas, f"{d} r={max_r}",
+                    (mx + 10, my - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, color_pt, 1)
 
     # 돌출 끝점 (빨간 큰 마커 + 라벨)
     for peak in protrusion_peaks:
@@ -251,9 +246,9 @@ def run():
         print(f"  동심원: {len(circles)}개, 외원 r={outer_r:.0f}")
         print(f"  중심: ({cx:.0f}, {cy:.0f})")
 
-        # 방사 스캔 (solid 기반)
-        profile, protrusions = radial_solid_scan(gray, cx, cy, outer_r)
-        print(f"  방사 스캔: {len(profile)}방향, 돌출 {len(protrusions)}개")
+        # 동서남북 최대치 스캔
+        profile, protrusions = cardinal_max_scan(gray, cx, cy, outer_r)
+        print(f"  4방향 스캔, 돌출 {len(protrusions)}개")
 
         # 돌출부 클러스터링 → 끝점
         peaks = cluster_protrusions(protrusions)
