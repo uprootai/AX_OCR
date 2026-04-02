@@ -2,7 +2,7 @@
 """동심원 클러스터 스텝별 시각화 — T1 도면 기준
 
 방안 A (현행): 시각화만 개선 — 검출 파라미터 그대로, 신뢰도별 색 구분
-방안 B (튜닝): Hough param2 상향 + minDist 확대 → 노이즈 원 자체를 줄임
+방안 B (ALT): HOUGH_GRADIENT_ALT로 같은 중심의 동심원을 직접 검출
 """
 
 import cv2
@@ -238,7 +238,7 @@ def draw_cluster_result(img, deduped, clusters, prefix, subtitle_extra=""):
 
 def run():
     img_path = INPUT_DIR / "t1_main_view.jpg"
-    print("T1 동심원 — 방안 A (시각화 개선) vs 방안 B (파라미터 튜닝)")
+    print("T1 동심원 — 방안 A (시각화 개선) vs 방안 B (HOUGH_GRADIENT_ALT)")
     print("=" * 60)
 
     img = cv2.imread(str(img_path))
@@ -331,9 +331,9 @@ def run():
     save_pil(pil, "step5a_cluster_viz.jpg")
 
     # ================================================================
-    # 방안 B: 파라미터 튜닝 — param2=120, dp=1.2, minDist=min_r*3
+    # 방안 B: HOUGH_GRADIENT_ALT — 같은 중심의 동심원 직접 검출
     # ================================================================
-    print("\n── 방안 B: 파라미터 튜닝 ──")
+    print("\n── 방안 B: HOUGH_GRADIENT_ALT ──")
     hough_tuned = detect_hough_tuned(gray, min_r, max_r)
 
     # Step 3B
@@ -347,10 +347,10 @@ def run():
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 230), 1)
     pil = add_header(
         canvas3b,
-        f"Step 3B — HoughCircles (튜닝: {len(hough_tuned)}개)",
-        f"dp=1.2, param2=120, minDist={min_r * 3}px | "
-        f"기존 {n_high + n_low}개 → {len(hough_tuned)}개",
-        "→ 높은 임계값 + 넓은 간격으로 노이즈 원 자체를 줄임",
+        f"Step 3B — HoughCircles ALT ({len(hough_tuned)}개)",
+        "HOUGH_GRADIENT_ALT | dp=1.5, param2=0.85, minDist=20px",
+        f"기존 {n_high + n_low}개 → {len(hough_tuned)}개 | "
+        "3D 누적기로 동심원 직접 검출",
     )
     save_pil(pil, "step3b_hough_tuned.jpg")
 
@@ -380,7 +380,7 @@ def run():
     clusters_b = find_clusters(deduped_b)
     pil = draw_cluster_result(
         img, deduped_b, clusters_b, "Step 5B",
-        f"방안 B: 튜닝 후 | 전체 {len(deduped_b)}개 → "
+        f"방안 B: HOUGH_GRADIENT_ALT | 전체 {len(deduped_b)}개 → "
         f"클러스터 {len(clusters_b)}개",
     )
     save_pil(pil, "step5b_cluster_tuned.jpg")
@@ -396,7 +396,7 @@ def run():
         ra = sorted([c[2] for c in clusters_a[0]])
         print(f"    베어링: {len(clusters_a[0])}원, "
               f"r={ra[0]:.0f}~{ra[-1]:.0f}")
-    print(f"  방안 B (튜닝): Hough {len(hough_tuned)}개 → "
+    print(f"  방안 B (ALT): Hough {len(hough_tuned)}개 → "
           f"Dedup {len(deduped_b)}개 → 클러스터 {len(clusters_b)}개")
     if clusters_b:
         rb = sorted([c[2] for c in clusters_b[0]])

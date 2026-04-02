@@ -3,14 +3,17 @@
 
 메인 뷰 크롭이 아닌 전체 도면에서:
 1. 메인 뷰 영역에서 ALT 동심원 검출
-2. 동심원 끝점에서 전체 도면을 가로지르는 직선
-3. SECTION 영역의 화살촉과 만나는지 확인
+2. 동서남북 4방향 최대치 스캔으로 돌출부 끝점 검출
+3. 동심원/돌출부 끝점에서 전체 도면을 가로지르는 직선
+4. SECTION 영역의 화살촉과 만나는지 확인
 """
 
 import cv2
 import numpy as np
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+
+from generate_protrusion_detect import cardinal_max_scan
 
 SRC_DIR = Path("/home/uproot/ax/poc/blueprint-ai-bom/data/dse_batch_test/converted_pngs")
 OUT_DIR = Path("/home/uproot/ax/poc/docs-site-starlight/public/images/gt-validation/steps")
@@ -135,47 +138,8 @@ def detect_arrowheads(gray):
     return arrows
 
 
-def radial_edge_scan(gray, cx, cy, outer_r, n_angles=360):
-    """중심에서 방사 스캔 → 돌출부 끝점 검출"""
-    h, w = gray.shape
-    max_scan_r = int(outer_r * 1.5)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 1.5)
-    edges = cv2.Canny(blurred, 50, 150)
-
-    profile = []
-    for i in range(n_angles):
-        angle_rad = np.radians(i * 360.0 / n_angles)
-        dx, dy = np.cos(angle_rad), np.sin(angle_rad)
-        max_r_found = 0
-        max_x, max_y = int(cx), int(cy)
-        for r_px in range(int(outer_r * 0.8), max_scan_r):
-            px = int(cx + r_px * dx)
-            py = int(cy + r_px * dy)
-            if 0 <= px < w and 0 <= py < h and edges[py, px] > 0:
-                max_r_found = r_px
-                max_x, max_y = px, py
-        profile.append((i * 360.0 / n_angles, max_r_found, max_x, max_y))
-
-    # 돌출 = 외원 × 1.05 초과
-    protrusions = [p for p in profile if p[1] > outer_r * 1.05]
-
-    # 클러스터링 → 끝점
-    if not protrusions:
-        return []
-    sorted_p = sorted(protrusions, key=lambda p: p[0])
-    groups, cur = [], [sorted_p[0]]
-    for i in range(1, len(sorted_p)):
-        if sorted_p[i][0] - sorted_p[i - 1][0] <= 10:
-            cur.append(sorted_p[i])
-        else:
-            groups.append(cur)
-            cur = [sorted_p[i]]
-    groups.append(cur)
-    return [max(g, key=lambda p: p[1]) for g in groups]
-
-
 def run():
-    print("S08 Cardinal v3 — 전체 도면 투사 + 돌출부")
+    print("S08 Cardinal v3 — 전체 도면 투사 + 4방향 돌출부")
     print("=" * 60)
 
     for doc_id, gt in GT.items():
@@ -207,12 +171,14 @@ def run():
         if not circles_full:
             continue
 
-        # 3. 돌출부 검출 (ROI 좌표 → 전체 좌표)
+        # 3. 4방향 최대치 돌출부 검출 (ROI 좌표 → 전체 좌표)
         outer_r = max(c[2] for c in circles_roi)
         ccx_roi, ccy_roi = circles_roi[0][0], circles_roi[0][1]
-        protrusion_peaks = radial_edge_scan(roi_gray, ccx_roi, ccy_roi, outer_r)
-        # ROI → 전체 도면 좌표
-        peaks_full = [(p[0], p[1], p[2] + rx1, p[3] + ry1) for p in protrusion_peaks]
+        _, protrusions_roi = cardinal_max_scan(roi_gray, ccx_roi, ccy_roi, outer_r)
+        peaks_full = [
+            (angle_deg, max_r, px + rx1, py + ry1)
+            for angle_deg, max_r, px, py in protrusions_roi
+        ]
         print(f"  돌출 끝점: {len(peaks_full)}개")
 
         # 4. 전체 도면 화살촉
