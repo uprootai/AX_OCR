@@ -91,32 +91,47 @@ def detect_concentric_alt(gray_roi, min_r, max_r):
     return circles
 
 
-def detect_arrowheads(gray, min_area=50, max_area=1500):
-    """전체 도면에서 화살촉 후보 검출"""
-    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    contours, _ = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+def detect_arrowheads(gray):
+    """S01 방식 — Black Hat 모폴로지로 실선 삼각형 화살촉만 검출
+
+    Black Hat = closing - original → 작은 실선 구조(화살촉)만 강조.
+    원본 이진화 컨투어와 달리 문자/해칭/볼트홀이 제거됨.
+    """
+    _, binary = cv2.threshold(gray, 0, 255,
+                              cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    ks = max(3, min(gray.shape[0], gray.shape[1]) // 150)
+    ks = ks if ks % 2 == 1 else ks + 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ks, ks))
+    black_hat = cv2.subtract(
+        cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel), binary
+    )
+
+    dil_k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    black_hat = cv2.dilate(black_hat, dil_k, iterations=1)
+
+    contours, _ = cv2.findContours(
+        black_hat, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
 
     arrows = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area < min_area or area > max_area:
+        if area < 50 or area > 500:
             continue
-        hull = cv2.convexHull(cnt)
-        hull_area = cv2.contourArea(hull)
-        if hull_area < 1:
+        x, y, w, h = cv2.boundingRect(cnt)
+        if h == 0 or w == 0:
             continue
-        solidity = area / hull_area
-        if solidity < 0.4:
-            continue
-        x, y, bw, bh = cv2.boundingRect(cnt)
-        aspect = min(bw, bh) / max(bw, bh) if max(bw, bh) > 0 else 0
-        if aspect < 0.2 or (bw > 80 and bh > 80):
+        aspect = w / h
+        if aspect < 0.3 or aspect > 3.0:
             continue
         M = cv2.moments(cnt)
-        if M["m00"] > 0:
-            cx = M["m10"] / M["m00"]
-            cy = M["m01"] / M["m00"]
-            arrows.append({"x": float(cx), "y": float(cy), "area": area})
+        if M["m00"] < 1e-6:
+            acx, acy = x + w // 2, y + h // 2
+        else:
+            acx = int(M["m10"] / M["m00"])
+            acy = int(M["m01"] / M["m00"])
+        arrows.append({"x": float(acx), "y": float(acy), "area": float(area)})
     return arrows
 
 
