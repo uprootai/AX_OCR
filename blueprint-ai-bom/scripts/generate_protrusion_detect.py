@@ -113,10 +113,83 @@ def cardinal_max_scan(gray, cx, cy, outer_r, max_scan_r=None, sweep_px=30):
     angle_map = {"E": 0, "S": 90, "W": 180, "N": 270}
 
     radial_profile = []
+    outer_boundary_r = int(np.ceil(outer_r))
+    sweep_span = sweep_px * 2 + 1
+    major_density_px = max(3, int(round(sweep_span * 0.08)))
+    outside_empty_stop_px = 10
+    density_drop_stop_px = 10
+
+    def axis_density_profile(dx, dy):
+        density = np.zeros(max_scan_r, dtype=np.int32)
+        for r_px in range(1, max_scan_r):
+            solid_hits = 0
+            for offset in range(-sweep_px, sweep_px + 1):
+                if dx == 0:
+                    px = int(cx + offset)
+                    py = int(cy + r_px * dy)
+                else:
+                    px = int(cx + r_px * dx)
+                    py = int(cy + offset)
+                if 0 <= px < w and 0 <= py < h and solid[py, px] > 0:
+                    solid_hits += 1
+            density[r_px] = solid_hits
+        return density
+
+    def pick_vertical_radius(density_profile):
+        entered_solid = False
+        initial_empty = 0
+        low_density_run = 0
+        peak_density = 0
+        best_vertical_r = outer_boundary_r
+
+        for r_px in range(outer_boundary_r, max_scan_r):
+            density = int(density_profile[r_px])
+
+            if not entered_solid:
+                if density >= major_density_px:
+                    entered_solid = True
+                    peak_density = density
+                    best_vertical_r = r_px
+                    initial_empty = 0
+                    continue
+
+                if density == 0:
+                    initial_empty += 1
+                    if initial_empty >= outside_empty_stop_px:
+                        return outer_boundary_r
+                else:
+                    initial_empty = 0
+                continue
+
+            peak_density = max(peak_density, density)
+            strong_density_px = max(major_density_px, int(round(peak_density * 0.25)))
+            weak_density_px = max(1, int(round(peak_density * 0.15)))
+
+            if density >= strong_density_px:
+                best_vertical_r = r_px
+                low_density_run = 0
+            elif density <= weak_density_px:
+                low_density_run += 1
+                if low_density_run >= density_drop_stop_px:
+                    break
+            else:
+                low_density_run = 0
+
+        return best_vertical_r
 
     for dir_name, dx, dy in directions:
         best_r = 0
         best_x, best_y = int(cx), int(cy)
+
+        if dx == 0:
+            density_profile = axis_density_profile(dx, dy)
+            best_r = pick_vertical_radius(density_profile)
+            best_x = int(round(cx))
+            best_y = int(round(cy + best_r * dy))
+            radial_profile.append((angle_map[dir_name], best_r, best_x, best_y))
+            print(f"    {dir_name}: max_r={best_r} ({best_x},{best_y})"
+                  f"{' ← 돌출' if best_r > outer_r * 1.05 else ''}")
+            continue
 
         # 수직 방향(N/S) → 수평 sweep, 수평 방향(E/W) → 수직 sweep
         for offset in range(-sweep_px, sweep_px + 1):
