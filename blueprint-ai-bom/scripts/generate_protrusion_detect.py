@@ -278,6 +278,50 @@ def cluster_protrusions(protrusions, angle_gap=10):
     return peaks
 
 
+def draw_dashed_circle(img, center, radius, color, thickness=1,
+                       dash_deg=12, gap_deg=8):
+    """점선 외원 기준선 렌더링."""
+    step = max(1, dash_deg + gap_deg)
+    for start in range(0, 360, step):
+        end = min(start + dash_deg, 359)
+        cv2.ellipse(
+            img,
+            center,
+            (int(radius), int(radius)),
+            0,
+            start,
+            end,
+            color,
+            thickness,
+            cv2.LINE_AA,
+        )
+
+
+def draw_label(canvas, text, origin, color):
+    """밝은 도면 배경에서도 읽히도록 라벨에 배경을 준다."""
+    x, y = origin
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = 0.45
+    thickness = 1
+    (tw, th), baseline = cv2.getTextSize(text, font, scale, thickness)
+    pad = 3
+    cv2.rectangle(
+        canvas,
+        (x - pad, y - th - pad),
+        (x + tw + pad, y + baseline + pad),
+        (255, 255, 255),
+        -1,
+    )
+    cv2.rectangle(
+        canvas,
+        (x - pad, y - th - pad),
+        (x + tw + pad, y + baseline + pad),
+        color,
+        1,
+    )
+    cv2.putText(canvas, text, (x, y), font, scale, color, thickness, cv2.LINE_AA)
+
+
 def visualize(img, circles, radial_profile, protrusion_peaks, outer_r, name, gt):
     h, w = img.shape[:2]
     canvas = img.copy()
@@ -286,36 +330,61 @@ def visualize(img, circles, radial_profile, protrusion_peaks, outer_r, name, gt)
         return canvas
 
     cx, cy = circles[0][0], circles[0][1]
+    center = (int(round(cx)), int(round(cy)))
+    dir_labels = {270: "N", 90: "S", 0: "E", 180: "W"}
+    protrusion_dirs = {dir_labels.get(int(peak["angle"]), "?") for peak in protrusion_peaks}
+    top_safe_y = 78
+    label_offsets = {
+        "N": (12, 18),
+        "S": (12, 18),
+        "E": (12, -10),
+        "W": (-96, -10),
+    }
 
     # 동심원 (초록)
     for ccx, ccy, r in circles:
-        cv2.circle(canvas, (int(ccx), int(ccy)), int(r), (67, 160, 71), 2)
+        cv2.circle(canvas, (int(ccx), int(ccy)), int(r), (67, 160, 71), 2, cv2.LINE_AA)
+        cv2.drawMarker(
+            canvas,
+            (int(ccx), int(ccy)),
+            (67, 160, 71),
+            cv2.MARKER_CROSS,
+            16,
+            1,
+        )
 
-    # 4방향 최대치 마커 (파란 점)
-    dir_labels = {270: "N", 90: "S", 0: "E", 180: "W"}
+    # 외원 기준선 (파란 점선)
+    draw_dashed_circle(canvas, center, outer_r, (255, 160, 80), 2)
+
+    # 중심 → 끝점 연결선 + 방향별 마커/라벨
     for angle_deg, max_r, mx, my in radial_profile:
-        d = dir_labels.get(int(angle_deg), "?")
-        color_pt = (255, 200, 0) if max_r <= outer_r * 1.05 else (0, 140, 255)
-        cv2.circle(canvas, (mx, my), 6, color_pt, -1)
-        cv2.putText(canvas, f"{d} r={max_r}",
-                    (mx + 10, my - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, color_pt, 1)
+        direction = dir_labels.get(int(angle_deg), "?")
+        endpoint = (int(mx), int(my))
+        is_protrusion = direction in protrusion_dirs
+        label_x = max(6, min(w - 110, endpoint[0] + label_offsets.get(direction, (10, -8))[0]))
+        label_y = max(top_safe_y, min(h - 6, endpoint[1] + label_offsets.get(direction, (10, -8))[1]))
 
-    # 돌출 끝점 (빨간 큰 마커 + 라벨)
-    for peak in protrusion_peaks:
-        px, py = peak["x"], peak["y"]
-        cv2.drawMarker(canvas, (px, py),
-                       (0, 0, 255), cv2.MARKER_DIAMOND, 15, 3)
-        # 중심 → 끝점 연결선
-        cv2.line(canvas, (int(cx), int(cy)), (px, py), (0, 0, 255), 1)
-        # 라벨
-        cv2.putText(canvas, f"{peak['angle']:.0f}° r={peak['r']}",
-                    (px + 8, py - 8),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+        cv2.line(canvas, center, endpoint, (0, 0, 255), 2, cv2.LINE_AA)
 
-    # 외원 반지름 원 (점선 효과 — 기준선)
-    cv2.circle(canvas, (int(cx), int(cy)), int(outer_r),
-               (100, 100, 255), 1)
+        if is_protrusion:
+            cv2.drawMarker(
+                canvas,
+                endpoint,
+                (0, 0, 255),
+                cv2.MARKER_DIAMOND,
+                18,
+                2,
+            )
+            label_color = (0, 0, 255)
+        else:
+            cv2.circle(canvas, endpoint, 5, (255, 255, 255), -1, cv2.LINE_AA)
+            cv2.circle(canvas, endpoint, 4, (255, 255, 0), -1, cv2.LINE_AA)
+            label_color = (220, 180, 0)
+
+        draw_label(canvas, f"{direction} r={int(max_r)}", (label_x, label_y), label_color)
+
+    cv2.drawMarker(canvas, center, (255, 255, 255), cv2.MARKER_CROSS, 22, 5)
+    cv2.drawMarker(canvas, center, (67, 160, 71), cv2.MARKER_CROSS, 18, 3)
 
     pil = add_header(
         canvas,
