@@ -120,8 +120,47 @@ def detect_arrowheads(gray, min_area=50, max_area=1500):
     return arrows
 
 
+def radial_edge_scan(gray, cx, cy, outer_r, n_angles=360):
+    """중심에서 방사 스캔 → 돌출부 끝점 검출"""
+    h, w = gray.shape
+    max_scan_r = int(outer_r * 1.5)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 1.5)
+    edges = cv2.Canny(blurred, 50, 150)
+
+    profile = []
+    for i in range(n_angles):
+        angle_rad = np.radians(i * 360.0 / n_angles)
+        dx, dy = np.cos(angle_rad), np.sin(angle_rad)
+        max_r_found = 0
+        max_x, max_y = int(cx), int(cy)
+        for r_px in range(int(outer_r * 0.8), max_scan_r):
+            px = int(cx + r_px * dx)
+            py = int(cy + r_px * dy)
+            if 0 <= px < w and 0 <= py < h and edges[py, px] > 0:
+                max_r_found = r_px
+                max_x, max_y = px, py
+        profile.append((i * 360.0 / n_angles, max_r_found, max_x, max_y))
+
+    # 돌출 = 외원 × 1.05 초과
+    protrusions = [p for p in profile if p[1] > outer_r * 1.05]
+
+    # 클러스터링 → 끝점
+    if not protrusions:
+        return []
+    sorted_p = sorted(protrusions, key=lambda p: p[0])
+    groups, cur = [], [sorted_p[0]]
+    for i in range(1, len(sorted_p)):
+        if sorted_p[i][0] - sorted_p[i - 1][0] <= 10:
+            cur.append(sorted_p[i])
+        else:
+            groups.append(cur)
+            cur = [sorted_p[i]]
+    groups.append(cur)
+    return [max(g, key=lambda p: p[1]) for g in groups]
+
+
 def run():
-    print("S08 Cardinal v3 — 전체 도면 투사")
+    print("S08 Cardinal v3 — 전체 도면 투사 + 돌출부")
     print("=" * 60)
 
     for doc_id, gt in GT.items():
@@ -144,89 +183,104 @@ def run():
         roi_h, roi_w = roi_gray.shape
         min_r = int(min(roi_h, roi_w) * MIN_R_RATIO)
         max_r = int(min(roi_h, roi_w) * MAX_R_RATIO)
-        print(f"  메인 뷰 ROI: ({rx1},{ry1})-({rx2},{ry2}) = {roi_w}x{roi_h}")
 
-        # 2. 동심원 검출 (ROI 좌표)
+        # 2. 동심원 검출
         circles_roi = detect_concentric_alt(roi_gray, min_r, max_r)
-        print(f"  동심원: {len(circles_roi)}개")
+        circles_full = [(cx + rx1, cy + ry1, r) for cx, cy, r in circles_roi]
+        print(f"  동심원: {len(circles_full)}개")
 
-        # ROI → 전체 도면 좌표로 변환
-        circles_full = [(cx + rx1, cy + ry1, r)
-                        for cx, cy, r in circles_roi]
-        for cx, cy, r in circles_full:
-            print(f"    ({cx:.0f},{cy:.0f}) r={r:.0f}")
+        if not circles_full:
+            continue
 
-        # 3. 전체 도면에서 화살촉 검출
+        # 3. 돌출부 검출 (ROI 좌표 → 전체 좌표)
+        outer_r = max(c[2] for c in circles_roi)
+        ccx_roi, ccy_roi = circles_roi[0][0], circles_roi[0][1]
+        protrusion_peaks = radial_edge_scan(roi_gray, ccx_roi, ccy_roi, outer_r)
+        # ROI → 전체 도면 좌표
+        peaks_full = [(p[0], p[1], p[2] + rx1, p[3] + ry1) for p in protrusion_peaks]
+        print(f"  돌출 끝점: {len(peaks_full)}개")
+
+        # 4. 전체 도면 화살촉
         arrows = detect_arrowheads(gray)
         print(f"  화살촉 후보: {len(arrows)}개")
 
-        # 4. 시각화 — 전체 도면 위에 직선 + 화살촉
+        # 5. 시각화
         canvas = img.copy()
+        ccx, ccy = circles_full[0][0], circles_full[0][1]
 
         # 동심원 (초록)
         for cx, cy, r in circles_full:
             cv2.circle(canvas, (int(cx), int(cy)), int(r), (67, 160, 71), 3)
 
-        # 메인 뷰 영역 박스 (점선 효과)
+        # 메인 뷰 박스
         cv2.rectangle(canvas, (rx1, ry1), (rx2, ry2), (100, 100, 100), 2)
-        cv2.putText(canvas, "MAIN VIEW", (rx1 + 10, ry1 + 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (100, 100, 100), 2)
 
-        # 화살촉 후보 (작은 노란 점)
+        # 화살촉 (노란 점)
         for arrow in arrows:
             cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 4,
                        (0, 200, 255), -1)
 
-        # 각 끝점에서 접선 직선 (전체 도면 가로지름)
-        dir_colors = {
-            "N": (255, 100, 100),
-            "S": (255, 100, 100),
-            "E": (0, 200, 255),
-            "W": (0, 200, 255),
-        }
-
-        hit_count = 0
+        # ── 동심원 끝점 직선 (시안/노랑) ──
+        dir_colors = {"N": (255, 100, 100), "S": (255, 100, 100),
+                      "E": (0, 200, 255), "W": (0, 200, 255)}
+        circle_hit = 0
         for cx, cy, r in circles_full:
             for dir_name, ddx, ddy, axis in [
                 ("N", 0, -1, "h"), ("S", 0, 1, "h"),
                 ("E", 1, 0, "v"), ("W", -1, 0, "v"),
             ]:
-                px = int(cx + r * ddx)
-                py = int(cy + r * ddy)
+                px, py = int(cx + r * ddx), int(cy + r * ddy)
                 color = dir_colors[dir_name]
-
-                # 접선 직선 — 전체 도면 폭/높이
                 if axis == "h":
                     cv2.line(canvas, (0, py), (full_w, py), color, 2)
                 else:
                     cv2.line(canvas, (px, 0), (px, full_h), color, 2)
-
-                # 끝점 마커
                 cv2.circle(canvas, (px, py), 8, (255, 255, 255), 2)
 
-                # 직선 위 화살촉 히트
                 for arrow in arrows:
                     ax, ay = arrow["x"], arrow["y"]
-                    if axis == "h":
-                        if abs(ay - py) <= 15:
-                            dist_to_center = np.sqrt(
-                                (ax - cx) ** 2 + (ay - cy) ** 2)
-                            if dist_to_center < r * 0.9:
-                                continue
-                            cv2.drawMarker(
-                                canvas, (int(ax), int(ay)),
-                                (0, 0, 255), cv2.MARKER_TILTED_CROSS, 15, 2)
-                            hit_count += 1
-                    else:
-                        if abs(ax - px) <= 15:
-                            dist_to_center = np.sqrt(
-                                (ax - cx) ** 2 + (ay - cy) ** 2)
-                            if dist_to_center < r * 0.9:
-                                continue
-                            cv2.drawMarker(
-                                canvas, (int(ax), int(ay)),
-                                (0, 0, 255), cv2.MARKER_TILTED_CROSS, 15, 2)
-                            hit_count += 1
+                    if axis == "h" and abs(ay - py) <= 15:
+                        if np.sqrt((ax - cx)**2 + (ay - cy)**2) < r * 0.9:
+                            continue
+                        cv2.drawMarker(canvas, (int(ax), int(ay)),
+                                       (0, 0, 255), cv2.MARKER_TILTED_CROSS, 15, 2)
+                        circle_hit += 1
+                    elif axis == "v" and abs(ax - px) <= 15:
+                        if np.sqrt((ax - cx)**2 + (ay - cy)**2) < r * 0.9:
+                            continue
+                        cv2.drawMarker(canvas, (int(ax), int(ay)),
+                                       (0, 0, 255), cv2.MARKER_TILTED_CROSS, 15, 2)
+                        circle_hit += 1
+
+        # ── 돌출 끝점 직선 (보라) ──
+        protrusion_hit = 0
+        for angle, r_val, px, py in peaks_full:
+            # 돌출 끝점 마커 (빨간 다이아몬드)
+            cv2.drawMarker(canvas, (px, py),
+                           (0, 0, 255), cv2.MARKER_DIAMOND, 15, 3)
+
+            # 수평선 + 수직선 (보라)
+            pcolor = (255, 0, 200)
+            cv2.line(canvas, (0, py), (full_w, py), pcolor, 2)
+            cv2.line(canvas, (px, 0), (px, full_h), pcolor, 2)
+
+            # 직선 위 화살촉 히트
+            for arrow in arrows:
+                ax, ay = arrow["x"], arrow["y"]
+                hit = False
+                if abs(ay - py) <= 15:
+                    if np.sqrt((ax - ccx)**2 + (ay - ccy)**2) > outer_r * 0.9:
+                        hit = True
+                if abs(ax - px) <= 15:
+                    if np.sqrt((ax - ccx)**2 + (ay - ccy)**2) > outer_r * 0.9:
+                        hit = True
+                if hit:
+                    cv2.drawMarker(canvas, (int(ax), int(ay)),
+                                   (255, 0, 200), cv2.MARKER_TILTED_CROSS, 12, 2)
+                    protrusion_hit += 1
+
+        print(f"  동심원 직선 히트: {circle_hit}개")
+        print(f"  돌출부 직선 히트: {protrusion_hit}개")
 
         # 반지름 라벨
         for cx, cy, r in circles_full:
@@ -236,9 +290,9 @@ def run():
 
         pil = add_header(
             canvas,
-            f"{name.upper()} — Cardinal v3 Full Page ({full_w}x{full_h})",
-            f"동심원 {len(circles_full)}개 | 화살촉 {len(arrows)}개 | "
-            f"직선 위 히트: {hit_count}개",
+            f"{name.upper()} — Cardinal v3 + Protrusion ({full_w}x{full_h})",
+            f"동심원 {len(circles_full)}개 + 돌출 {len(peaks_full)}개 | "
+            f"히트: 원{circle_hit} + 돌출{protrusion_hit}",
             f"GT: OD={gt['od']} ID={gt['id']}",
         )
         save_pil(pil, f"{name}_cardinal_v3_full.jpg")
