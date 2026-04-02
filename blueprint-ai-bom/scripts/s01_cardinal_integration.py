@@ -255,6 +255,13 @@ def draw_projection_line(
         cv2.line(canvas, (int(line["px"]), 0), (int(line["px"]), height), color, 2)
 
 
+def draw_arrowhead_marker(canvas: np.ndarray, arrow: Dict[str, Any]) -> None:
+    ax = int(arrow["x"])
+    ay = int(arrow["y"])
+    cv2.circle(canvas, (ax, ay), 6, (0, 0, 255), -1)
+    cv2.circle(canvas, (ax, ay), 8, (0, 0, 255), 1)
+
+
 def classify_gt_label(value: float, gt: Dict[str, Any]) -> Optional[str]:
     for label, key in (("OD", "od"), ("ID", "id"), ("W", "w")):
         gt_value = float(gt[key])
@@ -304,7 +311,7 @@ def visualize_projection_arrowheads_only(
     canvas = cv2.cvtColor(np.array(base), cv2.COLOR_RGB2BGR)
 
     for arrow in arrowheads:
-        cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 6, (0, 0, 255), -1)
+        draw_arrowhead_marker(canvas, arrow)
 
     return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
 
@@ -383,7 +390,7 @@ def visualize(
         )
 
     for arrow in arrowheads:
-        cv2.circle(canvas, (int(arrow["x"]), int(arrow["y"])), 6, (0, 0, 255), -1)
+        draw_arrowhead_marker(canvas, arrow)
 
     detected_labels = [
         format_ocr_label(match["ocr"], gt)
