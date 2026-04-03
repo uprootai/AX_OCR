@@ -177,7 +177,7 @@ def merge_collinear_lines(lines: List[Dict], angle_threshold: float = 5.0,
             if j in used:
                 continue
 
-            angle_diff = abs(line1['angle'] - line2['angle'])
+            angle_diff = abs(line1['angle'] - line2['angle']) % 180
             if angle_diff > 90:
                 angle_diff = 180 - angle_diff
 

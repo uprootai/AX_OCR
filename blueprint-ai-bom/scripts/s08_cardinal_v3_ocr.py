@@ -74,6 +74,65 @@ def get_line_endpoints(line: dict[str, Any]) -> tuple[tuple[float, float], tuple
     return (float(start[0]), float(start[1])), (float(end[0]), float(end[1]))
 
 
+def get_line_waypoints(line: dict[str, Any]) -> list[tuple[float, float]]:
+    raw_waypoints = line.get("waypoints")
+    if isinstance(raw_waypoints, list):
+        waypoints: list[tuple[float, float]] = []
+        for point in raw_waypoints:
+            if not isinstance(point, (list, tuple)) or len(point) < 2:
+                continue
+            try:
+                waypoints.append((float(point[0]), float(point[1])))
+            except (TypeError, ValueError):
+                continue
+        if len(waypoints) >= 2:
+            return waypoints
+
+    start_point, end_point = get_line_endpoints(line)
+    return [start_point, end_point]
+
+
+def find_line_projection_alignment(
+    line: dict[str, Any],
+    projection_lines: list[dict[str, Any]],
+    start_match: dict[str, Any] | None = None,
+    end_match: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    waypoints = get_line_waypoints(line)
+    if start_match is not None:
+        waypoints[0] = (float(start_match["x"]), float(start_match["y"]))
+    if end_match is not None:
+        waypoints[-1] = (float(end_match["x"]), float(end_match["y"]))
+
+    best_alignment: dict[str, Any] | None = None
+    best_length = -1.0
+
+    for segment_start, segment_end in zip(waypoints, waypoints[1:]):
+        if squared_distance(segment_start, segment_end) == 0.0:
+            continue
+
+        projection_alignment = find_projection_alignment(
+            segment_start,
+            segment_end,
+            projection_lines,
+        )
+        if projection_alignment is None:
+            continue
+
+        segment_length = math.sqrt(squared_distance(segment_start, segment_end))
+        if segment_length <= best_length:
+            continue
+
+        best_length = segment_length
+        best_alignment = {
+            "projection_alignment": projection_alignment,
+            "segment_start_point": segment_start,
+            "segment_end_point": segment_end,
+        }
+
+    return best_alignment
+
+
 def find_nearest_projection_endpoint(
     point: tuple[float, float],
     endpoints: list[dict[str, float | int]],
@@ -244,34 +303,27 @@ def filter_connected_lines(
         if start_match is None and end_match is None:
             continue
 
-        alignment_start_point = (
-            (float(start_match["x"]), float(start_match["y"]))
-            if start_match is not None
-            else start_point
-        )
-        alignment_end_point = (
-            (float(end_match["x"]), float(end_match["y"]))
-            if end_match is not None
-            else end_point
-        )
-        projection_alignment = find_projection_alignment(
-            alignment_start_point,
-            alignment_end_point,
+        projection_alignment_info = find_line_projection_alignment(
+            line,
             projection_lines,
+            start_match=start_match,
+            end_match=end_match,
         )
-        if projection_alignment is None:
+        if projection_alignment_info is None:
             continue
 
+        aligned_start_point = projection_alignment_info["segment_start_point"]
+        aligned_end_point = projection_alignment_info["segment_end_point"]
         annotated = {
             **line,
             "start_match": start_match,
             "end_match": end_match,
-            "projection_alignment": projection_alignment,
-            "start_point_xy": start_point,
-            "end_point_xy": end_point,
+            "projection_alignment": projection_alignment_info["projection_alignment"],
+            "start_point_xy": aligned_start_point,
+            "end_point_xy": aligned_end_point,
             "midpoint": (
-                (start_point[0] + end_point[0]) / 2.0,
-                (start_point[1] + end_point[1]) / 2.0,
+                (aligned_start_point[0] + aligned_end_point[0]) / 2.0,
+                (aligned_start_point[1] + aligned_end_point[1]) / 2.0,
             ),
         }
         connected_lines.append(annotated)
@@ -445,12 +497,16 @@ def render_overlay(
 
     # Draw line-detector segments after projection lines/endpoints so they stay visible.
     for line in connected_lines:
-        start_point = tuple(int(round(value)) for value in line["start_point_xy"])
-        end_point = tuple(int(round(value)) for value in line["end_point_xy"])
         is_pair = line.get("start_match") is not None and line.get("end_match") is not None
         color = PAIR_LINE_COLOR if is_pair else CONNECTED_LINE_COLOR
         thickness = PAIR_LINE_THICKNESS if is_pair else CONNECTED_LINE_THICKNESS
-        cv2.line(canvas, start_point, end_point, color, thickness, cv2.LINE_AA)
+        waypoints = get_line_waypoints(line)
+        points = np.array(
+            [[int(round(x)), int(round(y))] for x, y in waypoints],
+            dtype=np.int32,
+        )
+        if len(points) >= 2:
+            cv2.polylines(canvas, [points], False, color, thickness, cv2.LINE_AA)
 
     return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
 
