@@ -44,10 +44,10 @@ PROJECTION_AXIS_TOLERANCE = 20.0
 LINE_KEY_COORD_BIN = 10.0
 LINE_KEY_SPAN_BIN = 20.0
 
-CONNECTED_LINE_COLOR = (0, 165, 255)
+CONNECTED_LINE_COLOR = (0, 128, 255)
 PAIR_LINE_COLOR = (0, 0, 255)
-CONNECTED_LINE_THICKNESS = 2
-PAIR_LINE_THICKNESS = 3
+CONNECTED_LINE_THICKNESS = 5
+PAIR_LINE_THICKNESS = 7
 OCR_BOX_COLOR = (255, 255, 255)
 OCR_TEXT_COLOR = (40, 255, 40)
 
@@ -418,14 +418,6 @@ def render_overlay(
     canvas = cv2.cvtColor(np.array(base), cv2.COLOR_RGB2BGR)
     height, width = canvas.shape[:2]
 
-    for line in connected_lines:
-        start_point = tuple(int(round(value)) for value in line["start_point_xy"])
-        end_point = tuple(int(round(value)) for value in line["end_point_xy"])
-        is_pair = line.get("start_match") is not None and line.get("end_match") is not None
-        color = PAIR_LINE_COLOR if is_pair else CONNECTED_LINE_COLOR
-        thickness = PAIR_LINE_THICKNESS if is_pair else CONNECTED_LINE_THICKNESS
-        cv2.line(canvas, start_point, end_point, color, thickness, cv2.LINE_AA)
-
     label_font_scale = max(0.45, min(width, height) / 2500.0)
     for ocr in unique_ocr_labels(matched_pairs):
         bbox = np.array(ocr["bbox"], dtype=np.int32)
@@ -440,6 +432,15 @@ def render_overlay(
             label_font_scale,
             OCR_TEXT_COLOR,
         )
+
+    # Draw line-detector segments after projection lines/endpoints so they stay visible.
+    for line in connected_lines:
+        start_point = tuple(int(round(value)) for value in line["start_point_xy"])
+        end_point = tuple(int(round(value)) for value in line["end_point_xy"])
+        is_pair = line.get("start_match") is not None and line.get("end_match") is not None
+        color = PAIR_LINE_COLOR if is_pair else CONNECTED_LINE_COLOR
+        thickness = PAIR_LINE_THICKNESS if is_pair else CONNECTED_LINE_THICKNESS
+        cv2.line(canvas, start_point, end_point, color, thickness, cv2.LINE_AA)
 
     return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
 
