@@ -244,9 +244,19 @@ def filter_connected_lines(
         if start_match is None and end_match is None:
             continue
 
+        alignment_start_point = (
+            (float(start_match["x"]), float(start_match["y"]))
+            if start_match is not None
+            else start_point
+        )
+        alignment_end_point = (
+            (float(end_match["x"]), float(end_match["y"]))
+            if end_match is not None
+            else end_point
+        )
         projection_alignment = find_projection_alignment(
-            start_point,
-            end_point,
+            alignment_start_point,
+            alignment_end_point,
             projection_lines,
         )
         if projection_alignment is None:
