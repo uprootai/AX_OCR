@@ -235,7 +235,7 @@ Contour 2개 + Hough ALT 3개 = 5개. 중복 없이 전부 유효.
 
 ### Cardinal Projection v3 — ALT 동심원 기반 화살촉 매칭
 
-v3는 `HOUGH_GRADIENT_ALT`로 얻은 동심원과 `cardinal_max_scan`으로 얻은 돌출 끝점을 직교 투사선으로 바꾼 뒤, fullpage에서는 Black Hat 화살촉 hit를 보고, S01에서는 `match_arrowhead_pairs`와 OCR을 연결한다. 아래 수치는 `generate_protrusion_detect.py`, `s08_cardinal_v3_fullpage.py`, `s01_cardinal_integration.py`, `s08_cardinal_v3_endpoint_lines.py`를 2026-04-03에 다시 실행한 결과다.
+v3는 `HOUGH_GRADIENT_ALT`로 얻은 동심원과 `cardinal_max_scan`으로 얻은 돌출 끝점을 직교 투사선으로 바꾼 뒤, fullpage에서는 Black Hat 화살촉 hit를 보고, S01에서는 `match_arrowhead_pairs`와 OCR을 연결한다. 아래 수치는 `generate_protrusion_detect.py`, `s08_cardinal_v3_fullpage.py`, `s01_cardinal_integration.py`, `s08_cardinal_v3_endpoint_lines.py`, `s08_cardinal_v3_ocr.py`를 2026-04-03에 다시 실행한 결과다.
 
 화살촉 검출은 backend `arrowhead_detector.py`와 같은 Black Hat 규칙을 따른다. 커널 크기는 `이미지 단변 / 150`, 필터는 `area 50~500`, `aspect 0.3~3.0`이다.
 
@@ -334,14 +334,32 @@ T1/T2는 조밀한 메인뷰 치수선 주변에 끝점이 많이 몰려 약 `27
 
 #### 2-6. OCR 치수 추출
 
-실제 `match_ocr_to_dimlines(search_radius=150)`는 이렇게 정리된 투사선 축 주변에서 살아남은 치수선 쌍의 중점 근처 숫자만 연결한다. 현재 의미 있게 복원되는 값은 W 계열뿐이다.
+`2-6`은 `2-5`의 **투사선 위 LSD 끝점**을 그대로 anchor로 쓰고, 그 근처에서 Line Detector API(`localhost:5016`)가 돌려준 선분을 다시 추린다. 문서용 집계는 아래 5단계다.
 
-| 도면 | OCR 매칭 수 | 판독 결과 | 해석 |
-|------|:---:|------|------|
-| T1 | 2개 | `(200)`, `M48` | `200`은 W, `M48`은 볼트 규격 |
-| T2 | 4개 | `200)` 3건, `495)` | `200` 3건은 W, `495`는 비관련 치수 |
+1. `2-5`에서 만든 투사선 + 투사선 위 LSD 끝점(파란 점)을 재사용한다.
+2. `Line Detector API(method=lsd, min_length=20, max_lines=2000)`로 전체 도면 선분을 받는다.
+3. 선분의 시작/끝점이 투사선 위 LSD 끝점 `40px` 이내면 `연결 선분`으로 남긴다.
+4. 같은 선분의 반대쪽 끝도 투사선 위 끝점에 닿고, 선분 자체가 같은 투사선 축 위에 놓이면 `치수선 쌍`으로 간주한다.
+5. 치수선 쌍의 중점 `150px` 반경에서 숫자형 OCR 텍스트만 매칭한다.
 
-정리하면 T1은 `W=200 ✓`와 `M48`, T2는 `W=200 ✓`가 3건 남는다. OD/ID가 안 잡히는 이유도 단순하다. ASSY 도면에는 OD/ID 치수선이 없고, 값이 세션명이나 타이틀 블록 텍스트에만 있어 Cardinal Projection → S01 → OCR 경로로는 닿지 않는다.
+API 요청에서 `max_lines=2000`을 걸었기 때문에 raw Line Detector 출력은 4개 도면 모두 2000개로 고정된다. 아래 표의 `선분 수`는 그중 `투사선 위 끝점`과 실제로 연결된 선분만 다시 센 값이다.
+
+| T1 | T2 |
+|---|---|
+| ![T1 Line Detector + OCR](/images/gt-validation/steps/t1_line_detector_ocr.jpg) | ![T2 Line Detector + OCR](/images/gt-validation/steps/t2_line_detector_ocr.jpg) |
+
+| T4 | T8 |
+|---|---|
+| ![T4 Line Detector + OCR](/images/gt-validation/steps/t4_line_detector_ocr.jpg) | ![T8 Line Detector + OCR](/images/gt-validation/steps/t8_line_detector_ocr.jpg) |
+
+| 도면 | 연결 선분 수 | 치수선 쌍 수 | OCR 매칭 | OCR 라벨 |
+|------|:---:|:---:|:---:|------|
+| T1 | 303개 | 184개 | 26개 | `(200)` x16, `21.5` x7, `M10` x3 |
+| T2 | 289개 | 164개 | 25개 | `200)` x17, `(200)` x4, `M10` x2, `(550)` x2 |
+| T4 | 162개 | 129개 | 5개 | `(200)` x5 |
+| T8 | 189개 | 159개 | 8개 | `(200)` x8 |
+
+핵심은 화살촉 기반 S01이 사실상 멈추는 T4/T8에서도, 투사선 위 LSD 끝점을 anchor로 Line Detector 선분을 붙이면 `SECTION E-3` 주변 `(200)` 텍스트까지 다시 닿는다는 점이다. 다만 복원되는 값은 여전히 W 축 위주다. ASSY 도면에는 OD/ID 치수선이 직접 그려져 있지 않고, 값이 세션명이나 타이틀 블록 텍스트에만 남아 있어 Cardinal Projection v3 경로만으로는 OD/ID까지 연결되지 않는다.
 
 #### 2-7. 전체 도면 이미지
 
