@@ -322,7 +322,17 @@ T1/T2는 조밀한 메인뷰 치수선 주변에 끝점이 많이 몰려 약 `27
 
 #### 2-5. OCR 치수 추출
 
-`match_ocr_to_dimlines(search_radius=150)`는 필터된 치수선 쌍의 중점 근처 숫자만 연결한다. 현재 의미 있게 복원되는 값은 W 계열뿐이다.
+`2-5`는 **투사선 위 LSD 끝점 기반 OCR 매칭** 입력만 남긴 시각화다. `2-2`의 시안/노랑/보라 투사선 위에, `2-4`에서 잡은 LSD 끝점 중 투사선 `±15px` 안에 들어온 점만 파란 점으로 다시 그렸다. S01 화살촉, 치수선 쌍, 투사선과 무관한 나머지 LSD 끝점은 모두 제거해 OCR 매칭 기준만 보이도록 정리했다.
+
+| T1 | T2 |
+|---|---|
+| ![T1 투사선 위 끝점](/images/gt-validation/steps/t1_projection_endpoints.jpg) | ![T2 투사선 위 끝점](/images/gt-validation/steps/t2_projection_endpoints.jpg) |
+
+| T4 | T8 |
+|---|---|
+| ![T4 투사선 위 끝점](/images/gt-validation/steps/t4_projection_endpoints.jpg) | ![T8 투사선 위 끝점](/images/gt-validation/steps/t8_projection_endpoints.jpg) |
+
+실제 `match_ocr_to_dimlines(search_radius=150)`는 이렇게 정리된 투사선 축 주변에서 살아남은 치수선 쌍의 중점 근처 숫자만 연결한다. 현재 의미 있게 복원되는 값은 W 계열뿐이다.
 
 | 도면 | OCR 매칭 수 | 판독 결과 | 해석 |
 |------|:---:|------|------|
