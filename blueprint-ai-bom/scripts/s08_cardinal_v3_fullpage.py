@@ -29,6 +29,17 @@ GT = {
 
 MIN_R_RATIO = 0.08
 MAX_R_RATIO = 0.48
+AUXILIARY_SEARCH_TOP_MARGIN = 80
+AUXILIARY_SEARCH_BOTTOM_MARGIN = 20
+AUXILIARY_SEARCH_X_LEFT_RATIO = 0.20
+AUXILIARY_SEARCH_X_RIGHT_RATIO = 1.40
+AUXILIARY_SEARCH_BOTTOM_RATIO = 0.45
+AUXILIARY_SMOOTH_WINDOW = 7
+AUXILIARY_KERNEL_RATIO = 0.08
+AUXILIARY_MIN_ROW_SCORE_RATIO = 0.03
+AUXILIARY_MIN_ROW_SCORE = 12.0
+AUXILIARY_PEAK_DISTANCE = 18
+AUXILIARY_MAX_LINES = 3
 
 
 def get_font(size=16):
@@ -78,6 +89,13 @@ def find_main_view_region(gray):
     # 상하 마진 10%
     y1, y2 = int(h * 0.10), int(h * 0.90)
     return x1, y1, x2, y2
+
+
+def smooth_signal(values, window_size):
+    if window_size <= 1 or len(values) == 0:
+        return values.astype(np.float32)
+    kernel = np.ones(window_size, dtype=np.float32) / float(window_size)
+    return np.convolve(values, kernel, mode="same")
 
 
 def detect_concentric_alt(gray_roi, min_r, max_r):
@@ -181,6 +199,60 @@ def detect_arrowheads(gray):
     return arrows
 
 
+def find_auxiliary_projection_rows(gray, rx1, ry1, rx2, center_full, outer_r):
+    """상단 보조도 치수선이 모인 y 행을 찾아 추가 수평 투사선을 만든다."""
+    if center_full is None or outer_r is None:
+        return [], None
+
+    h, w = gray.shape
+    ccx, ccy = center_full
+    circle_top_y = int(round(ccy - outer_r))
+    search_y1 = max(AUXILIARY_SEARCH_TOP_MARGIN, ry1 - 70)
+    search_y2 = min(
+        circle_top_y - AUXILIARY_SEARCH_BOTTOM_MARGIN,
+        int(ry1 + outer_r * AUXILIARY_SEARCH_BOTTOM_RATIO),
+        int(h * 0.22),
+    )
+    search_x1 = max(rx1, int(round(ccx - outer_r * AUXILIARY_SEARCH_X_LEFT_RATIO)))
+    search_x2 = min(rx2, int(round(ccx + outer_r * AUXILIARY_SEARCH_X_RIGHT_RATIO)))
+
+    if search_y2 <= search_y1 or search_x2 <= search_x1:
+        return [], None
+
+    roi = gray[search_y1:search_y2, search_x1:search_x2]
+    _, binary = cv2.threshold(
+        roi,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
+    )
+
+    kernel_w = max(25, int(roi.shape[1] * AUXILIARY_KERNEL_RATIO))
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_w, 1))
+    horizontal = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel)
+    row_scores = horizontal.sum(axis=1).astype(np.float32) / 255.0
+    smoothed_scores = smooth_signal(row_scores, AUXILIARY_SMOOTH_WINDOW)
+    min_score = max(
+        AUXILIARY_MIN_ROW_SCORE,
+        roi.shape[1] * AUXILIARY_MIN_ROW_SCORE_RATIO,
+    )
+
+    selected_indices = []
+    for idx in np.argsort(smoothed_scores)[::-1]:
+        idx = int(idx)
+        if smoothed_scores[idx] < min_score:
+            break
+        if any(abs(idx - prev_idx) <= AUXILIARY_PEAK_DISTANCE for prev_idx in selected_indices):
+            continue
+        selected_indices.append(idx)
+        if len(selected_indices) >= AUXILIARY_MAX_LINES * 2:
+            break
+
+    selected_indices.sort()
+    rows = [search_y1 + idx for idx in selected_indices[:AUXILIARY_MAX_LINES]]
+    return rows, (search_x1, search_y1, search_x2, search_y2)
+
+
 def collect_projection_data(gray):
     """전체 도면에서 직선 투사에 필요한 끝점 좌표를 수집한다."""
     rx1, ry1, rx2, ry2 = find_main_view_region(gray)
@@ -196,6 +268,8 @@ def collect_projection_data(gray):
     peaks_full = []
     outer_r = None
     center_full = None
+    auxiliary_rows = []
+    auxiliary_bounds = None
     if circles_roi:
         outer_r = max(c[2] for c in circles_roi)
         ccx_roi, ccy_roi = circles_roi[0][0], circles_roi[0][1]
@@ -205,13 +279,24 @@ def collect_projection_data(gray):
             (angle_deg, max_radius, px + rx1, py + ry1)
             for angle_deg, max_radius, px, py in protrusions_roi
         ]
+        auxiliary_rows, auxiliary_bounds = find_auxiliary_projection_rows(
+            gray,
+            rx1,
+            ry1,
+            rx2,
+            center_full,
+            outer_r,
+        )
 
     return {
+        "main_view_region": (rx1, ry1, rx2, ry2),
         "raw_circles_roi": raw_circles_roi,
         "circles_full": circles_full,
         "peaks_full": peaks_full,
         "outer_r": outer_r,
         "center_full": center_full,
+        "auxiliary_rows": auxiliary_rows,
+        "auxiliary_bounds": auxiliary_bounds,
     }
 
 
@@ -292,6 +377,23 @@ def build_protrusion_lines(peaks_full, center_full, outer_r):
     return lines
 
 
+def build_auxiliary_lines(auxiliary_rows, center_full):
+    if not auxiliary_rows:
+        return []
+
+    anchor_x = 0 if center_full is None else int(round(center_full[0]))
+    return [
+        {
+            "px": anchor_x,
+            "py": int(round(py)),
+            "axis": "h",
+            "color": (255, 255, 0),
+            "source": "auxiliary",
+        }
+        for py in auxiliary_rows
+    ]
+
+
 def attach_protrusion_hits(protrusion_lines, arrows=None, hit_tolerance=15):
     arrows = arrows or []
     annotated = []
@@ -312,6 +414,19 @@ def attach_protrusion_hits(protrusion_lines, arrows=None, hit_tolerance=15):
     return annotated
 
 
+def attach_auxiliary_hits(auxiliary_lines, arrows=None, hit_tolerance=15):
+    arrows = arrows or []
+    annotated = []
+    for line in auxiliary_lines:
+        hits = []
+        for arrow in arrows:
+            ax, ay = arrow["x"], arrow["y"]
+            if abs(ay - line["py"]) <= hit_tolerance:
+                hits.append((int(ax), int(ay)))
+        annotated.append({**line, "hits": hits})
+    return annotated
+
+
 def draw_projection_axis(canvas, line, full_w, full_h, thickness):
     if line["axis"] == "h":
         cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), line["color"], thickness)
@@ -319,9 +434,18 @@ def draw_projection_axis(canvas, line, full_w, full_h, thickness):
         cv2.line(canvas, (line["px"], 0), (line["px"], full_h), line["color"], thickness)
 
 
-def draw_fullpage_projection(img, circles_full, circle_lines, protrusion_lines, gt, name):
+def draw_fullpage_projection(
+    img,
+    circles_full,
+    circle_lines,
+    protrusion_lines,
+    gt,
+    name,
+    auxiliary_lines=None,
+):
     full_h, full_w = img.shape[:2]
     canvas = img.copy()
+    auxiliary_lines = auxiliary_lines or []
 
     for cx, cy, r in circles_full:
         cv2.circle(canvas, (int(cx), int(cy)), int(r), (67, 160, 71), 3)
@@ -377,11 +501,31 @@ def draw_fullpage_projection(img, circles_full, circle_lines, protrusion_lines, 
             )
             protrusion_hit += 1
 
-    total_lines = len(circle_lines) + len(protrusion_lines)
-    active_lines = circle_hit_lines + protrusion_hit_lines
+    auxiliary_hit = 0
+    auxiliary_hit_lines = 0
+    for line in auxiliary_lines:
+        draw_projection_axis(canvas, line, full_w, full_h, 2 if line["hits"] else 1)
+        if not line["hits"]:
+            continue
+        auxiliary_hit_lines += 1
+        for hx, hy in line["hits"]:
+            cv2.drawMarker(
+                canvas,
+                (hx, hy),
+                (0, 165, 255),
+                cv2.MARKER_TILTED_CROSS,
+                12,
+                2,
+            )
+            auxiliary_hit += 1
+
+    total_lines = len(circle_lines) + len(protrusion_lines) + len(auxiliary_lines)
+    active_lines = circle_hit_lines + protrusion_hit_lines + auxiliary_hit_lines
     print(f"  전체 직선: {total_lines}개 → 히트 있는 직선: {active_lines}개")
     print(f"  동심원 히트: {circle_hit}개 ({circle_hit_lines}개 직선)")
     print(f"  돌출부 히트: {protrusion_hit}개 ({protrusion_hit_lines}개 직선)")
+    if auxiliary_lines:
+        print(f"  보조도 히트: {auxiliary_hit}개 ({auxiliary_hit_lines}개 직선)")
 
     for cx, cy, r in circles_full:
         cv2.putText(
@@ -397,17 +541,26 @@ def draw_fullpage_projection(img, circles_full, circle_lines, protrusion_lines, 
     pil = add_header(
         canvas,
         f"{name.upper()} — Cardinal v3 + Protrusion ({full_w}x{full_h})",
-        f"동심원 {len(circles_full)}개 + 돌출 {len(protrusion_lines) // 2}개 | "
-        f"히트: 원{circle_hit} + 돌출{protrusion_hit}",
+        f"동심원 {len(circles_full)}개 + 돌출 {len(protrusion_lines) // 2}개 + "
+        f"보조도 {len(auxiliary_lines)}개 | "
+        f"히트: 원{circle_hit} + 돌출{protrusion_hit} + 보조{auxiliary_hit}",
         f"GT: OD={gt['od']} ID={gt['id']}",
     )
     return pil
 
 
-def draw_projection_lines_only(img, circles_full, circle_lines, peaks_full, protrusion_lines):
+def draw_projection_lines_only(
+    img,
+    circles_full,
+    circle_lines,
+    peaks_full,
+    protrusion_lines,
+    auxiliary_lines=None,
+):
     """문서용: 끝점과 직선만 남긴 깔끔한 투사선 시각화."""
     full_h, full_w = img.shape[:2]
     canvas = img.copy()
+    auxiliary_lines = auxiliary_lines or []
 
     for cx, cy, r in circles_full:
         cv2.circle(canvas, (int(cx), int(cy)), int(r), (67, 160, 71), 4)
@@ -431,6 +584,9 @@ def draw_projection_lines_only(img, circles_full, circle_lines, peaks_full, prot
             cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), protrusion_color, 2)
         else:
             cv2.line(canvas, (line["px"], 0), (line["px"], full_h), protrusion_color, 2)
+
+    for line in auxiliary_lines:
+        cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), horizontal_color, 2)
 
     for _, _, px, py in peaks_full:
         cv2.drawMarker(
@@ -490,12 +646,14 @@ def run():
         peaks_full = data["peaks_full"]
         outer_r = data["outer_r"]
         center_full = data["center_full"]
+        auxiliary_rows = data["auxiliary_rows"]
 
         print(
             f"  ALT 후보: {len(data['raw_circles_roi'])}개 → "
             f"주 동심원: {len(circles_full)}개"
         )
         print(f"  돌출 끝점: {len(peaks_full)}개")
+        print(f"  보조도 수평선: {len(auxiliary_rows)}개 ({auxiliary_rows})")
 
         if not circles_full:
             continue
@@ -503,11 +661,13 @@ def run():
         # Shared geometry: lines-only/fullpage 모두 동일한 끝점 집합을 사용한다.
         base_circle_lines = build_circle_lines(circles_full)
         base_protrusion_lines = build_protrusion_lines(peaks_full, center_full, outer_r)
+        auxiliary_lines = build_auxiliary_lines(auxiliary_rows, center_full)
 
         if args.lines_only:
             print(
                 f"  lines-only 산출물: 동심원 직선 {len(base_circle_lines)}개 + "
-                f"돌출 직선 {len(base_protrusion_lines)}개"
+                f"돌출 직선 {len(base_protrusion_lines)}개 + "
+                f"보조도 직선 {len(auxiliary_lines)}개"
             )
             pil = draw_projection_lines_only(
                 img,
@@ -515,6 +675,7 @@ def run():
                 base_circle_lines,
                 peaks_full,
                 base_protrusion_lines,
+                auxiliary_lines,
             )
             save_pil(pil, f"{name}_projection_lines_only.jpg", max_w=1600)
             continue
@@ -526,6 +687,7 @@ def run():
             base_protrusion_lines,
             arrows,
         )
+        auxiliary_hit_lines = attach_auxiliary_hits(auxiliary_lines, arrows)
 
         pil = draw_fullpage_projection(
             img,
@@ -534,6 +696,7 @@ def run():
             protrusion_lines,
             gt,
             name,
+            auxiliary_hit_lines,
         )
         save_pil(pil, f"{name}_cardinal_v3_full.jpg", max_w=1600)
 

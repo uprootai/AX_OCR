@@ -25,6 +25,7 @@ from s08_cardinal_v3_endpoint_lines import (
 from s08_cardinal_v3_fullpage import (
     GT,
     SRC_DIR,
+    build_auxiliary_lines,
     build_circle_lines,
     build_protrusion_lines,
     collect_projection_data,
@@ -57,6 +58,7 @@ def draw_projection_endpoint_overlay(
     img: np.ndarray,
     circle_lines: list[dict[str, Any]],
     protrusion_lines: list[dict[str, Any]],
+    auxiliary_lines: list[dict[str, Any]],
     filtered_endpoints: list[dict[str, float | int]],
 ) -> Image.Image:
     """원본 도면 위에 투사선과 투사선 위 LSD 끝점만 그린다."""
@@ -69,6 +71,9 @@ def draw_projection_endpoint_overlay(
 
     for line in protrusion_lines:
         draw_projection_line(canvas, line, full_w, full_h, PROTRUSION_COLOR)
+
+    for line in auxiliary_lines:
+        draw_projection_line(canvas, line, full_w, full_h, HORIZONTAL_COLOR)
 
     for endpoint in filtered_endpoints:
         center = (
@@ -127,7 +132,11 @@ def run() -> None:
             data["center_full"],
             data["outer_r"],
         )
-        projection_lines = circle_lines + protrusion_lines
+        auxiliary_lines = build_auxiliary_lines(
+            data["auxiliary_rows"],
+            data["center_full"],
+        )
+        projection_lines = circle_lines + protrusion_lines + auxiliary_lines
 
         segments = detect_lsd_segments(gray)
         endpoints = extract_endpoints(segments)
@@ -141,6 +150,7 @@ def run() -> None:
             img,
             circle_lines,
             protrusion_lines,
+            auxiliary_lines,
             filtered_endpoints,
         )
         save_pil(pil, f"{name}_projection_endpoints.jpg", max_w=MAX_OUTPUT_WIDTH)

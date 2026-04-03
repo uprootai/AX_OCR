@@ -23,6 +23,7 @@ from s08_cardinal_v3_endpoint_lines import (
 from s08_cardinal_v3_fullpage import (
     GT,
     SRC_DIR,
+    build_auxiliary_lines,
     build_circle_lines,
     build_protrusion_lines,
     collect_projection_data,
@@ -467,6 +468,7 @@ def render_overlay(
     image: np.ndarray,
     circle_lines: list[dict[str, Any]],
     protrusion_lines: list[dict[str, Any]],
+    auxiliary_lines: list[dict[str, Any]],
     projection_endpoints: list[dict[str, float | int]],
     connected_lines: list[dict[str, Any]],
     matched_pairs: list[dict[str, Any]],
@@ -475,6 +477,7 @@ def render_overlay(
         image,
         circle_lines,
         protrusion_lines,
+        auxiliary_lines,
         projection_endpoints,
     )
     canvas = cv2.cvtColor(np.array(base), cv2.COLOR_RGB2BGR)
@@ -573,7 +576,11 @@ def run() -> None:
             data["center_full"],
             data["outer_r"],
         )
-        projection_lines = circle_lines + protrusion_lines
+        auxiliary_lines = build_auxiliary_lines(
+            data["auxiliary_rows"],
+            data["center_full"],
+        )
+        projection_lines = circle_lines + protrusion_lines + auxiliary_lines
 
         projection_endpoints, lsd_count = build_projection_endpoint_candidates(
             gray,
@@ -613,6 +620,7 @@ def run() -> None:
             image,
             circle_lines,
             protrusion_lines,
+            auxiliary_lines,
             projection_endpoints,
             connected_lines,
             matched_pairs,

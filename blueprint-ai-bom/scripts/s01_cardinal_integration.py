@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent / ".." / "backend"))
 
 from services.arrowhead_detector import detect_arrowheads, match_arrowhead_pairs
 from s08_cardinal_v3_fullpage import (
+    build_auxiliary_lines,
     build_circle_lines,
     build_protrusion_lines,
     collect_projection_data,
@@ -194,6 +195,19 @@ def collect_projection_lines(gray: np.ndarray) -> Tuple[List[Tuple[float, float,
             }
         )
 
+    for line in build_auxiliary_lines(
+        data["auxiliary_rows"],
+        data["center_full"],
+    ):
+        projection_lines.append(
+            {
+                "px": int(line["px"]),
+                "py": int(line["py"]),
+                "axis": str(line["axis"]),
+                "source": "auxiliary",
+            }
+        )
+
     return circles_full, projection_lines
 
 
@@ -299,6 +313,7 @@ def visualize_projection_arrowheads_only(
     circle_lines: List[Dict[str, Any]],
     peaks_full: List[Tuple[float, float, float, float]],
     protrusion_lines: List[Dict[str, Any]],
+    auxiliary_lines: List[Dict[str, Any]],
     arrowheads: List[Dict[str, Any]],
 ) -> Image.Image:
     base = draw_projection_lines_only(
@@ -307,6 +322,7 @@ def visualize_projection_arrowheads_only(
         circle_lines,
         peaks_full,
         protrusion_lines,
+        auxiliary_lines,
     )
     canvas = cv2.cvtColor(np.array(base), cv2.COLOR_RGB2BGR)
 
@@ -436,6 +452,10 @@ def run() -> None:
         projection_lines = []
         circle_lines = build_circle_lines(circles_full)
         protrusion_lines = build_protrusion_lines(peaks_full, center_full, outer_r)
+        auxiliary_lines = build_auxiliary_lines(
+            data["auxiliary_rows"],
+            center_full,
+        )
         for line in circle_lines:
             projection_lines.append(
                 {
@@ -454,6 +474,15 @@ def run() -> None:
                     "source": "protrusion",
                 }
             )
+        for line in auxiliary_lines:
+            projection_lines.append(
+                {
+                    "px": int(line["px"]),
+                    "py": int(line["py"]),
+                    "axis": str(line["axis"]),
+                    "source": "auxiliary",
+                }
+            )
         print(f"  [1] ALT 동심원: {len(circles_full)}개")
         print(f"  [2] 투사선: {len(projection_lines)}개")
 
@@ -467,6 +496,7 @@ def run() -> None:
                 circle_lines,
                 peaks_full,
                 protrusion_lines,
+                auxiliary_lines,
                 arrowheads,
             )
             save_pil(pil, f"{name}_s01_arrows.jpg")
