@@ -344,18 +344,23 @@ T1/T2는 조밀한 메인뷰 치수선 주변에 끝점이 많이 몰려 약 `27
 
 API 요청에서 `max_lines=2000`을 걸었기 때문에 raw Line Detector 출력은 4개 도면 모두 2000개로 고정된다. 아래 표의 `선분 수`는 그중 `투사선 위 끝점`과 실제로 연결된 선분만 다시 센 값이다.
 
+아래 오버레이에서 **녹색 선분**이 `투사선 위 LSD 끝점`과 실제로 연결된 Line Detector 선분이다.
+
 | T1 | T2 |
 |---|---|
-| ![T1 Line Detector + OCR](/images/gt-validation/steps/t1_line_detector_ocr.jpg) | ![T2 Line Detector + OCR](/images/gt-validation/steps/t2_line_detector_ocr.jpg) |
-
-| T4 | T8 |
-|---|---|
-| ![T4 Line Detector + OCR](/images/gt-validation/steps/t4_line_detector_ocr.jpg) | ![T8 Line Detector + OCR](/images/gt-validation/steps/t8_line_detector_ocr.jpg) |
+| ![T1 Line Detector 녹색 연결 선분 + OCR](/images/gt-validation/steps/t1_line_detector_ocr.jpg) | ![T2 Line Detector 녹색 연결 선분 + OCR](/images/gt-validation/steps/t2_line_detector_ocr.jpg) |
 
 | 도면 | 연결 선분 수 | 치수선 쌍 수 | OCR 매칭 | OCR 라벨 |
 |------|:---:|:---:|:---:|------|
 | T1 | 303개 | 184개 | 26개 | `(200)` x16, `21.5` x7, `M10` x3 |
 | T2 | 289개 | 164개 | 25개 | `200)` x17, `(200)` x4, `M10` x2, `(550)` x2 |
+
+| T4 | T8 |
+|---|---|
+| ![T4 Line Detector 녹색 연결 선분 + OCR](/images/gt-validation/steps/t4_line_detector_ocr.jpg) | ![T8 Line Detector 녹색 연결 선분 + OCR](/images/gt-validation/steps/t8_line_detector_ocr.jpg) |
+
+| 도면 | 연결 선분 수 | 치수선 쌍 수 | OCR 매칭 | OCR 라벨 |
+|------|:---:|:---:|:---:|------|
 | T4 | 162개 | 129개 | 5개 | `(200)` x5 |
 | T8 | 189개 | 159개 | 8개 | `(200)` x8 |
 
