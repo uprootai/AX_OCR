@@ -37,9 +37,10 @@ OUT_DIR.mkdir(exist_ok=True)
 LINE_API = "http://localhost:5016/api/v1/process"
 OCR_API = "http://localhost:5006/api/v1/ocr"
 
-LINE_MIN_LENGTH = 20
-LINE_MAX_LINES = 2000
-LINE_CONNECTION_RADIUS = 40.0
+ENDPOINT_TOLERANCE = 20
+LINE_MIN_LENGTH = 15
+LINE_MAX_LINES = 5000
+LINE_CONNECTION_RADIUS = 60.0
 OCR_SEARCH_RADIUS = 150.0
 PROJECTION_AXIS_TOLERANCE = 30.0
 LINE_KEY_COORD_BIN = 10.0
@@ -177,7 +178,9 @@ def detect_lines_api(image_path: Path) -> list[dict[str, Any]]:
                 "max_lines": str(LINE_MAX_LINES),
                 "merge_lines": "true",
                 "classify_types": "false",
-                "find_intersections_flag": "false",
+                "find_intersections": "false",
+                "classify_colors": "false",
+                "classify_styles": "false",
                 "visualize": "false",
             },
             timeout=120,
