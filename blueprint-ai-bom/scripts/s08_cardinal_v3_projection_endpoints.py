@@ -73,7 +73,7 @@ def draw_projection_endpoint_overlay(
         draw_projection_line(canvas, line, full_w, full_h, PROTRUSION_COLOR)
 
     for line in auxiliary_lines:
-        draw_projection_line(canvas, line, full_w, full_h, HORIZONTAL_COLOR)
+        draw_projection_line(canvas, line, full_w, full_h, tuple(line.get("color", HORIZONTAL_COLOR)))
 
     for endpoint in filtered_endpoints:
         center = (
@@ -135,6 +135,9 @@ def run() -> None:
         auxiliary_lines = build_auxiliary_lines(
             data["auxiliary_rows"],
             data["center_full"],
+            data["section_vertical_cols"],
+            data["section_horizontal_rows"],
+            data["section_bounds"],
         )
         projection_lines = circle_lines + protrusion_lines + auxiliary_lines
 

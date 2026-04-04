@@ -198,13 +198,16 @@ def collect_projection_lines(gray: np.ndarray) -> Tuple[List[Tuple[float, float,
     for line in build_auxiliary_lines(
         data["auxiliary_rows"],
         data["center_full"],
+        data["section_vertical_cols"],
+        data["section_horizontal_rows"],
+        data["section_bounds"],
     ):
         projection_lines.append(
             {
                 "px": int(line["px"]),
                 "py": int(line["py"]),
                 "axis": str(line["axis"]),
-                "source": "auxiliary",
+                "source": str(line.get("source", "auxiliary")),
             }
         )
 
@@ -455,6 +458,9 @@ def run() -> None:
         auxiliary_lines = build_auxiliary_lines(
             data["auxiliary_rows"],
             center_full,
+            data["section_vertical_cols"],
+            data["section_horizontal_rows"],
+            data["section_bounds"],
         )
         for line in circle_lines:
             projection_lines.append(
@@ -480,7 +486,7 @@ def run() -> None:
                     "px": int(line["px"]),
                     "py": int(line["py"]),
                     "axis": str(line["axis"]),
-                    "source": "auxiliary",
+                    "source": str(line.get("source", "auxiliary")),
                 }
             )
         print(f"  [1] ALT 동심원: {len(circles_full)}개")

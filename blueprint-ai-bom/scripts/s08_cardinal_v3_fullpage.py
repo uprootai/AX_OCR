@@ -40,6 +40,25 @@ AUXILIARY_MIN_ROW_SCORE_RATIO = 0.03
 AUXILIARY_MIN_ROW_SCORE = 12.0
 AUXILIARY_PEAK_DISTANCE = 18
 AUXILIARY_MAX_LINES = 3
+SECTION_SEARCH_TOP_RATIO = 0.05
+SECTION_SEARCH_BOTTOM_RATIO = 0.80
+SECTION_SEARCH_X_MARGIN_RATIO = 0.01
+SECTION_BAND_SMOOTH_RATIO = 0.02
+SECTION_BAND_MIN_SCORE_RATIO = 0.18
+SECTION_BAND_MIN_SEGMENT_RATIO = 0.04
+SECTION_BAND_MIN_WIDTH_RATIO = 0.15
+SECTION_SMOOTH_WINDOW = 9
+SECTION_HORIZONTAL_KERNEL_RATIO = 0.18
+SECTION_VERTICAL_KERNEL_RATIO = 0.10
+SECTION_MIN_PEAK_SCORE = 12.0
+SECTION_MIN_ROW_SCORE_RATIO = 0.05
+SECTION_MIN_COL_SCORE_RATIO = 0.05
+SECTION_MIN_ROW_RELATIVE_RATIO = 0.45
+SECTION_MIN_COL_RELATIVE_RATIO = 0.35
+SECTION_ROW_PEAK_DISTANCE_RATIO = 0.04
+SECTION_COL_PEAK_DISTANCE_RATIO = 0.10
+SECTION_MAX_HORIZONTAL_LINES = 3
+SECTION_MAX_VERTICAL_LINES = 3
 
 
 def get_font(size=16):
@@ -96,6 +115,42 @@ def smooth_signal(values, window_size):
         return values.astype(np.float32)
     kernel = np.ones(window_size, dtype=np.float32) / float(window_size)
     return np.convolve(values, kernel, mode="same")
+
+
+def select_peak_indices(scores, min_score, peak_distance, max_lines):
+    selected_indices = []
+    for idx in np.argsort(scores)[::-1]:
+        idx = int(idx)
+        if scores[idx] < min_score:
+            break
+        if any(abs(idx - prev_idx) <= peak_distance for prev_idx in selected_indices):
+            continue
+        selected_indices.append(idx)
+        if len(selected_indices) >= max_lines:
+            break
+    selected_indices.sort()
+    return selected_indices
+
+
+def find_dense_axis_segments(scores, min_score, min_span):
+    active_mask = scores >= min_score
+    segments = []
+    start_idx = None
+
+    for idx, is_active in enumerate(active_mask):
+        if is_active and start_idx is None:
+            start_idx = idx
+            continue
+        if is_active or start_idx is None:
+            continue
+        if idx - start_idx >= min_span:
+            segments.append((start_idx, idx))
+        start_idx = None
+
+    if start_idx is not None and len(scores) - start_idx >= min_span:
+        segments.append((start_idx, len(scores)))
+
+    return segments
 
 
 def detect_concentric_alt(gray_roi, min_r, max_r):
@@ -236,21 +291,141 @@ def find_auxiliary_projection_rows(gray, rx1, ry1, rx2, center_full, outer_r):
         AUXILIARY_MIN_ROW_SCORE,
         roi.shape[1] * AUXILIARY_MIN_ROW_SCORE_RATIO,
     )
-
-    selected_indices = []
-    for idx in np.argsort(smoothed_scores)[::-1]:
-        idx = int(idx)
-        if smoothed_scores[idx] < min_score:
-            break
-        if any(abs(idx - prev_idx) <= AUXILIARY_PEAK_DISTANCE for prev_idx in selected_indices):
-            continue
-        selected_indices.append(idx)
-        if len(selected_indices) >= AUXILIARY_MAX_LINES * 2:
-            break
-
-    selected_indices.sort()
+    selected_indices = select_peak_indices(
+        smoothed_scores,
+        min_score,
+        AUXILIARY_PEAK_DISTANCE,
+        AUXILIARY_MAX_LINES * 2,
+    )
     rows = [search_y1 + idx for idx in selected_indices[:AUXILIARY_MAX_LINES]]
     return rows, (search_x1, search_y1, search_x2, search_y2)
+
+
+def find_section_content_band(gray, rx2):
+    """메인 뷰 오른쪽에서 SECTION 단면도가 놓인 주요 x band를 찾는다."""
+    h, w = gray.shape
+    right_width = w - rx2
+    search_x1 = min(w - 1, rx2 + max(20, int(w * SECTION_SEARCH_X_MARGIN_RATIO)))
+    search_x2 = max(search_x1 + 1, w - max(20, int(w * 0.02)))
+    search_y1 = max(0, int(h * SECTION_SEARCH_TOP_RATIO))
+    search_y2 = max(search_y1 + 1, int(h * SECTION_SEARCH_BOTTOM_RATIO))
+
+    if search_x2 <= search_x1 or search_y2 <= search_y1:
+        return None
+
+    roi = gray[search_y1:search_y2, search_x1:search_x2]
+    _, binary = cv2.threshold(
+        roi,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
+    )
+
+    smooth_window = max(11, int(roi.shape[1] * SECTION_BAND_SMOOTH_RATIO))
+    if smooth_window % 2 == 0:
+        smooth_window += 1
+
+    column_scores = smooth_signal(
+        binary.sum(axis=0).astype(np.float32) / 255.0,
+        smooth_window,
+    )
+    min_score = max(
+        SECTION_MIN_PEAK_SCORE,
+        float(column_scores.max()) * SECTION_BAND_MIN_SCORE_RATIO,
+    )
+    min_span = max(30, int(roi.shape[1] * SECTION_BAND_MIN_SEGMENT_RATIO))
+    segments = find_dense_axis_segments(column_scores, min_score, min_span)
+    if not segments:
+        return None
+
+    min_width = max(80, int(right_width * SECTION_BAND_MIN_WIDTH_RATIO))
+    for start_idx, end_idx in segments:
+        if end_idx - start_idx >= min_width:
+            return (
+                search_x1 + start_idx,
+                search_y1,
+                search_x1 + end_idx,
+                search_y2,
+            )
+
+    best_start, best_end = max(segments, key=lambda item: item[1] - item[0])
+    return (
+        search_x1 + best_start,
+        search_y1,
+        search_x1 + best_end,
+        search_y2,
+    )
+
+
+def find_section_projection_peaks(gray, rx2):
+    """SECTION band 내부의 주요 수직/수평 치수선 위치를 peak로 뽑는다."""
+    section_bounds = find_section_content_band(gray, rx2)
+    if section_bounds is None:
+        return [], [], None
+
+    section_x1, section_y1, section_x2, section_y2 = section_bounds
+    roi = gray[section_y1:section_y2, section_x1:section_x2]
+    if roi.size == 0:
+        return [], [], None
+
+    _, binary = cv2.threshold(
+        roi,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
+    )
+
+    horizontal_kernel_w = max(25, int(roi.shape[1] * SECTION_HORIZONTAL_KERNEL_RATIO))
+    vertical_kernel_h = max(25, int(roi.shape[0] * SECTION_VERTICAL_KERNEL_RATIO))
+    horizontal_kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT,
+        (horizontal_kernel_w, 1),
+    )
+    vertical_kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT,
+        (1, vertical_kernel_h),
+    )
+    horizontal = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel)
+    vertical = cv2.morphologyEx(binary, cv2.MORPH_OPEN, vertical_kernel)
+
+    row_scores = smooth_signal(
+        horizontal.sum(axis=1).astype(np.float32) / 255.0,
+        SECTION_SMOOTH_WINDOW,
+    )
+    col_scores = smooth_signal(
+        vertical.sum(axis=0).astype(np.float32) / 255.0,
+        SECTION_SMOOTH_WINDOW,
+    )
+
+    row_min_score = max(
+        SECTION_MIN_PEAK_SCORE,
+        roi.shape[1] * SECTION_MIN_ROW_SCORE_RATIO,
+        float(row_scores.max()) * SECTION_MIN_ROW_RELATIVE_RATIO,
+    )
+    col_min_score = max(
+        SECTION_MIN_PEAK_SCORE,
+        roi.shape[0] * SECTION_MIN_COL_SCORE_RATIO,
+        float(col_scores.max()) * SECTION_MIN_COL_RELATIVE_RATIO,
+    )
+    row_peak_distance = max(20, int(roi.shape[0] * SECTION_ROW_PEAK_DISTANCE_RATIO))
+    col_peak_distance = max(20, int(roi.shape[1] * SECTION_COL_PEAK_DISTANCE_RATIO))
+
+    row_indices = select_peak_indices(
+        row_scores,
+        row_min_score,
+        row_peak_distance,
+        SECTION_MAX_HORIZONTAL_LINES,
+    )
+    col_indices = select_peak_indices(
+        col_scores,
+        col_min_score,
+        col_peak_distance,
+        SECTION_MAX_VERTICAL_LINES,
+    )
+
+    horizontal_rows = [section_y1 + idx for idx in row_indices]
+    vertical_cols = [section_x1 + idx for idx in col_indices]
+    return vertical_cols, horizontal_rows, section_bounds
 
 
 def collect_projection_data(gray):
@@ -270,6 +445,9 @@ def collect_projection_data(gray):
     center_full = None
     auxiliary_rows = []
     auxiliary_bounds = None
+    section_vertical_cols = []
+    section_horizontal_rows = []
+    section_bounds = None
     if circles_roi:
         outer_r = max(c[2] for c in circles_roi)
         ccx_roi, ccy_roi = circles_roi[0][0], circles_roi[0][1]
@@ -287,6 +465,10 @@ def collect_projection_data(gray):
             center_full,
             outer_r,
         )
+        section_vertical_cols, section_horizontal_rows, section_bounds = find_section_projection_peaks(
+            gray,
+            rx2,
+        )
 
     return {
         "main_view_region": (rx1, ry1, rx2, ry2),
@@ -297,6 +479,9 @@ def collect_projection_data(gray):
         "center_full": center_full,
         "auxiliary_rows": auxiliary_rows,
         "auxiliary_bounds": auxiliary_bounds,
+        "section_vertical_cols": section_vertical_cols,
+        "section_horizontal_rows": section_horizontal_rows,
+        "section_bounds": section_bounds,
     }
 
 
@@ -377,12 +562,29 @@ def build_protrusion_lines(peaks_full, center_full, outer_r):
     return lines
 
 
-def build_auxiliary_lines(auxiliary_rows, center_full):
-    if not auxiliary_rows:
+def build_auxiliary_lines(
+    auxiliary_rows,
+    center_full,
+    section_vertical_cols=None,
+    section_horizontal_rows=None,
+    section_bounds=None,
+):
+    section_vertical_cols = section_vertical_cols or []
+    section_horizontal_rows = section_horizontal_rows or []
+    if not auxiliary_rows and not section_vertical_cols and not section_horizontal_rows:
         return []
 
     anchor_x = 0 if center_full is None else int(round(center_full[0]))
-    return [
+    anchor_y = 0 if center_full is None else int(round(center_full[1]))
+    if section_bounds is None:
+        section_anchor_x = anchor_x
+        section_anchor_y = anchor_y
+    else:
+        sx1, sy1, sx2, sy2 = section_bounds
+        section_anchor_x = int(round((sx1 + sx2) / 2.0))
+        section_anchor_y = int(round((sy1 + sy2) / 2.0))
+
+    lines = [
         {
             "px": anchor_x,
             "py": int(round(py)),
@@ -392,6 +594,27 @@ def build_auxiliary_lines(auxiliary_rows, center_full):
         }
         for py in auxiliary_rows
     ]
+    lines.extend(
+        {
+            "px": int(round(px)),
+            "py": section_anchor_y,
+            "axis": "v",
+            "color": (0, 255, 255),
+            "source": "section",
+        }
+        for px in section_vertical_cols
+    )
+    lines.extend(
+        {
+            "px": section_anchor_x,
+            "py": int(round(py)),
+            "axis": "h",
+            "color": (255, 200, 0),
+            "source": "section",
+        }
+        for py in section_horizontal_rows
+    )
+    return lines
 
 
 def attach_protrusion_hits(protrusion_lines, arrows=None, hit_tolerance=15):
@@ -421,7 +644,9 @@ def attach_auxiliary_hits(auxiliary_lines, arrows=None, hit_tolerance=15):
         hits = []
         for arrow in arrows:
             ax, ay = arrow["x"], arrow["y"]
-            if abs(ay - line["py"]) <= hit_tolerance:
+            if line["axis"] == "h" and abs(ay - line["py"]) <= hit_tolerance:
+                hits.append((int(ax), int(ay)))
+            elif line["axis"] == "v" and abs(ax - line["px"]) <= hit_tolerance:
                 hits.append((int(ax), int(ay)))
         annotated.append({**line, "hits": hits})
     return annotated
@@ -503,29 +728,46 @@ def draw_fullpage_projection(
 
     auxiliary_hit = 0
     auxiliary_hit_lines = 0
+    section_hit = 0
+    section_hit_lines = 0
     for line in auxiliary_lines:
         draw_projection_axis(canvas, line, full_w, full_h, 2 if line["hits"] else 1)
         if not line["hits"]:
             continue
-        auxiliary_hit_lines += 1
+        if line.get("source") == "section":
+            section_hit_lines += 1
+        else:
+            auxiliary_hit_lines += 1
         for hx, hy in line["hits"]:
             cv2.drawMarker(
                 canvas,
                 (hx, hy),
-                (0, 165, 255),
+                (0, 165, 255) if line.get("source") != "section" else (0, 215, 255),
                 cv2.MARKER_TILTED_CROSS,
                 12,
                 2,
             )
-            auxiliary_hit += 1
+            if line.get("source") == "section":
+                section_hit += 1
+            else:
+                auxiliary_hit += 1
 
     total_lines = len(circle_lines) + len(protrusion_lines) + len(auxiliary_lines)
-    active_lines = circle_hit_lines + protrusion_hit_lines + auxiliary_hit_lines
+    active_lines = (
+        circle_hit_lines
+        + protrusion_hit_lines
+        + auxiliary_hit_lines
+        + section_hit_lines
+    )
     print(f"  전체 직선: {total_lines}개 → 히트 있는 직선: {active_lines}개")
     print(f"  동심원 히트: {circle_hit}개 ({circle_hit_lines}개 직선)")
     print(f"  돌출부 히트: {protrusion_hit}개 ({protrusion_hit_lines}개 직선)")
     if auxiliary_lines:
         print(f"  보조도 히트: {auxiliary_hit}개 ({auxiliary_hit_lines}개 직선)")
+        print(f"  SECTION 히트: {section_hit}개 ({section_hit_lines}개 직선)")
+
+    auxiliary_count = sum(1 for line in auxiliary_lines if line.get("source") == "auxiliary")
+    section_count = sum(1 for line in auxiliary_lines if line.get("source") == "section")
 
     for cx, cy, r in circles_full:
         cv2.putText(
@@ -542,8 +784,8 @@ def draw_fullpage_projection(
         canvas,
         f"{name.upper()} — Cardinal v3 + Protrusion ({full_w}x{full_h})",
         f"동심원 {len(circles_full)}개 + 돌출 {len(protrusion_lines) // 2}개 + "
-        f"보조도 {len(auxiliary_lines)}개 | "
-        f"히트: 원{circle_hit} + 돌출{protrusion_hit} + 보조{auxiliary_hit}",
+        f"보조도 {auxiliary_count}개 + SECTION {section_count}개 | "
+        f"히트: 원{circle_hit} + 돌출{protrusion_hit} + 보조{auxiliary_hit} + SECTION{section_hit}",
         f"GT: OD={gt['od']} ID={gt['id']}",
     )
     return pil
@@ -586,7 +828,11 @@ def draw_projection_lines_only(
             cv2.line(canvas, (line["px"], 0), (line["px"], full_h), protrusion_color, 2)
 
     for line in auxiliary_lines:
-        cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), horizontal_color, 2)
+        color = line.get("color", horizontal_color if line["axis"] == "h" else vertical_color)
+        if line["axis"] == "h":
+            cv2.line(canvas, (0, line["py"]), (full_w, line["py"]), color, 2)
+        else:
+            cv2.line(canvas, (line["px"], 0), (line["px"], full_h), color, 2)
 
     for _, _, px, py in peaks_full:
         cv2.drawMarker(
@@ -647,6 +893,8 @@ def run():
         outer_r = data["outer_r"]
         center_full = data["center_full"]
         auxiliary_rows = data["auxiliary_rows"]
+        section_vertical_cols = data["section_vertical_cols"]
+        section_horizontal_rows = data["section_horizontal_rows"]
 
         print(
             f"  ALT 후보: {len(data['raw_circles_roi'])}개 → "
@@ -654,6 +902,14 @@ def run():
         )
         print(f"  돌출 끝점: {len(peaks_full)}개")
         print(f"  보조도 수평선: {len(auxiliary_rows)}개 ({auxiliary_rows})")
+        print(
+            f"  SECTION 수직선: {len(section_vertical_cols)}개 "
+            f"({section_vertical_cols})"
+        )
+        print(
+            f"  SECTION 수평선: {len(section_horizontal_rows)}개 "
+            f"({section_horizontal_rows})"
+        )
 
         if not circles_full:
             continue
@@ -661,7 +917,13 @@ def run():
         # Shared geometry: lines-only/fullpage 모두 동일한 끝점 집합을 사용한다.
         base_circle_lines = build_circle_lines(circles_full)
         base_protrusion_lines = build_protrusion_lines(peaks_full, center_full, outer_r)
-        auxiliary_lines = build_auxiliary_lines(auxiliary_rows, center_full)
+        auxiliary_lines = build_auxiliary_lines(
+            auxiliary_rows,
+            center_full,
+            section_vertical_cols,
+            section_horizontal_rows,
+            data["section_bounds"],
+        )
 
         if args.lines_only:
             print(

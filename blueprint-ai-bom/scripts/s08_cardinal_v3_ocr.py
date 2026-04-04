@@ -585,6 +585,9 @@ def run() -> None:
         auxiliary_lines = build_auxiliary_lines(
             data["auxiliary_rows"],
             data["center_full"],
+            data["section_vertical_cols"],
+            data["section_horizontal_rows"],
+            data["section_bounds"],
         )
         projection_lines = circle_lines + protrusion_lines + auxiliary_lines
 
