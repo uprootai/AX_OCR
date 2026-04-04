@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""S08 Cardinal Projection v3 - Line Detector + OCR overlay for section 2-6."""
+"""S08 Cardinal Projection v3 - Line Detector overlay for sections 2-6/2-7."""
 
 from __future__ import annotations
 
@@ -59,6 +59,11 @@ def parse_args() -> argparse.Namespace:
         "--doc",
         choices=[gt["name"] for gt in GT.values()],
         help="process one drawing only",
+    )
+    parser.add_argument(
+        "--no-ocr",
+        action="store_true",
+        help="skip OCR matching and render connected lines only",
     )
     return parser.parse_args()
 
@@ -539,7 +544,8 @@ def summarize_labels(matched_pairs: list[dict[str, Any]]) -> str:
 
 def run() -> None:
     args = parse_args()
-    print("S08 Cardinal v3 - Line Detector OCR")
+    mode = "connected lines only" if args.no_ocr else "line detector + OCR"
+    print(f"S08 Cardinal v3 - {mode}")
     print("=" * 60)
 
     targets = [
@@ -604,17 +610,26 @@ def run() -> None:
             f"pair_lines={len(pair_lines)}"
         )
 
-        ocr_detections = run_ocr(image_path)
-        ocr_candidates = build_ocr_candidates(ocr_detections)
-        matched_pairs = match_ocr_to_pair_lines(pair_lines, ocr_candidates)
-        matched_count = sum(1 for pair in matched_pairs if pair.get("ocr"))
-        label_summary = summarize_labels(matched_pairs)
-        print(
-            f"  ocr_detections={len(ocr_detections)} | "
-            f"ocr_candidates={len(ocr_candidates)} | "
-            f"ocr_matches={matched_count}"
-        )
-        print(f"  labels={label_summary}")
+        ocr_detections: list[dict[str, Any]] = []
+        ocr_candidates: list[dict[str, Any]] = []
+        matched_pairs = [
+            {**pair, "ocr": None, "ocr_distance": None}
+            for pair in pair_lines
+        ]
+        matched_count = 0
+        label_summary = "-"
+        if not args.no_ocr:
+            ocr_detections = run_ocr(image_path)
+            ocr_candidates = build_ocr_candidates(ocr_detections)
+            matched_pairs = match_ocr_to_pair_lines(pair_lines, ocr_candidates)
+            matched_count = sum(1 for pair in matched_pairs if pair.get("ocr"))
+            label_summary = summarize_labels(matched_pairs)
+            print(
+                f"  ocr_detections={len(ocr_detections)} | "
+                f"ocr_candidates={len(ocr_candidates)} | "
+                f"ocr_matches={matched_count}"
+            )
+            print(f"  labels={label_summary}")
 
         overlay = render_overlay(
             image,
@@ -625,7 +640,12 @@ def run() -> None:
             connected_lines,
             matched_pairs,
         )
-        save_pil(overlay, f"{name}_line_detector_ocr.jpg", max_w=1600)
+        output_name = (
+            f"{name}_connected_lines.jpg"
+            if args.no_ocr
+            else f"{name}_line_detector_ocr.jpg"
+        )
+        save_pil(overlay, output_name, max_w=1600)
 
         results.append(
             {
@@ -642,13 +662,23 @@ def run() -> None:
         return
 
     print("\nMarkdown stats")
-    print("| 도면 | Line Detector 선분 수 | 연결 선분 수 | 치수선 쌍 수 | OCR 매칭 | OCR 라벨 |")
-    print("|------|:---:|:---:|:---:|:---:|------|")
+    if args.no_ocr:
+        print("| 도면 | Line Detector 선분 수 | 연결 선분 수 | 치수선 쌍 수 |")
+        print("|------|:---:|:---:|:---:|")
+    else:
+        print("| 도면 | Line Detector 선분 수 | 연결 선분 수 | 치수선 쌍 수 | OCR 매칭 | OCR 라벨 |")
+        print("|------|:---:|:---:|:---:|:---:|------|")
     for row in results:
-        print(
-            f"| {row['name']} | {row['line_detector']}개 | {row['connected_lines']}개 | "
-            f"{row['pair_lines']}개 | {row['ocr_matches']}개 | {row['labels']} |"
-        )
+        if args.no_ocr:
+            print(
+                f"| {row['name']} | {row['line_detector']}개 | "
+                f"{row['connected_lines']}개 | {row['pair_lines']}개 |"
+            )
+        else:
+            print(
+                f"| {row['name']} | {row['line_detector']}개 | {row['connected_lines']}개 | "
+                f"{row['pair_lines']}개 | {row['ocr_matches']}개 | {row['labels']} |"
+            )
 
 
 if __name__ == "__main__":
