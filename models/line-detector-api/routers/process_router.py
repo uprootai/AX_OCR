@@ -52,6 +52,7 @@ router = APIRouter(prefix="/api/v1", tags=["Process"])
 
 # Configuration
 API_PORT = int(os.getenv("LINE_DETECTOR_PORT", "5016"))
+API_BASE_URL = os.getenv("LINE_DETECTOR_BASE_URL", f"http://localhost:{API_PORT}")
 
 
 class ProcessResponse(BaseModel):
@@ -81,7 +82,7 @@ async def get_info():
         "display_name": "P&ID Line Detector",
         "version": "1.1.0",
         "description": "P&ID 라인(배관/신호선) 검출, 스타일 분류, 영역 검출 API",
-        "base_url": f"http://localhost:{API_PORT}",
+        "base_url": API_BASE_URL,
         "endpoint": "/api/v1/process",
         "method": "POST",
         "requires_image": True,
@@ -97,7 +98,12 @@ async def get_info():
             {"name": "lines", "type": "LineSegment[]", "description": "검출된 라인 목록"},
             {"name": "intersections", "type": "Intersection[]", "description": "교차점 목록"},
             {"name": "regions", "type": "Region[]", "description": "점선 박스 영역 목록"},
-            {"name": "visualization", "type": "Image", "description": "시각화 이미지"}
+            {"name": "svg_overlay", "type": "object", "description": "선/영역 SVG 오버레이"},
+            {"name": "statistics", "type": "object", "description": "라인/영역 통계"},
+            {"name": "visualization", "type": "string", "description": "시각화 이미지 (base64)"},
+            {"name": "method", "type": "string", "description": "실제 사용된 검출 방식"},
+            {"name": "image_size", "type": "object", "description": "원본 이미지 크기"},
+            {"name": "options_used", "type": "object", "description": "실제 적용된 옵션 값"},
         ],
         "parameters": [
             {"name": "profile", "type": "select", "options": list(DEFAULTS.keys()), "default": DEFAULT_PROFILE, "description": "프로파일 선택 (용도별 최적 설정)"},
@@ -112,6 +118,7 @@ async def get_info():
             {"name": "min_region_area", "type": "number", "default": 5000, "description": "최소 영역 크기 (픽셀²)"},
             {"name": "visualize", "type": "boolean", "default": True},
             {"name": "visualize_regions", "type": "boolean", "default": True, "description": "영역 시각화 포함"},
+            {"name": "include_svg", "type": "boolean", "default": False, "description": "SVG 오버레이 포함"},
             {"name": "min_length", "type": "number", "default": 0, "description": "최소 라인 길이 (픽셀). 0=필터링 안함"},
             {"name": "max_lines", "type": "number", "default": 0, "description": "최대 라인 수 제한. 0=제한 없음"}
         ],

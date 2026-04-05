@@ -1,83 +1,126 @@
 # Line Detector API Endpoints
 
-전체 4개 엔드포인트 가이드
+현재 구현 기준 엔드포인트는 5개다.
 
----
-
-## Health & Info (3개)
+## Health and Info
 
 | Method | Endpoint | 설명 |
-|--------|----------|------|
-| GET | `/health` | 헬스 체크 |
-| GET | `/api/v1/health` | 헬스 체크 (v1) |
-| GET | `/api/v1/info` | API 정보 및 BlueprintFlow 메타데이터 |
+|------|------|------|
+| `GET` | `/health` | 헬스 체크 |
+| `GET` | `/api/v1/health` | 헬스 체크 v1 경로 |
+| `GET` | `/api/v1/info` | 서비스 메타데이터, 파라미터 정의 |
+| `GET` | `/api/v1/profiles` | 프로파일 기본값 목록 |
 
-### GET /api/v1/info 응답 예시
+### `GET /api/v1/info`
 
 ```json
 {
   "id": "line-detector",
   "name": "Line Detector",
+  "display_name": "P&ID Line Detector",
   "version": "1.1.0",
-  "description": "P&ID 라인(배관/신호선) 검출, 스타일 분류, 영역 검출 API",
-  "blueprintflow": {
-    "category": "segmentation",
-    "color": "#8b5cf6",
-    "icon": "GitCommitHorizontal"
-  },
-  "line_style_types": ["solid", "dashed", "dotted", "dash_dot", "double", "wavy"],
-  "region_types": ["signal_group", "equipment_boundary", "note_box", "hazardous_area", "scope_boundary", "detail_area"]
+  "endpoint": "/api/v1/process",
+  "method": "POST",
+  "parameters": [
+    {"name": "profile", "type": "select", "default": "pid"},
+    {"name": "method", "type": "select", "default": "lsd"},
+    {"name": "include_svg", "type": "boolean", "default": false}
+  ]
 }
 ```
 
----
+### `GET /api/v1/profiles`
 
-## Process (1개)
-
-| Method | Endpoint | 설명 |
-|--------|----------|------|
-| POST | `/api/v1/process` | 라인 검출 및 분석 |
-
-### 파라미터
-
-| 파라미터 | 타입 | 기본값 | 설명 |
-|----------|------|--------|------|
-| `file` | File | 필수 | P&ID 도면 이미지 |
-| `method` | select | `lsd` | 검출 방식 (lsd/hough/combined) |
-| `merge_lines` | boolean | `true` | 공선 라인 병합 |
-| `classify_types` | boolean | `true` | 라인 유형 분류 (배관/신호선) |
-| `classify_colors` | boolean | `true` | 색상 기반 분류 |
-| `classify_styles` | boolean | `true` | 스타일 분류 (실선/점선 등) |
-| `find_intersections` | boolean | `true` | 교차점 검출 |
-| `detect_regions` | boolean | `false` | 점선 박스 영역 검출 |
-| `region_line_styles` | string | `dashed,dash_dot` | 영역 검출에 사용할 스타일 |
-| `min_region_area` | number | `5000` | 최소 영역 크기 (픽셀²) |
-| `visualize` | boolean | `true` | 결과 시각화 |
-| `min_length` | number | `0` | 최소 라인 길이 (0=필터링 안함) |
-| `max_lines` | number | `0` | 최대 라인 수 (0=제한 없음) |
-
-### curl 예시
-
-```bash
-# 기본 라인 검출
-curl -X POST http://localhost:5016/api/v1/process \
-  -F "file=@pid_image.png"
-
-# 스타일 분류 + 영역 검출
-curl -X POST http://localhost:5016/api/v1/process \
-  -F "file=@pid_image.png" \
-  -F "classify_styles=true" \
-  -F "detect_regions=true" \
-  -F "region_line_styles=dashed,dash_dot"
-
-# 고해상도 처리 (최소 길이 필터)
-curl -X POST http://localhost:5016/api/v1/process \
-  -F "file=@large_pid.png" \
-  -F "min_length=20" \
-  -F "max_lines=500"
+```json
+{
+  "profiles": {
+    "pid": {
+      "method": "lsd",
+      "detect_regions": true,
+      "visualize_regions": true
+    },
+    "simple": {
+      "method": "lsd",
+      "detect_regions": false,
+      "visualize_regions": false
+    },
+    "region_focus": {
+      "method": "lsd",
+      "detect_regions": true,
+      "visualize_regions": true
+    },
+    "connectivity": {
+      "method": "lsd",
+      "detect_regions": false,
+      "visualize_regions": false
+    }
+  },
+  "detection_methods": {
+    "lsd": {"min_length": 20},
+    "hough": {"min_length": 30},
+    "combined": {"min_length": 15}
+  },
+  "default_profile": "pid",
+  "available_profiles": {
+    "pid": "P&ID 도면 배관/신호선 검출 최적화",
+    "simple": "라인 검출만 수행 (분류 없음)",
+    "region_focus": "점선 박스 영역 검출에 최적화",
+    "connectivity": "라인 교차점 및 연결성 분석"
+  }
+}
 ```
 
-### 응답 구조
+## Process
+
+| Method | Endpoint | 설명 |
+|------|------|------|
+| `POST` | `/api/v1/process` | 라인 검출 및 선택 기능 실행 |
+
+### Request Parameters
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|------|------|------|------|
+| `file` | File | 필수 | 입력 이미지 |
+| `profile` | string | `pid` | 프로파일 기본값 |
+| `method` | string | `lsd` | `lsd`, `hough`, `combined` |
+| `merge_lines` | boolean | `true` | 공선 라인 병합 |
+| `classify_types` | boolean | `true` | 라인 유형 분류 |
+| `classify_colors` | boolean | `true` | 색상 분류 |
+| `classify_styles` | boolean | `true` | 스타일 분류 |
+| `find_intersections` | boolean | `true` | 교차점 계산 |
+| `detect_regions` | boolean | `false` | 점선 박스 영역 검출 |
+| `region_line_styles` | string | `dashed,dash_dot` | 영역 검출 대상 스타일 |
+| `min_region_area` | integer | `5000` | 최소 영역 면적 |
+| `visualize` | boolean | `true` | PNG 시각화 생성 |
+| `visualize_regions` | boolean | `true` | region overlay 포함 |
+| `include_svg` | boolean | `false` | SVG 오버레이 포함 |
+| `min_length` | number | `0` | 최소 라인 길이 |
+| `max_lines` | integer | `0` | 최대 라인 수 |
+
+### curl Examples
+
+```bash
+curl -X POST http://localhost:5016/api/v1/process \
+  -F "file=@pid_image.png" \
+  -F "profile=simple" \
+  -F "method=lsd" \
+  -F "classify_colors=false" \
+  -F "classify_styles=false" \
+  -F "find_intersections=false" \
+  -F "min_length=15" \
+  -F "max_lines=5000"
+```
+
+```bash
+curl -X POST http://localhost:5016/api/v1/process \
+  -F "file=@pid_image.png" \
+  -F "detect_regions=true" \
+  -F "classify_styles=true" \
+  -F "region_line_styles=dashed,dash_dot,dotted" \
+  -F "include_svg=true"
+```
+
+### Response Shape
 
 ```json
 {
@@ -92,6 +135,7 @@ curl -X POST http://localhost:5016/api/v1/process \
         "angle": 0.0,
         "line_type": "pipe",
         "line_style": "solid",
+        "color": "black",
         "color_type": "process",
         "confidence": 0.85
       }
@@ -108,46 +152,32 @@ curl -X POST http://localhost:5016/api/v1/process \
         "region_type_korean": "신호 그룹"
       }
     ],
+    "svg_overlay": {"svg": "<svg>...</svg>"},
     "statistics": {
       "total_lines": 150,
-      "pipe_lines": 100,
-      "signal_lines": 40,
-      "solid_lines": 120,
-      "dashed_lines": 30,
-      "total_regions": 3
+      "intersection_count": 22,
+      "by_line_style": {"solid": 120, "dashed": 30},
+      "by_color_type": {"process": 140, "water": 10}
     },
-    "visualization": "base64_encoded_image..."
+    "visualization": "base64_png...",
+    "method": "lsd",
+    "image_size": {"width": 4096, "height": 3072},
+    "options_used": {
+      "profile": "simple",
+      "method": "lsd",
+      "classify_colors": false,
+      "classify_styles": false,
+      "min_length": 15,
+      "max_lines": 5000
+    }
   },
-  "processing_time": 1.234
+  "processing_time": 1.234,
+  "error": null
 }
 ```
 
----
+## Notes
 
-## 라인 스타일 유형 (6종)
-
-| 스타일 | 한국어 | 설명 |
-|--------|--------|------|
-| `solid` | 실선 | 일반 배관, 주요 프로세스 라인 |
-| `dashed` | 점선 | 대안/비상 라인, 영역 표시 |
-| `dotted` | 도트선 | 신호선, 제어선 |
-| `dash_dot` | 일점쇄선 | 경계선, SIGNAL FOR 영역 |
-| `double` | 이중선 | 고압/특수 배관 |
-| `wavy` | 물결선 | 탄성/유연 연결 |
-
----
-
-## 영역 유형 (6종)
-
-| 유형 | 한국어 | 설명 |
-|------|--------|------|
-| `signal_group` | 신호 그룹 | SIGNAL FOR BWMS 등 |
-| `equipment_boundary` | 장비 경계 | 장비 그룹 표시 |
-| `note_box` | 노트 박스 | 도면 주석 영역 |
-| `hazardous_area` | 위험 구역 | 안전 경고 영역 |
-| `scope_boundary` | 공급 범위 | 공급자별 범위 표시 |
-| `detail_area` | 상세 영역 | 확대/상세 도면 표시 |
-
----
-
-**Last Updated**: 2025-12-29
+- `find_intersections`가 실제 요청 필드명이다. `find_intersections_flag`는 내부 변수명이지 공개 API 파라미터가 아니다.
+- `/api/v1/process` 응답은 `data` 래퍼를 사용한다.
+- `visualization`은 출력용 base64다. 입력은 반드시 multipart file 업로드를 사용한다.

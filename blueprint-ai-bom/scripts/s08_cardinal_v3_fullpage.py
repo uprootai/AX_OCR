@@ -9,16 +9,32 @@
 """
 
 import argparse
+import os
+from pathlib import Path
+
 import cv2
 import numpy as np
-from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from generate_protrusion_detect import cardinal_max_scan
 
-SRC_DIR = Path("/home/uproot/ax/poc/blueprint-ai-bom/data/dse_batch_test/converted_pngs")
-OUT_DIR = Path("/home/uproot/ax/poc/docs-site-starlight/public/images/gt-validation/steps")
-OUT_DIR.mkdir(exist_ok=True)
+SCRIPT_DIR = Path(__file__).resolve().parent
+BLUEPRINT_ROOT = SCRIPT_DIR.parent
+PROJECT_ROOT = BLUEPRINT_ROOT.parent
+
+SRC_DIR = Path(
+    os.environ.get(
+        "AX_DSE_BATCH_PNG_DIR",
+        str(BLUEPRINT_ROOT / "data" / "dse_batch_test" / "converted_pngs"),
+    )
+)
+OUT_DIR = Path(
+    os.environ.get(
+        "AX_GT_VALIDATION_OUT_DIR",
+        str(PROJECT_ROOT / "docs-site-starlight" / "public" / "images" / "gt-validation" / "steps"),
+    )
+)
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 GT = {
     "TD0062015": {"name": "t1", "od": 360, "id": 190},
@@ -59,6 +75,14 @@ SECTION_ROW_PEAK_DISTANCE_RATIO = 0.04
 SECTION_COL_PEAK_DISTANCE_RATIO = 0.10
 SECTION_MAX_HORIZONTAL_LINES = 3
 SECTION_MAX_VERTICAL_LINES = 3
+SECTION_EDGE_WINDOW_RATIO = 0.12
+SECTION_EDGE_PEAK_MIN_SCORE_RATIO = 0.70
+SECTION_EDGE_PEAK_MIN_SEPARATION = 36
+SECTION_EDGE_EXTRA_VERTICAL_LINES = 2
+SECTION_OUTER_SEARCH_RATIO = 0.45
+SECTION_OUTER_PEAK_MIN_SCORE_RATIO = 0.55
+SECTION_OUTER_PEAK_DISTANCE_RATIO = 0.04
+SECTION_OUTER_MAX_VERTICAL_LINES = 2
 
 
 def get_font(size=16):
@@ -423,8 +447,89 @@ def find_section_projection_peaks(gray, rx2):
         SECTION_MAX_VERTICAL_LINES,
     )
 
+    edge_window = max(40, int(roi.shape[1] * SECTION_EDGE_WINDOW_RATIO))
+    edge_min_score = max(col_min_score, float(col_scores.max()) * SECTION_EDGE_PEAK_MIN_SCORE_RATIO)
+    edge_candidates: list[int] = []
+    for window_start, window_end in [
+        (0, min(edge_window, roi.shape[1])),
+        (max(0, roi.shape[1] - edge_window), roi.shape[1]),
+    ]:
+        if window_end <= window_start:
+            continue
+        local_scores = col_scores[window_start:window_end].copy()
+        if local_scores.size == 0:
+            continue
+        for existing_idx in col_indices:
+            if not (window_start <= existing_idx < window_end):
+                continue
+            mask_start = max(0, existing_idx - window_start - SECTION_EDGE_PEAK_MIN_SEPARATION)
+            mask_end = min(
+                local_scores.size,
+                existing_idx - window_start + SECTION_EDGE_PEAK_MIN_SEPARATION + 1,
+            )
+            local_scores[mask_start:mask_end] = 0.0
+        local_idx = int(np.argmax(local_scores)) + window_start
+        if float(col_scores[local_idx]) < edge_min_score:
+            continue
+        if any(abs(local_idx - existing_idx) < SECTION_EDGE_PEAK_MIN_SEPARATION for existing_idx in col_indices):
+            continue
+        if any(abs(local_idx - existing_idx) < SECTION_EDGE_PEAK_MIN_SEPARATION for existing_idx in edge_candidates):
+            continue
+        edge_candidates.append(local_idx)
+
+    if edge_candidates:
+        col_indices = sorted(
+            col_indices + edge_candidates[:SECTION_EDGE_EXTRA_VERTICAL_LINES],
+            key=lambda idx: float(col_scores[idx]),
+            reverse=True,
+        )
+        col_indices = sorted(col_indices)
+
     horizontal_rows = [section_y1 + idx for idx in row_indices]
     vertical_cols = [section_x1 + idx for idx in col_indices]
+
+    section_width = max(1, section_x2 - section_x1)
+    full_search_x2 = max(section_x2 + 1, gray.shape[1] - max(20, int(gray.shape[1] * 0.02)))
+    outer_search_x1 = section_x2
+    outer_search_x2 = min(
+        full_search_x2,
+        section_x2 + max(120, int(section_width * SECTION_OUTER_SEARCH_RATIO)),
+    )
+    if outer_search_x2 > outer_search_x1:
+        outer_roi = gray[section_y1:section_y2, outer_search_x1:outer_search_x2]
+        if outer_roi.size > 0:
+            _, outer_binary = cv2.threshold(
+                outer_roi,
+                0,
+                255,
+                cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
+            )
+            outer_vertical = cv2.morphologyEx(outer_binary, cv2.MORPH_OPEN, vertical_kernel)
+            outer_col_scores = smooth_signal(
+                outer_vertical.sum(axis=0).astype(np.float32) / 255.0,
+                SECTION_SMOOTH_WINDOW,
+            )
+            outer_min_score = max(
+                SECTION_MIN_PEAK_SCORE,
+                float(outer_col_scores.max()) * SECTION_OUTER_PEAK_MIN_SCORE_RATIO,
+            )
+            outer_peak_distance = max(
+                20,
+                int(section_width * SECTION_OUTER_PEAK_DISTANCE_RATIO),
+            )
+            outer_indices = select_peak_indices(
+                outer_col_scores,
+                outer_min_score,
+                outer_peak_distance,
+                SECTION_OUTER_MAX_VERTICAL_LINES,
+            )
+            for outer_idx in outer_indices:
+                global_x = outer_search_x1 + outer_idx
+                if any(abs(global_x - existing_x) < SECTION_EDGE_PEAK_MIN_SEPARATION for existing_x in vertical_cols):
+                    continue
+                vertical_cols.append(global_x)
+            vertical_cols.sort()
+
     return vertical_cols, horizontal_rows, section_bounds
 
 

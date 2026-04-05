@@ -76,6 +76,7 @@ Content-Type: multipart/form-data
 
 Parameters:
 - file: image file (PNG, JPEG)
+- profile: profile preset (pid, simple, region_focus, connectivity)
 - method: detection method (lsd, hough, combined)
 - merge_lines: merge collinear lines (default: true)
 - classify_types: classify line types (default: true)
@@ -83,9 +84,13 @@ Parameters:
 - classify_styles: classify line styles (default: true)
 - find_intersections: detect intersections (default: true)
 - detect_regions: detect dashed box regions (default: false)
+- region_line_styles: comma-separated styles for region detection
+- min_region_area: minimum region area in pixels
 - min_length: minimum line length in pixels (default: 0)
 - max_lines: maximum lines to return (default: 0 = unlimited)
 - visualize: generate visualization (default: true)
+- visualize_regions: include detected regions in visualization
+- include_svg: include svg_overlay payload
 ```
 
 ## Testing
@@ -93,61 +98,77 @@ Parameters:
 ```bash
 curl -X POST http://localhost:5016/api/v1/process \
   -F "file=@pid_drawing.png" \
+  -F "profile=simple" \
   -F "method=lsd" \
-  -F "classify_styles=true" \
-  -F "classify_colors=true" \
-  -F "detect_regions=true" \
-  -F "visualize=true"
+  -F "classify_styles=false" \
+  -F "classify_colors=false" \
+  -F "find_intersections=false" \
+  -F "visualize=false" \
+  -F "include_svg=true"
 ```
 
 ## Response Example
 
 ```json
 {
-  "status": "success",
+  "success": true,
   "data": {
     "lines": [
       {
         "id": 1,
-        "start": [100, 200],
-        "end": [400, 200],
-        "style": "solid",
+        "start_point": [100, 200],
+        "end_point": [400, 200],
+        "line_style": "solid",
+        "line_type": "pipe",
         "color": "black",
-        "usage": "process"
+        "color_type": "process"
       },
       {
         "id": 2,
-        "start": [200, 100],
-        "end": [200, 300],
-        "style": "dashed",
+        "start_point": [200, 100],
+        "end_point": [200, 300],
+        "line_style": "dashed",
+        "line_type": "signal",
         "color": "blue",
-        "usage": "instrument"
+        "color_type": "water"
       }
     ],
     "intersections": [
       {
+        "id": 0,
         "point": [200, 200],
-        "lines": [1, 2]
+        "line_ids": [1, 2]
       }
     ],
     "regions": [
       {
         "id": 1,
-        "type": "signal_group",
-        "label": "SIGNAL FOR BWMS",
+        "region_type": "signal_group",
         "bbox": [500, 100, 800, 400],
-        "lines_count": 12
+        "area": 120000
       }
     ],
+    "svg_overlay": {
+      "svg": "<svg>...</svg>"
+    },
     "statistics": {
       "total_lines": 156,
-      "by_style": {"solid": 120, "dashed": 28, "dash_dot": 8},
-      "by_color": {"black": 140, "blue": 12, "red": 4},
-      "regions_found": 3
+      "by_line_style": {"solid": 120, "dashed": 28, "dash_dot": 8},
+      "by_color_type": {"process": 140, "water": 12, "steam": 4},
+      "total_regions": 3
     },
-    "visualization": "data:image/png;base64,..."
+    "visualization": "base64_png...",
+    "method": "lsd",
+    "image_size": {"width": 1920, "height": 1080},
+    "options_used": {
+      "profile": "simple",
+      "method": "lsd",
+      "classify_colors": false,
+      "classify_styles": false
+    }
   },
-  "processing_time": 1.85
+  "processing_time": 1.85,
+  "error": null
 }
 ```
 
@@ -184,7 +205,6 @@ docker run -d \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LINE_DETECTOR_PORT` | 5016 | API server port |
-| `DEFAULT_METHOD` | lsd | Default detection method |
 
 ## Performance
 
@@ -207,14 +227,20 @@ line-detector-api/
 ├── Dockerfile
 ├── README.md
 ├── api_server.py
+├── routers/
+│   └── process_router.py
 ├── services/
-│   ├── line_detector.py
-│   ├── style_classifier.py
-│   └── region_detector.py
-├── models/
-│   └── schemas.py
-├── requirements.txt
-└── results/
+│   ├── detection_service.py
+│   ├── classification_service.py
+│   ├── region_service.py
+│   ├── visualization_service.py
+│   └── svg_generator.py
+├── config/
+│   └── defaults.py
+├── tests/
+│   ├── test_defaults.py
+│   └── test_detection_service.py
+└── requirements.txt
 ```
 
 ## Integration with AX PoC

@@ -60,7 +60,7 @@ class LineDetectorService:
                     'classify_types': config.classify_types,
                     'classify_colors': config.classify_colors,
                     'classify_styles': config.classify_styles,
-                    'find_intersections_flag': config.find_intersections,
+                    'find_intersections': config.find_intersections,
                     'visualize': config.visualize,
                     'min_length': config.min_length,
                     'max_lines': config.max_lines,
@@ -79,17 +79,18 @@ class LineDetectorService:
 
             # 결과 변환 (API가 data 래퍼 사용 시 처리)
             data = result.get('data', result)  # data 래퍼가 있으면 사용, 없으면 result 직접 사용
+            image_size = data.get('image_size', {})
             lines = self._parse_lines(data.get('lines', []))
             intersections = self._parse_intersections(data.get('intersections', []))
 
             return {
                 'lines': [l.model_dump() for l in lines],
                 'intersections': [i.model_dump() for i in intersections],
-                'statistics': result.get('statistics', {}),
+                'statistics': data.get('statistics', {}),
                 'processing_time_ms': processing_time,
-                'image_width': result.get('image_width', 0),
-                'image_height': result.get('image_height', 0),
-                'visualization_base64': result.get('visualization'),
+                'image_width': image_size.get('width', result.get('image_width', 0)),
+                'image_height': image_size.get('height', result.get('image_height', 0)),
+                'visualization_base64': data.get('visualization', result.get('visualization')),
             }
 
         except requests.exceptions.ConnectionError:

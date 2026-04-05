@@ -44,14 +44,35 @@ outputs:
   - name: regions
     type: array
     description: 점선 박스 영역 목록 (SIGNAL FOR BWMS 등)
+  - name: svg_overlay
+    type: object
+    description: 선택적 SVG 오버레이 (`include_svg=true`일 때)
   - name: statistics
     type: object
     description: 라인/영역 통계
   - name: visualization
     type: string
     description: 시각화 이미지 (base64)
+  - name: method
+    type: string
+    description: 실제 사용된 검출 방식
+  - name: image_size
+    type: object
+    description: 원본 이미지 크기 (`width`, `height`)
+  - name: options_used
+    type: object
+    description: 실제 적용된 옵션 값
 
 parameters:
+  - name: profile
+    type: select
+    options:
+      - pid
+      - simple
+      - region_focus
+      - connectivity
+    default: pid
+    description: 프로파일 기본값 선택. 개별 파라미터로 덮어쓸 수 있음
   - name: method
     type: select
     options:
@@ -103,6 +124,10 @@ parameters:
     type: boolean
     default: true
     description: 영역 시각화 포함
+  - name: include_svg
+    type: boolean
+    default: false
+    description: 선/영역 SVG 오버레이 반환
   - name: min_length
     type: number
     min: 0
@@ -160,7 +185,10 @@ profiles:
         classify_styles: false
         find_intersections: false
         detect_regions: false
+        region_line_styles: ""
+        min_region_area: 0
         visualize: true
+        visualize_regions: false
         min_length: 10
         max_lines: 0
 
@@ -193,7 +221,10 @@ profiles:
         classify_styles: false
         find_intersections: true
         detect_regions: false
+        region_line_styles: ""
+        min_region_area: 0
         visualize: true
+        visualize_regions: false
         min_length: 25
         max_lines: 0
 
@@ -215,6 +246,9 @@ resources:
     - parameter: detect_regions
       impact: "영역 검출 활성화 시 추가 처리 시간"
       examples: "false:라인만, true:라인+영역"
+    - parameter: include_svg
+      impact: "SVG 오버레이 생성 비용 추가"
+      examples: "false:JSON only, true:JSON+SVG"
     - parameter: min_length
       impact: "값↑ → 라인 수↓, 처리시간↓"
       examples: "0:전체, 30:중간, 50:긴 라인만"

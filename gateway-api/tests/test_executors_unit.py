@@ -3,6 +3,8 @@ Executor 단위 테스트
 모든 executor의 validate_parameters, get_input_schema, get_output_schema 테스트
 """
 import pytest
+from unittest.mock import AsyncMock, patch
+
 from blueprintflow.executors.executor_registry import ExecutorRegistry
 
 
@@ -114,6 +116,13 @@ class TestExecutorValidation:
         is_valid, error = executor.validate_parameters()
         assert is_valid is True
 
+    def test_linedetector_validate_invalid_profile(self):
+        """Line Detector: 잘못된 profile 값"""
+        executor = create_executor("linedetector", {"profile": "invalid"})
+        is_valid, error = executor.validate_parameters()
+        assert is_valid is False
+        assert "profile" in error.lower()
+
     def test_designchecker_validate_valid_params(self):
         """Design Checker: 유효한 파라미터 검증"""
         executor = create_executor("designchecker", {
@@ -215,6 +224,34 @@ class TestExecutorSchemas:
         schema = executor.get_input_schema()
         assert isinstance(schema, dict)
         assert "type" in schema or "properties" in schema
+
+
+class TestLineDetectorExecutorExecution:
+    """Line Detector 실행 payload 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_linedetector_execute_keeps_profile_defaults(self):
+        executor = create_executor("linedetector", {"profile": "simple"})
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.content = (
+            b'{"success":true,"data":{"lines":[],"intersections":[],"statistics":{},'
+            b'"regions":[],"visualization":"","method":"lsd","image_size":{"width":1,"height":1},'
+            b'"options_used":{"profile":"simple"}},"processing_time":0.123}'
+        )
+
+        with patch(
+            "blueprintflow.executors.linedetector_executor.prepare_image_for_api",
+            return_value=b"fake-image",
+        ), patch("httpx.AsyncClient") as mock_client:
+            mock_post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.post = mock_post
+
+            result = await executor.execute({}, {})
+
+        post_kwargs = mock_post.await_args.kwargs
+        assert post_kwargs["data"] == {"profile": "simple"}
+        assert result["options_used"]["profile"] == "simple"
 
     @pytest.mark.parametrize("executor_type", [
         "yolo", "edocr2", "skinmodel", "paddleocr", "tesseract",

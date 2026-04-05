@@ -14,6 +14,7 @@ class LineDetectorExecutor(BaseNodeExecutor):
     """Line Detector 실행기 - P&ID 라인 검출"""
 
     API_BASE_URL = "http://line-detector-api:5016"
+    PROFILE_OPTIONS = {"pid", "simple", "region_focus", "connectivity"}
 
     async def execute(self, inputs: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -42,27 +43,57 @@ class LineDetectorExecutor(BaseNodeExecutor):
         file_bytes = prepare_image_for_api(inputs, context)
 
         # 파라미터 추출
-        method = self.parameters.get("method", "lsd")
-        merge_lines = self.parameters.get("merge_lines", True)
-        classify_types = self.parameters.get("classify_types", True)
-        find_intersections = self.parameters.get("find_intersections", True)
-        visualize = self.parameters.get("visualize", True)
-        min_length = self.parameters.get("min_length", 0)
-        max_lines = self.parameters.get("max_lines", 0)
+        profile = self.parameters.get("profile")
+        method = self.parameters.get("method")
+        merge_lines = self.parameters.get("merge_lines")
+        classify_types = self.parameters.get("classify_types")
+        classify_colors = self.parameters.get("classify_colors")
+        classify_styles = self.parameters.get("classify_styles")
+        find_intersections = self.parameters.get("find_intersections")
+        detect_regions = self.parameters.get("detect_regions")
+        region_line_styles = self.parameters.get("region_line_styles")
+        min_region_area = self.parameters.get("min_region_area")
+        visualize = self.parameters.get("visualize")
+        visualize_regions = self.parameters.get("visualize_regions")
+        include_svg = self.parameters.get("include_svg")
+        min_length = self.parameters.get("min_length")
+        max_lines = self.parameters.get("max_lines")
         filename = self.parameters.get("filename", "pid_image.jpg")
 
         # API 호출
         async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=30.0)) as client:
             files = {"file": (filename, file_bytes, "image/jpeg")}
-            data = {
+            data: Dict[str, str] = {}
+            string_params = {
+                "profile": profile,
                 "method": method,
-                "merge_lines": str(merge_lines).lower(),
-                "classify_types": str(classify_types).lower(),
-                "find_intersections": str(find_intersections).lower(),
-                "visualize": str(visualize).lower(),
-                "min_length": str(min_length),
-                "max_lines": str(max_lines)
+                "region_line_styles": region_line_styles,
             }
+            boolean_params = {
+                "merge_lines": merge_lines,
+                "classify_types": classify_types,
+                "classify_colors": classify_colors,
+                "classify_styles": classify_styles,
+                "find_intersections": find_intersections,
+                "detect_regions": detect_regions,
+                "visualize": visualize,
+                "visualize_regions": visualize_regions,
+                "include_svg": include_svg,
+            }
+            numeric_params = {
+                "min_region_area": min_region_area,
+                "min_length": min_length,
+                "max_lines": max_lines,
+            }
+            for key, value in string_params.items():
+                if value is not None:
+                    data[key] = str(value)
+            for key, value in boolean_params.items():
+                if value is not None:
+                    data[key] = str(value).lower()
+            for key, value in numeric_params.items():
+                if value is not None:
+                    data[key] = str(value)
 
             response = await client.post(
                 f"{self.API_BASE_URL}/api/v1/process",
@@ -93,10 +124,14 @@ class LineDetectorExecutor(BaseNodeExecutor):
             "lines": data.get("lines", []),
             "intersections": data.get("intersections", []),
             "statistics": data.get("statistics", {}),
+            "regions": data.get("regions", []),
             "visualized_image": data.get("visualization", ""),  # 프론트엔드 호환 필드명
+            "visualization": data.get("visualization", ""),
+            "svg_overlay": data.get("svg_overlay", {}),
             "image": original_image,  # 원본 이미지 패스스루
             "method": data.get("method", method),
             "image_size": data.get("image_size", {}),
+            "options_used": data.get("options_used", {}),
             "processing_time": result.get("processing_time", 0),
             # 패스스루: 이전 노드(YOLO)의 결과를 다음 노드(PID Analyzer)로 전달
             "detections": passthrough_detections,
@@ -120,6 +155,10 @@ class LineDetectorExecutor(BaseNodeExecutor):
             method = self.parameters["method"]
             if method not in ["lsd", "hough", "combined"]:
                 return False, "method는 'lsd', 'hough', 'combined' 중 하나여야 합니다"
+        if "profile" in self.parameters:
+            profile = self.parameters["profile"]
+            if profile not in self.PROFILE_OPTIONS:
+                return False, "profile은 'pid', 'simple', 'region_focus', 'connectivity' 중 하나여야 합니다"
 
         return True, None
 
@@ -153,9 +192,37 @@ class LineDetectorExecutor(BaseNodeExecutor):
                     "type": "object",
                     "description": "라인 통계"
                 },
+                "regions": {
+                    "type": "array",
+                    "description": "검출된 점선 박스 영역 목록"
+                },
                 "visualization": {
                     "type": "string",
                     "description": "시각화 이미지 (base64)"
+                },
+                "visualized_image": {
+                    "type": "string",
+                    "description": "프론트엔드 호환 시각화 이미지 (base64)"
+                },
+                "svg_overlay": {
+                    "type": "object",
+                    "description": "선/영역 SVG 오버레이"
+                },
+                "image_size": {
+                    "type": "object",
+                    "description": "원본 이미지 크기"
+                },
+                "options_used": {
+                    "type": "object",
+                    "description": "실제로 적용된 API 옵션"
+                },
+                "method": {
+                    "type": "string",
+                    "description": "실제 사용된 검출 방식"
+                },
+                "processing_time": {
+                    "type": "number",
+                    "description": "API 처리 시간"
                 },
                 "detections": {
                     "type": "array",

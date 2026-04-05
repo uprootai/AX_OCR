@@ -8,10 +8,10 @@ import sys
 import os
 import cv2
 
-# api_server.py에서 함수들을 import하기 위해 경로 추가
+# 서비스 모듈 import를 위해 경로 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from api_server import (
+from services import (
     detect_lines_lsd,
     detect_lines_hough,
     classify_line_type,

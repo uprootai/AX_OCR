@@ -11,7 +11,7 @@ P&ID 라인(배관/신호선) 검출 및 연결성 분석 API
 포트: 5016
 
 라우터 구조:
-- /api/v1/process, /api/v1/info: process_router
+- /api/v1/process, /api/v1/info, /api/v1/profiles: process_router
 """
 
 import os
@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 API_PORT = int(os.getenv("LINE_DETECTOR_PORT", "5016"))
+API_VERSION = "1.1.0"
 
 
 # =====================
@@ -83,7 +84,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Line Detector API",
     description="P&ID 라인(배관/신호선) 검출 및 연결성 분석 API",
-    version="1.0.0",
+    version=API_VERSION,
     lifespan=lifespan
 )
 
@@ -110,7 +111,7 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="line-detector-api",
-        version="1.0.0",
+        version=API_VERSION,
         timestamp=datetime.now().isoformat()
     )
 
