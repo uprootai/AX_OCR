@@ -59,10 +59,17 @@ AUXILIARY_MAX_LINES = 3
 SECTION_SEARCH_TOP_RATIO = 0.05
 SECTION_SEARCH_BOTTOM_RATIO = 0.80
 SECTION_SEARCH_X_MARGIN_RATIO = 0.01
+SECTION_SEARCH_LEFT_OVERLAP_RADIUS_RATIO = 0.45
+SECTION_SEARCH_TOP_RADIUS_RATIO = 0.65
+SECTION_SEARCH_BOTTOM_RADIUS_RATIO = 1.45
 SECTION_BAND_SMOOTH_RATIO = 0.02
 SECTION_BAND_MIN_SCORE_RATIO = 0.18
 SECTION_BAND_MIN_SEGMENT_RATIO = 0.04
 SECTION_BAND_MIN_WIDTH_RATIO = 0.15
+SECTION_BAND_LEFT_PADDING_MIN = 120
+SECTION_BAND_LEFT_PADDING_RATIO = 0.80
+SECTION_BAND_RIGHT_PADDING_MIN = 220
+SECTION_BAND_RIGHT_PADDING_RATIO = 1.10
 SECTION_SMOOTH_WINDOW = 9
 SECTION_HORIZONTAL_KERNEL_RATIO = 0.18
 SECTION_VERTICAL_KERNEL_RATIO = 0.10
@@ -79,6 +86,10 @@ SECTION_EDGE_WINDOW_RATIO = 0.12
 SECTION_EDGE_PEAK_MIN_SCORE_RATIO = 0.70
 SECTION_EDGE_PEAK_MIN_SEPARATION = 36
 SECTION_EDGE_EXTRA_VERTICAL_LINES = 2
+SECTION_TOP_EDGE_WINDOW_RATIO = 0.12
+SECTION_TOP_EDGE_MIN_SCORE_RATIO = 0.45
+SECTION_TOP_EDGE_MIN_SEPARATION = 48
+SECTION_TOP_EDGE_EXTRA_HORIZONTAL_LINES = 1
 SECTION_OUTER_SEARCH_RATIO = 0.45
 SECTION_OUTER_PEAK_MIN_SCORE_RATIO = 0.55
 SECTION_OUTER_PEAK_DISTANCE_RATIO = 0.04
@@ -325,7 +336,7 @@ def find_auxiliary_projection_rows(gray, rx1, ry1, rx2, center_full, outer_r):
     return rows, (search_x1, search_y1, search_x2, search_y2)
 
 
-def find_section_content_band(gray, rx2):
+def find_section_content_band(gray, rx2, center_full=None, outer_r=None):
     """메인 뷰 오른쪽에서 SECTION 단면도가 놓인 주요 x band를 찾는다."""
     h, w = gray.shape
     right_width = w - rx2
@@ -333,6 +344,16 @@ def find_section_content_band(gray, rx2):
     search_x2 = max(search_x1 + 1, w - max(20, int(w * 0.02)))
     search_y1 = max(0, int(h * SECTION_SEARCH_TOP_RATIO))
     search_y2 = max(search_y1 + 1, int(h * SECTION_SEARCH_BOTTOM_RATIO))
+
+    if center_full is not None and outer_r is not None:
+        _, ccy = center_full
+        left_overlap = max(
+            SECTION_BAND_LEFT_PADDING_MIN,
+            int(round(outer_r * SECTION_SEARCH_LEFT_OVERLAP_RADIUS_RATIO)),
+        )
+        search_x1 = max(0, rx2 - left_overlap)
+        search_y1 = max(0, int(round(ccy - outer_r * SECTION_SEARCH_TOP_RADIUS_RATIO)))
+        search_y2 = min(h, int(round(ccy + outer_r * SECTION_SEARCH_BOTTOM_RADIUS_RATIO)))
 
     if search_x2 <= search_x1 or search_y2 <= search_y1:
         return None
@@ -363,27 +384,44 @@ def find_section_content_band(gray, rx2):
         return None
 
     min_width = max(80, int(right_width * SECTION_BAND_MIN_WIDTH_RATIO))
+    chosen_segment = None
     for start_idx, end_idx in segments:
         if end_idx - start_idx >= min_width:
-            return (
-                search_x1 + start_idx,
-                search_y1,
-                search_x1 + end_idx,
-                search_y2,
-            )
+            chosen_segment = (start_idx, end_idx)
+            break
 
-    best_start, best_end = max(segments, key=lambda item: item[1] - item[0])
+    if chosen_segment is None:
+        chosen_segment = max(segments, key=lambda item: item[1] - item[0])
+
+    best_start, best_end = chosen_segment
+    segment_width = max(1, best_end - best_start)
+    padded_start = max(
+        0,
+        best_start
+        - max(
+            SECTION_BAND_LEFT_PADDING_MIN,
+            int(round(segment_width * SECTION_BAND_LEFT_PADDING_RATIO)),
+        ),
+    )
+    padded_end = min(
+        roi.shape[1],
+        best_end
+        + max(
+            SECTION_BAND_RIGHT_PADDING_MIN,
+            int(round(segment_width * SECTION_BAND_RIGHT_PADDING_RATIO)),
+        ),
+    )
     return (
-        search_x1 + best_start,
+        search_x1 + padded_start,
         search_y1,
-        search_x1 + best_end,
+        search_x1 + padded_end,
         search_y2,
     )
 
 
-def find_section_projection_peaks(gray, rx2):
+def find_section_projection_peaks(gray, rx2, center_full=None, outer_r=None):
     """SECTION band 내부의 주요 수직/수평 치수선 위치를 peak로 뽑는다."""
-    section_bounds = find_section_content_band(gray, rx2)
+    section_bounds = find_section_content_band(gray, rx2, center_full, outer_r)
     if section_bounds is None:
         return [], [], None
 
@@ -485,6 +523,35 @@ def find_section_projection_peaks(gray, rx2):
         )
         col_indices = sorted(col_indices)
 
+    top_edge_window = max(40, int(roi.shape[0] * SECTION_TOP_EDGE_WINDOW_RATIO))
+    top_edge_min_score = max(
+        SECTION_MIN_PEAK_SCORE,
+        float(row_scores.max()) * SECTION_TOP_EDGE_MIN_SCORE_RATIO,
+    )
+    top_edge_candidates: list[int] = []
+    local_top_scores = row_scores[:top_edge_window].copy()
+    for existing_idx in row_indices:
+        if existing_idx >= top_edge_window:
+            continue
+        mask_start = max(0, existing_idx - SECTION_TOP_EDGE_MIN_SEPARATION)
+        mask_end = min(
+            local_top_scores.size,
+            existing_idx + SECTION_TOP_EDGE_MIN_SEPARATION + 1,
+        )
+        local_top_scores[mask_start:mask_end] = 0.0
+    if local_top_scores.size > 0:
+        local_idx = int(np.argmax(local_top_scores))
+        if (
+            float(row_scores[local_idx]) >= top_edge_min_score
+            and not any(
+                abs(local_idx - existing_idx) < SECTION_TOP_EDGE_MIN_SEPARATION
+                for existing_idx in row_indices
+            )
+        ):
+            top_edge_candidates.append(local_idx)
+    if top_edge_candidates:
+        row_indices = sorted(row_indices + top_edge_candidates[:SECTION_TOP_EDGE_EXTRA_HORIZONTAL_LINES])
+
     horizontal_rows = [section_y1 + idx for idx in row_indices]
     vertical_cols = [section_x1 + idx for idx in col_indices]
 
@@ -573,6 +640,8 @@ def collect_projection_data(gray):
         section_vertical_cols, section_horizontal_rows, section_bounds = find_section_projection_peaks(
             gray,
             rx2,
+            center_full,
+            outer_r,
         )
 
     return {
