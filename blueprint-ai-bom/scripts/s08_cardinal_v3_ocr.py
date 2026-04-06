@@ -230,6 +230,24 @@ def run_ocr(image_path: Path) -> list[dict[str, Any]]:
     return response.json().get("detections", [])
 
 
+def parse_session_name_odid(ocr_detections: list[dict[str, Any]]) -> dict[str, Any]:
+    """OCR 결과에서 세션명 텍스트를 찾아 OD/ID를 파싱한다.
+
+    패턴: 'T1 BEARING ASSY (360X190)' → OD=360, ID=190
+           'THRUST BEARING ASSY(OD670XID440)' → OD=670, ID=440
+    """
+    for det in ocr_detections:
+        text = str(det.get("text", ""))
+        if "ASSY" not in text.upper() and "BEARING" not in text.upper():
+            continue
+        m = re.search(r"(?:OD)?(\d+)\s*[Xx×]\s*(?:ID)?(\d+)", text)
+        if m:
+            od = int(m.group(1))
+            id_val = int(m.group(2))
+            return {"od": od, "id": id_val, "source_text": text}
+    return {}
+
+
 def build_projection_endpoint_candidates(
     gray: np.ndarray,
     projection_lines: list[dict[str, Any]],
@@ -1173,6 +1191,14 @@ def run() -> None:
                 f"ocr_matches={matched_count}"
             )
             print(f"  labels={label_summary}")
+
+            # 세션명에서 OD/ID 파싱
+            session_odid = parse_session_name_odid(ocr_detections)
+            if session_odid:
+                print(
+                    f"  session_name: {session_odid.get('source_text', '?')} "
+                    f"→ OD={session_odid['od']} ID={session_odid['id']}"
+                )
 
         overlay = render_overlay(
             image,
