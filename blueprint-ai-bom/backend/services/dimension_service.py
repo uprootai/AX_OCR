@@ -17,6 +17,7 @@ from pathlib import Path
 import httpx
 import mimetypes
 
+from app_config import DEFAULT_CONFIDENCE_THRESHOLD
 from schemas.dimension import Dimension, DimensionType, DimensionResult
 from schemas.detection import VerificationStatus, BoundingBox
 
@@ -87,7 +88,7 @@ class DimensionService:
     def extract_dimensions(
         self,
         image_path: str,
-        confidence_threshold: float = 0.5,
+        confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
         ocr_engines: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """이미지에서 치수 추출 (멀티 OCR 엔진 지원)"""

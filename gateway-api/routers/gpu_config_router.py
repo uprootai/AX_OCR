@@ -10,14 +10,19 @@ import subprocess
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from common.admin_security import require_admin_token
 from constants import DOCKER_SERVICE_MAPPING
 
 logger = logging.getLogger(__name__)
 
-gpu_config_router = APIRouter(prefix="/admin", tags=["Admin - GPU Config"])
+gpu_config_router = APIRouter(
+    prefix="/admin",
+    tags=["Admin - GPU Config"],
+    dependencies=[Depends(require_admin_token)],
+)
 
 # =============================================================================
 # Constants

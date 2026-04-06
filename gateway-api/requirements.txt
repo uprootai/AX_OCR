@@ -11,6 +11,7 @@ openpyxl==3.1.2
 opencv-python-headless==4.8.1.78
 numpy==1.26.2
 psutil==5.9.7
+cryptography>=42.0.0
 
 # Testing dependencies
 pytest==7.4.3

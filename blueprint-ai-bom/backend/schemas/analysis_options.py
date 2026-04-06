@@ -3,6 +3,7 @@
 도면 분석 시 어떤 기능을 활성화할지 설정.
 프리셋을 통해 도면 유형별 최적 설정 제공.
 """
+from app_config import DEFAULT_CONFIDENCE_THRESHOLD
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -45,7 +46,7 @@ class AnalysisOptions(BaseModel):
 
     # 검출 설정
     confidence_threshold: float = Field(
-        default=0.4,  # drawing-bom-extractor와 동일 (0.5 → 0.4)
+        default=DEFAULT_CONFIDENCE_THRESHOLD,  # @AX:WARN - default is 0.4
         ge=0.0,
         le=1.0,
         description="신뢰도 임계값"
@@ -123,7 +124,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_relation_extraction": True,
         "ocr_engine": "edocr2",
         "ocr_engines": ["paddleocr_tiled", "edocr2"],
-        "confidence_threshold": 0.4
+        "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD
     },
     "electrical": {
         "name": "전력 설비 단선도",
@@ -136,7 +137,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_relation_extraction": False,  # 치수 없음
         "ocr_engine": "edocr2",
         "ocr_engines": ["edocr2"],
-        "confidence_threshold": 0.4,
+        "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD,
         "symbol_model_type": "panasia"  # classExamples 참조 이미지와 매칭
     },
     "pid": {
@@ -150,7 +151,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_relation_extraction": False,  # 치수 없음
         "ocr_engine": "paddleocr",
         "ocr_engines": ["paddleocr"],
-        "confidence_threshold": 0.4,  # 0.5 → 0.4 통일
+        "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD,
         "symbol_model_type": "pid"
     },
     "assembly": {
@@ -164,7 +165,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "enable_relation_extraction": True,
         "ocr_engine": "paddleocr",
         "ocr_engines": ["paddleocr_tiled", "edocr2"],
-        "confidence_threshold": 0.4
+        "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD
     }
 }
 

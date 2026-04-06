@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import logger from '../lib/logger';
+import { DEFAULT_ANALYSIS_CONFIDENCE_THRESHOLD } from '../config/analysisDefaults';
 import { API_BASE_URL } from '../lib/constants';
 import {
   Settings,
@@ -64,7 +65,7 @@ export function AnalysisOptions({
     enable_line_detection: false,
     enable_text_extraction: false,
     ocr_engine: 'edocr2',
-    confidence_threshold: 0.5,
+    confidence_threshold: DEFAULT_ANALYSIS_CONFIDENCE_THRESHOLD,
     symbol_model_type: 'panasia',
     preset: 'electrical',
     // Detectron2 옵션 기본값

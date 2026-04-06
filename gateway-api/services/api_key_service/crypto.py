@@ -8,6 +8,19 @@ import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+_fallback_warnings: set[str] = set()
+
+
+def _warn_insecure_fallback(operation: str) -> None:
+    if operation in _fallback_warnings:
+        return
+
+    logger.warning(
+        "cryptography unavailable during %s; falling back to reversible base64 encoding. "
+        "Install cryptography in production.",
+        operation,
+    )
+    _fallback_warnings.add(operation)
 
 
 def get_or_create_encryption_key(config_dir: Path) -> bytes:
@@ -26,6 +39,7 @@ def get_or_create_encryption_key(config_dir: Path) -> bytes:
         new_key = Fernet.generate_key()
     except ImportError:
         import secrets
+        _warn_insecure_fallback("key generation")
         new_key = base64.urlsafe_b64encode(secrets.token_bytes(32))
 
     key_file.write_bytes(new_key)
@@ -40,6 +54,7 @@ def encrypt(plaintext: str, encryption_key: bytes) -> str:
         f = Fernet(encryption_key)
         return f.encrypt(plaintext.encode()).decode()
     except ImportError:
+        _warn_insecure_fallback("encryption")
         return base64.urlsafe_b64encode(plaintext.encode()).decode()
 
 
@@ -50,6 +65,7 @@ def decrypt(ciphertext: str, encryption_key: bytes) -> str:
         f = Fernet(encryption_key)
         return f.decrypt(ciphertext.encode()).decode()
     except ImportError:
+        _warn_insecure_fallback("decryption")
         return base64.urlsafe_b64decode(ciphertext.encode()).decode()
     except Exception as e:
         logger.warning(f"Decryption failed: {e}")

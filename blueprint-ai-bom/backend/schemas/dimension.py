@@ -3,6 +3,7 @@
 치수 OCR 결과 및 검증을 위한 데이터 모델.
 기존 Detection 스키마 패턴을 따름.
 """
+from app_config import DEFAULT_CONFIDENCE_THRESHOLD
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -170,7 +171,7 @@ class DimensionCompareRequest(BaseModel):
         description="비교할 OCR 엔진 목록"
     )
     confidence_threshold: float = Field(
-        default=0.5, ge=0, le=1,
+        default=DEFAULT_CONFIDENCE_THRESHOLD, ge=0, le=1,
         description="최소 신뢰도 임계값"
     )
     classify_roles: bool = Field(
@@ -271,7 +272,7 @@ class FullCompareRequest(BaseModel):
     ocr_engines: List[str] = Field(
         default=["paddleocr", "edocr2", "easyocr", "trocr", "suryaocr", "doctr", "paddleocr_tiled"],
     )
-    confidence_threshold: float = Field(default=0.5)
+    confidence_threshold: float = Field(default=DEFAULT_CONFIDENCE_THRESHOLD)
     methods: Optional[List[str]] = Field(
         default=None,
         description="실행할 방법 ID 목록 (None이면 전체 실행)",

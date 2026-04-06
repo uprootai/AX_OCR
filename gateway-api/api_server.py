@@ -31,6 +31,13 @@ from models import (
     DetectionResult, DimensionData, ComponentData
 )
 from api_registry import get_api_registry
+from common.admin_security import (
+    DOCKER_ADMIN_ROUTES_ENV,
+    GPU_CONFIG_ADMIN_ROUTES_ENV,
+    has_gateway_admin_token,
+    is_docker_admin_routes_enabled,
+    is_gpu_config_admin_routes_enabled,
+)
 from routers import (
     admin_router, api_key_router, gpu_config_router, docker_router, results_router,
     container_router, spec_router, registry_router, workflow_router, config_router,
@@ -46,6 +53,20 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def _include_protected_admin_router(app: FastAPI, router, enabled: bool, flag_name: str, label: str) -> None:
+    """관리자 보호 라우터를 안전하게 등록."""
+    if not enabled:
+        logger.info("%s disabled (%s=false)", label, flag_name)
+        return
+
+    if not has_gateway_admin_token():
+        logger.error("%s not enabled because GATEWAY_ADMIN_TOKEN is empty", label)
+        return
+
+    app.include_router(router)
+    logger.info("%s enabled", label)
 
 
 # =====================
@@ -147,8 +168,20 @@ app.add_middleware(
 # Include Routers
 app.include_router(admin_router)
 app.include_router(api_key_router)
-app.include_router(gpu_config_router)
-app.include_router(docker_router)
+_include_protected_admin_router(
+    app,
+    gpu_config_router,
+    enabled=is_gpu_config_admin_routes_enabled(),
+    flag_name=GPU_CONFIG_ADMIN_ROUTES_ENV,
+    label="GPU config admin routes",
+)
+_include_protected_admin_router(
+    app,
+    docker_router,
+    enabled=is_docker_admin_routes_enabled(),
+    flag_name=DOCKER_ADMIN_ROUTES_ENV,
+    label="Docker admin routes",
+)
 app.include_router(results_router)
 app.include_router(container_router)
 app.include_router(spec_router)

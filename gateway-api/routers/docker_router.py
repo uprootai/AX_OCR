@@ -8,9 +8,10 @@ Docker Router - Docker 컨테이너 제어 및 모니터링
 import logging
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from common.admin_security import require_admin_token
 from constants import get_container_name
 from utils.subprocess_utils import (
     run_docker_command,
@@ -20,7 +21,11 @@ from utils.subprocess_utils import (
 
 logger = logging.getLogger(__name__)
 
-docker_router = APIRouter(prefix="/admin", tags=["Docker"])
+docker_router = APIRouter(
+    prefix="/admin",
+    tags=["Docker"],
+    dependencies=[Depends(require_admin_token)],
+)
 
 
 # =============================================================================
