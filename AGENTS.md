@@ -14,8 +14,8 @@ ax/poc/
 │   │   ├── routers/analysis/  # 분석 API (dimension, core)
 │   │   ├── services/          # 비즈니스 로직 (dimension_parser, merger 등)
 │   │   └── schemas/           # Pydantic 스키마
-│   └── frontend/              # React 19 + Vite (포트 5173)
-├── gateway-api/               # API Gateway (포트 5050)
+│   └── frontend/              # React 19 + Vite (포트 3000/Docker, 5021/dev)
+├── gateway-api/               # API Gateway (포트 8000)
 ├── web-ui/                    # 메인 웹 UI (React 19 + Vite)
 ├── models/                    # ML 모델 서비스 (YOLO, eDOCr2 등)
 ├── docker-compose.yml         # 전체 서비스 오케스트레이션
@@ -33,7 +33,7 @@ ax/poc/
 | Analysis | Blueprint AI BOM | 5020 |
 | Visualization | Annotation | 5015 |
 | AI | OpenAI Integration | 5030 |
-| Orchestrator | Gateway API | 5050 |
+| Orchestrator | Gateway API | 8000 |
 
 ---
 
@@ -192,7 +192,7 @@ docker-compose up -d
 docker-compose up -d --build <서비스명>
 
 # 헬스체크
-curl -s http://localhost:5050/api/v1/health
+curl -s http://localhost:8000/api/v1/health
 curl -s http://localhost:5020/health
 ```
 
