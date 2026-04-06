@@ -31,6 +31,8 @@ from s08_cardinal_v3_fullpage import (
     save_pil,
 )
 from s08_cardinal_v3_projection_endpoints import draw_projection_endpoint_overlay
+
+
 def resolve_api_url(env_name: str, default_base_url: str, default_path: str) -> str:
     base_url = os.environ.get(env_name, default_base_url).rstrip("/")
     return base_url if base_url.endswith(default_path) else f"{base_url}{default_path}"
@@ -186,6 +188,8 @@ def build_projection_endpoint_candidates(
             }
         )
     return indexed_endpoints, len(lsd_segments)
+
+
 def dedupe_lines(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: dict[tuple[Any, ...], dict[str, Any]] = {}
     for line in sorted(
