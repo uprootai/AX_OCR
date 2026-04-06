@@ -1114,7 +1114,7 @@ def run() -> None:
             print(f"  ⚠ image load failed: {image_path}")
             continue
 
-        data = collect_projection_data(gray)
+        data = collect_projection_data(gray, image_path=image_path)
         circles_full = data["circles_full"]
         if not circles_full:
             print("  ⚠ no primary concentric circles")

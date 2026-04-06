@@ -151,7 +151,7 @@ def run() -> None:
             print(f"  ⚠ 이미지 로드 실패: {img_path}")
             continue
 
-        data = collect_projection_data(gray)
+        data = collect_projection_data(gray, image_path=img_path)
         circles_full = data["circles_full"]
         peaks_full = data["peaks_full"]
         if not circles_full:

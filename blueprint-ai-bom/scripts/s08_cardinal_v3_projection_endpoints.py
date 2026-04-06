@@ -120,7 +120,7 @@ def run() -> None:
             print(f"  ⚠ 이미지 로드 실패: {img_path}")
             continue
 
-        data = collect_projection_data(gray)
+        data = collect_projection_data(gray, image_path=img_path)
         circles_full = data["circles_full"]
         if not circles_full:
             print("  ⚠ 주 동심원 검출 실패")

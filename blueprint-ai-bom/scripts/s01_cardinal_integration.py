@@ -228,8 +228,11 @@ def match_ocr_to_dimlines(
     return matched
 
 
-def collect_projection_lines(gray: np.ndarray) -> Tuple[List[Tuple[float, float, float]], List[Dict[str, Any]]]:
-    data = collect_projection_data(gray)
+def collect_projection_lines(
+    gray: np.ndarray,
+    image_path: Path | None = None,
+) -> Tuple[List[Tuple[float, float, float]], List[Dict[str, Any]]]:
+    data = collect_projection_data(gray, image_path=image_path)
     circles_full = data["circles_full"]
 
     projection_lines: List[Dict[str, Any]] = []
@@ -509,7 +512,7 @@ def run() -> None:
             print(f"  ⚠ 이미지 로드 실패: {img_path}")
             continue
 
-        data = collect_projection_data(gray)
+        data = collect_projection_data(gray, image_path=img_path)
         circles_full = data["circles_full"]
         peaks_full = data["peaks_full"]
         outer_r = data["outer_r"]

@@ -10,10 +10,13 @@
 
 import argparse
 import os
+import sys
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
+import requests
 from PIL import Image, ImageDraw, ImageFont
 
 from generate_protrusion_detect import cardinal_max_scan
@@ -21,6 +24,9 @@ from generate_protrusion_detect import cardinal_max_scan
 SCRIPT_DIR = Path(__file__).resolve().parent
 BLUEPRINT_ROOT = SCRIPT_DIR.parent
 PROJECT_ROOT = BLUEPRINT_ROOT.parent
+sys.path.insert(0, str(BLUEPRINT_ROOT / "backend"))
+
+from services.dimension_ensemble import _detect_drawing_views
 
 SRC_DIR = Path(
     os.environ.get(
@@ -94,6 +100,66 @@ SECTION_OUTER_SEARCH_RATIO = 0.45
 SECTION_OUTER_PEAK_MIN_SCORE_RATIO = 0.55
 SECTION_OUTER_PEAK_DISTANCE_RATIO = 0.04
 SECTION_OUTER_MAX_VERTICAL_LINES = 2
+OCR_API = os.environ.get("PADDLEOCR_API_URL", "http://localhost:5006/api/v1/ocr")
+
+
+def run_ocr(image_path: str | Path, timeout: int = 120) -> list[dict[str, Any]]:
+    image_file = Path(image_path)
+    if not image_file.exists():
+        return []
+
+    mime_type = "image/png" if image_file.suffix.lower() == ".png" else "image/jpeg"
+    try:
+        with image_file.open("rb") as file_obj:
+            response = requests.post(
+                OCR_API,
+                files={"file": (image_file.name, file_obj, mime_type)},
+                timeout=timeout,
+            )
+        response.raise_for_status()
+        return response.json().get("detections", [])
+    except Exception as exc:
+        print(f"  ⚠ OCR failed for {image_file.name}: {exc}")
+        return []
+
+
+def normalized_region_to_bounds(
+    region: dict[str, float] | None,
+    width: int,
+    height: int,
+) -> tuple[int, int, int, int] | None:
+    if not region:
+        return None
+
+    x1 = int(np.clip(round(float(region.get("left", 0.0)) * width), 0, width - 1))
+    y1 = int(np.clip(round(float(region.get("top", 0.0)) * height), 0, height - 1))
+    x2 = int(np.clip(round(float(region.get("right", 1.0)) * width), x1 + 1, width))
+    y2 = int(np.clip(round(float(region.get("bottom", 1.0)) * height), y1 + 1, height))
+    if x2 <= x1 or y2 <= y1:
+        return None
+    return x1, y1, x2, y2
+
+
+def detect_section_view_bounds(
+    gray: np.ndarray,
+    image_path: str | Path | None = None,
+    ocr_dets: list[dict[str, Any]] | None = None,
+) -> tuple[tuple[int, int, int, int] | None, list[dict[str, Any]], dict[str, dict[str, float]]]:
+    if image_path is None and ocr_dets is None:
+        return None, [], {}
+
+    if ocr_dets is None and image_path is not None:
+        ocr_dets = run_ocr(image_path)
+    ocr_dets = ocr_dets or []
+
+    height, width = gray.shape[:2]
+    views = _detect_drawing_views(
+        ocr_dets,
+        width,
+        height,
+        str(image_path) if image_path is not None else "",
+    )
+    return normalized_region_to_bounds(views.get("section_view"), width, height), ocr_dets, views
 
 
 def get_font(size=16):
@@ -336,92 +402,11 @@ def find_auxiliary_projection_rows(gray, rx1, ry1, rx2, center_full, outer_r):
     return rows, (search_x1, search_y1, search_x2, search_y2)
 
 
-def find_section_content_band(gray, rx2, center_full=None, outer_r=None):
-    """메인 뷰 오른쪽에서 SECTION 단면도가 놓인 주요 x band를 찾는다."""
-    h, w = gray.shape
-    right_width = w - rx2
-    search_x1 = min(w - 1, rx2 + max(20, int(w * SECTION_SEARCH_X_MARGIN_RATIO)))
-    search_x2 = max(search_x1 + 1, w - max(20, int(w * 0.02)))
-    search_y1 = max(0, int(h * SECTION_SEARCH_TOP_RATIO))
-    search_y2 = max(search_y1 + 1, int(h * SECTION_SEARCH_BOTTOM_RATIO))
-
-    if center_full is not None and outer_r is not None:
-        _, ccy = center_full
-        left_overlap = max(
-            SECTION_BAND_LEFT_PADDING_MIN,
-            int(round(outer_r * SECTION_SEARCH_LEFT_OVERLAP_RADIUS_RATIO)),
-        )
-        search_x1 = max(0, rx2 - left_overlap)
-        search_y1 = max(0, int(round(ccy - outer_r * SECTION_SEARCH_TOP_RADIUS_RATIO)))
-        search_y2 = min(h, int(round(ccy + outer_r * SECTION_SEARCH_BOTTOM_RADIUS_RATIO)))
-
-    if search_x2 <= search_x1 or search_y2 <= search_y1:
-        return None
-
-    roi = gray[search_y1:search_y2, search_x1:search_x2]
-    _, binary = cv2.threshold(
-        roi,
-        0,
-        255,
-        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
-    )
-
-    smooth_window = max(11, int(roi.shape[1] * SECTION_BAND_SMOOTH_RATIO))
-    if smooth_window % 2 == 0:
-        smooth_window += 1
-
-    column_scores = smooth_signal(
-        binary.sum(axis=0).astype(np.float32) / 255.0,
-        smooth_window,
-    )
-    min_score = max(
-        SECTION_MIN_PEAK_SCORE,
-        float(column_scores.max()) * SECTION_BAND_MIN_SCORE_RATIO,
-    )
-    min_span = max(30, int(roi.shape[1] * SECTION_BAND_MIN_SEGMENT_RATIO))
-    segments = find_dense_axis_segments(column_scores, min_score, min_span)
-    if not segments:
-        return None
-
-    min_width = max(80, int(right_width * SECTION_BAND_MIN_WIDTH_RATIO))
-    chosen_segment = None
-    for start_idx, end_idx in segments:
-        if end_idx - start_idx >= min_width:
-            chosen_segment = (start_idx, end_idx)
-            break
-
-    if chosen_segment is None:
-        chosen_segment = max(segments, key=lambda item: item[1] - item[0])
-
-    best_start, best_end = chosen_segment
-    segment_width = max(1, best_end - best_start)
-    padded_start = max(
-        0,
-        best_start
-        - max(
-            SECTION_BAND_LEFT_PADDING_MIN,
-            int(round(segment_width * SECTION_BAND_LEFT_PADDING_RATIO)),
-        ),
-    )
-    padded_end = min(
-        roi.shape[1],
-        best_end
-        + max(
-            SECTION_BAND_RIGHT_PADDING_MIN,
-            int(round(segment_width * SECTION_BAND_RIGHT_PADDING_RATIO)),
-        ),
-    )
-    return (
-        search_x1 + padded_start,
-        search_y1,
-        search_x1 + padded_end,
-        search_y2,
-    )
-
-
-def find_section_projection_peaks(gray, rx2, center_full=None, outer_r=None):
-    """SECTION band 내부의 주요 수직/수평 치수선 위치를 peak로 뽑는다."""
-    section_bounds = find_section_content_band(gray, rx2, center_full, outer_r)
+def find_section_projection_peaks(
+    gray: np.ndarray,
+    section_bounds: tuple[int, int, int, int] | None,
+) -> tuple[list[int], list[int], tuple[int, int, int, int] | None]:
+    """SECTION view 내부의 주요 수직/수평 치수선 위치를 peak로 뽑는다."""
     if section_bounds is None:
         return [], [], None
 
@@ -555,52 +540,14 @@ def find_section_projection_peaks(gray, rx2, center_full=None, outer_r=None):
     horizontal_rows = [section_y1 + idx for idx in row_indices]
     vertical_cols = [section_x1 + idx for idx in col_indices]
 
-    section_width = max(1, section_x2 - section_x1)
-    full_search_x2 = max(section_x2 + 1, gray.shape[1] - max(20, int(gray.shape[1] * 0.02)))
-    outer_search_x1 = section_x2
-    outer_search_x2 = min(
-        full_search_x2,
-        section_x2 + max(120, int(section_width * SECTION_OUTER_SEARCH_RATIO)),
-    )
-    if outer_search_x2 > outer_search_x1:
-        outer_roi = gray[section_y1:section_y2, outer_search_x1:outer_search_x2]
-        if outer_roi.size > 0:
-            _, outer_binary = cv2.threshold(
-                outer_roi,
-                0,
-                255,
-                cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
-            )
-            outer_vertical = cv2.morphologyEx(outer_binary, cv2.MORPH_OPEN, vertical_kernel)
-            outer_col_scores = smooth_signal(
-                outer_vertical.sum(axis=0).astype(np.float32) / 255.0,
-                SECTION_SMOOTH_WINDOW,
-            )
-            outer_min_score = max(
-                SECTION_MIN_PEAK_SCORE,
-                float(outer_col_scores.max()) * SECTION_OUTER_PEAK_MIN_SCORE_RATIO,
-            )
-            outer_peak_distance = max(
-                20,
-                int(section_width * SECTION_OUTER_PEAK_DISTANCE_RATIO),
-            )
-            outer_indices = select_peak_indices(
-                outer_col_scores,
-                outer_min_score,
-                outer_peak_distance,
-                SECTION_OUTER_MAX_VERTICAL_LINES,
-            )
-            for outer_idx in outer_indices:
-                global_x = outer_search_x1 + outer_idx
-                if any(abs(global_x - existing_x) < SECTION_EDGE_PEAK_MIN_SEPARATION for existing_x in vertical_cols):
-                    continue
-                vertical_cols.append(global_x)
-            vertical_cols.sort()
-
     return vertical_cols, horizontal_rows, section_bounds
 
 
-def collect_projection_data(gray):
+def collect_projection_data(
+    gray: np.ndarray,
+    image_path: str | Path | None = None,
+    ocr_dets: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """전체 도면에서 직선 투사에 필요한 끝점 좌표를 수집한다."""
     rx1, ry1, rx2, ry2 = find_main_view_region(gray)
     roi_gray = gray[ry1:ry2, rx1:rx2]
@@ -619,7 +566,11 @@ def collect_projection_data(gray):
     auxiliary_bounds = None
     section_vertical_cols = []
     section_horizontal_rows = []
-    section_bounds = None
+    section_bounds, section_ocr_dets, detected_views = detect_section_view_bounds(
+        gray,
+        image_path=image_path,
+        ocr_dets=ocr_dets,
+    )
     if circles_roi:
         outer_r = max(c[2] for c in circles_roi)
         ccx_roi, ccy_roi = circles_roi[0][0], circles_roi[0][1]
@@ -639,9 +590,7 @@ def collect_projection_data(gray):
         )
         section_vertical_cols, section_horizontal_rows, section_bounds = find_section_projection_peaks(
             gray,
-            rx2,
-            center_full,
-            outer_r,
+            section_bounds,
         )
 
     return {
@@ -656,6 +605,8 @@ def collect_projection_data(gray):
         "section_vertical_cols": section_vertical_cols,
         "section_horizontal_rows": section_horizontal_rows,
         "section_bounds": section_bounds,
+        "ocr_dets": section_ocr_dets,
+        "views": detected_views,
     }
 
 
@@ -1061,7 +1012,7 @@ def run():
         full_h, full_w = gray.shape
         print(f"  전체 도면: {full_w}x{full_h}")
 
-        data = collect_projection_data(gray)
+        data = collect_projection_data(gray, image_path=img_path)
         circles_full = data["circles_full"]
         peaks_full = data["peaks_full"]
         outer_r = data["outer_r"]
