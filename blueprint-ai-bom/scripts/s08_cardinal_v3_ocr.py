@@ -57,7 +57,7 @@ OCR_SPAN_OUTSIDE_WEIGHT = 2.4
 OCR_CONFIDENCE_BONUS = 20.0
 PIXEL_SCAN_STRIP_HALF_WIDTH = 3
 PIXEL_SCAN_DARK_THRESHOLD = 128
-PIXEL_SCAN_DARK_RATIO_MIN = 0.30
+PIXEL_SCAN_DARK_RATIO_MIN = 0.15
 
 PAIR_LINE_COLOR = (0, 0, 255)
 PAIR_LINE_THICKNESS = 7
@@ -468,12 +468,24 @@ def build_pixel_connection(
     }
 
 
+def build_pair_coordinate_key(line: dict[str, Any]) -> tuple[float, float, float, float]:
+    start_x, start_y = line["start_point_xy"]
+    end_x, end_y = line["end_point_xy"]
+    return (
+        round(float(start_x), 3),
+        round(float(start_y), 3),
+        round(float(end_x), 3),
+        round(float(end_y), 3),
+    )
+
+
 def scan_pixel_connections(
     gray: np.ndarray,
     projection_endpoints: list[dict[str, float | int]],
     projection_lines: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     pair_lines: list[dict[str, Any]] = []
+    seen_pair_coords: set[tuple[float, float, float, float]] = set()
     grouped_endpoints = group_projection_endpoints(
         projection_endpoints,
         projection_lines,
@@ -497,42 +509,45 @@ def scan_pixel_connections(
             else float(projection_lines[projection_idx]["px"])
         )
 
-        for start_endpoint, end_endpoint in zip(
-            ordered_endpoints,
-            ordered_endpoints[1:],
-        ):
-            start_coord = (
-                float(start_endpoint["x"])
-                if axis == "h"
-                else float(start_endpoint["y"])
-            )
-            end_coord = (
-                float(end_endpoint["x"])
-                if axis == "h"
-                else float(end_endpoint["y"])
-            )
-            if abs(end_coord - start_coord) < 2.0:
-                continue
+        for i in range(len(ordered_endpoints)):
+            for j in range(i + 1, min(i + 3, len(ordered_endpoints))):
+                start_endpoint = ordered_endpoints[i]
+                end_endpoint = ordered_endpoints[j]
+                start_coord = (
+                    float(start_endpoint["x"])
+                    if axis == "h"
+                    else float(start_endpoint["y"])
+                )
+                end_coord = (
+                    float(end_endpoint["x"])
+                    if axis == "h"
+                    else float(end_endpoint["y"])
+                )
+                if abs(end_coord - start_coord) < 2.0:
+                    continue
 
-            dark_ratio = scan_strip_dark_ratio(
-                gray,
-                axis,
-                start_coord,
-                end_coord,
-                fixed_coord,
-            )
-            if dark_ratio < PIXEL_SCAN_DARK_RATIO_MIN:
-                continue
+                dark_ratio = scan_strip_dark_ratio(
+                    gray,
+                    axis,
+                    start_coord,
+                    end_coord,
+                    fixed_coord,
+                )
+                if dark_ratio < PIXEL_SCAN_DARK_RATIO_MIN:
+                    continue
 
-            pair_lines.append(
-                build_pixel_connection(
+                pair_line = build_pixel_connection(
                     start_endpoint,
                     end_endpoint,
                     projection_lines[projection_idx],
                     projection_idx,
                     dark_ratio,
                 )
-            )
+                pair_key = build_pair_coordinate_key(pair_line)
+                if pair_key in seen_pair_coords:
+                    continue
+                seen_pair_coords.add(pair_key)
+                pair_lines.append(pair_line)
 
     pair_lines = dedupe_lines(pair_lines)
     return list(pair_lines), pair_lines
