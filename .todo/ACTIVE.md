@@ -79,7 +79,7 @@
 | **API 서비스** | 21개 (전체 healthy) |
 | **테스트** | 800개 통과 (gateway 450, web-ui 350, model 6) |
 | **빌드 상태** | ✅ 정상 (tsc + build 에러 0) |
-| **파일 크기** | 모두 600줄 이하 |
+| **파일 크기** | 대부분 600줄 이하 (1000줄 초과 4개: dimension_ensemble, geometry_guided_extractor, s08_ocr, s08_fullpage) |
 | **문서 사이트** | 15섹션 117페이지 (localhost:3001) — 100% 표준 준수 |
 
 ---

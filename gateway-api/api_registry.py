@@ -94,7 +94,7 @@ class APIRegistry:
             "trocr": "trocr-api",
             "esrgan": "esrgan-api",
             "ocr-ensemble": "ocr-ensemble-api",
-            "suryaocr": "suryaocr-api",
+            "suryaocr": "surya-ocr-api",
             "doctr": "doctr-api",
             "easyocr": "easyocr-api",
             "line-detector": "line-detector-api",

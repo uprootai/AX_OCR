@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Config
-BOM_API = "http://localhost:5020"
+BOM_API = os.environ.get("BOM_API_URL", "http://localhost:5020")
 PROJECT_ID = "b97237fd"
 PDF_ROOT = Path(__file__).resolve().parents[2] / "apply-company" / "dsebearing" / "PJT" / "04_부품도면"
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "data" / "dse_batch_test"

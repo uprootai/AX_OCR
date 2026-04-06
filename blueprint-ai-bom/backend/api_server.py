@@ -233,7 +233,7 @@ async def root():
     """API 상태 확인"""
     return {
         "name": "Blueprint AI BOM API",
-        "version": "8.0.0",
+        "version": "10.6.0",
         "status": "running",
         "timestamp": datetime.now().isoformat()
     }

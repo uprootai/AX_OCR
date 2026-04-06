@@ -1,6 +1,7 @@
 """S06: YOLO 텍스트 검출 → PaddleOCR 읽기 → 규칙 분류"""
 
 import cv2
+import os
 import re
 from typing import Dict
 
@@ -34,7 +35,7 @@ def run_s06_yolo_ocr(image_path: str, model_path: str) -> Dict:
         _, buf = cv2.imencode('.png', crop)
         try:
             resp = requests.post(
-                'http://localhost:5006/api/v1/ocr',
+                os.environ.get('PADDLEOCR_API_URL', 'http://paddleocr-api:5006') + '/api/v1/ocr',
                 files={'file': ('crop.png', buf.tobytes(), 'image/png')},
                 timeout=10,
             )

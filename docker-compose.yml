@@ -220,7 +220,8 @@ services:
       # 데이터 디렉토리
       - ./gateway-api/uploads:/tmp/gateway/uploads
       - ./gateway-api/results:/tmp/gateway/results
-      # Docker 제어를 위한 소켓 마운트
+      # ⚠️ WARNING: Docker 소켓 마운트 — 프로덕션에서는 반드시 인증 미들웨어 적용 필요
+      # docker_router.py, gpu_config_router.py가 컨테이너 제어 API를 노출함
       - /var/run/docker.sock:/var/run/docker.sock
       # docker-compose 파일 접근 (GPU 설정 오버라이드용)
       - ./:/home/uproot/ax/poc
@@ -234,6 +235,8 @@ services:
       # NOTE: 다중 worker 시 health check 루프 중복 문제로 1로 고정
       # 스케일링 필요시 Docker Compose replicas 사용 권장
       - GATEWAY_WORKERS=1
+      - BOM_API_URL=http://blueprint-ai-bom:5020
+      - FRONTEND_URL=http://blueprint-ai-bom-frontend:3000
       - EDOCR_V2_URL=http://edocr2-v2-api:5002
       - EDOCR2_URL=http://edocr2-v2-api:5002
       - EDGNET_URL=http://edgnet-api:5002
