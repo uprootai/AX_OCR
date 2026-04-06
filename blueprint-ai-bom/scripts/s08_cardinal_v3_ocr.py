@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""S08 Cardinal Projection v3 - Direct pixel-scan overlay for sections 2-6/2-7."""
+"""S08 Cardinal Projection v3 - Hybrid pixel scan + line validation for 2-6/2-7."""
 
 from __future__ import annotations
 
@@ -39,6 +39,11 @@ def resolve_api_url(env_name: str, default_base_url: str, default_path: str) -> 
 
 
 OCR_API = resolve_api_url("PADDLEOCR_API_URL", "http://localhost:5006", "/api/v1/ocr")
+LINE_DETECTOR_API = resolve_api_url(
+    "LINE_DETECTOR_API_URL",
+    "http://localhost:5016",
+    "/api/v1/process",
+)
 
 ENDPOINT_TOLERANCE = 20
 OCR_SEARCH_RADIUS = 150.0
@@ -58,9 +63,13 @@ OCR_CONFIDENCE_BONUS = 20.0
 PIXEL_SCAN_STRIP_HALF_WIDTH = 3
 PIXEL_SCAN_DARK_THRESHOLD = 128
 PIXEL_SCAN_DARK_RATIO_MIN = 0.15
+LINE_DETECTOR_ALIGNMENT_TOLERANCE = 30.0
+LINE_DETECTOR_OVERLAP_RATIO_MIN = 0.30
 
-PAIR_LINE_COLOR = (0, 0, 255)
-PAIR_LINE_THICKNESS = 7
+HYBRID_CONFIRMED_COLOR = (0, 0, 255)
+HYBRID_CONFIRMED_THICKNESS = 7
+PIXEL_ONLY_COLOR = (0, 165, 255)
+PIXEL_ONLY_THICKNESS = 2
 OCR_BOX_COLOR = (255, 255, 255)
 OCR_TEXT_COLOR = (40, 255, 40)
 
@@ -147,6 +156,37 @@ def run_ocr(image_path: Path) -> list[dict[str, Any]]:
         )
     response.raise_for_status()
     return response.json().get("detections", [])
+
+
+def run_line_detector(image_path: Path) -> list[dict[str, Any]]:
+    with image_path.open("rb") as file_obj:
+        response = requests.post(
+            LINE_DETECTOR_API,
+            files={"file": (image_path.name, file_obj, "image/png")},
+            data={
+                "profile": "simple",
+                "method": "lsd",
+                "merge_lines": "true",
+                "classify_types": "false",
+                "classify_colors": "false",
+                "classify_styles": "false",
+                "find_intersections": "false",
+                "detect_regions": "false",
+                "visualize": "false",
+                "include_svg": "false",
+                "min_length": "0",
+                "max_lines": "0",
+            },
+            timeout=120,
+        )
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("success") is False:
+        raise RuntimeError(payload.get("error") or "Line Detector API request failed")
+
+    result = payload.get("data", payload)
+    lines = result.get("lines", [])
+    return lines if isinstance(lines, list) else []
 
 
 def parse_session_name_odid(ocr_detections: list[dict[str, Any]]) -> dict[str, Any]:
@@ -555,6 +595,134 @@ def scan_pixel_connections(
     return list(pair_lines), pair_lines
 
 
+def iter_line_waypoint_segments(
+    line: dict[str, Any],
+) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+    waypoints = get_line_waypoints(line)
+    segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    for start_point, end_point in zip(waypoints, waypoints[1:]):
+        if start_point == end_point:
+            continue
+        segments.append((start_point, end_point))
+    return segments
+
+
+def build_line_detector_spans(
+    line_detector_lines: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    spans: dict[str, list[dict[str, Any]]] = {"h": [], "v": []}
+
+    for fallback_idx, line in enumerate(line_detector_lines):
+        line_id = str(line.get("id", fallback_idx))
+        for start_point, end_point in iter_line_waypoint_segments(line):
+            x1, y1 = start_point
+            x2, y2 = end_point
+            if (
+                abs(x2 - x1) >= 1.0
+                and abs(y2 - y1) <= LINE_DETECTOR_ALIGNMENT_TOLERANCE
+            ):
+                spans["h"].append(
+                    {
+                        "line_id": line_id,
+                        "coord": (y1 + y2) / 2.0,
+                        "start": min(x1, x2),
+                        "end": max(x1, x2),
+                    }
+                )
+            if (
+                abs(y2 - y1) >= 1.0
+                and abs(x2 - x1) <= LINE_DETECTOR_ALIGNMENT_TOLERANCE
+            ):
+                spans["v"].append(
+                    {
+                        "line_id": line_id,
+                        "coord": (x1 + x2) / 2.0,
+                        "start": min(y1, y2),
+                        "end": max(y1, y2),
+                    }
+                )
+
+    return spans
+
+
+def merge_spans(
+    spans: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    if not spans:
+        return []
+
+    ordered_spans = sorted(spans, key=lambda span: (span[0], span[1]))
+    merged: list[list[float]] = [[ordered_spans[0][0], ordered_spans[0][1]]]
+    for start, end in ordered_spans[1:]:
+        if start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+            continue
+        merged.append([start, end])
+    return [(start, end) for start, end in merged]
+
+
+def compute_line_detector_overlap(
+    pair_line: dict[str, Any],
+    line_detector_spans: dict[str, list[dict[str, Any]]],
+) -> tuple[float, list[str]]:
+    axis = str(pair_line["projection_alignment"]["axis"])
+    start_point = pair_line["start_point_xy"]
+    end_point = pair_line["end_point_xy"]
+    if axis == "h":
+        fixed_coord = float(pair_line["midpoint"][1])
+        pair_start = min(float(start_point[0]), float(end_point[0]))
+        pair_end = max(float(start_point[0]), float(end_point[0]))
+    else:
+        fixed_coord = float(pair_line["midpoint"][0])
+        pair_start = min(float(start_point[1]), float(end_point[1]))
+        pair_end = max(float(start_point[1]), float(end_point[1]))
+
+    pair_length = max(pair_end - pair_start, 1.0)
+    overlap_spans: list[tuple[float, float]] = []
+    supporting_line_ids: set[str] = set()
+    for line_span in line_detector_spans[axis]:
+        if abs(float(line_span["coord"]) - fixed_coord) > LINE_DETECTOR_ALIGNMENT_TOLERANCE:
+            continue
+
+        overlap_start = max(pair_start, float(line_span["start"]))
+        overlap_end = min(pair_end, float(line_span["end"]))
+        if overlap_end <= overlap_start:
+            continue
+
+        overlap_spans.append((overlap_start, overlap_end))
+        supporting_line_ids.add(str(line_span["line_id"]))
+
+    merged_overlap_spans = merge_spans(overlap_spans)
+    overlap_length = sum(end - start for start, end in merged_overlap_spans)
+    return overlap_length / pair_length, sorted(supporting_line_ids)
+
+
+def validate_pixel_connections_with_line_detector(
+    pixel_candidate_lines: list[dict[str, Any]],
+    line_detector_lines: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    line_detector_spans = build_line_detector_spans(line_detector_lines)
+    confirmed_lines: list[dict[str, Any]] = []
+    pixel_only_lines: list[dict[str, Any]] = []
+
+    for candidate_line in pixel_candidate_lines:
+        overlap_ratio, supporting_line_ids = compute_line_detector_overlap(
+            candidate_line,
+            line_detector_spans,
+        )
+        enriched_line = {
+            **candidate_line,
+            "line_detector_overlap_ratio": overlap_ratio,
+            "line_detector_supporting_ids": supporting_line_ids,
+        }
+        if overlap_ratio >= LINE_DETECTOR_OVERLAP_RATIO_MIN:
+            confirmed_lines.append(enriched_line)
+            continue
+        pixel_only_lines.append(enriched_line)
+
+    return dedupe_lines(confirmed_lines), dedupe_lines(pixel_only_lines)
+
+
 def bbox_center(bbox: list[list[float]]) -> tuple[float, float] | None:
     if not isinstance(bbox, list) or len(bbox) < 4:
         return None
@@ -738,6 +906,7 @@ def render_overlay(
     auxiliary_lines: list[dict[str, Any]],
     projection_endpoints: list[dict[str, float | int]],
     connected_lines: list[dict[str, Any]],
+    pixel_only_lines: list[dict[str, Any]],
     matched_pairs: list[dict[str, Any]],
 ) -> Image.Image:
     base = draw_projection_endpoint_overlay(
@@ -749,6 +918,26 @@ def render_overlay(
     )
     canvas = cv2.cvtColor(np.array(base), cv2.COLOR_RGB2BGR)
     height, width = canvas.shape[:2]
+
+    def draw_line(points: np.ndarray, color: tuple[int, int, int], thickness: int) -> None:
+        if len(points) >= 2:
+            cv2.polylines(canvas, [points], False, color, thickness, cv2.LINE_AA)
+
+    for line in pixel_only_lines:
+        waypoints = get_line_waypoints(line)
+        points = np.array(
+            [[int(round(x)), int(round(y))] for x, y in waypoints],
+            dtype=np.int32,
+        )
+        draw_line(points, PIXEL_ONLY_COLOR, PIXEL_ONLY_THICKNESS)
+
+    for line in connected_lines:
+        waypoints = get_line_waypoints(line)
+        points = np.array(
+            [[int(round(x)), int(round(y))] for x, y in waypoints],
+            dtype=np.int32,
+        )
+        draw_line(points, HYBRID_CONFIRMED_COLOR, HYBRID_CONFIRMED_THICKNESS)
 
     label_font_scale = max(0.45, min(width, height) / 2500.0)
     for ocr in unique_ocr_labels(matched_pairs):
@@ -764,18 +953,6 @@ def render_overlay(
             label_font_scale,
             OCR_TEXT_COLOR,
         )
-
-    def draw_line(points: np.ndarray, color: tuple[int, int, int], thickness: int) -> None:
-        if len(points) >= 2:
-            cv2.polylines(canvas, [points], False, color, thickness, cv2.LINE_AA)
-
-    for line in connected_lines:
-        waypoints = get_line_waypoints(line)
-        points = np.array(
-            [[int(round(x)), int(round(y))] for x, y in waypoints],
-            dtype=np.int32,
-        )
-        draw_line(points, PAIR_LINE_COLOR, PAIR_LINE_THICKNESS)
 
     return Image.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
 
@@ -805,7 +982,7 @@ def summarize_labels(matched_pairs: list[dict[str, Any]]) -> str:
 
 def run() -> None:
     args = parse_args()
-    mode = "pixel scan only" if args.no_ocr else "pixel scan + OCR"
+    mode = "hybrid validation only" if args.no_ocr else "hybrid validation + OCR"
     print(f"S08 Cardinal v3 - {mode}")
     print("=" * 60)
 
@@ -869,16 +1046,26 @@ def run() -> None:
             f"projection_endpoints={len(projection_endpoints)}"
         )
 
-        connected_lines, pair_lines = scan_pixel_connections(
+        pixel_candidate_lines, _ = scan_pixel_connections(
             gray,
             projection_endpoints,
             projection_lines,
         )
-        connected_lines = filter_lines_to_focus_regions(connected_lines, focus_regions)
-        pair_lines = filter_lines_to_focus_regions(pair_lines, focus_regions)
+        pixel_candidate_lines = filter_lines_to_focus_regions(
+            pixel_candidate_lines,
+            focus_regions,
+        )
+        line_detector_lines = run_line_detector(image_path)
+        connected_lines, pixel_only_lines = validate_pixel_connections_with_line_detector(
+            pixel_candidate_lines,
+            line_detector_lines,
+        )
+        pair_lines = list(connected_lines)
         print(
-            f"  pixel_connected_lines={len(connected_lines)} | "
-            f"pair_lines={len(pair_lines)}"
+            f"  pixel_candidates={len(pixel_candidate_lines)} | "
+            f"line_detector_lines={len(line_detector_lines)} | "
+            f"hybrid_confirmed={len(connected_lines)} | "
+            f"pixel_only={len(pixel_only_lines)}"
         )
 
         ocr_detections: list[dict[str, Any]] = []
@@ -921,6 +1108,7 @@ def run() -> None:
             auxiliary_lines,
             projection_endpoints,
             connected_lines,
+            pixel_only_lines,
             matched_pairs,
         )
         output_name = (
