@@ -65,6 +65,10 @@ PIXEL_SCAN_DARK_THRESHOLD = 128
 PIXEL_SCAN_DARK_RATIO_MIN = 0.15
 LINE_DETECTOR_ALIGNMENT_TOLERANCE = 30.0
 LINE_DETECTOR_OVERLAP_RATIO_MIN = 0.30
+STRUCTURE_LINE_LENGTH_RATIO = 0.40
+CONCENTRIC_CENTER_DISTANCE_RATIO = 0.30
+EXCLUDED_VALIDATION_LINE_STYLES = {"dash_dot", "dashed"}
+EXCLUDED_VALIDATION_SIGNAL_TYPES = {"centerline"}
 
 HYBRID_CONFIRMED_COLOR = (0, 0, 255)
 HYBRID_CONFIRMED_THICKNESS = 7
@@ -167,9 +171,9 @@ def run_line_detector(image_path: Path) -> list[dict[str, Any]]:
                 "profile": "simple",
                 "method": "lsd",
                 "merge_lines": "true",
-                "classify_types": "false",
+                "classify_types": "true",
                 "classify_colors": "false",
-                "classify_styles": "false",
+                "classify_styles": "true",
                 "find_intersections": "false",
                 "detect_regions": "false",
                 "visualize": "false",
@@ -645,6 +649,37 @@ def build_line_detector_spans(
     return spans
 
 
+def normalize_line_detector_label(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def blocked_line_detector_reasons(line: dict[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    line_style = normalize_line_detector_label(line.get("line_style"))
+    signal_type = normalize_line_detector_label(line.get("signal_type"))
+    if line_style in EXCLUDED_VALIDATION_LINE_STYLES:
+        reasons.append(f"line_style:{line_style}")
+    if signal_type in EXCLUDED_VALIDATION_SIGNAL_TYPES:
+        reasons.append(f"signal_type:{signal_type}")
+    return reasons
+
+
+def split_line_detector_lines(
+    line_detector_lines: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    allowed_lines: list[dict[str, Any]] = []
+    blocked_lines: list[dict[str, Any]] = []
+
+    for line in line_detector_lines:
+        reasons = blocked_line_detector_reasons(line)
+        if reasons:
+            blocked_lines.append({**line, "_blocked_reasons": reasons})
+            continue
+        allowed_lines.append(line)
+
+    return allowed_lines, blocked_lines
+
+
 def merge_spans(
     spans: list[tuple[float, float]],
 ) -> list[tuple[float, float]]:
@@ -697,15 +732,83 @@ def compute_line_detector_overlap(
     return overlap_length / pair_length, sorted(supporting_line_ids)
 
 
+def exceeds_structure_length_limit(
+    pair_line: dict[str, Any],
+    image_shape: tuple[int, int] | tuple[int, int, int],
+) -> bool:
+    height, width = image_shape[:2]
+    axis = str(pair_line["projection_alignment"]["axis"])
+    length_limit = (width if axis == "h" else height) * STRUCTURE_LINE_LENGTH_RATIO
+    return float(pair_line.get("length", 0.0)) >= length_limit
+
+
+def crosses_concentric_centerline(
+    pair_line: dict[str, Any],
+    center_full: tuple[float, float] | None,
+    outer_r: float | None,
+) -> bool:
+    if center_full is None or outer_r is None or outer_r <= 0:
+        return False
+
+    center_x = float(center_full[0])
+    center_y = float(center_full[1])
+    axis = str(pair_line["projection_alignment"]["axis"])
+    start_point = pair_line["start_point_xy"]
+    end_point = pair_line["end_point_xy"]
+
+    if axis == "h":
+        span_start = min(float(start_point[0]), float(end_point[0]))
+        span_end = max(float(start_point[0]), float(end_point[0]))
+        if not span_start <= center_x <= span_end:
+            return False
+        perpendicular_distance = abs(float(pair_line["midpoint"][1]) - center_y)
+    else:
+        span_start = min(float(start_point[1]), float(end_point[1]))
+        span_end = max(float(start_point[1]), float(end_point[1]))
+        if not span_start <= center_y <= span_end:
+            return False
+        perpendicular_distance = abs(float(pair_line["midpoint"][0]) - center_x)
+
+    return perpendicular_distance < float(outer_r) * CONCENTRIC_CENTER_DISTANCE_RATIO
+
+
 def validate_pixel_connections_with_line_detector(
     pixel_candidate_lines: list[dict[str, Any]],
     line_detector_lines: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    line_detector_spans = build_line_detector_spans(line_detector_lines)
+    image_shape: tuple[int, int] | tuple[int, int, int],
+    center_full: tuple[float, float] | None = None,
+    outer_r: float | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    allowed_detector_lines, blocked_detector_lines = split_line_detector_lines(line_detector_lines)
+    line_detector_spans = build_line_detector_spans(allowed_detector_lines)
+    blocked_detector_spans = build_line_detector_spans(blocked_detector_lines)
     confirmed_lines: list[dict[str, Any]] = []
     pixel_only_lines: list[dict[str, Any]] = []
+    filtered_out_lines: list[dict[str, Any]] = []
 
     for candidate_line in pixel_candidate_lines:
+        blocked_overlap_ratio, blocked_supporting_ids = compute_line_detector_overlap(
+            candidate_line,
+            blocked_detector_spans,
+        )
+        filter_reasons: list[str] = []
+        if blocked_overlap_ratio >= LINE_DETECTOR_OVERLAP_RATIO_MIN:
+            filter_reasons.append("line_detector_blocked_style")
+        if exceeds_structure_length_limit(candidate_line, image_shape):
+            filter_reasons.append("structure_length")
+        if crosses_concentric_centerline(candidate_line, center_full, outer_r):
+            filter_reasons.append("concentric_centerline")
+        if filter_reasons:
+            filtered_out_lines.append(
+                {
+                    **candidate_line,
+                    "filter_reasons": filter_reasons,
+                    "blocked_overlap_ratio": blocked_overlap_ratio,
+                    "blocked_supporting_ids": blocked_supporting_ids,
+                }
+            )
+            continue
+
         overlap_ratio, supporting_line_ids = compute_line_detector_overlap(
             candidate_line,
             line_detector_spans,
@@ -714,13 +817,19 @@ def validate_pixel_connections_with_line_detector(
             **candidate_line,
             "line_detector_overlap_ratio": overlap_ratio,
             "line_detector_supporting_ids": supporting_line_ids,
+            "blocked_overlap_ratio": blocked_overlap_ratio,
+            "blocked_supporting_ids": blocked_supporting_ids,
         }
         if overlap_ratio >= LINE_DETECTOR_OVERLAP_RATIO_MIN:
             confirmed_lines.append(enriched_line)
             continue
         pixel_only_lines.append(enriched_line)
 
-    return dedupe_lines(confirmed_lines), dedupe_lines(pixel_only_lines)
+    return (
+        dedupe_lines(confirmed_lines),
+        dedupe_lines(pixel_only_lines),
+        dedupe_lines(filtered_out_lines),
+    )
 
 
 def bbox_center(bbox: list[list[float]]) -> tuple[float, float] | None:
@@ -1056,16 +1165,20 @@ def run() -> None:
             focus_regions,
         )
         line_detector_lines = run_line_detector(image_path)
-        connected_lines, pixel_only_lines = validate_pixel_connections_with_line_detector(
+        connected_lines, pixel_only_lines, filtered_out_lines = validate_pixel_connections_with_line_detector(
             pixel_candidate_lines,
             line_detector_lines,
+            image.shape,
+            center_full=data["center_full"],
+            outer_r=data["outer_r"],
         )
         pair_lines = list(connected_lines)
         print(
             f"  pixel_candidates={len(pixel_candidate_lines)} | "
             f"line_detector_lines={len(line_detector_lines)} | "
             f"hybrid_confirmed={len(connected_lines)} | "
-            f"pixel_only={len(pixel_only_lines)}"
+            f"pixel_only={len(pixel_only_lines)} | "
+            f"filtered_out={len(filtered_out_lines)}"
         )
 
         ocr_detections: list[dict[str, Any]] = []
