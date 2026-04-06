@@ -37,6 +37,8 @@ OUT_DIR = Path("/home/uproot/ax/poc/docs-site-starlight/public/images/gt-validat
 OUT_DIR.mkdir(exist_ok=True)
 
 OCR_API = "http://localhost:5006/api/v1/ocr"
+DOWNSCALE_MIN_SHORT_SIDE = 3000
+DOWNSCALE_TARGET_SHORT_SIDE = 2339
 
 GT: Dict[str, Dict[str, Any]] = {
     "TD0062015": {"name": "t1", "od": 360, "id": 190, "w": 200},
@@ -98,6 +100,66 @@ def run_ocr(image_path: Path) -> List[Dict[str, Any]]:
         )
     response.raise_for_status()
     return response.json().get("detections", [])
+
+
+def prepare_arrowhead_detection_image(gray: np.ndarray) -> Tuple[np.ndarray, Dict[str, Any]]:
+    height, width = gray.shape[:2]
+    short_side = min(height, width)
+    if short_side < DOWNSCALE_MIN_SHORT_SIDE:
+        return gray, {"applied": False, "scale_x": 1.0, "scale_y": 1.0}
+
+    # @AX:WARN — 6623x4678 원본은 Black Hat 커널이 31px까지 커져 화살촉이 배경에 묻힌다.
+    downscale_ratio = DOWNSCALE_TARGET_SHORT_SIDE / float(short_side)
+    resized = cv2.resize(
+        gray,
+        None,
+        fx=downscale_ratio,
+        fy=downscale_ratio,
+        interpolation=cv2.INTER_AREA,
+    )
+    resized_height, resized_width = resized.shape[:2]
+    return resized, {
+        "applied": True,
+        "original_width": width,
+        "original_height": height,
+        "resized_width": resized_width,
+        "resized_height": resized_height,
+        "scale_x": width / float(resized_width),
+        "scale_y": height / float(resized_height),
+    }
+
+
+def restore_arrowheads_to_original_scale(
+    arrowheads: List[Dict[str, Any]],
+    scale_meta: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    if not scale_meta.get("applied"):
+        return arrowheads
+
+    original_width = int(scale_meta["original_width"])
+    original_height = int(scale_meta["original_height"])
+    scale_x = float(scale_meta["scale_x"])
+    scale_y = float(scale_meta["scale_y"])
+    restored: List[Dict[str, Any]] = []
+
+    for arrow in arrowheads:
+        bbox = arrow.get("bbox", {})
+        restored.append(
+            {
+                **arrow,
+                "x": float(np.clip(float(arrow["x"]) * scale_x, 0, original_width - 1)),
+                "y": float(np.clip(float(arrow["y"]) * scale_y, 0, original_height - 1)),
+                "bbox": {
+                    "x1": int(np.clip(round(float(bbox.get("x1", 0)) * scale_x), 0, original_width)),
+                    "y1": int(np.clip(round(float(bbox.get("y1", 0)) * scale_y), 0, original_height)),
+                    "x2": int(np.clip(round(float(bbox.get("x2", 0)) * scale_x), 0, original_width)),
+                    "y2": int(np.clip(round(float(bbox.get("y2", 0)) * scale_y), 0, original_height)),
+                },
+                "area": float(arrow.get("area", 0.0)) * scale_x * scale_y,
+            }
+        )
+
+    return restored
 
 
 def normalize_ocr_bbox(bbox: Any) -> Optional[Tuple[List[float], List[float]]]:
@@ -492,8 +554,20 @@ def run() -> None:
         print(f"  [1] ALT 동심원: {len(circles_full)}개")
         print(f"  [2] 투사선: {len(projection_lines)}개")
 
-        arrowheads = detect_arrowheads(gray)
-        print(f"  [3] S01 화살촉: {len(arrowheads)}개")
+        detection_gray, scale_meta = prepare_arrowhead_detection_image(gray)
+        arrowheads = restore_arrowheads_to_original_scale(
+            detect_arrowheads(detection_gray),
+            scale_meta,
+        )
+        if scale_meta.get("applied"):
+            print(
+                "  [3] S01 화살촉: "
+                f"{len(arrowheads)}개 "
+                f"(detect {scale_meta['resized_width']}x{scale_meta['resized_height']} "
+                f"-> orig {scale_meta['original_width']}x{scale_meta['original_height']})"
+            )
+        else:
+            print(f"  [3] S01 화살촉: {len(arrowheads)}개")
 
         if args.projection_arrows_only:
             pil = visualize_projection_arrowheads_only(
