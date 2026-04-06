@@ -549,7 +549,24 @@ def collect_projection_data(
     ocr_dets: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """전체 도면에서 직선 투사에 필요한 끝점 좌표를 수집한다."""
-    rx1, ry1, rx2, ry2 = find_main_view_region(gray)
+    # 뷰 분할 결과에서 SECTION + main_view 좌표를 가져옴
+    section_bounds, section_ocr_dets, detected_views = detect_section_view_bounds(
+        gray,
+        image_path=image_path,
+        ocr_dets=ocr_dets,
+    )
+
+    h, w = gray.shape
+    # main_view가 감지됐으면 사용, 아니면 폴백
+    main_view_norm = (detected_views or {}).get("main_view")
+    if main_view_norm and isinstance(main_view_norm, dict):
+        rx1 = int(main_view_norm.get("left", 0) * w)
+        ry1 = int(main_view_norm.get("top", 0.10) * h)
+        rx2 = int(main_view_norm.get("right", 0.55) * w)
+        ry2 = int(main_view_norm.get("bottom", 0.90) * h)
+    else:
+        rx1, ry1, rx2, ry2 = find_main_view_region(gray)
+
     roi_gray = gray[ry1:ry2, rx1:rx2]
     roi_h, roi_w = roi_gray.shape
     min_r = int(min(roi_h, roi_w) * MIN_R_RATIO)
@@ -566,11 +583,6 @@ def collect_projection_data(
     auxiliary_bounds = None
     section_vertical_cols = []
     section_horizontal_rows = []
-    section_bounds, section_ocr_dets, detected_views = detect_section_view_bounds(
-        gray,
-        image_path=image_path,
-        ocr_dets=ocr_dets,
-    )
     if circles_roi:
         outer_r = max(c[2] for c in circles_roi)
         ccx_roi, ccy_roi = circles_roi[0][0], circles_roi[0][1]
