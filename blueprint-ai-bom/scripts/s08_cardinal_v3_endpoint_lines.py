@@ -10,9 +10,7 @@ import argparse
 import cv2
 import numpy as np
 
-from s08_cardinal_v3_fullpage import (
-    GT,
-    SRC_DIR,
+from cardinal_common import (
     add_header,
     build_auxiliary_lines,
     build_circle_lines,
@@ -20,6 +18,10 @@ from s08_cardinal_v3_fullpage import (
     collect_projection_data,
     draw_projection_lines_only,
     save_pil,
+)
+from s08_cardinal_v3_fullpage import (
+    GT,
+    SRC_DIR,
 )
 
 ENDPOINT_TOLERANCE = 15
@@ -112,7 +114,12 @@ def draw_endpoint_overlay(
         ),
         f"projection tolerance={ENDPOINT_TOLERANCE}px | blue dot = endpoint on projection",
     )
-    save_pil(pil, f"{name}_endpoint_lines.jpg", max_w=1600)
+    save_pil(
+        pil,
+        f"{name}_endpoint_lines.jpg",
+        max_w=1600,
+        show_size=True,
+    )
 
 
 def parse_args() -> argparse.Namespace:

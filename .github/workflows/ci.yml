@@ -136,6 +136,35 @@ jobs:
         run: pytest tests/ -v --tb=short -q
 
   # ============================================================
+  # Blueprint AI BOM - Dimension GT eval (pytest -m eval)
+  # ============================================================
+  bom-backend-eval:
+    name: BOM Backend Eval
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./blueprint-ai-bom
+    env:
+      DIMENSION_EVAL_BASE_URL: http://localhost:5020
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install eval dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest httpx
+
+      - name: Run dimension GT eval marker
+        run: pytest tests/eval -m eval -v --tb=short -q
+
+  # ============================================================
   # API Services - Basic validation
   # ============================================================
   api-validation:
@@ -232,7 +261,6 @@ jobs:
 
       - name: Check TypeScript types
         run: cd web-ui && npx tsc --noEmit
-        continue-on-error: true
 
   # ============================================================
   # Docs Site (Starlight) - Build validation
@@ -302,7 +330,7 @@ jobs:
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [frontend, backend, api-validation, model-services, sync-check, docs-build]
+    needs: [frontend, backend, bom-backend-eval, api-validation, model-services, sync-check, docs-build]
     if: always()
 
     steps:
@@ -314,13 +342,14 @@ jobs:
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ needs.frontend.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ needs.backend.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| BOM Backend Eval | ${{ needs.bom-backend-eval.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| API Validation | ${{ needs.api-validation.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Model Services | ${{ needs.model-services.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sync Check | ${{ needs.sync-check.result == 'success' && '✅ Passed' || '⚠️ Warning' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sync Check | ${{ needs.sync-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Docs Site | ${{ needs.docs-build.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ needs.frontend.result }}" != "success" ]] || [[ "${{ needs.backend.result }}" != "success" ]]; then
+          if [[ "${{ needs.frontend.result }}" != "success" ]] || [[ "${{ needs.backend.result }}" != "success" ]] || [[ "${{ needs.bom-backend-eval.result }}" != "success" ]] || [[ "${{ needs.sync-check.result }}" != "success" ]]; then
             echo "❌ CI Pipeline failed" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
@@ -328,5 +357,5 @@ jobs:
           echo "✅ All critical checks passed!" >> $GITHUB_STEP_SUMMARY
 
       - name: Final status
-        if: needs.frontend.result != 'success' || needs.backend.result != 'success'
+        if: needs.frontend.result != 'success' || needs.backend.result != 'success' || needs.bom-backend-eval.result != 'success' || needs.sync-check.result != 'success'
         run: exit 1

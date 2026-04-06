@@ -232,6 +232,7 @@ async def execute_template_stream(
         if "multipart/form-data" in content_type:
             form = await request.form()
 
+            # @AX:TODO — base64 이미지 전송을 multipart/form-data로 전환 필요 (CLAUDE.md 금지 규칙)
             # 파일 처리
             file = form.get("file")
             if file and hasattr(file, "read"):

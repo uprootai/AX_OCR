@@ -58,10 +58,22 @@ def _color(text: str, ok: Optional[bool]) -> str:
     return f"\033[90m{text}\033[0m"
 
 
-async def run_case(client: httpx.AsyncClient, case: dict, base_url: str) -> dict:
+def _resolve_case_image_path(case: dict, cases_root: Path) -> Path:
+    image_path = Path(case["image_path"])
+    if image_path.is_absolute():
+        return image_path
+    return cases_root / image_path
+
+
+async def run_case(
+    client: httpx.AsyncClient,
+    case: dict,
+    base_url: str,
+    cases_root: Path,
+) -> dict:
     """Upload image, set GT, run full-compare, return scored result."""
     case_id, gt = case["case_id"], case["ground_truth"]
-    image_path = Path(case["image_path"])
+    image_path = _resolve_case_image_path(case, cases_root)
     t0 = time.time()
 
     if not image_path.exists():
@@ -239,7 +251,7 @@ async def main() -> None:
     async with httpx.AsyncClient() as client:
         for i, case in enumerate(cases):
             print(f"  [{i+1}/{len(cases)}] Running {case['case_id']}...", end=" ", flush=True)
-            result = await run_case(client, case, args.base_url)
+            result = await run_case(client, case, args.base_url, cases_path.parent)
             if result.get("error"):
                 print(f"ERROR: {result['error']}")
             else:

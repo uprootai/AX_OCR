@@ -14,6 +14,13 @@ import numpy as np
 import requests
 from PIL import Image
 
+from cardinal_common import (
+    build_auxiliary_lines,
+    build_circle_lines,
+    build_protrusion_lines,
+    collect_projection_data,
+    save_pil,
+)
 from s08_cardinal_v3_endpoint_lines import (
     ENDPOINT_TOLERANCE,
     detect_lsd_segments,
@@ -22,13 +29,7 @@ from s08_cardinal_v3_endpoint_lines import (
 )
 from s08_cardinal_v3_fullpage import (
     GT,
-    OUT_DIR,
     SRC_DIR,
-    build_auxiliary_lines,
-    build_circle_lines,
-    build_protrusion_lines,
-    collect_projection_data,
-    save_pil,
 )
 from s08_cardinal_v3_projection_endpoints import draw_projection_endpoint_overlay
 
@@ -1229,7 +1230,12 @@ def run() -> None:
             if args.no_ocr
             else f"{name}_line_detector_ocr.jpg"
         )
-        save_pil(overlay, output_name, max_w=1600)
+        save_pil(
+            overlay,
+            output_name,
+            max_w=1600,
+            show_size=True,
+        )
 
         results.append(
             {

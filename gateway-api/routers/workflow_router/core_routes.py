@@ -76,6 +76,7 @@ async def _parse_workflow_request(request: Request) -> WorkflowExecutionRequest:
         inputs = workflow_data.pop("inputs", {}) if "inputs" in workflow_data else {}
         config = workflow_data.pop("config", {}) if "config" in workflow_data else {}
 
+        # @AX:TODO — base64 이미지 전송을 multipart/form-data로 전환 필요 (CLAUDE.md 금지 규칙)
         # file이 있으면 base64로 변환하여 inputs에 추가
         file = form.get("file")
         if file and hasattr(file, "read"):

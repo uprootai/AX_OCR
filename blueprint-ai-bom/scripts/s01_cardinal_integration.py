@@ -19,18 +19,20 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 import requests
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent / ".." / "backend"))
 
-from services.arrowhead_detector import detect_arrowheads, match_arrowhead_pairs
-from s08_cardinal_v3_fullpage import (
+from cardinal_common import (
+    add_header,
     build_auxiliary_lines,
     build_circle_lines,
     build_protrusion_lines,
     collect_projection_data,
     draw_projection_lines_only,
+    save_pil,
 )
+from services.arrowhead_detector import detect_arrowheads, match_arrowhead_pairs
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = _REPO_ROOT / "blueprint-ai-bom" / "data" / "dse_batch_test" / "converted_pngs"
@@ -47,49 +49,6 @@ GT: Dict[str, Dict[str, Any]] = {
     "TD0062031": {"name": "t4", "od": 420, "id": 260, "w": 260},
     "TD0062050": {"name": "t8", "od": 500, "id": 260, "w": 200},
 }
-
-
-def get_font(size: int = 16) -> ImageFont.ImageFont:
-    for path in (
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ):
-        if Path(path).exists():
-            return ImageFont.truetype(path, size)
-    return ImageFont.load_default()
-
-
-def add_header(
-    img_bgr: np.ndarray,
-    title: str,
-    subtitle: str = "",
-    subtitle2: str = "",
-) -> Image.Image:
-    pil = Image.fromarray(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
-    draw = ImageDraw.Draw(pil)
-    height, width = img_bgr.shape[:2]
-    font = get_font(max(16, height // 60))
-    font_sm = get_font(max(12, height // 80))
-    bar_h = 80 if subtitle2 else 60
-    draw.rectangle([0, 0, width, bar_h], fill="#222222")
-    draw.text((10, 5), title, fill="white", font=font)
-    if subtitle:
-        draw.text((10, 30), subtitle, fill="#AAAAAA", font=font_sm)
-    if subtitle2:
-        draw.text((10, 52), subtitle2, fill="#66BB6A", font=font_sm)
-    return pil
-
-
-def save_pil(pil_img: Image.Image, name: str, max_w: int = 1600) -> None:
-    if pil_img.width > max_w:
-        ratio = max_w / pil_img.width
-        pil_img = pil_img.resize(
-            (max_w, int(pil_img.height * ratio)),
-            Image.LANCZOS,
-        )
-    out_path = OUT_DIR / name
-    pil_img.save(out_path, quality=90)
-    print(f"  ✓ {name} ({pil_img.width}x{pil_img.height})")
 
 
 def run_ocr(image_path: Path) -> List[Dict[str, Any]]:
@@ -583,7 +542,13 @@ def run() -> None:
                 auxiliary_lines,
                 arrowheads,
             )
-            save_pil(pil, f"{name}_s01_arrows.jpg")
+            save_pil(
+                pil,
+                f"{name}_s01_arrows.jpg",
+                max_w=1600,
+                out_dir=OUT_DIR,
+                quality=90,
+            )
             continue
 
         all_pairs = match_arrowhead_pairs(arrowheads)
@@ -610,7 +575,13 @@ def run() -> None:
             name,
             gt,
         )
-        save_pil(pil, f"{name}_s01_cardinal.jpg")
+        save_pil(
+            pil,
+            f"{name}_s01_cardinal.jpg",
+            max_w=1600,
+            out_dir=OUT_DIR,
+            quality=90,
+        )
 
     print(f"\n완료: {OUT_DIR}")
 

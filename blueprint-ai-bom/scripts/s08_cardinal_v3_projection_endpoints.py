@@ -16,6 +16,13 @@ import cv2
 import numpy as np
 from PIL import Image
 
+from cardinal_common import (
+    build_auxiliary_lines,
+    build_circle_lines,
+    build_protrusion_lines,
+    collect_projection_data,
+    save_pil,
+)
 from s08_cardinal_v3_endpoint_lines import (
     ENDPOINT_TOLERANCE,
     detect_lsd_segments,
@@ -25,11 +32,6 @@ from s08_cardinal_v3_endpoint_lines import (
 from s08_cardinal_v3_fullpage import (
     GT,
     SRC_DIR,
-    build_auxiliary_lines,
-    build_circle_lines,
-    build_protrusion_lines,
-    collect_projection_data,
-    save_pil,
 )
 
 HORIZONTAL_COLOR = (255, 255, 0)
@@ -156,7 +158,12 @@ def run() -> None:
             auxiliary_lines,
             filtered_endpoints,
         )
-        save_pil(pil, f"{name}_projection_endpoints.jpg", max_w=MAX_OUTPUT_WIDTH)
+        save_pil(
+            pil,
+            f"{name}_projection_endpoints.jpg",
+            max_w=MAX_OUTPUT_WIDTH,
+            show_size=True,
+        )
 
         print(
             f"  투사선 {len(projection_lines)}개 | "
