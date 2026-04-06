@@ -32,8 +32,9 @@ from s08_cardinal_v3_fullpage import (
     draw_projection_lines_only,
 )
 
-SRC_DIR = Path("/home/uproot/ax/poc/blueprint-ai-bom/data/dse_batch_test/converted_pngs")
-OUT_DIR = Path("/home/uproot/ax/poc/docs-site-starlight/public/images/gt-validation/steps")
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = _REPO_ROOT / "blueprint-ai-bom" / "data" / "dse_batch_test" / "converted_pngs"
+OUT_DIR = _REPO_ROOT / "docs-site-starlight" / "public" / "images" / "gt-validation" / "steps"
 OUT_DIR.mkdir(exist_ok=True)
 
 OCR_API = "http://localhost:5006/api/v1/ocr"

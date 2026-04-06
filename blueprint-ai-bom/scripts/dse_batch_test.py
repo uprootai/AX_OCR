@@ -17,8 +17,8 @@ from datetime import datetime
 # Config
 BOM_API = "http://localhost:5020"
 PROJECT_ID = "b97237fd"
-PDF_ROOT = Path("/home/uproot/ax/poc/apply-company/dsebearing/PJT/04_부품도면")
-OUTPUT_DIR = Path("/home/uproot/ax/poc/blueprint-ai-bom/data/dse_batch_test")
+PDF_ROOT = Path(__file__).resolve().parents[2] / "apply-company" / "dsebearing" / "PJT" / "04_부품도면"
+OUTPUT_DIR = Path(__file__).resolve().parents[1] / "data" / "dse_batch_test"
 REPORT_PATH = OUTPUT_DIR / "experiment_report.md"
 PNG_DIR = OUTPUT_DIR / "converted_pngs"
 DPI = 200  # PNG conversion resolution

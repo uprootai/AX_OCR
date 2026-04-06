@@ -13,13 +13,13 @@ from datetime import datetime
 
 BOM_API = "http://localhost:5020"
 PROJECT_ID = "b97237fd"
-PNG_DIR = Path("/home/uproot/ax/poc/blueprint-ai-bom/data/dse_batch_test/converted_pngs")
-OUTPUT_DIR = Path("/home/uproot/ax/poc/blueprint-ai-bom/data/dse_batch_test")
+PNG_DIR = Path(__file__).resolve().parents[1] / "data" / "dse_batch_test" / "converted_pngs"
+OUTPUT_DIR = Path(__file__).resolve().parents[1] / "data" / "dse_batch_test"
 RESULTS_FILE = OUTPUT_DIR / "results.json"
 FEATURES = "dimension_ocr,table_extraction,bom_generation,title_block_ocr"
 
 # Map PNG stem to category and full name
-PDF_ROOT = Path("/home/uproot/ax/poc/apply-company/dsebearing/PJT/04_부품도면")
+PDF_ROOT = Path(__file__).resolve().parents[2] / "apply-company" / "dsebearing" / "PJT" / "04_부품도면"
 CATEGORIES = {
     "01_저널베어링": "Journal Bearing",
     "02_스러스트베어링": "Thrust Bearing",

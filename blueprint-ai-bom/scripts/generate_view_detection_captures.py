@@ -21,8 +21,8 @@ from services.dimension_ensemble import _auto_detect_section, _detect_drawing_vi
 import requests
 
 PADDLE_URL = "http://localhost:5006/api/v1/ocr"
-PDF_BASE = Path("/home/uproot/ax/poc/apply-company/dsebearing/PJT/04_부품도면")
-OUT_DIR = Path("/home/uproot/ax/poc/docs-site-starlight/public/images/gt-validation")
+PDF_BASE = Path(__file__).resolve().parents[2] / "apply-company" / "dsebearing" / "PJT" / "04_부품도면"
+OUT_DIR = Path(__file__).resolve().parents[2] / "docs-site-starlight" / "public" / "images" / "gt-validation"
 
 GT = {
     "TD0062015": {"name": "T1", "od": 360, "id": 190, "w": 200,

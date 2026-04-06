@@ -49,7 +49,7 @@ GT = {
                   "pdf": "02_스러스트베어링/TD0062055 Rev.A(THRUST BEARING ASSY(OD670XID440)).pdf"},
 }
 
-PDF_BASE = Path("/home/uproot/ax/poc/apply-company/dsebearing/PJT/04_부품도면")
+PDF_BASE = Path(__file__).resolve().parents[2] / "apply-company" / "dsebearing" / "PJT" / "04_부품도면"
 
 
 # ================================================================

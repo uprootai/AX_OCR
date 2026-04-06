@@ -10,7 +10,7 @@ import numpy as np
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-INPUT_DIR = Path("/home/uproot/ax/poc/docs-site-starlight/public/images/gt-validation")
+INPUT_DIR = Path(__file__).resolve().parents[2] / "docs-site-starlight" / "public" / "images" / "gt-validation"
 OUT_DIR = INPUT_DIR / "steps"
 OUT_DIR.mkdir(exist_ok=True)
 
