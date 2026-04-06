@@ -389,7 +389,8 @@ def scan_strip_dark_ratio(
             return 0.0
 
         strip = gray[y1 : y2 + 1, x1 : x2 + 1]
-        brightness_profile = np.mean(strip, axis=0)
+        # 각 x열에서 최소 밝기 = 가장 어두운 픽셀 (선이 1px이라도 있으면 잡힘)
+        min_profile = np.min(strip, axis=0)
     else:
         x_center = int(round(fixed_coord))
         y1 = max(0, int(round(min(start_coord, end_coord))))
@@ -400,11 +401,12 @@ def scan_strip_dark_ratio(
             return 0.0
 
         strip = gray[y1 : y2 + 1, x1 : x2 + 1]
-        brightness_profile = np.mean(strip, axis=1)
+        # 각 y행에서 최소 밝기
+        min_profile = np.min(strip, axis=1)
 
-    if brightness_profile.size == 0:
+    if min_profile.size == 0:
         return 0.0
-    return float(np.mean(brightness_profile < PIXEL_SCAN_DARK_THRESHOLD))
+    return float(np.mean(min_profile < PIXEL_SCAN_DARK_THRESHOLD))
 
 
 def build_pixel_connection(
